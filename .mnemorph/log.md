@@ -7519,3 +7519,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Done:** an optional number or bool written as a null in words is left out, as a JSON null is (a word that is no number is still refused); `index` reads a folder as its files and says so; a bench is told apart by the folder its command first moves to.
 - **Tests,** written first and seen to fail: `a_null_written_as_text_leaves_an_optional_number_at_its_default`, `index_reads_a_folder_as_its_files`, `a_check_in_another_folder_is_another_bench`.
 - **Not measured yet:** the chain run is run again on this build and the fixed bench seed.
+
+### [2026-11-14T08:00:00+00:00] aibo Summoner — 1.0.0 is cut
+- **Asked by** the owner: create version 1.0.0 and release it, if the work and the bench are satisfying.
+- **Judged satisfying:** M14's rungs are built (the release path, `install.sh`, the release-candidate smoke test, npm, the deck). The default mode is measured and competitive: 8 or 9 of 10 issue-style tasks on qwen (ahead of OpenCode and Maki on the same ten), 30 of 30 on the broad suite. The other two modes are labelled as asked-for, at a measured price. What a terse ask costs is said in the notes.
+- **Done:** `Cargo.toml` 1.0.0, the changelog's section dated 14 November with a paragraph on what to expect, its links pointed at the tag. Then `just rc-smoke`, the tag, the workflow's draft, checked before it is published.
+- **Still the owner's:** signed provenance (`MNEMORPH_ATTEST`), which my token cannot read or set.
