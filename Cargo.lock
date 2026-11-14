@@ -1567,7 +1567,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-config"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "mnemorph-ledger",
  "mnemorph-races",
@@ -1583,7 +1583,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-ledger"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "mnemorph-races",
  "proptest",
@@ -1596,7 +1596,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-loop"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "ignore",
  "mnemorph-config",
@@ -1620,7 +1620,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-memory"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "mnemorph-ledger",
  "mnemorph-sandbox",
@@ -1631,7 +1631,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-provider"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "bytes",
  "futures-util",
@@ -1646,7 +1646,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-proving"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "mnemorph-races",
  "mnemorph-wire",
@@ -1660,14 +1660,14 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-races"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "mnemorph-sandbox"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "landlock",
  "libc",
@@ -1677,7 +1677,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-server"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "form_urlencoded",
@@ -1700,7 +1700,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-tools"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "brush-parser",
  "globset",
@@ -1723,7 +1723,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-tui"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "base64 0.23.1",
  "image",
@@ -1747,7 +1747,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-wire"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "proptest",
  "serde_json",
@@ -1756,7 +1756,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorph-world"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "libc",
  "mnemorph-ledger",
@@ -1774,7 +1774,7 @@ dependencies = [
 
 [[package]]
 name = "mnemorphd"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "mnemorph-server",
  "serde_json",

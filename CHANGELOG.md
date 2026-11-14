@@ -11,9 +11,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
-The notes for 1.0.0, the first release, until it is cut: the Rust core, the `mnemorph` terminal
-app and `mnemorph run`, the `mnemorphd` server, the board and the admin commands, the TypeScript
-SDK, and the book. Grouped by the [roadmap](docs/roadmap.md)'s milestones.
+## [1.0.0] - 2026-11-14
+
+The first release: the Rust core, the `mnemorph` terminal app and `mnemorph run`, the
+`mnemorphd` server, the board and the admin commands, the TypeScript SDK, and the book. Grouped
+by the [roadmap](docs/roadmap.md)'s milestones.
+
+**What to expect, as measured on our own bench** (fixes in a large Python library, one small
+open model): light-coding, the default mode, passed 8 or 9 of 10 issue-style tasks (ahead of
+the two other harnesses run beside it) and 30 of 30 small projects asked as one. An ask with its examples and expected output does best: the same
+tasks stated in one paragraph of prose passed half as often. Structured-coding and
+collective-coding work, but cost several times more than light-coding on work that fits one
+context; they are for asking, not the default.
 
 ### M14 — 1.0
 
@@ -543,7 +552,8 @@ SDK, and the book. Grouped by the [roadmap](docs/roadmap.md)'s milestones.
 - The canvases: each page's sketches drawn by tldraw's Mermaid converter as `.tldr` documents and
   light and dark SVGs in the pages, every canvas checked for script and outside links [#311].
 
-[Unreleased]: https://github.com/Kaginari/mnemorph/commits/main
+[Unreleased]: https://github.com/Kaginari/mnemorph/compare/v1.0.0...main
+[1.0.0]: https://github.com/Kaginari/mnemorph/releases/tag/v1.0.0
 [#31]: https://github.com/Kaginari/mnemorph/pull/31
 [#32]: https://github.com/Kaginari/mnemorph/pull/32
 [#33]: https://github.com/Kaginari/mnemorph/pull/33
