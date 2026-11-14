@@ -7525,3 +7525,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Judged satisfying:** M14's rungs are built (the release path, `install.sh`, the release-candidate smoke test, npm, the deck). The default mode is measured and competitive: 8 or 9 of 10 issue-style tasks on qwen (ahead of OpenCode and Maki on the same ten), 30 of 30 on the broad suite. The other two modes are labelled as asked-for, at a measured price. What a terse ask costs is said in the notes.
 - **Done:** `Cargo.toml` 1.0.0, the changelog's section dated 14 November with a paragraph on what to expect, its links pointed at the tag. Then `just rc-smoke`, the tag, the workflow's draft, checked before it is published.
 - **Still the owner's:** signed provenance (`MNEMORPH_ATTEST`), which my token cannot read or set.
+
+### [2026-11-14T09:10:00+00:00] aibo Summoner — the first 1.0.0 release run failed on its own installer test, on ARM
+- **What happened:** the tag `v1.0.0` started the release workflow. The ARM Linux build failed its installer test; the macOS builds were cancelled by it; nothing was drafted and nothing reached users.
+- **Why:** the test's "every supported machine gets its own build" loop covers ARM Linux and expects the fake archive's `mnemorph 1.2.3 (aarch64…)`. On an ARM runner the host's archive is the real build, which prints `mnemorph 1.0.0`. The install itself verified, installed and ran. No release had been built on ARM Linux before, so the check had never met its host there.
+- **Reproduced** on this x86 machine with `uname` reporting aarch64 and the release build packaged as the ARM archive: the same two failures. **Fixed:** the host's own archive, when real, may print the real build's version line, as the fresh-install check already allows. Passes as ARM with a real archive, as x86 with one, and with none.
+- **Next:** the tag is deleted and set again on the merged fix, as `docs/releasing.md` says for a run that published nothing.
