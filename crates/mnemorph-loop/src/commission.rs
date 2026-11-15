@@ -646,10 +646,17 @@ When the work is done, answer without calling a tool, on the wire, one tag per l
         race = c.race.name(),
         // The collective's card says the board in its own words.
         board = if collective { "" } else { BOARD_SAID },
+        // The path said, not left to the name: an Elf told "your own seat's plan.md" wrote its
+        // plan to `.mnemorph/elf-e/plan.md` and two other guesses, and the harness, which reads
+        // the seat, found none of its items.
         card = if collective {
-            crate::collective::card(c.race)
+            crate::collective::card(c.race).to_owned()
         } else {
-            race_card(c.race)
+            format!(
+                "{} Your seat's plan.md is `{}`.",
+                race_card(c.race),
+                std::path::Path::new(&c.seat).join("plan.md").display()
+            )
         },
     );
     if law.on() {

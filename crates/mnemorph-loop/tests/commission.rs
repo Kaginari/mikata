@@ -2385,6 +2385,10 @@ async fn a_part_the_harness_starts_carries_only_its_own_lines() {
         elf.contains("`- [ ] orc-a: <its part> | D1, D3`"),
         "the Elf is told to name each item's lines: {elf}"
     );
+    assert!(
+        elf.contains("Your seat's plan.md is `.mnemorph/elf/e/plan.md`."),
+        "and where its plan is: {elf}"
+    );
 }
 
 /// An Orc codes checks only for the lines its brief carries: a check named for another part's
