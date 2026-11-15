@@ -7531,3 +7531,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Why:** the test's "every supported machine gets its own build" loop covers ARM Linux and expects the fake archive's `mnemorph 1.2.3 (aarch64…)`. On an ARM runner the host's archive is the real build, which prints `mnemorph 1.0.0`. The install itself verified, installed and ran. No release had been built on ARM Linux before, so the check had never met its host there.
 - **Reproduced** on this x86 machine with `uname` reporting aarch64 and the release build packaged as the ARM archive: the same two failures. **Fixed:** the host's own archive, when real, may print the real build's version line, as the fresh-install check already allows. Passes as ARM with a real archive, as x86 with one, and with none.
 - **Next:** the tag is deleted and set again on the merged fix, as `docs/releasing.md` says for a run that published nothing.
+
+### [2026-11-15T10:05:00+00:00] aibo Summoner — the second 1.0.0 release run: the macOS runner it pinned is gone
+- **What happened:** with the installer test fixed (#430), both Linux builds passed, ARM included. The two macOS builds never started: "The configuration 'macos-14-arm64-us-default' is not supported". Nothing was drafted.
+- **Why:** GitHub retired the `macos-14` image the release workflow pinned. CI's `macos-latest` runs on `macos-26` (arm64) and passes, which is why no check saw it.
+- **Done:** the release's two macOS builds run on `macos-26`; the Intel one is still cross-built. `docs/releasing.md` says so.
+- **Learned:** a pinned runner image dies quietly between releases. The weekly `rc-smoke` run should build one macOS archive too, so a retired image shows up before a tag does; not done here.
