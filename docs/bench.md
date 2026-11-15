@@ -31,7 +31,9 @@ task once per harness, November 2026:
   and expected output, 4 of 8 as one paragraph of prose, at the same price. Without examples the
   model checks against its own reading, and a wrong reading passes its own checks.
 - **The other two modes have not paid yet.** Measured against light-coding at each step, both the
-  chain and the collective cost several times more for fewer passes. They are
+  chain and the collective cost several times more, for fewer passes until the last screen: on
+  five whole repositories at once the chain did a little more than light-coding as shipped, less
+  than one body given more steps, at four times the price. They are
   [experimental](experimental-modes.md), and the page says why.
 
 ## Technical detail
@@ -88,6 +90,7 @@ Each mode against light-coding, on the same tasks, same model and host:
 | Two-part fix, after the chain's fixes | pass, 6 min, $0.32 | half done at the 45-minute clock, $1.99 | — |
 | Thirty small projects | 30 of 30, $0.10 | 28 of 30, 7.5 min, $0.33 | — |
 | Five whole repositories | 2.5 of 5 on average, 12 min, $0.75 | 2 of 5, 90 min, $4.37 | — |
+| Five whole repositories, the harness fanning out | 2.5 of 5 (3.5 with 400 steps) | 2 and 4 of 5, 63 and 22 min, $3.90 a run | — |
 
 The bench's own reports name the modes `solo`, `hierarchy` and `collective`, the names they had
 when they ran. Why they lose, and what we are building next, is on

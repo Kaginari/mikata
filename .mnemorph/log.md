@@ -7544,3 +7544,12 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Why:** GitHub retired the `macos-14` image the release workflow pinned. CI's `macos-latest` runs on `macos-26` (arm64) and passes, which is why no check saw it.
 - **Done:** the release's two macOS builds run on `macos-26`; the Intel one is still cross-built. `docs/releasing.md` says so.
 - **Learned:** a pinned runner image dies quietly between releases. The weekly `rc-smoke` run should build one macOS archive too, so a retired image shows up before a tag does; not done here.
+
+### [2026-11-15T17:45:00+00:00] aibo Summoner — the harness fans out; the chain goes from 2 to 3 of 5
+- **Asked by** the owner: fix the chain so we test again. The fix, PR #433: when an Elf orders, the harness also starts every other Orc its open plan items name, at once, each item once per Elf body. Before it, across 15 turns that ordered work, the Elf never ordered more than one Orc, though its card says orders in one turn run at once.
+- **Bar first,** in the bench's `design/step21-deep-work.md` (step 21b): two structured-coding runs, same task, model, host and limits as step 21.
+- **The lever fired** in both: all five Orcs started within a second of the Elf's first order.
+- **Result:** 2 of 5 in 63.5 minutes for $4.94, then 4 of 5 in 22.5 minutes for $2.86. Before the fix: 2 of 5 in 90 minutes. Light-coding as shipped: 2.5 on average; with 400 steps: 3.5.
+- **By the bar:** half met. The mean, 3.0, is above light-coding as shipped; the first run took more than the bar's 60 minutes; neither reached the single body given room.
+- **What the misses are:** wrong code in a part, not hand-offs. Project 1 failed in both runs; project 4, which one body missed in 3 of 4 runs, passed in both.
+- **Spent:** $7.79.

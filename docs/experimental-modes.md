@@ -54,10 +54,12 @@ They share the work board (`.mnemorph/tmp/board.md`), carry the same "done" list
 one mark per line, read from the checks, never from what a body claimed. It is the most
 interesting thing in the harness, and the most expensive.
 
-**What it costs today.** On every bench screen so far, light-coding did as much or more for a
-fraction of the price ([the numbers](bench.md#the-modes-against-each-other)). The latest, asked to
-fix five whole repositories at once: light-coding 2.5 of 5 on average in 12 minutes for $0.75;
-structured-coding 2 of 5 in 90 minutes for $4.37.
+**What it costs today.** On every bench screen but the last, light-coding did as much or more for
+a fraction of the price ([the numbers](bench.md#the-modes-against-each-other)). The last, asked to
+fix five whole repositories at once, once the harness fanned the Elf's plan out: structured-coding
+2 and 4 of 5 (22 and 63 minutes, $3.90 a run on average); light-coding as shipped 3 and 2 of 5
+(about 12 minutes, $0.75), and with 400 steps 4 and 3 of 5 (about $1). More than the default, less
+than one body given room, at about four times the price.
 
 **Why, as measured.** Each screen found a different cause, and each one we could fix is fixed:
 
@@ -66,12 +68,17 @@ structured-coding 2 of 5 in 90 minutes for $4.37.
 | Multi-part fixes | every body re-read the same files, cold | the work board, carried in every brief |
 | A two-part fix | a part could not land until the whole ask passed, so no part ever landed | fixed in the gate: a named line red before the landing stays open, the part lands |
 | Thirty small projects | tool frictions (a textual null, a folder given to `index`, checks lumped as one bench) | fixed; 28 of 30 since |
-| Five whole repositories | the Elf planned all five, then handed out **one at a time** | next |
+| Five whole repositories | the Elf planned all five, then handed out **one at a time**: 2 of 5 in 90 minutes | the harness starts the plan's other parts with the Elf's order (PR #433): all five Orcs at once, 2 and 4 of 5 since |
 
-**What is next: the harness fans out, not the model.** The chain has five minds and used one: a
-model asked to plan work in parallel still hands it out in order. When an Elf's plan holds items
-for different Orcs with no contract between them, the harness will start them together. It will
-be measured on the same five-repository task before anything else is said about the chain.
+**The harness fans out, not the model.** The chain had five minds and used one: a model told to
+order independent parts in one turn still handed them out in order. Now, when an Elf orders, the
+harness starts every other Orc its open plan items name, at once, each item once. Measured on the
+same task: all five Orcs started within a second, in both runs.
+
+**What is next: quality per part.** The misses since are wrong code, not hand-offs: a parser
+reading a keyword as a table, an argument a class does not take. Five bodies make the same
+misreadings one body makes. And two runs of the same build differed by two parts and forty
+minutes, so two runs do not yet separate the chain from one body given more steps.
 
 ### Collective-coding: the research mode
 

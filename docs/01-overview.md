@@ -155,9 +155,10 @@ journal `log.md`, the ledgers. Sessions forget; the world remembers.
   `… no Elf reports to the Summoner in this world; 9 cards here are not adopted yet …`.
 
 **Start with light-coding.** It is the mode the measurements favour. On every screen of our bench
-so far, it did as much as the other two modes or more, for a fraction of the price: the latest,
-five whole repositories in one ask, light-coding fixed 2.5 of 5 on average in 12 minutes for
-$0.75, structured-coding 2 of 5 in 90 minutes for $4.37. Every screen, and why the other two lose:
+but the last, it did as much as the other two modes or more, for a fraction of the price. The
+last, five whole repositories in one ask: light-coding fixed 2.5 of 5 on average in 12 minutes
+for $0.75, and 3.5 with more steps for about $1; structured-coding, once the harness fanned its
+plan out, 3 of 5 on average for $3.90. Every screen, and why the other two lose:
 [the bench](bench.md#the-modes-against-each-other) and [experimental
 modes](experimental-modes.md).
 
