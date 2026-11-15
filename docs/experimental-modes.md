@@ -54,10 +54,10 @@ They share the work board (`.mnemorph/tmp/board.md`), carry the same "done" list
 one mark per line, read from the checks, never from what a body claimed. It is the most
 interesting thing in the harness, and the most expensive.
 
-**What it costs today.** On every bench screen but the last, light-coding did as much or more for
-a fraction of the price ([the numbers](bench.md#the-modes-against-each-other)). The last, asked to
-fix five whole repositories at once, once the harness fanned the Elf's plan out: structured-coding
-2 and 4 of 5 (22 and 63 minutes, $3.90 a run on average); light-coding as shipped 3 and 2 of 5
+**What it costs today.** Counted only after the fix each screen called for, light-coding did as
+much or more for a fraction of the price on work that fits one context
+([the numbers](bench.md#the-modes-against-each-other)). Asked to fix five whole repositories at
+once: structured-coding 2 and 4 of 5 (22 and 63 minutes, $3.90 a run on average); light-coding as shipped 3 and 2 of 5
 (about 12 minutes, $0.75), and with 400 steps 4 and 3 of 5 (about $1). More than the default, less
 than one body given room, at about four times the price.
 
@@ -65,10 +65,10 @@ than one body given room, at about four times the price.
 
 | Screen | What held the chain back | Status |
 |---|---|---|
-| Multi-part fixes | every body re-read the same files, cold | the work board, carried in every brief |
+| Multi-part fixes | every body re-read the same files, cold | the work board, carried in every brief; not measured since |
 | A two-part fix | a part could not land until the whole ask passed, so no part ever landed | fixed in the gate: a named line red before the landing stays open, the part lands |
 | Thirty small projects | tool frictions (a textual null, a folder given to `index`, checks lumped as one bench) | fixed; 28 of 30 since |
-| Five whole repositories | the Elf planned all five, then handed out **one at a time**: 2 of 5 in 90 minutes | the harness starts the plan's other parts with the Elf's order (PR #433): all five Orcs at once, 2 and 4 of 5 since |
+| Five whole repositories | the Elf planned all five, then handed out **one at a time** | the harness starts the plan's other parts with the Elf's order (PR #433): all five Orcs at once, 2 and 4 of 5 since |
 
 **The harness fans out, not the model.** The chain had five minds and used one: a model told to
 order independent parts in one turn still handed them out in order. Now, when an Elf orders, the

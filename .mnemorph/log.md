@@ -7553,3 +7553,8 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **By the bar:** half met. The mean, 3.0, is above light-coding as shipped; the first run took more than the bar's 60 minutes; neither reached the single body given room.
 - **What the misses are:** wrong code in a part, not hand-offs. Project 1 failed in both runs; project 4, which one body missed in 3 of 4 runs, passed in both.
 - **Spent:** $7.79.
+
+### [2026-11-15T18:30:00+00:00] aibo Summoner — the chain is counted only after its fixes
+- **Asked by** the owner: "dont count runs before fix on chain". A run that hit a failure since fixed measured the failure, not the mode.
+- **Correction to the entry above:** its headline "from 2 to 3 of 5" counts the run before the fan-out. The chain's five-repository result is 3 of 5 on average (2 and 4), nothing before it.
+- **The docs now follow the rule:** the five-repository run before the fan-out (2 of 5) and the multi-part run before the work board and the gate fix (1 of 3) are out of the bench table, the experimental-modes page and the roadmap. The chain has not been run on multi-part fixes since; the table says so. The collective's numbers stay.
