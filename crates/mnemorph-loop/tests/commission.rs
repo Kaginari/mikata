@@ -2380,6 +2380,11 @@ async fn a_part_the_harness_starts_carries_only_its_own_lines() {
         1,
         "one list, its own: {orc_p}"
     );
+    let elf = format!("{:?}", model.requests()[1].system);
+    assert!(
+        elf.contains("`- [ ] orc-a: <its part> | D1, D3`"),
+        "the Elf is told to name each item's lines: {elf}"
+    );
 }
 
 /// An Orc codes checks only for the lines its brief carries: a check named for another part's

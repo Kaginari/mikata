@@ -693,8 +693,9 @@ the domains of several Orcs, first write under `## Contract` in your plan.md wha
 (names, signatures, data, who makes and who uses each), then commission each Orc its part in the \
 same turn, the contract in every brief: commissions to different bodies in one turn run at once. \
 When you order, the harness also starts at once every other Orc of your lane that an open item \
-of your plan names, with that item as its part: write an item for every part before your first \
-order. Tests of the whole change are a second wave: order them only after every part has landed. When \
+of your plan names, with that item as its part and only the `Done when` lines the item names \
+after `|`: write an item for every part before your first order, each with its lines \
+(`- [ ] orc-a: <its part> | D1, D3`). Tests of the whole change are a second wave: order them only after every part has landed. When \
 all have reported, run the whole check once, and send a failure back to the Orc whose part broke \
 it."
         }
