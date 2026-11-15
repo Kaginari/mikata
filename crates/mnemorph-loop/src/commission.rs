@@ -591,7 +591,6 @@ pub(crate) fn by_domain(
         .next()
         .and_then(|a| a.split(crate::lines::BRIEF_HEAD).next())
         .unwrap_or(asked);
-    let named = |d: &str| ask.contains(&format!("{d}/")) || ask.contains(&format!("`{d}`"));
     let mut out = Vec::new();
     for (name, c) in &roster.creatures {
         if c.race.base() != Race::Orc || c.reports_to.as_deref() != Some(parent.name.as_str()) {
@@ -603,12 +602,12 @@ pub(crate) fn by_domain(
             .map(|d| d.trim().trim_end_matches('/'))
             .filter(|d| !d.is_empty() && *d != ".")
             .collect();
-        if dirs.is_empty() || !dirs.iter().any(|d| named(d)) {
+        if dirs.is_empty() || !dirs.iter().any(|d| names_dir(ask, d)) {
             continue;
         }
         let lines: Vec<&str> = carried
             .iter()
-            .filter(|(_, text)| dirs.iter().any(|d| text.contains(d)))
+            .filter(|(_, text)| dirs.iter().any(|d| names_dir(text, d)))
             .map(|(n, _)| n.as_str())
             .collect();
         let domain = c.domain.join(", ");
@@ -627,6 +626,16 @@ pub(crate) fn by_domain(
         return Vec::new();
     }
     out
+}
+
+/// Whether `text` names the folder `dir` as a word: `03-alter`, `03-alter/` or `(03-alter)`, and
+/// not `03-alter-drop` or `src` inside `source`. The Summoner wrote one ask's folders as
+/// `**Problem 3 (03-alter-drop-multiple-columns):**`.
+fn names_dir(text: &str, dir: &str) -> bool {
+    let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '-');
+    text.match_indices(dir).any(|(i, _)| {
+        !word(text[..i].chars().next_back()) && !word(text[i + dir.len()..].chars().next())
+    })
 }
 
 /// The text under `heading` in a markdown page, to the next heading of its level or above, or the
@@ -2520,6 +2529,18 @@ mod clock_tests {
 #[cfg(test)]
 mod write_rule_tests {
     use super::*;
+
+    #[test]
+    fn a_folder_is_named_as_a_word() {
+        let d = "03-alter-drop";
+        assert!(names_dir("**Problem 3 (03-alter-drop):**", d));
+        assert!(names_dir("in `03-alter-drop/`", d));
+        assert!(names_dir("03-alter-drop", d));
+        assert!(!names_dir("03-alter-drop-multiple", d));
+        assert!(!names_dir("x03-alter-drop", d));
+        assert!(!names_dir("the source tree", "src"));
+        assert!(names_dir("leave src/done.txt", "src"));
+    }
 
     /// M8's exit run of the write rule, through what the loop runs after every child's landing —
     /// `checked_proof` over the gate's verdict, then `remember` over the child's report. It drives
