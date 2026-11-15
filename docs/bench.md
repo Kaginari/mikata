@@ -30,10 +30,11 @@ task once per harness, November 2026:
 - **Asks with examples pass twice as often.** The same four tasks: 4 of 4 with the ask's examples
   and expected output, 4 of 8 as one paragraph of prose, at the same price. Without examples the
   model checks against its own reading, and a wrong reading passes its own checks.
-- **The other two modes have not paid yet.** Measured against light-coding at each step, both the
-  chain and the collective cost several times more, for fewer passes until the last screen: on
-  five whole repositories at once the chain did a little more than light-coding as shipped, less
-  than one body given more steps, at four times the price. They are
+- **The other two modes have not paid yet.** The collective cost several times more for fewer
+  passes. The chain, counted only after the fix each screen called for, did less than
+  light-coding on work that fits one context, and on five whole repositories at once a little
+  more than light-coding as shipped, less than one body given more steps, at four times the
+  price. They are
   [experimental](experimental-modes.md), and the page says why.
 
 ## Technical detail
@@ -81,16 +82,16 @@ case should change when the ask says it must stay.
 
 ### The modes against each other
 
-Each mode against light-coding, on the same tasks, same model and host:
+Each mode against light-coding, on the same tasks, same model and host. Structured-coding counts
+only runs made after the fix its screen called for; a run that hit a since-fixed failure measured
+the failure, not the mode:
 
 | Work | Light-coding | Structured-coding | Collective-coding |
 |---|---|---|---|
-| Multi-part fixes (composite) | 3 of 5, $0.63 | 1 of 3, $1.92 | — |
-| Multi-part fixes (composite) | 3 of 8, $0.62 | — | 1 of 4, $2.02 |
+| Multi-part fixes (composite) | 3 of 8, $0.62 | not run since the work board and the gate fix | 1 of 4, $2.02 |
 | Two-part fix, after the chain's fixes | pass, 6 min, $0.32 | half done at the 45-minute clock, $1.99 | — |
-| Thirty small projects | 30 of 30, $0.10 | 28 of 30, 7.5 min, $0.33 | — |
-| Five whole repositories | 2.5 of 5 on average, 12 min, $0.75 | 2 of 5, 90 min, $4.37 | — |
-| Five whole repositories, the harness fanning out | 2.5 of 5 (3.5 with 400 steps) | 2 and 4 of 5, 63 and 22 min, $3.90 a run | — |
+| Thirty small projects, after the tool fixes | 30 of 30, $0.10 | 28 of 30, 7.5 min, $0.33 | — |
+| Five whole repositories, after the fan-out | 2.5 of 5 on average, 12 min, $0.75 (3.5 with 400 steps, about $1) | 3 of 5 on average (2 and 4), 22 and 63 min, $3.90 a run | — |
 
 The bench's own reports name the modes `solo`, `hierarchy` and `collective`, the names they had
 when they ran. Why they lose, and what we are building next, is on
