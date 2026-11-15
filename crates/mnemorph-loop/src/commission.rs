@@ -507,8 +507,8 @@ fn open_items(world: &Path, roster: &Roster, name: &str) -> Vec<String> {
 /// that an open item of its plan names, not ordered this turn and not started this way before
 /// (`started`, by item). A model told to order independent parts in one turn still hands them out
 /// one at a time; the parts its own plan holds run at once. Each order is `(item, input)`: the
-/// item's work, the plan's `## Contract` and the Elf's own ask, and the `Done when` lines the item
-/// names after its `|`.
+/// item's work, the plan's `## Contract` and the Elf's own ask without the lines its order carried,
+/// and the `Done when` lines the item names after its `|`: a part is told its own lines only.
 pub(crate) fn fan_out(
     world: &Path,
     parent: &Body,
@@ -558,7 +558,11 @@ pub(crate) fn fan_out(
         let _ = write!(
             ask,
             "\n\nThe lane as your Elf was asked it, for context: do only your part.\n\n{}",
-            asked.split(OPEN_PLAN).next().unwrap_or(asked)
+            asked
+                .split(OPEN_PLAN)
+                .next()
+                .and_then(|a| a.split(crate::lines::BRIEF_HEAD).next())
+                .unwrap_or(asked)
         );
         let input = json!({"to": to, "ask": ask, "lines": lines}).to_string();
         out.push((item, input));

@@ -85,6 +85,10 @@ pub fn pick(names: &[String], list: &[Line]) -> (Vec<Line>, Vec<String>) {
     (found, missing)
 }
 
+/// Where a brief's lines begin ([`brief`]): what comes after it is the order's own list.
+pub const BRIEF_HEAD: &str =
+    "\n\nDone when: the lines of your dispatcher's list this order must make true.";
+
 /// The brief's part for its lines: their text, each on its own line, and the names not found.
 #[must_use]
 pub fn brief(found: &[Line], missing: &[String]) -> String {
@@ -92,9 +96,9 @@ pub fn brief(found: &[Line], missing: &[String]) -> String {
     if found.is_empty() && missing.is_empty() {
         return String::new();
     }
-    let mut out = String::from(
-        "\n\nDone when: the lines of your dispatcher's list this order must make true. Answer `@V \
-<line> <what you ran and what it gave>` for each; the mark is the checks', not yours.",
+    let mut out = format!(
+        "{BRIEF_HEAD} Answer `@V <line> <what you ran and what it gave>` for each; the mark is the \
+checks', not yours."
     );
     for (name, text) in found {
         let _ = write!(out, "\n- {name}: {text}");

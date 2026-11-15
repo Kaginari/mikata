@@ -2323,6 +2323,113 @@ async fn an_elfs_plan_items_for_other_orcs_start_with_its_order() {
     assert!(elf_after.contains("[2 orders ran at once"), "{elf_after}");
 }
 
+/// A part the harness starts carries its own lines, not its Elf's whole list. The Elf's ask
+/// rode along as context with the list its order carried, under "the lines this order must make
+/// true": in a kept run of five projects every Orc was told all 31 lines, coded checks for the
+/// other projects' lines, ran them in its own project's folder, and reported them passed.
+#[tokio::test]
+async fn a_part_the_harness_starts_carries_only_its_own_lines() {
+    let w = World::new("fan-out-lines");
+    summoner_list(&w);
+    w.doc(
+        "elf",
+        "e",
+        "# elf-e\n\n- **Race:** elf\n- **Reports to:** summoner\n- **Territory:** src/, lib/\n",
+    );
+    w.doc(
+        "orc",
+        "p",
+        "# orc-p\n\n- **Race:** orc\n- **Reports to:** elf-e\n- **Domain:** lib/\n",
+    );
+    fs::write(
+        w.0.join(".mnemorph/elf/e/plan.md"),
+        "- [ ] orc-o: the marker | D1\n- [ ] orc-p: keep lib | D3\n",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::tool(
+            "c1",
+            "commission",
+            json!({"to": "elf-e", "ask": "the marker", "lines": ["D1", "D3"]}),
+        ),
+        ScriptedModel::tool(
+            "c2",
+            "commission",
+            json!({"to": "orc-o", "ask": "the marker", "lines": ["D1"]}),
+        ),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("Done."),
+    ]));
+    let mut run = w.summoner(model.clone());
+    let ending = run.ask("leave a marker", &mut |_| {}).await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let orc_p = model.requests()[2..4]
+        .iter()
+        .map(|r| format!("{:?}", r.messages))
+        .find(|m| m.contains("started by the harness"))
+        .expect("orc-p was started by the harness");
+    assert!(orc_p.contains("D3: keep: lib/ unchanged"), "{orc_p}");
+    assert!(
+        !orc_p.contains("D1: src/done.txt"),
+        "another part's line is not this part's: {orc_p}"
+    );
+    assert_eq!(
+        orc_p.matches("Done when: the lines").count(),
+        1,
+        "one list, its own: {orc_p}"
+    );
+}
+
+/// An Orc codes checks only for the lines its brief carries: a check named for another part's
+/// line is refused. In the same kept run, Orcs coded checks for lines of projects that were not
+/// theirs, and those checks reported the projects done when they were not.
+#[tokio::test]
+async fn an_orc_cannot_code_a_check_for_a_line_it_was_not_given() {
+    let w = World::new("verify-not-mine");
+    summoner_list(&w);
+    fs::write(w.0.join(".mnemorph/elf/e/plan.md"), "").unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::tool(
+            "c1",
+            "commission",
+            json!({"to": "elf-e", "ask": "the marker", "lines": ["D1", "D2"]}),
+        ),
+        ScriptedModel::tool(
+            "c2",
+            "commission",
+            json!({"to": "orc-o", "ask": "the marker", "plan_item": "the marker", "lines": ["D1"]}),
+        ),
+        ScriptedModel::tool(
+            "v1",
+            "verify",
+            json!({"to": "slime-s", "command": "test -f src/other.txt", "line": "D2"}),
+        ),
+        ScriptedModel::tool(
+            "v2",
+            "verify",
+            json!({"to": "slime-s", "command": "test -f src/done.txt", "line": "D1"}),
+        ),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("Done."),
+    ]));
+    let mut run = w.summoner(model.clone());
+    run.ask("leave a marker", &mut |_| {}).await;
+    let seen = format!("{:?}", model.requests());
+    assert!(
+        seen.contains("refused: D2 is not on your brief's `Done when` list"),
+        "{seen}"
+    );
+    let roster = mnemorph_loop::world::Roster::load(&w.0);
+    let coded = &roster.creatures["slime-s"].verify;
+    assert!(
+        coded.iter().any(|l| l.ends_with("# D1")) && !coded.iter().any(|l| l.contains("# D2")),
+        "only the line it was given is coded: {coded:?}"
+    );
+}
+
 /// The harness starts a plan item once: an Elf that orders again does not start it again.
 #[tokio::test]
 async fn the_harness_starts_a_plan_item_once() {

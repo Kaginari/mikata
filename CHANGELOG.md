@@ -19,6 +19,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   and its report comes back on the Elf's own order. Measured before: told to order independent
   parts in one turn, the Elf handed five projects out one at a time and never reached three of
   them.
+- **A part is told its own lines only.** A part the harness starts no longer carries its Elf's whole
+  `Done when` list as context, and an Orc's `verify` refuses a line name its brief does not carry.
+  Measured before: in a five-project run every Orc the harness started was told all 31 lines, coded
+  checks for other projects' lines, ran them in its own project's folder, and reported one unfixed
+  project done.
 
 ## [1.0.0] - 2026-11-14
 
