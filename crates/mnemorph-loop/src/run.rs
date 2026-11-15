@@ -432,6 +432,8 @@ pub struct Run {
     challenged: Vec<String>,
     /// The plan items the harness started at once with this body's own orders: each once.
     fanned: std::collections::BTreeSet<String>,
+    /// The Orcs the harness handed this Elf's lane out to, by domain ([`Run::by_domain`]).
+    routed: std::collections::BTreeSet<String>,
 }
 
 /// How a pass stands on its challenge.
@@ -556,6 +558,7 @@ impl Run {
             reserve: None,
             challenged: Vec::new(),
             fanned: std::collections::BTreeSet::new(),
+            routed: std::collections::BTreeSet::new(),
         }
     }
 
@@ -1580,6 +1583,8 @@ impl Run {
         self.cx
             .set_deadline(Some(self.started + self.limits.deadline));
         self.cx.set_pace(self.pace());
+        // An Elf whose ask names its Orcs' domains has its lane handed out before its first turn.
+        self.by_domain().await;
         // Only an Esc fired during this ask counts; a line sent to a turn that ended is not this
         // ask's to read. A commissioned body shares its dispatcher's flag: an Esc fired while the
         // commission was being prepared is this ask's.
@@ -3500,6 +3505,71 @@ impl Run {
         }
     }
 
+    /// The lane's parts by domain ([`crate::commission::by_domain`]), started at once before the
+    /// Elf's first turn, their reports added to the ask it reads; nothing when the ask names
+    /// fewer than two of its Orcs' domains. Once handed out, its plan items are not fanned out.
+    fn by_domain(
+        &mut self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
+        Box::pin(async move {
+            let Some(c) = self.commissioner.clone() else {
+                return;
+            };
+            if !self.routed.is_empty() || c.collective {
+                return;
+            }
+            let inputs =
+                crate::commission::by_domain(&c.world, &self.body, &self.asked, self.cx.done());
+            if inputs.is_empty() {
+                return;
+            }
+            self.routed = inputs
+                .iter()
+                .filter_map(|i| serde_json::from_str::<serde_json::Value>(i).ok())
+                .filter_map(|v| v.get("to").and_then(|t| t.as_str()).map(str::to_owned))
+                .collect();
+            let (left, cap) = self.budget();
+            let share = left.map(|l| l / inputs.len() as u64);
+            let interrupt = Arc::clone(&self.interrupt);
+            let orders: Vec<crate::commission::Order> = {
+                let (body, cx) = (&self.body, &self.cx);
+                all(inputs
+                    .iter()
+                    .map(|input| {
+                        Box::pin(crate::commission::order(
+                            &c,
+                            body,
+                            (share, cap),
+                            cx,
+                            &interrupt,
+                            input,
+                        ))
+                            as std::pin::Pin<Box<dyn std::future::Future<Output = _> + Send + '_>>
+                    })
+                    .collect())
+                .await
+            };
+            let mut out = format!(
+                "[started by the harness by domain, before your first turn, at once: {} parts of \
+                 your lane, each Orc on its own domain. Do not hand them out again: read their \
+                 reports, run the whole check once, send a failure back to the Orc whose part \
+                 broke it, and order only what no part covers]",
+                orders.len()
+            );
+            for order in orders {
+                let outcome = self.settle(order);
+                let _ = write!(out, "\n\n{}", outcome.content);
+            }
+            push_user(
+                &mut self.messages,
+                vec![Block::Text {
+                    text: out,
+                    cache: false,
+                }],
+            );
+        })
+    }
+
     /// Commissions to different bodies in one turn, run at once: an Elf's Orcs work their domains
     /// side by side. Each takes an even share of what is left to carve; their results are settled
     /// in the order they were asked. Empty unless two or more distinct bodies are ordered.
@@ -3540,8 +3610,9 @@ impl Run {
                     picked.push((Some(id.as_str()), input.clone()));
                 }
             }
-            // An Elf that orders starts its plan's other parts with it: the harness fans out.
-            if !picked.is_empty() {
+            // An Elf that orders starts its plan's other parts with it: the harness fans out,
+            // unless it handed the lane out by domain already.
+            if !picked.is_empty() && self.routed.is_empty() {
                 for (item, input) in crate::commission::fan_out(
                     &c.world,
                     &self.body,

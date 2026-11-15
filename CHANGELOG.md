@@ -24,6 +24,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   Measured before: in a five-project run every Orc the harness started was told all 31 lines, coded
   checks for other projects' lines, ran them in its own project's folder, and reported one unfixed
   project done.
+- **Structured-coding hands a lane out by domain.** When an Elf's ask names the domains of two or
+  more of its Orcs, the harness starts each of them before the Elf's first turn, at once, on the
+  ask's work in its own domain and the `Done when` lines that name it; the Elf reads their reports
+  and sends failures back. Measured before: on five projects, one Orc a folder, four runs broke on
+  four different plans by the Elf.
 
 ## [1.0.0] - 2026-11-14
 
