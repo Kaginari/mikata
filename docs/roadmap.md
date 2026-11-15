@@ -243,6 +243,11 @@ Structured-coding was measured again once its gates stopped refusing a part for 
 needs another part too: its bodies land their parts now, and it is still about seven times
 slower than light-coding on work that fits one context. And light-coding was measured on asks
 with no examples: half the passes of the same asks with them (4 of 8 against 4 of 4).
+On work wider than one task, light-coding fixed 30 of 30 small projects in one ask, and the
+chain 28 of 30 at three times the price. On five whole repositories in one ask, more than one
+body's steps, light-coding fixed 2.5 of 5 on average and the chain 2 of 5 at six times the price:
+its Elf handed out one project at a time. The next rung for the chain is the harness starting
+independent plan items together ([experimental modes](experimental-modes.md)).
 
 **Exit:** the full "one order, down and back" sequence runs with scripted bodies and passes its
 gate; every refusal names its lawful route; a creature claiming `.mnemorph` owns none of the seats,

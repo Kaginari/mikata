@@ -49,7 +49,9 @@ source outside the file, `<foreignObject>`, embed or media there.
 
 | # | Page | Read it to learn |
 |---|---|---|
-| 1 | [Overview](01-overview.md) | what Mnemorph is, the three modes and which to use, the processes |
+| 1 | [Overview](01-overview.md) | what Mnemorph is, light-coding and the other modes, the processes |
+| — | [The bench](bench.md) | what we measured against OpenCode and Maki, how, and every screen since |
+| — | [Experimental modes](experimental-modes.md) | structured-coding and collective-coding: the lab, its costs, what is next |
 | 2 | [Races](02-races.md) | every race and ascension: duty, powers, limits, score, fall |
 | 3 | [The loop](03-loop.md) | the six beats of one turn, budgets, stress |
 | 4 | [Communication](04-communication.md) | the wire between bodies, dispatch down and back, the client protocol |
@@ -74,5 +76,6 @@ source outside the file, `<foreignObject>`, embed or media there.
   task. Only what it wrote to the world survives it.
 
 And one more, since everything else depends on it: the **mode** a session opens in — light-coding (the
-default: Summoner works alone), structured-coding, or collective-coding
-([which, and how to start it](01-overview.md#which-mode-and-how-to-start-it)).
+default: Summoner works alone, and the one to use), or the experimental structured-coding and
+collective-coding ([which, and how to start it](01-overview.md#which-mode-and-how-to-start-it);
+[why light-coding](bench.md)).

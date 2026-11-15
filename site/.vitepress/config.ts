@@ -69,6 +69,8 @@ export default withMermaid(
           text: 'The book',
           items: [
             { text: 'Overview', link: '/01-overview' },
+            { text: 'The bench', link: '/bench' },
+            { text: 'Experimental modes', link: '/experimental-modes' },
             { text: 'Races', link: '/02-races' },
             { text: 'The loop', link: '/03-loop' },
             { text: 'Communication', link: '/04-communication' },

@@ -238,8 +238,9 @@ is the human's page.
   board, and so does every later ask of the session.
 - **Why.** Measured, structured-coding and collective-coding lost to light-coding because each
   body read the same
-  files again, cold (17 to 29 bodies a run in the chain). The board is the answer to that; it has
-  not been measured yet.
+  files again, cold (17 to 29 bodies a run in the chain). The board is the answer to that.
+  Measured since: findings were carried (16 of 28 briefs in one run) and the price did not move;
+  the board was not what the chain was missing ([experimental modes](experimental-modes.md)).
 
 **Light-coding.** One body runs as Summoner's voice and a single Slime's hands — Summoner's prompt, the
 Slime's shelf (`read`, `write`; nothing outward) — under the shelves,

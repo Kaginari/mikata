@@ -9,16 +9,35 @@ the wire, rebuilt as a Rust core with a Rust terminal app — `mnemorph` — plu
 and a web board. Races are compiled in — what each one may do, whom it answers to, how
 it is scored and how it ascends is code, not configuration.
 
-**Status:** M0–M13 are built — the wire and the races, the ledger, the providers, the tools,
+**Light-coding, the default mode, is the point.** One body writes down what "done" means before
+any code, does the work, and checks every line of it before answering. On our bench, ten real
+fixes in a large Python library with the same small open model in every harness
+([the bench](docs/bench.md)):
+
+| Harness | Passed | Per pass |
+|---|---|---|
+| **Mnemorph, light-coding** | **9 of 10** | **$0.43** |
+| Maki 0.7.1 | 8 of 10 | $0.97 |
+| OpenCode 1.19.5 | 7 of 10 | $0.67 |
+
+One run a task, so read ours as "8 or 9"; the price per pass held in every screen. The chain of
+races and the collective are [experimental modes](docs/experimental-modes.md): our lab, usable,
+not yet ahead of one body.
+
+**Status:** M0–M14 are built: the wire and the races, the ledger, the providers, the tools,
 sandbox and human gate, configuration, the loop with its long runs and resume, the protocol and
 the terminal app, memory and the toolbox, the world and its measured hierarchy, the Kijin's typed
-outward acts, the Dark Elf specialities, evolution on trial, the board on loopback and the
-integrations. M14 is 1.0: the SDK and protocol are on npm, the release itself is next. Start with [the book](docs/README.md); the plan is the
-[roadmap](docs/roadmap.md) and its [milestones](https://github.com/Kaginari/mnemorph/milestones).
+outward acts, the Dark Elf specialities, evolution on trial, the board on loopback, the
+integrations, and the release path. The version is 1.0.0; its release waits on the macOS
+build fix and the rename. Start with
+[the book](docs/README.md); the plan is the [roadmap](docs/roadmap.md) and its
+[milestones](https://github.com/Kaginari/mnemorph/milestones).
 
 | Read | For |
 |---|---|
-| [Overview](docs/01-overview.md) | the world in one picture; the three modes, and which to use |
+| [Overview](docs/01-overview.md) | the world in one picture; light-coding, and when to use another mode |
+| [The bench](docs/bench.md) | what we measured against OpenCode and Maki, and every screen since |
+| [Experimental modes](docs/experimental-modes.md) | structured-coding and collective-coding: what they cost, why, what is next |
 | [Races](docs/02-races.md) | the six races, five ascensions, Kijin posts and outward acts, the Dark Elf's specialities and witness rule |
 | [The loop](docs/03-loop.md) | the six beats of one turn, budgets, stress, resume |
 | [Communication](docs/04-communication.md) | the wire between bodies, the lanes, the client protocol |
@@ -147,10 +166,10 @@ why ([which mode, and how to start it](docs/01-overview.md#which-mode-and-how-to
 | Mode | What happens | Start it |
 |---|---|---|
 | **light-coding** (the default) | Summoner does the work itself: it writes down what "done" is, plans, changes the files, checks, answers | `mnemorph`, or `mnemorph --mode light-coding` in a world with creatures |
-| **structured-coding** | Summoner may hand a lane's work to its Elf; Orcs code the check first, Slimes write, each in its own zone | `mnemorph` in a world where an adopted Elf reports to Summoner, or `--mode structured-coding` |
+| **structured-coding** (experimental) | Summoner may hand a lane's work to its Elf; Orcs code the check first, Slimes write, each in its own zone | `mnemorph` in a world where an adopted Elf reports to Summoner, or `--mode structured-coding` |
 | **collective-coding** (experimental) | Summoner writes the work board, splits the ask by zone and summons its members, which work at once | `mnemorph --mode collective-coding` |
 
-Start with light-coding: it is the mode the measurements favour. In the other two the bodies share the work
+Start with light-coding: it is the mode the measurements favour ([the bench](docs/bench.md)). In the other two the bodies share the work
 board, `.mnemorph/tmp/board.md`: what each one found, carried in every brief.
 
 `mnemorphd board` is another thing, the web board: it prints `http://127.0.0.1:7878/#k=<key>`; the key works once, traded by the page

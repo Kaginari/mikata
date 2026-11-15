@@ -71,19 +71,34 @@ flowchart TD
 
 ## In plain words
 
-You talk to **Summoner**. What happens next depends on the **mode** the session opened in. There
-are three, and `mnemorph status` says which one you are in and why.
+You talk to **Summoner**. What happens next depends on the **mode** the session opened in, and
+`mnemorph status` says which one you are in and why.
 
-- **Light-coding**, the default. Summoner does the work itself: it reads the code, writes down what
-  "done" is, plans, changes the files, runs what it wrote down and the tests, and answers. One
-  body, one context, its own end gate. It needs nothing set up.
+**Light-coding is the default, and the mode to use.** Summoner does the work itself, in one body
+over your whole repository, the way a careful engineer would:
+
+1. **It writes down what "done" means, first:** every output your ask states, every case that must
+   keep working, each a line `D1`, `D2`… it can run.
+2. **It weighs two or three ways** to do the ask, with what each risks, and picks one.
+3. **It does the work,** reading only the lines it needs.
+4. **It checks before it answers:** it runs every line of the list and the tests of what it
+   touched. A difference or a red test means not done.
+5. **The end gate judges every file it changed:** your pinned checks pass, no test deleted or
+   skipped.
+
+That habit, writing "done" down and checking it, is what put light-coding ahead of OpenCode and
+Maki on our bench, at the lowest price per pass ([the bench](bench.md)). It needs nothing set up.
+
+**Two more modes are experimental** ([experimental modes](experimental-modes.md)): our lab, tested
+and usable, not yet ahead of one body.
+
 - **Structured-coding**, in a world that has creatures. Summoner may hand the work down a fixed
   chain. An
   **Elf** plans a lane of work and decides which domains are involved. An **Orc** owns a domain:
   before any code is written it codes the check that will judge the code, then orders its
   **Slimes**. A Slime is the only one allowed to edit the code of its own small zone. Summoner
   still does a fix itself when it already knows the files, the lines and the change.
-- **Collective-coding**, an experiment. The creatures that report to Summoner are equals. Summoner
+- **Collective-coding.** The creatures that report to Summoner are equals. Summoner
   writes the work board, splits the ask by zone and summons the members it needs, which work at
   once; it writes no code itself.
 
@@ -113,8 +128,8 @@ journal `log.md`, the ledgers. Sessions forget; the world remembers.
 | Mode | Use it when | Start it | It needs |
 |---|---|---|---|
 | **light-coding** | almost always: a bug, a feature, a refactor, a question about the code | `mnemorph`, in a world where no Elf reports to Summoner; `mnemorph --mode light-coding` anywhere | nothing |
-| **structured-coding** | the work is too large for one context, or must stay inside zones that each have their own check | `mnemorph`, in a world where an Elf reports to Summoner; or `mnemorph --mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
-| **collective-coding** | an ask has separate parts in separate zones, and you want them worked at once | `mnemorph --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
+| **structured-coding** (experimental) | the work is too large for one context, or must stay inside zones that each have their own check | `mnemorph`, in a world where an Elf reports to Summoner; or `mnemorph --mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
+| **collective-coding** (experimental) | an ask has separate parts in separate zones, and you want them worked at once | `mnemorph --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
 
 - **`--mode` goes wherever a session opens:** `mnemorph`, `mnemorph resume <run>`,
   `mnemorph run "<ask>"`, and `mnemorphd` for a program. `auto` is the default:
@@ -139,34 +154,12 @@ journal `log.md`, the ledgers. Sessions forget; the world remembers.
   gives no mode, and the reason says how many wait:
   `… no Elf reports to the Summoner in this world; 9 cards here are not adopted yet …`.
 
-**Start with light-coding.** It is the mode the measurements favour. On our bench (fixes in a
-Python library, one small model, November 2026), each mode against light-coding on the same
-multi-part tasks:
-
-| Screen | Light-coding | The other mode |
-|---|---|---|
-| structured-coding | 3 of 5 passed, $0.63 a run | 1 of 3 passed, $1.92 a run |
-| collective-coding | 3 of 8 passed, $0.62 a run | 1 of 4 passed, $2.02 a run |
-
-The bench's own reports name these arms `solo`, `hierarchy` and `collective`, the names the
-modes had when they ran.
-
-- **Why they lost:** the chain and the collective's members spent their money on bodies that each
-  read the
-  same files again, cold.
-- **What changed since:** the work board is shared in both, a plan item closes when its work
-  lands, an order carries the list of what "done" is, and the chain's gates no longer refuse a
-  part for a line that needs another part too.
-- **Structured-coding, measured again after those changes** (13 November, one two-part task, one
-  run a mode): light-coding passed in 6 minutes for $0.32. Structured-coding ran out of its 45
-  minutes at $1.99, with one of the two problems solved. Its bodies now land their parts (8 of
-  14 Slime runs, none refused; 1 of 16 before), so the chain works as a mechanism. It is still
-  about seven times slower on work that fits one context. Collective-coding has not been
-  measured again.
-- **Light-coding, meanwhile, improved:** on ten single fixes it passed 5 before, and 8 or 9 once it
-  wrote down what "done" is and checked it before answering.
-
-So reach for the other two when a task does not fit one context, and expect to pay for it.
+**Start with light-coding.** It is the mode the measurements favour. On every screen of our bench
+so far, it did as much as the other two modes or more, for a fraction of the price: the latest,
+five whole repositories in one ask, light-coding fixed 2.5 of 5 on average in 12 minutes for
+$0.75, structured-coding 2 of 5 in 90 minutes for $4.37. Every screen, and why the other two lose:
+[the bench](bench.md#the-modes-against-each-other) and [experimental
+modes](experimental-modes.md).
 
 **Say what the result must be.** Light-coding checks its work against what the ask states. On
 four tasks, an ask with its examples and their expected output passed 4 times in 4; the same ask
