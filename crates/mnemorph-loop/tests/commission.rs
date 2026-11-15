@@ -2121,6 +2121,8 @@ async fn a_brief_goes_down_and_an_elf_weighs_its_paths() {
 #[tokio::test]
 async fn an_order_carries_its_own_plan_item() {
     let w = World::new("plan-item");
+    // The fixture's open item for orc-o is not this test's: the harness would start it too.
+    fs::write(w.0.join(".mnemorph/elf/e/plan.md"), "").unwrap();
     w.doc(
         "elf",
         "e",
@@ -2255,6 +2257,117 @@ async fn an_elfs_orders_to_two_orcs_run_at_once() {
         elf.contains("## Contract") && elf.contains("run at once"),
         "{elf}"
     );
+}
+
+/// An Elf that orders one Orc while its plan holds an open item for another Orc of its lane has
+/// both run at once: the harness starts the other with the item, the plan's contract and the
+/// Elf's ask, and its report comes back on the Elf's own order. A model told to order independent
+/// parts together still hands them out one at a time.
+#[tokio::test]
+async fn an_elfs_plan_items_for_other_orcs_start_with_its_order() {
+    let w = World::new("fan-out");
+    w.doc(
+        "elf",
+        "e",
+        "# elf-e\n\n- **Race:** elf\n- **Reports to:** summoner\n- **Territory:** src/, lib/\n",
+    );
+    w.doc(
+        "orc",
+        "p",
+        "# orc-p\n\n- **Race:** orc\n- **Reports to:** elf-e\n- **Domain:** lib/\n",
+    );
+    fs::write(
+        w.0.join(".mnemorph/elf/e/plan.md"),
+        "## Contract\n- marker: orc-o makes src/done.txt\n\n- [ ] orc-o: the marker\n- [ ] orc-p: the reader | D2\n",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        order("c1", "elf-e"),
+        ScriptedModel::tool(
+            "c2",
+            "commission",
+            json!({"to": "orc-o", "ask": "the marker"}),
+        ),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("Done."),
+    ]));
+    let mut run = w.summoner(model.clone());
+    let ending = run.ask("leave a marker", &mut |_| {}).await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let requests = model.requests();
+    assert_eq!(
+        requests.len(),
+        6,
+        "both Orcs ran, then the Elf, then the Summoner"
+    );
+    let orc_p = requests[2..4]
+        .iter()
+        .map(|r| format!("{:?}", r.messages))
+        .find(|m| m.contains("started by the harness"))
+        .expect("orc-p was started by the harness");
+    assert!(orc_p.contains("the reader"), "{orc_p}");
+    assert!(orc_p.contains("orc-o makes src/done.txt"), "{orc_p}");
+    assert!(orc_p.contains("leave src/done.txt"), "{orc_p}");
+    assert!(
+        !orc_p.contains("- [ ] orc-o"),
+        "the contract stops at the plan's items: {orc_p}"
+    );
+    assert!(!orc_p.contains("still holds these open items"), "{orc_p}");
+    let elf_after = format!("{:?}", requests[4].messages);
+    assert!(
+        elf_after.contains("[started by the harness from your plan"),
+        "{elf_after}"
+    );
+    assert!(elf_after.contains("[2 orders ran at once"), "{elf_after}");
+}
+
+/// The harness starts a plan item once: an Elf that orders again does not start it again.
+#[tokio::test]
+async fn the_harness_starts_a_plan_item_once() {
+    let w = World::new("fan-out-once");
+    w.doc(
+        "elf",
+        "e",
+        "# elf-e\n\n- **Race:** elf\n- **Reports to:** summoner\n- **Territory:** src/, lib/\n",
+    );
+    w.doc(
+        "orc",
+        "p",
+        "# orc-p\n\n- **Race:** orc\n- **Reports to:** elf-e\n- **Domain:** lib/\n",
+    );
+    fs::write(
+        w.0.join(".mnemorph/elf/e/plan.md"),
+        "- [ ] orc-o: the marker\n- [ ] orc-p: the reader\n",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        order("c1", "elf-e"),
+        ScriptedModel::tool(
+            "c2",
+            "commission",
+            json!({"to": "orc-o", "ask": "the marker"}),
+        ),
+        ScriptedModel::text("@S FAIL\n@E"),
+        ScriptedModel::text("@S FAIL\n@E"),
+        ScriptedModel::tool(
+            "c3",
+            "commission",
+            json!({"to": "orc-o", "ask": "the marker, again"}),
+        ),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("Done."),
+    ]));
+    let mut run = w.summoner(model.clone());
+    let ending = run.ask("leave a marker", &mut |_| {}).await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let requests = model.requests();
+    assert_eq!(requests.len(), 8, "the second order ran alone");
+    let second = format!("{:?}", requests[5].messages);
+    assert!(second.contains("the marker, again"), "{second}");
+    assert!(!second.contains("started by the harness"), "{second}");
 }
 
 /// An Elf refused a file a Slime under it keeps is told to route it down, to its own Orc: told
@@ -3652,6 +3765,8 @@ fn summoner_list(w: &World) {
 async fn an_order_carries_its_lines_down() {
     let w = World::new("lines-down");
     summoner_list(&w);
+    // The fixture's open item for orc-o is not this test's: the harness would start it too.
+    fs::write(w.0.join(".mnemorph/elf/e/plan.md"), "").unwrap();
     w.doc(
         "orc",
         "p",
