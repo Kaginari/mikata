@@ -430,6 +430,8 @@ pub struct Run {
     reserve: Option<mnemorph_ledger::Envelope>,
     /// What this ask's passes left waiting on a challenge, one line each.
     challenged: Vec<String>,
+    /// The plan items the harness started at once with this body's own orders: each once.
+    fanned: std::collections::BTreeSet<String>,
 }
 
 /// How a pass stands on its challenge.
@@ -553,6 +555,7 @@ impl Run {
             challenger: None,
             reserve: None,
             challenged: Vec::new(),
+            fanned: std::collections::BTreeSet::new(),
         }
     }
 
@@ -3517,7 +3520,8 @@ impl Run {
             let Some(c) = self.commissioner.clone() else {
                 return ready;
             };
-            let mut picked: Vec<(&str, &str)> = Vec::new();
+            // `(the call's id, its input)`; an order the harness adds has no call of its own.
+            let mut picked: Vec<(Option<&str>, String)> = Vec::new();
             let mut bodies = std::collections::BTreeSet::new();
             for (id, name, input) in calls {
                 let to = (name == crate::commission::COMMISSION)
@@ -3532,7 +3536,20 @@ impl Run {
                 if let Some(to) = to
                     && bodies.insert(to)
                 {
-                    picked.push((id.as_str(), input.as_str()));
+                    picked.push((Some(id.as_str()), input.clone()));
+                }
+            }
+            // An Elf that orders starts its plan's other parts with it: the harness fans out.
+            if !picked.is_empty() {
+                for (item, input) in crate::commission::fan_out(
+                    &c.world,
+                    &self.body,
+                    &bodies,
+                    &self.fanned,
+                    &self.asked,
+                ) {
+                    self.fanned.insert(item);
+                    picked.push((None, input));
                 }
             }
             if picked.len() < 2 || self.interrupt.flag().load(Ordering::SeqCst) {
@@ -3565,20 +3582,33 @@ impl Run {
             };
             // Only orders that ran were at once: a refused one never left the dispatcher.
             let n = orders.iter().filter(|o| o.ran).count();
+            let mut first: Option<String> = None;
+            let mut added = String::new();
             for ((id, _), order) in picked.into_iter().zip(orders) {
                 let ran = order.ran;
                 let mut outcome = self.settle(order);
-                if !ran || n < 2 {
-                    ready.insert(id.to_owned(), outcome);
+                let Some(id) = id else {
+                    // The harness's own orders report on the body's first order of the turn.
+                    let _ = write!(
+                        added,
+                        "\n\n[started by the harness from your plan, at once with your orders]\n{}",
+                        outcome.content
+                    );
                     continue;
+                };
+                first.get_or_insert_with(|| id.to_owned());
+                if ran && n >= 2 {
+                    let _ = write!(
+                        outcome.content,
+                        "\n\n[{n} orders ran at once, each on its own ground: when all have reported, \
+                         run the whole check once before you answer, and send a failure back to the \
+                         body whose part broke it]"
+                    );
                 }
-                let _ = write!(
-                    outcome.content,
-                    "\n\n[{n} orders ran at once, each on its own ground: when all have reported, run \
-                     the whole check once before you answer, and send a failure back to the body whose \
-                     part broke it]"
-                );
                 ready.insert(id.to_owned(), outcome);
+            }
+            if let Some(o) = first.and_then(|id| ready.get_mut(&id)) {
+                o.content.push_str(&added);
             }
             ready
         })

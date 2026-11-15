@@ -503,6 +503,91 @@ fn open_items(world: &Path, roster: &Roster, name: &str) -> Vec<String> {
         .collect()
 }
 
+/// The orders the harness adds when an Elf orders in a turn: one for each other Orc of its lane
+/// that an open item of its plan names, not ordered this turn and not started this way before
+/// (`started`, by item). A model told to order independent parts in one turn still hands them out
+/// one at a time; the parts its own plan holds run at once. Each order is `(item, input)`: the
+/// item's work, the plan's `## Contract` and the Elf's own ask, and the `Done when` lines the item
+/// names after its `|`.
+pub(crate) fn fan_out(
+    world: &Path,
+    parent: &Body,
+    ordered: &std::collections::BTreeSet<String>,
+    started: &std::collections::BTreeSet<String>,
+    asked: &str,
+) -> Vec<(String, String)> {
+    if parent.race.base() != Race::Elf {
+        return Vec::new();
+    }
+    let roster = Roster::load(world);
+    let contract = roster
+        .creatures
+        .get(&parent.name)
+        .and_then(|c| std::fs::read_to_string(world.join(&c.seat).join("plan.md")).ok())
+        .and_then(|plan| section(&plan, "## Contract"));
+    let mut taken = ordered.clone();
+    let mut out = Vec::new();
+    for item in open_items(world, &roster, &parent.name) {
+        let Some((to, rest)) = item.split_once(':') else {
+            continue;
+        };
+        let to = to.trim().trim_matches('`').to_owned();
+        let of_lane = roster.creatures.get(&to).is_some_and(|c| {
+            c.race.base() == Race::Orc && c.reports_to.as_deref() == Some(parent.name.as_str())
+        });
+        if !of_lane || started.contains(&item) || !taken.insert(to.clone()) {
+            continue;
+        }
+        let (what, names) = rest.split_once('|').unwrap_or((rest, ""));
+        let lines: Vec<&str> = names
+            .split(',')
+            .map(str::trim)
+            .filter(|n| !n.is_empty())
+            .collect();
+        let mut ask = format!(
+            "Your part of your Elf's lane, started by the harness with the Elf's other orders, so \
+             the lane's parts run at once: {}",
+            what.trim()
+        );
+        if let Some(contract) = &contract {
+            let _ = write!(
+                ask,
+                "\n\nWhat the parts share, from the Elf's plan:\n{contract}"
+            );
+        }
+        let _ = write!(
+            ask,
+            "\n\nThe lane as your Elf was asked it, for context: do only your part.\n\n{}",
+            asked.split(OPEN_PLAN).next().unwrap_or(asked)
+        );
+        let input = json!({"to": to, "ask": ask, "lines": lines}).to_string();
+        out.push((item, input));
+    }
+    out
+}
+
+/// The text under `heading` in a markdown page, to the next heading of its level or above, or the
+/// first plan item.
+fn section(page: &str, heading: &str) -> Option<String> {
+    let mut lines = page.lines().skip_while(|l| l.trim() != heading).skip(1);
+    let body: Vec<&str> = lines
+        .by_ref()
+        .take_while(|l| {
+            let l = l.trim_start();
+            !(l.starts_with("# ")
+                || l.starts_with("## ")
+                || l.starts_with("- [ ] ")
+                || l.starts_with("- [x] "))
+        })
+        .collect();
+    let body = body.join("\n").trim().to_owned();
+    (!body.is_empty()).then_some(body)
+}
+
+/// Where an Elf's ask ends and what its plan left open begins ([`with_open_plan`]).
+const OPEN_PLAN: &str =
+    "\n\nYour plan.md still holds these open items from an earlier commission. ";
+
 /// `ask` as an Elf is told it: with what an earlier commission left open in its plan, so a retry
 /// goes on from there. Any other body's is `ask` as it stands.
 fn with_open_plan(world: &Path, roster: &Roster, name: &str, ask: &str) -> String {
@@ -511,8 +596,7 @@ fn with_open_plan(world: &Path, roster: &Roster, name: &str, ask: &str) -> Strin
         return ask.to_owned();
     }
     format!(
-        "{ask}\n\nYour plan.md still holds these open items from an earlier commission. Keep those \
-         that serve this ask and hand them down; do not start over:\n- {}",
+        "{ask}{OPEN_PLAN}Keep those that serve this ask and hand them down; do not start over:\n- {}",
         open.join("\n- ")
     )
 }
@@ -604,7 +688,9 @@ the marks the reports carried. When the work spans \
 the domains of several Orcs, first write under `## Contract` in your plan.md what their parts share \
 (names, signatures, data, who makes and who uses each), then commission each Orc its part in the \
 same turn, the contract in every brief: commissions to different bodies in one turn run at once. \
-Tests of the whole change are a second wave: order them only after every part has landed. When \
+When you order, the harness also starts at once every other Orc of your lane that an open item \
+of your plan names, with that item as its part: write an item for every part before your first \
+order. Tests of the whole change are a second wave: order them only after every part has landed. When \
 all have reported, run the whole check once, and send a failure back to the Orc whose part broke \
 it."
         }

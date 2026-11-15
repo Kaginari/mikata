@@ -11,6 +11,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Changed
+
+- **Structured-coding fans out by itself.** When an Elf orders work, the harness also starts every
+  other Orc of its lane that an open item of its plan names, at once, with that item, the plan's
+  `## Contract` and the Elf's ask as its brief; each item is started this way once per Elf body,
+  and its report comes back on the Elf's own order. Measured before: told to order independent
+  parts in one turn, the Elf handed five projects out one at a time and never reached three of
+  them.
+
 ## [1.0.0] - 2026-11-14
 
 The first release: the Rust core, the `mnemorph` terminal app and `mnemorph run`, the
