@@ -180,8 +180,12 @@ for spec in "Linux aarch64 aarch64-unknown-linux-gnu" "Linux arm64 aarch64-unkno
   # shellcheck disable=SC2086 # split into its three words on purpose
   set -- $spec
   m=$(machine "$1-$2" "$1" "$2")
+  # The host's own archive is the real build when one is given: it prints its own version line.
+  want="mnemorph $version ($3)"
+  if [ -n "$real" ] && [ "$3" = "$host" ]; then want=real; fi
   if install_on "$m" --version "$version" --dir "$m/home/bin" \
-    && [ "$("$m/home/bin/mnemorph" --version)" = "mnemorph $version ($3)" ]; then
+    && got=$("$m/home/bin/mnemorph" --version) \
+    && { [ "$got" = "$want" ] || { [ "$want" = real ] && case $got in "mnemorph "*) true ;; *) false ;; esac; }; }; then
     pass "$1 $2 installs $3"
   else fail "$1 $2 installs $3: $(cat "$m/out")"; fi
   case $1 in Darwin)
