@@ -7532,8 +7532,24 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Reproduced** on this x86 machine with `uname` reporting aarch64 and the release build packaged as the ARM archive: the same two failures. **Fixed:** the host's own archive, when real, may print the real build's version line, as the fresh-install check already allows. Passes as ARM with a real archive, as x86 with one, and with none.
 - **Next:** the tag is deleted and set again on the merged fix, as `docs/releasing.md` says for a run that published nothing.
 
+### [2026-11-15T15:00:00+00:00] aibo Summoner — five repositories in one ask: one body beats the chain again
+- **Asked by** the owner: create a hard task and check it through the chain and through one body. Bar first, in the bench's `design/step21-deep-work.md`; the task is the bench's new `deep` suite, five whole sqlglot copies, one problem each, more than one body's 200 steps.
+- **Result,** qwen3.5-35b on Venice, main ce82804: light-coding as shipped 3 and 2 of 5 (out of steps both times), about 12 minutes and $0.75; with 400 steps, 4 and 3 of 5, answered on their own; structured-coding 2 of 5 in 90 minutes for $4.37. The second chain run was stopped 35 minutes in, by my decision, to save the key. Spent about $9.60.
+- **By the bar:** the chain does not pay, even on work too large for one body.
+- **Why:** the Elf planned all five projects, one Orc each, then handed out one at a time. Project 1 went down five times, project 2 never finished, 3 to 5 were never handed out. 9 of 20 Slime runs stopped at their 80 steps: a whole problem is too large for one Slime. The gate fixes held: none of the 7 landings refused.
+- **On the owner's "one mind, one thing at a time":** no single-body run reached its context line. It ran out of steps, not memory.
+- **Follows:** the harness, not the model, should start independent plan items for different Orcs together; measured on this task before anything more is said about the chain. The book now leads with light-coding and the bench, and the other two modes have their own page as experimental.
 ### [2026-11-15T10:05:00+00:00] aibo Summoner — the second 1.0.0 release run: the macOS runner it pinned is gone
 - **What happened:** with the installer test fixed (#430), both Linux builds passed, ARM included. The two macOS builds never started: "The configuration 'macos-14-arm64-us-default' is not supported". Nothing was drafted.
 - **Why:** GitHub retired the `macos-14` image the release workflow pinned. CI's `macos-latest` runs on `macos-26` (arm64) and passes, which is why no check saw it.
 - **Done:** the release's two macOS builds run on `macos-26`; the Intel one is still cross-built. `docs/releasing.md` says so.
 - **Learned:** a pinned runner image dies quietly between releases. The weekly `rc-smoke` run should build one macOS archive too, so a retired image shows up before a tag does; not done here.
+
+### [2026-11-15T17:45:00+00:00] aibo Summoner — the harness fans out; the chain goes from 2 to 3 of 5
+- **Asked by** the owner: fix the chain so we test again. The fix, PR #433: when an Elf orders, the harness also starts every other Orc its open plan items name, at once, each item once per Elf body. Before it, across 15 turns that ordered work, the Elf never ordered more than one Orc, though its card says orders in one turn run at once.
+- **Bar first,** in the bench's `design/step21-deep-work.md` (step 21b): two structured-coding runs, same task, model, host and limits as step 21.
+- **The lever fired** in both: all five Orcs started within a second of the Elf's first order.
+- **Result:** 2 of 5 in 63.5 minutes for $4.94, then 4 of 5 in 22.5 minutes for $2.86. Before the fix: 2 of 5 in 90 minutes. Light-coding as shipped: 2.5 on average; with 400 steps: 3.5.
+- **By the bar:** half met. The mean, 3.0, is above light-coding as shipped; the first run took more than the bar's 60 minutes; neither reached the single body given room.
+- **What the misses are:** wrong code in a part, not hand-offs. Project 1 failed in both runs; project 4, which one body missed in 3 of 4 runs, passed in both.
+- **Spent:** $7.79.
