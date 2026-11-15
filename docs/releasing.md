@@ -50,8 +50,8 @@ One archive per target, `mnemorph-<target>.tar.gz`, holding `mnemorph-<version>-
 |---|---|
 | `x86_64-unknown-linux-gnu` | `ubuntu-22.04` (its glibc is the floor) |
 | `aarch64-unknown-linux-gnu` | `ubuntu-22.04-arm` |
-| `aarch64-apple-darwin` | `macos-14` |
-| `x86_64-apple-darwin` | `macos-14`, cross-built |
+| `aarch64-apple-darwin` | `macos-26` |
+| `x86_64-apple-darwin` | `macos-26`, cross-built |
 
 `SHA256SUMS` lists every archive as `<sha256>  <name>`. Asset names carry no version, so
 `releases/latest/download/<asset>` always names the newest published release.

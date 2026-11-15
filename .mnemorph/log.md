@@ -7539,3 +7539,8 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Why:** the Elf planned all five projects, one Orc each, then handed out one at a time. Project 1 went down five times, project 2 never finished, 3 to 5 were never handed out. 9 of 20 Slime runs stopped at their 80 steps: a whole problem is too large for one Slime. The gate fixes held: none of the 7 landings refused.
 - **On the owner's "one mind, one thing at a time":** no single-body run reached its context line. It ran out of steps, not memory.
 - **Follows:** the harness, not the model, should start independent plan items for different Orcs together; measured on this task before anything more is said about the chain. The book now leads with light-coding and the bench, and the other two modes have their own page as experimental.
+### [2026-11-15T10:05:00+00:00] aibo Summoner — the second 1.0.0 release run: the macOS runner it pinned is gone
+- **What happened:** with the installer test fixed (#430), both Linux builds passed, ARM included. The two macOS builds never started: "The configuration 'macos-14-arm64-us-default' is not supported". Nothing was drafted.
+- **Why:** GitHub retired the `macos-14` image the release workflow pinned. CI's `macos-latest` runs on `macos-26` (arm64) and passes, which is why no check saw it.
+- **Done:** the release's two macOS builds run on `macos-26`; the Intel one is still cross-built. `docs/releasing.md` says so.
+- **Learned:** a pinned runner image dies quietly between releases. The weekly `rc-smoke` run should build one macOS archive too, so a retired image shows up before a tag does; not done here.
