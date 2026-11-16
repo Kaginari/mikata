@@ -594,9 +594,9 @@ pub fn band(t: &Theme, pct: u64) -> Style {
     }
 }
 
-/// The head: Mikata's logo, centred, with the state under it (the world and the model are on the
-/// frame's edges). Real pixels go over blank rows; else the logo in the finest glyphs the
-/// terminal's font draws.
+/// The head: Mikata's logo where the terminal draws images, the state under it (the world and the
+/// model are on the frame's edges). The picture goes over blank rows; a terminal that draws no
+/// images shows the state alone: no logo is ever built from characters.
 fn head(m: &Model, w: usize) -> Lines {
     let t = &m.theme;
     let (who, race) = crate::activity::actor(m);
@@ -605,13 +605,6 @@ fn head(m: &Model, w: usize) -> Lines {
         // The picture goes over these rows (the view places it): plain cells of the page.
         let blank = Line::from(Span::styled(" ".repeat(w), Style::new().bg(t.p.bg.color())));
         out.extend(std::iter::repeat_n(blank, usize::from(rows)));
-    } else {
-        let pad = Span::raw(" ".repeat(w.saturating_sub(usize::from(PORTRAIT)) / 2));
-        out.extend(logo_cells(t).into_iter().map(|l| {
-            let mut spans = vec![pad.clone()];
-            spans.extend(l.spans);
-            Line::from(spans)
-        }));
     }
     let centred = |spans: Vec<Span<'static>>| {
         let line = truncate(Line::from(spans), w);
@@ -949,38 +942,6 @@ fn bodies(m: &Model, w: usize, rows: usize) -> Lines {
 
 /// The logo's width, in cells.
 const PORTRAIT: u16 = 32;
-
-/// The mark's rows in glyph cells: it is wider than tall, 32 columns by 10 rows.
-const MARK_ROWS: usize = 10;
-
-/// Mikata's logo in glyph cells, in the glyphs the terminal draws, built once per background and
-/// glyph set.
-#[must_use]
-pub fn logo_cells(t: &crate::theme::Theme) -> Lines {
-    use crate::kit::glyphs;
-    use std::sync::Mutex;
-    type Built = (crate::theme::Rgb, glyphs::Glyphs, Lines);
-    static CACHE: Mutex<Option<Built>> = Mutex::new(None);
-    let g = glyphs::glyphs_now();
-    let mut c = CACHE
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
-    if let Some((bg, built, lines)) = c.as_ref()
-        && *bg == t.p.bg
-        && *built == g
-    {
-        return lines.clone();
-    }
-    let lines = glyphs::picture(
-        crate::kit::pixels::mark(g),
-        (usize::from(PORTRAIT), MARK_ROWS),
-        g,
-    )
-    .map(|rows| glyphs::lines(&rows, Some(t.p.bg)))
-    .unwrap_or_default();
-    *c = Some((t.p.bg, g, lines.clone()));
-    lines
-}
 
 /// Where the head's picture goes in a sidebar `w` cells wide and `h` rows tall, when it is a
 /// picture: its first column from the sidebar's left, its width and its rows, from the sidebar's

@@ -1,6 +1,6 @@
 //! Mikata's logo as real pixels, end to end through the model and the view: where a frame wants
 //! it, never under an approval, never sent again for an unchanged frame, the same whoever works,
-//! and glyph cells where the terminal draws no images.
+//! and no logo at all where the terminal draws no images.
 
 use mikata_races::Race;
 use mikata_server::protocol::Event;
@@ -207,26 +207,23 @@ fn the_sidebar_folding_takes_its_picture_away() {
 }
 
 #[test]
-fn without_images_the_logo_is_glyph_cells_and_stands_still() {
+fn without_images_no_logo_is_drawn() {
     let mut m = model(Protocol::Blocks);
     let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
     let buf = draw(&mut m, &mut t);
     assert_eq!(m.pictures.wanted(), Vec::new());
-    // The sidebar's head, the logo's ten rows, without the state line under it.
+    // The sidebar's head: no picture, and none built from characters either.
     let head = |buf: &Buffer| -> String {
         (85..buf.area.width)
-            .flat_map(|x| (2..12).map(move |y| (x, y)))
+            .flat_map(|x| (2..14).map(move |y| (x, y)))
             .map(|(x, y)| buf[(x, y)].symbol().to_owned())
             .collect()
     };
-    let idle = head(&buf);
-    assert!(
-        idle.contains('▀') || idle.contains('▄'),
-        "half blocks drawn"
-    );
+    let blocks = |s: &str| s.chars().any(|c| ('\u{2580}'..='\u{259f}').contains(&c));
+    assert!(!blocks(&head(&buf)), "idle");
     m.outstanding = 1;
     update(&mut m, Msg::Tick(std::time::Duration::from_millis(500)));
-    assert_eq!(head(&draw(&mut m, &mut t)), idle, "working: the same logo");
+    assert!(!blocks(&head(&draw(&mut m, &mut t))), "working");
 }
 
 #[test]

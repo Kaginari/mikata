@@ -17,7 +17,6 @@ use base64::engine::general_purpose::STANDARD;
 use image::imageops::{self, FilterType};
 use image::{ImageFormat, RgbImage};
 
-use crate::kit::glyphs::Glyphs;
 use crate::theme::Rgb;
 
 /// How the logo is drawn.
@@ -277,8 +276,6 @@ pub struct Caps {
     pub timed_out: bool,
     /// Notes: an unknown override, a terminal multiplexer.
     pub notes: Vec<String>,
-    /// The glyphs the logo is drawn with when it is not real pixels ([`glyphs`]).
-    pub glyphs: Glyphs,
 }
 
 impl Caps {
@@ -296,7 +293,6 @@ impl Caps {
             raw: String::new(),
             timed_out: false,
             notes: Vec::new(),
-            glyphs: Glyphs::Half,
         }
     }
 
@@ -333,11 +329,6 @@ impl Caps {
         };
         let _ = writeln!(s, "asked        {choice} (MIKATA_TUI_IMAGES)");
         let _ = writeln!(s, "drawing      {} — {}", self.protocol.name(), self.why);
-        let _ = writeln!(
-            s,
-            "glyphs       {} (MIKATA_TUI_GLYPHS), without pixels",
-            self.glyphs.name()
-        );
         if self.timed_out {
             let _ = writeln!(s, "timed out    the terminal did not finish answering");
         }
@@ -419,7 +410,6 @@ pub fn decide(
     // is on. A VTE without it is named in the notes, never guessed into a blank box.
     let vte = env("VTE_VERSION").and_then(|v| v.trim().parse::<u32>().ok());
     let (iterm_family, native) = iterm_family(replies.name.as_deref(), env);
-    let replies_name = replies.name.clone();
     // xterm.js answers Kitty's query from its 6.1 betas, and draws none of the Kitty images
     // placed here: iTerm2's inline images, which it draws, fitted to their box.
     let xterm_js = replies
@@ -488,36 +478,6 @@ pub fn decide(
         raw: String::new(),
         timed_out: false,
         notes,
-        glyphs: glyphs(replies_name.as_deref(), env),
-    }
-}
-
-/// The glyphs a terminal named `name` (XTVERSION) draws the logo with when it shows no pixels:
-/// `MIKATA_TUI_GLYPHS` when set (`half`, `quadrants`, `sextants`, `octants`); half blocks on the
-/// Linux console; octants where the terminal draws them itself whatever the font (Kitty,
-/// Ghostty), sextants where it draws those (`WezTerm`, foot); else quadrants — block elements,
-/// which every font with `▀` has.
-#[must_use]
-pub fn glyphs(name: Option<&str>, env: &impl Fn(&str) -> Option<String>) -> Glyphs {
-    if let Some(g) = env("MIKATA_TUI_GLYPHS").as_deref().and_then(Glyphs::parse) {
-        return g;
-    }
-    let term = env("TERM").unwrap_or_default().to_ascii_lowercase();
-    if term == "linux" {
-        return Glyphs::Half;
-    }
-    let said = format!(
-        "{} {} {term}",
-        name.unwrap_or_default(),
-        env("TERM_PROGRAM").unwrap_or_default()
-    )
-    .to_ascii_lowercase();
-    if ["kitty", "ghostty"].iter().any(|t| said.contains(t)) {
-        Glyphs::Octants
-    } else if ["wezterm", "foot"].iter().any(|t| said.contains(t)) {
-        Glyphs::Sextants
-    } else {
-        Glyphs::Quadrants
     }
 }
 
@@ -535,50 +495,6 @@ pub fn square(cols: u16, cell: (u16, u16)) -> (u16, u32, u32) {
 /// Mikata's logo, a 256 px RGBA PNG: the two cells on their tile, which the sidebar's head shows
 /// as real pixels.
 pub const LOGO: &[u8] = include_bytes!("../../assets/brand/mikata-icon.png");
-
-/// Mikata's mark for glyph cells, flat and without its glow, rendered at the exact sub-pixels of
-/// each glyph set for 32 columns by 10 rows (`assets/source/mikata-mark-cells.svg`): a glowing
-/// picture shrunk to 32 sub-pixels across is a blur.
-#[must_use]
-pub fn mark(glyphs: crate::kit::glyphs::Glyphs) -> &'static [u8] {
-    use crate::kit::glyphs::Glyphs;
-    match glyphs {
-        Glyphs::Half => include_bytes!("../../assets/brand/mikata-mark-half.png"),
-        Glyphs::Quadrants => include_bytes!("../../assets/brand/mikata-mark-quadrants.png"),
-        Glyphs::Sextants => include_bytes!("../../assets/brand/mikata-mark-sextants.png"),
-        Glyphs::Octants => include_bytes!("../../assets/brand/mikata-mark-octants.png"),
-    }
-}
-
-/// `source` (a PNG) as half blocks `cols` cells wide: each cell's upper pixel its foreground, its
-/// lower its background, on `bg`. For a terminal that draws no images.
-#[must_use]
-pub fn half_blocks(source: &[u8], cols: u16, bg: Rgb) -> Vec<ratatui::text::Line<'static>> {
-    use ratatui::style::{Color, Style};
-    use ratatui::text::{Line, Span};
-    let w = u32::from(cols.max(1));
-    let Some(img) = picture(source, w, w, bg) else {
-        return Vec::new();
-    };
-    (0..w / 2)
-        .map(|r| {
-            Line::from(
-                (0..w)
-                    .map(|x| {
-                        let top = img.get_pixel(x, r * 2);
-                        let low = img.get_pixel(x, r * 2 + 1);
-                        Span::styled(
-                            "▀",
-                            Style::new()
-                                .fg(Color::Rgb(top[0], top[1], top[2]))
-                                .bg(Color::Rgb(low[0], low[1], low[2])),
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-        })
-        .collect()
-}
 
 /// `source` (a PNG) as a `w` × `h` picture: laid on `bg` at its own size first, so its clear
 /// edges blend with the background and never with black, then Lanczos-resized to a square as

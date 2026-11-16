@@ -22,10 +22,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - **Mikata's own look.** The logo is two cells mid-division, gold for you and cyan for Mikata;
   `assets/brand/` holds it for dark and light pages, the icon at 512 to 32 px, the favicon and the
   social card, rendered from `assets/source/mikata-*.svg`. In the terminal app, the sidebar's head
-  is Mikata's logo, still: as real pixels, or, in glyph cells, a flat mark rendered at the exact
-  sub-pixels of the glyphs the terminal draws, so it stays sharp: the races'
+  is Mikata's logo, still, as the real picture where the terminal draws images, and nothing where
+  it does not (no logo built from characters; `MIKATA_TUI_GLYPHS` is gone): the races'
   animated portraits and Player's are gone, with their 7.6 MB of embedded clips, and nothing ticks
-  for the head any more; the head shows from 30 rows, not 36. The welcome opens on one title line,
+  for the head any more; the picture shows from 30 rows, not 36. The welcome opens on one title line,
   **◆ Mikata** in the logo's gold into cyan, the version and "the coding agent on your side", with
   no block letters; its four lines say what light-coding does, and the race chips are gone.
 - **The book is Mikata's.** The README and `docs/` are about Mikata: the overview, the loop, the

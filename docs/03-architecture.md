@@ -1062,18 +1062,12 @@ arguments arrive, its class read by the classifier off the UI thread; its durati
 to its result. Time is the model's clock, advanced by its ticks.
 
 The sidebar's head is Mikata's logo, embedded from `assets/brand/mikata-icon.png` (256 px), and it
-never moves: idle or working, it asks no tick. Without real pixels it is the mark flat, without
-its glow (`assets/source/mikata-mark-cells.svg`), rendered ahead at the exact sub-pixels of each
-glyph set and drawn once, per background, into glyph cells, 32 columns by 10 rows, with no resize
-(a glowing picture shrunk to 32 sub-pixels across is a blur), each cell the best two-colour split
-of its sub-pixels: octants (2 × 4 a cell) where the terminal draws them itself whatever the font (Kitty,
-Ghostty), sextants (2 × 3) in WezTerm and foot, quadrants (2 × 2, block elements every font has)
-elsewhere, half blocks on the Linux console; `MIKATA_TUI_GLYPHS=half|quadrants|sextants|octants`
-overrides it. `kit::glyphs` is vendored from Kaginari/mnemorph-animations' player crate (which
-drew Mnemorph's race animations, retired with the races' portraits when Mnemorph became Mikata).
+never moves: idle or working, it asks no tick. It is shown only as the real picture: a terminal
+that draws no images shows no logo, and the head is the state line alone. A logo built from block
+characters was tried, and at 32 sub-pixels across it was never sharp enough.
 
 **The logo in real pixels.** Where the terminal draws images, the logo is its 256 px PNG, laid on
-the background; the glyphs above are the fallback. At start, before the alternate screen,
+the background; without images there is none. At start, before the alternate screen,
 `probe` asks the terminal on `/dev/tty` in raw mode: the window's pixels (`TIOCGWINSZ`), a cell's
 size (`CSI 16 t`), its name (XTVERSION), Kitty's graphics query, and the device attributes (DA1)
 last — every terminal answers DA1, so its reply ends the wait. It waits at most 200 ms with
@@ -1089,10 +1083,10 @@ Control is never a reply: Ctrl+C and Esc always reach the UI, so they stop, quit
    name or the environment, and images are on — DA1 lists 4, or iTerm2 or WezTerm, which always
    draw them. A PNG in full colour, smaller than Sixel, so it is preferred where both exist;
 3. **Sixel** when DA1 lists 4;
-4. **glyphs** otherwise — and whenever a cell's size in pixels is unknown, or inside tmux.
+4. **none** otherwise — and whenever a cell's size in pixels is unknown, or inside tmux: no logo.
 
 `MIKATA_TUI_IMAGES` overrides it: `auto` (the default), `kitty`, `iterm`, `sixel`, `blocks`, or
-`off` — glyphs, nothing asked of the terminal. `mikata --probe` prints what was found,
+`off` — no logo, nothing asked of the terminal. `mikata --probe` prints what was found,
 the replies as they came, and the choice.
 
 The logo's box is 32 columns, and as many rows as make it square: 32 columns of 8 × 17 px cells
@@ -1102,7 +1096,7 @@ the box, built once and cached. iTerm2's inline images are given their box
 in cells, so a font zoom never leaves the picture spilling past its box; on a resize the cell's
 size is read again from the window (`TIOCGWINSZ`), and when it changed every picture is built
 again at the new size. Sixel draws exactly the pixels it was built for: where the window gives no
-pixels, a resize leaves no size to trust, so the logo falls back to glyphs — the old
+pixels, a resize leaves no size to trust, so the logo is taken down — the old
 picture's box written again — until a size returns. Every byte of an image sequence comes from
 those embedded files and from numbers, never from the model or the world.
 
@@ -1135,7 +1129,7 @@ A terminal that gives no cell size gives its text area in pixels (`CSI 14 t`) mo
 not; the cell is that area over the window's cells, in either order (VTE answers width first):
 the one the window divides exactly, a text area being whole cells, then the one nearest twice as
 tall as wide. VTE lists Sixel in its device attributes when its Sixel is on; a VTE that does not
-draws glyphs, and `--probe` names its version (`VTE_VERSION`) and what would give images.
+draws no logo, and `--probe` names its version (`VTE_VERSION`) and what would give images.
 
 To see the pictures in VS Code's terminal, turn on `terminal.integrated.enableImages` in the
 settings and reload the window: xterm.js then lists Sixel in DA1, and Mikata draws iTerm2's
@@ -1199,7 +1193,7 @@ ecosystem:
 | Harmonica | `kit::spring`, `kit::toast` | a critically damped spring: the transcript scrolls smoothly, a toast fades |
 | Glamour | `kit::markdown`, `kit::highlight` | Markdown drawn from a stylesheet the theme derives; code highlighted by syntect's grammars, in colours taken from the palette |
 | Isekai's depth | `kit::slab`, `kit::shimmer` | raised panels — a spine, a lit top edge, a shaded bevel, a cast shadow, every tone stepped from the palette — and a crest of light sweeping a busy word |
-| mnemorph-animations | `kit::glyphs`, `kit::pixels` | Mikata's logo sent as real pixels — Kitty, iTerm2 or Sixel — or drawn once into glyph cells, octants down to half blocks |
+| — | `kit::pixels` | Mikata's logo sent as real pixels — Kitty, iTerm2 or Sixel — where the terminal draws images |
 
 The colours are `packages/theme`'s, ported to `theme.rs`; a test reads the TypeScript file and
 fails when the two differ. That palette is the `hud` scheme. The app wears `neon` unless asked

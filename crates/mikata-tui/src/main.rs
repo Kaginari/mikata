@@ -330,8 +330,6 @@ fn chat(
         model.fact(Tag::Images, note, "");
     }
     model.pictures = Pictures::new(caps.protocol, caps.cell);
-    // Without pixels, the logo is drawn in glyphs as fine as the terminal's font draws.
-    mikata_tui::kit::glyphs::set_glyphs(caps.glyphs);
     if caps.timed_out {
         model.late = Late::after(std::time::Instant::now());
     }

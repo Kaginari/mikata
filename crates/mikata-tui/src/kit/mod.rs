@@ -8,15 +8,13 @@
 //! | Harmonica | [`spring`], [`toast`] | a critically damped spring: smooth scrolling, a toast's fade |
 //! | Glamour | [`markdown`], [`highlight`] | Markdown drawn from a stylesheet the theme derives, code in colour |
 //! | Isekai's depth | [`slab`], [`shimmer`] | raised panels — a spine, a lit top edge, a cast shadow — and a crest of light across a busy word |
-//! | mnemorph-animations | [`glyphs`], [`pixels`] | a picture, Mikata's logo, sent as real pixels — Kitty, iTerm2 or Sixel — or drawn as glyph cells, octants down to half blocks |
+//! | — | [`pixels`] | Mikata's logo sent as real pixels — Kitty, iTerm2 or Sixel — where the terminal draws images |
 //!
 //! Bubble Tea's own part, the Elm architecture — one model, messages, a pure `update` that
 //! returns commands, a `view` — is the application itself ([`crate::app`]). A component never
 //! reads the terminal: it is given keys and a width, and returns lines.
 
 pub mod gauge;
-mod glyph_tables;
-pub mod glyphs;
 pub mod highlight;
 pub mod keyhelp;
 pub mod markdown;

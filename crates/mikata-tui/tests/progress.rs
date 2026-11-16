@@ -650,32 +650,28 @@ fn large_output_stays_folded() {
     );
 }
 
-/// The picture at the sidebar's head: its rows, the padding that centres it cut away.
-fn head(m: &Model) -> Vec<String> {
-    let lines = mikata_tui::sidebar::view(m, 29, 37);
-    lines[..logo(m).len()]
+/// The sidebar's first rows, where a terminal that draws images shows the logo.
+fn head(m: &Model) -> String {
+    mikata_tui::sidebar::view(m, 29, 37)[..6]
         .iter()
-        .map(|l| format!("{:?}", &l.spans[1..]))
-        .collect()
+        .map(mikata_tui::kit::text::plain)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
-/// Mikata's logo, as the head draws it in cells.
-fn logo(m: &Model) -> Vec<String> {
-    mikata_tui::sidebar::logo_cells(&m.theme)
-        .iter()
-        .map(|l| format!("{:?}", &l.spans[..]))
-        .collect()
+/// Whether `s` holds a block glyph: a picture built from characters.
+fn blocks(s: &str) -> bool {
+    s.chars().any(|c| ('\u{2580}'..='\u{259f}').contains(&c))
 }
 
-/// The sidebar's head is Mikata's logo whoever works: the activity follows the body working now —
-/// the session's, a commissioned child's while it acts — and says so under the logo, which never
-/// changes for it.
+/// Where the terminal draws no images, the sidebar's head draws no logo at all — never one built
+/// from characters — whoever works: the activity follows the body working now, the session's, a
+/// commissioned child's while it acts, and says so.
 #[test]
-fn the_head_is_the_logo_and_the_activity_follows_the_working_body() {
+fn without_images_the_head_draws_no_logo_and_the_activity_follows_the_working_body() {
     let mut m = model();
     update(&mut m, Msg::Resize(120, 40));
-    assert_eq!(head(&m), logo(&m), "idle");
-    assert_eq!(logo(&m).len(), 10, "the mark is drawn, 10 rows of cells");
+    assert!(!blocks(&head(&m)), "idle: {}", head(&m));
     send(&mut m, "judge it");
     ev(
         &mut m,
@@ -684,7 +680,7 @@ fn the_head_is_the_logo_and_the_activity_follows_the_working_body() {
         },
     );
     assert_eq!(activity::actor(&m), ("summoner".into(), Race::Summoner));
-    assert_eq!(head(&m), logo(&m), "working");
+    assert!(!blocks(&head(&m)), "working");
     let below = |m: &mut Model, chain: &[&str], event: Event| {
         update(
             m,
@@ -702,7 +698,7 @@ fn the_head_is_the_logo_and_the_activity_follows_the_working_body() {
         },
     );
     assert_eq!(activity::actor(&m), ("orc-sql".into(), Race::Orc));
-    assert_eq!(head(&m), logo(&m), "a child working: still the logo");
+    assert!(!blocks(&head(&m)), "a child working");
     assert!(screen(&mut m, 120, 40).contains("orc-sql · working"));
     below(
         &mut m,
@@ -729,18 +725,16 @@ fn the_head_is_the_logo_and_the_activity_follows_the_working_body() {
         },
     );
     assert_eq!(activity::actor(&m), ("summoner".into(), Race::Summoner));
-    assert_eq!(head(&m), logo(&m));
+    assert!(!blocks(&head(&m)));
 }
 
-/// The logo stands still: nothing ticks for it, idle or working; a turn ticks at the spinner's
-/// pace only.
+/// Nothing ticks for the head, idle or working; a turn ticks at the spinner's pace only.
 #[test]
-fn the_logo_never_moves_and_nothing_ticks_for_it() {
+fn nothing_ticks_for_the_head() {
     let mut m = model();
     update(&mut m, Msg::Resize(120, 40));
     assert!(m.portrait_shown());
     assert_eq!(m.next_tick(), None, "idle: nothing ticks");
-    let still = head(&m);
     send(&mut m, "go");
     assert_eq!(
         m.next_tick(),
@@ -748,10 +742,8 @@ fn the_logo_never_moves_and_nothing_ticks_for_it() {
         "working: the spinner's pace"
     );
     tick(&mut m, 0.5);
-    assert_eq!(head(&m), still, "it did not move");
     update(&mut m, Msg::Done { held: 0 });
     assert_eq!(m.next_tick(), None);
-    assert_eq!(head(&m), still);
 }
 
 #[test]
@@ -1107,7 +1099,7 @@ fn two_working_children_leave_the_newest_as_the_actor_until_none_works() {
         let who = if i % 2 == 0 { "orc-a" } else { "slime-b" };
         below(&mut m, &[who], step(&format!("{who}{i}")));
         assert_eq!(activity::actor(&m).0, "slime-b", "event {i}");
-        assert_eq!(head(&m), logo(&m));
+        assert!(!blocks(&head(&m)));
     }
     below(
         &mut m,

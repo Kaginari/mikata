@@ -73,10 +73,9 @@ the configuration names another. Its mode is decided again, as a fresh session's
 is not the mode it stopped in, the app's first lines say so, and --mode goes on in the old one.
 `mikatad runs` lists them.
 
-The sidebar's logo is real pixels where the terminal draws images — Kitty, iTerm2's inline images
-(iTerm2, WezTerm, VS Code with terminal.integrated.enableImages), Sixel — else glyphs.
-MIKATA_TUI_IMAGES=auto|kitty|iterm|sixel|blocks|off overrides the choice, and
-MIKATA_TUI_GLYPHS=half|quadrants|sextants|octants the glyphs.
+The sidebar shows Mikata's logo where the terminal draws images — Kitty, iTerm2's inline images
+(iTerm2, WezTerm, VS Code with terminal.integrated.enableImages), Sixel — and no logo elsewhere.
+MIKATA_TUI_IMAGES=auto|kitty|iterm|sixel|blocks|off overrides the choice.
 
 Keys: enter sends (queued while a turn runs) · alt+enter breaks the line · ↑↓ history ·
 pgup/pgdn or the wheel scroll · esc stops the turn · ctrl+c stops, then quits ·
