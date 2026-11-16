@@ -1658,6 +1658,44 @@ fn fire_once_running(interrupt: Arc<mikata_loop::Interrupt>, marker: std::path::
     });
 }
 
+/// A light-coding ask split by project is held to the human's caps as one session is: each
+/// project's body reads the same ledger and stops at the same cap. The bodies the split started
+/// were given the session's limits but not its caps, so a split run spent past them.
+#[tokio::test]
+async fn the_bodies_of_a_split_ask_stop_at_the_human_s_cap() {
+    let w = World::new("caps-split");
+    for p in ["alpha", "beta"] {
+        fs::create_dir_all(w.world().join(p)).unwrap();
+        fs::write(w.world().join(p).join("Cargo.toml"), "[package]\n").unwrap();
+    }
+    let probe = Arc::new(ScriptedModel::new([answer("x")]));
+    ask(&mut w.run(probe, limits()), "weigh").await;
+    let one = w.ledger().read().unwrap().rows[0].wt;
+    let caps = mikata_ledger::Caps {
+        day: Some(one),
+        ..mikata_ledger::Caps::default()
+    };
+    let m = Arc::new(ScriptedModel::new([
+        answer("alpha done"),
+        answer("beta done"),
+        answer("never"),
+    ]));
+    let mut run = w
+        .run(m.clone(), limits())
+        .with_caps(caps)
+        .with_mode("light-coding");
+    let e = ask(&mut run, "fix alpha/ and beta/").await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, .. } if why.starts_with("budget: the day cap is spent")),
+        "{e:?}"
+    );
+    assert!(
+        m.requests().is_empty(),
+        "no body of the split spends once the day is spent: {:?}",
+        m.requests().len()
+    );
+}
+
 /// The day's cap holds across the sessions that share a world: the run rereads the ledger before
 /// every call, so a second session finds the day spent and makes no call at all.
 #[tokio::test]

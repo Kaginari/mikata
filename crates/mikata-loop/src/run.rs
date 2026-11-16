@@ -3550,7 +3550,7 @@ impl Run {
         })
     }
 
-    /// A light-coding body for one project of this run's world: this run's model, limits,
+    /// A light-coding body for one project of this run's world: this run's model, limits, caps,
     /// sandbox and ledger, the project's folder as its root, its own journal.
     fn sibling(&self, part: &str) -> Run {
         let root = self.cx.world().join(part);
@@ -3577,6 +3577,10 @@ impl Run {
             },
         };
         let mut run = Run::new(body, self.limits, setup).with_sampling(self.sampling.clone());
+        // The human's caps hold for every body of the session: each reads the same ledger.
+        if let Some(caps) = self.caps {
+            run = run.with_caps(caps);
+        }
         if let Some(watch) = self.observer.clone() {
             let part = part.to_owned();
             run = run.with_observer(Arc::new(move |seen: &Seen| {
