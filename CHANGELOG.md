@@ -11,6 +11,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Fixed
+
+- **A piped check is judged by its own exit status.** The shell now reads a pipeline's first stage's
+  status (`PIPESTATUS`), so `pytest | tail` or `python3 -c '…' 2>&1 | grep -v noise` counts as the
+  pass or failure it was, not as a run whose status was hidden. Hidden runs stop a body after eight;
+  in one five-project run they stopped a body after 59 of its 200 steps while it was still fixing its
+  project. A command with no pipe, a heredoc or a trailing `\` runs exactly as written.
+
 ### Changed
 
 - **Structured-coding fans out by itself.** When an Elf orders work, the harness also starts every

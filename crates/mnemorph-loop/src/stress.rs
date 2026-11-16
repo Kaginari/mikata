@@ -444,12 +444,16 @@ impl Stress {
         reading: &mut Reading,
     ) -> Option<Signal> {
         let bench = command.and_then(bench_of)?;
-        let hidden = command.is_some_and(muted);
+        // The shell's own statuses for a pipeline: the check is its first stage, whatever the
+        // filters after it did.
+        let first = o.meta.pipe;
+        let hidden = command.is_some_and(muted) && first.is_none();
+        let failed = first.map_or(o.is_error, |code| code != 0);
         reading.bench_outcome = Some(match (hidden, read) {
             (true, Some(Read::Green)) => "read green",
             (true, Some(Read::Red)) => "read red",
             (true, None) => "muted",
-            (false, _) if o.is_error => "red",
+            (false, _) if failed => "red",
             (false, _) => "green",
         });
         reading.bench = Some(bench.clone());
@@ -473,7 +477,7 @@ impl Stress {
                     b.muted_streak += 1;
                 }
             }
-        } else if o.is_error {
+        } else if failed {
             b.red += 1;
         } else {
             b.green += 1;
@@ -546,6 +550,40 @@ mod tests {
 
     fn stalled(signals: &[Signal]) -> bool {
         signals.iter().any(|s| matches!(s, Signal::Stall("repin")))
+    }
+
+    /// A piped check whose stages' statuses the shell gave is judged by its first stage, the
+    /// check itself: red when it failed, green when it held, never muted. Eight piped checks,
+    /// `python3 -c '…' 2>&1 | grep -v noise`, each a real failure the filter hid, were counted
+    /// muted and stopped a body that was still fixing its project.
+    #[test]
+    fn a_piped_check_with_its_statuses_is_judged_by_its_first_stage() {
+        let check = |i: u32| format!("python3 -c 'assert x{i}' 2>&1 | grep -v noise");
+        let piped = |first: u8| {
+            let mut o = Outcome::ok("AssertionError", ToolClass::Read);
+            o.meta.exit = Some(0);
+            o.meta.pipe = Some(first);
+            o
+        };
+        let mut s = Stress::default();
+        let mut signals = Vec::new();
+        for i in 0..super::MUTED_STALL {
+            signals.extend(s.act(&check(i), Some(&check(i)), &piped(1)));
+            assert_eq!(s.last().bench_outcome, Some("red"));
+        }
+        assert!(
+            !signals.iter().any(|x| matches!(x, Signal::Stall(_))),
+            "honest reds, not muted ones: {signals:?}"
+        );
+        s.act(&check(100), Some(&check(100)), &piped(0));
+        assert_eq!(s.last().bench_outcome, Some("green"));
+        // With no statuses, a piped run is muted as before.
+        s.act(
+            "bash",
+            Some(&check(101)),
+            &Outcome::ok("ok", ToolClass::Read),
+        );
+        assert_eq!(s.last().bench_outcome, Some("muted"));
     }
 
     /// A turn is one choice: three failures in one turn count once in the streak, and only three

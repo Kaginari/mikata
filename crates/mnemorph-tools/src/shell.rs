@@ -8,7 +8,7 @@
 use std::fmt::Write as _;
 use std::fs;
 use std::os::unix::process::CommandExt as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Stdio};
 use std::sync::mpsc;
 use std::thread;
@@ -318,6 +318,7 @@ fn attempt(
     let mut out = Outcome::ok(ran.render(), class);
     out.is_error = ran.timed_out || ran.interrupted || ran.code != Some(0);
     out.meta.exit = ran.code;
+    out.meta.pipe = ran.pipe;
     out.meta.timed_out = ran.timed_out;
     out.meta.truncated = ran.stdout.dropped > 0 || ran.stderr.dropped > 0;
     // The journal keeps, with the act, the plan the human approved it against.
@@ -558,6 +559,8 @@ struct Ran {
     stdout: Captured,
     stderr: Captured,
     code: Option<i32>,
+    /// The first stage's exit status in the command's last pipeline ([`with_pipe_status`]).
+    pipe: Option<u8>,
     timed_out: bool,
     interrupted: bool,
     waited: Duration,
@@ -715,9 +718,11 @@ fn run(
             policy.write.push(remotes);
         }
     }
+    // The command as approved, and after it a line that keeps its last pipeline's statuses.
+    let (wrapped, status_file) = with_status_line(command, &tmp);
     let mut cmd = cx
         .sandbox()
-        .command(&policy, "bash", &["--noprofile", "--norc", "-c", command]);
+        .command(&policy, "bash", &["--noprofile", "--norc", "-c", &wrapped]);
     cmd.current_dir(cx.world())
         .stdin(if stdin.is_some() {
             Stdio::piped()
@@ -790,14 +795,68 @@ fn run(
     };
     // Whatever the shell left running in the background ends with the call.
     kill_group(&child);
+    let pipe = first_stage(&status_file, !timed_out && !interrupted);
     Ok(Ran {
         stdout: stdout.recv_timeout(DRAIN).unwrap_or_default(),
         stderr: stderr.recv_timeout(DRAIN).unwrap_or_default(),
         code: status.and_then(|s| s.code()),
+        pipe,
         timed_out,
         interrupted,
         waited: started.elapsed(),
     })
+}
+
+/// The command to spawn, and the file its status line writes to: `command` as written unless
+/// it is a pipeline that ends where it seems to. Only a pipeline hides a status, and a heredoc
+/// or a trailing `\` would swallow a line after it and run it.
+fn with_status_line(command: &str, tmp: &Path) -> (String, PathBuf) {
+    let file = tmp.join(format!(
+        ".pipestatus-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos())
+    ));
+    let wraps =
+        command.contains('|') && !command.contains("<<") && !command.trim_end().ends_with('\\');
+    let wrapped = if wraps {
+        with_pipe_status(command, &file)
+    } else {
+        command.to_owned()
+    };
+    (wrapped, file)
+}
+
+/// The first stage's status the line wrote, when the command reached it (`ended`) with a
+/// pipeline of two or more stages; the file is removed either way.
+fn first_stage(file: &Path, ended: bool) -> Option<u8> {
+    let read = ended
+        .then(|| std::fs::read_to_string(file).ok())
+        .flatten()
+        .and_then(|s| {
+            s.split_whitespace()
+                .map(str::parse)
+                .collect::<Result<Vec<u8>, _>>()
+                .ok()
+        })
+        .filter(|p| p.len() >= 2)
+        .map(|p| p[0]);
+    let _ = std::fs::remove_file(file);
+    read
+}
+
+/// `command`, then a line that writes its last pipeline's statuses to `file` and exits as the
+/// command would have: `$?` and `PIPESTATUS` are read in one expansion, before either changes.
+/// A command that exits on its own never reaches the line, and leaves no file. Written for bash
+/// 3.2, macOS's own: no negative index.
+fn with_pipe_status(command: &str, file: &Path) -> String {
+    let quoted = file.display().to_string().replace('\'', "'\\''");
+    format!(
+        "{command}\n__mnemorph_ps=(\"${{PIPESTATUS[@]}}\" \"$?\"); \
+         printf '%s' \"${{__mnemorph_ps[*]:0:${{#__mnemorph_ps[@]}}-1}}\" > '{quoted}' 2>/dev/null; \
+         exit \"${{__mnemorph_ps[${{#__mnemorph_ps[@]}}-1]}}\""
+    )
 }
 
 fn kill_group(child: &Child) {

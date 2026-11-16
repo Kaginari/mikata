@@ -1308,7 +1308,7 @@ async fn a_muted_bench_stalls() {
         script.push(tool(
             &format!("b{i}"),
             "bash",
-            json!({"command": "pytest -q | tail -1"}),
+            json!({"command": "pytest -q | tail -1; echo done"}),
         ));
         script.push(tool(
             &format!("w{i}"),
