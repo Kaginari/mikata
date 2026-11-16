@@ -632,10 +632,7 @@ pub(crate) fn by_domain(
 /// not `03-alter-drop` or `src` inside `source`. The Summoner wrote one ask's folders as
 /// `**Problem 3 (03-alter-drop-multiple-columns):**`.
 fn names_dir(text: &str, dir: &str) -> bool {
-    let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '-');
-    text.match_indices(dir).any(|(i, _)| {
-        !word(text[..i].chars().next_back()) && !word(text[i + dir.len()..].chars().next())
-    })
+    crate::split::names_word(text, dir)
 }
 
 /// The text under `heading` in a markdown page, to the next heading of its level or above, or the
@@ -2319,7 +2316,7 @@ fn repair(
 }
 
 /// A run id's suffix: unique within the session.
-fn stamp() -> String {
+pub(crate) fn stamp() -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let nanos = std::time::SystemTime::now()

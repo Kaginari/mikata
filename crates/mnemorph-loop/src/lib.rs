@@ -33,6 +33,7 @@ pub mod sequence;
 pub mod session;
 pub mod session_metrics;
 pub mod solo;
+pub mod split;
 pub mod stress;
 pub mod summon_tool;
 pub mod verdict_tool;

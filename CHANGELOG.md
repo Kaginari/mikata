@@ -13,6 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **Light-coding splits an ask across separate projects.** When an ask names two or more folders at
+  the world's root that each hold a project file of their own (`pyproject.toml`, `Cargo.toml`,
+  `package.json`, …), one light-coding body a project runs at once, its folder as its root, and the
+  Summoner then reads their answers and checks each project once. Measured before: five sqlglot
+  copies asked as one, one body fixed 2.5 of 5 on average (3.5 given 400 steps); one body a project
+  fixed 5 of 5, twice.
 - **Structured-coding fans out by itself.** When an Elf orders work, the harness also starts every
   other Orc of its lane that an open item of its plan names, at once, with that item, the plan's
   `## Contract` and the Elf's ask as its brief; each item is started this way once per Elf body,
