@@ -507,8 +507,8 @@ fn open_items(world: &Path, roster: &Roster, name: &str) -> Vec<String> {
 /// that an open item of its plan names, not ordered this turn and not started this way before
 /// (`started`, by item). A model told to order independent parts in one turn still hands them out
 /// one at a time; the parts its own plan holds run at once. Each order is `(item, input)`: the
-/// item's work, the plan's `## Contract` and the Elf's own ask, and the `Done when` lines the item
-/// names after its `|`.
+/// item's work, the plan's `## Contract` and the Elf's own ask without the lines its order carried,
+/// and the `Done when` lines the item names after its `|`: a part is told its own lines only.
 pub(crate) fn fan_out(
     world: &Path,
     parent: &Body,
@@ -558,7 +558,11 @@ pub(crate) fn fan_out(
         let _ = write!(
             ask,
             "\n\nThe lane as your Elf was asked it, for context: do only your part.\n\n{}",
-            asked.split(OPEN_PLAN).next().unwrap_or(asked)
+            asked
+                .split(OPEN_PLAN)
+                .next()
+                .and_then(|a| a.split(crate::lines::BRIEF_HEAD).next())
+                .unwrap_or(asked)
         );
         let input = json!({"to": to, "ask": ask, "lines": lines}).to_string();
         out.push((item, input));
@@ -642,10 +646,17 @@ When the work is done, answer without calling a tool, on the wire, one tag per l
         race = c.race.name(),
         // The collective's card says the board in its own words.
         board = if collective { "" } else { BOARD_SAID },
+        // The path said, not left to the name: an Elf told "your own seat's plan.md" wrote its
+        // plan to `.mnemorph/elf-e/plan.md` and two other guesses, and the harness, which reads
+        // the seat, found none of its items.
         card = if collective {
-            crate::collective::card(c.race)
+            crate::collective::card(c.race).to_owned()
         } else {
-            race_card(c.race)
+            format!(
+                "{} Your seat's plan.md is `{}`.",
+                race_card(c.race),
+                std::path::Path::new(&c.seat).join("plan.md").display()
+            )
         },
     );
     if law.on() {
@@ -689,8 +700,9 @@ the domains of several Orcs, first write under `## Contract` in your plan.md wha
 (names, signatures, data, who makes and who uses each), then commission each Orc its part in the \
 same turn, the contract in every brief: commissions to different bodies in one turn run at once. \
 When you order, the harness also starts at once every other Orc of your lane that an open item \
-of your plan names, with that item as its part: write an item for every part before your first \
-order. Tests of the whole change are a second wave: order them only after every part has landed. When \
+of your plan names, with that item as its part and only the `Done when` lines the item names \
+after `|`: write an item for every part before your first order, each with its lines \
+(`- [ ] orc-a: <its part> | D1, D3`). Tests of the whole change are a second wave: order them only after every part has landed. When \
 all have reported, run the whole check once, and send a failure back to the Orc whose part broke \
 it."
         }

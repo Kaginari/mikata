@@ -28,7 +28,7 @@ impl Tool for VerifyTool {
             "properties": {
                 "to": {"type": "string", "description": "The Slime, by name (`slime-wire`)."},
                 "command": {"type": "string", "description": "One command, one line, no backticks: e.g. `python3 -m unittest -q`."},
-                "line": {"type": "string", "description": "The lines of your brief's `Done when` list this command proves, by name: `D4`, or `D4, D5`. Code one verify line for each line of your part; the report's mark for a line comes from the line that names it."}
+                "line": {"type": "string", "description": "The lines of your brief's `Done when` list this command proves, by name: `D4`, or `D4, D5`. Code one verify line for each line of your part, and only for those: a name your brief does not carry is refused. The report's mark for a line comes from the line that names it."}
             },
             "required": ["to", "command"],
             "additionalProperties": false
@@ -57,12 +57,40 @@ struct Args {
     line: Option<String>,
 }
 
-/// Run one `verify` call for `body`, in `world`.
-pub(crate) fn run(world: &std::path::Path, body: &str, input: &str) -> Outcome {
+/// Run one `verify` call for `body`, in `world`; `carried` is the `Done when` list its order
+/// carried down. A line named for a name not on the body's list is refused: a check coded for
+/// another part's line proves that part in this part's tree, and reported it done.
+pub(crate) fn run(
+    world: &std::path::Path,
+    body: &str,
+    carried: &[crate::lines::Line],
+    input: &str,
+) -> Outcome {
     let a: Args = match serde_json::from_str(input) {
         Ok(a) => a,
         Err(e) => return Outcome::error(format!("verify: {e}")),
     };
+    if let Some(line) = a.line.as_deref() {
+        let roster = mnemorph_world::Roster::load(world);
+        let list = crate::lines::of_dispatcher(world, &roster, body, carried);
+        // A body that carries no list has nothing to hold a name against.
+        if let Some(stray) = (!list.is_empty())
+            .then(|| {
+                line.split([',', ' '])
+                    .map(str::trim)
+                    .filter(|n| crate::lines::is_name(n))
+                    .find(|n| !list.iter().any(|(name, _)| name == n))
+            })
+            .flatten()
+        {
+            let yours: Vec<&str> = list.iter().map(|(n, _)| n.as_str()).collect();
+            return Outcome::error(format!(
+                "refused: {stray} is not on your brief's `Done when` list ({}): code checks for \
+your part's lines only; another part's line is its own Orc's to check",
+                yours.join(", ")
+            ));
+        }
+    }
     // The names ride after the command, `# D4`: the pin keeps them with the line it pins.
     let command = match a
         .line

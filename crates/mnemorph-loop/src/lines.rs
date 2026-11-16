@@ -70,12 +70,33 @@ pub fn of_dispatcher(world: &Path, roster: &Roster, name: &str, carried: &[Line]
         .unwrap_or_default()
 }
 
+/// `names` with each range `D1-D4` written out, `D1`, `D2`, `D3`, `D4`: an Elf wrote its item's
+/// lines as `| D1-D10`, and the range named no line. Anything else is kept as it is.
+#[must_use]
+pub fn expand(names: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for n in names {
+        let range = n.split_once('-').and_then(|(a, b)| {
+            let (a, b) = (a.trim(), b.trim());
+            let b = b.strip_prefix('D').unwrap_or(b);
+            let from: u32 = a.strip_prefix('D')?.parse().ok()?;
+            let to: u32 = b.parse().ok()?;
+            (from <= to && to - from < 100).then_some(from..=to)
+        });
+        match range {
+            Some(r) => out.extend(r.map(|i| format!("D{i}"))),
+            None => out.push(n.clone()),
+        }
+    }
+    out
+}
+
 /// The lines `names` picks from `list`, and the names that are not on it.
 #[must_use]
 pub fn pick(names: &[String], list: &[Line]) -> (Vec<Line>, Vec<String>) {
     let mut found = Vec::new();
     let mut missing = Vec::new();
-    for n in names {
+    for n in &expand(names) {
         match list.iter().find(|(name, _)| name == n) {
             Some(l) if !found.contains(l) => found.push(l.clone()),
             Some(_) => {}
@@ -85,6 +106,10 @@ pub fn pick(names: &[String], list: &[Line]) -> (Vec<Line>, Vec<String>) {
     (found, missing)
 }
 
+/// Where a brief's lines begin ([`brief`]): what comes after it is the order's own list.
+pub const BRIEF_HEAD: &str =
+    "\n\nDone when: the lines of your dispatcher's list this order must make true.";
+
 /// The brief's part for its lines: their text, each on its own line, and the names not found.
 #[must_use]
 pub fn brief(found: &[Line], missing: &[String]) -> String {
@@ -92,9 +117,9 @@ pub fn brief(found: &[Line], missing: &[String]) -> String {
     if found.is_empty() && missing.is_empty() {
         return String::new();
     }
-    let mut out = String::from(
-        "\n\nDone when: the lines of your dispatcher's list this order must make true. Answer `@V \
-<line> <what you ran and what it gave>` for each; the mark is the checks', not yours.",
+    let mut out = format!(
+        "{BRIEF_HEAD} Answer `@V <line> <what you ran and what it gave>` for each; the mark is the \
+checks', not yours."
     );
     for (name, text) in found {
         let _ = write!(out, "\n- {name}: {text}");
@@ -205,7 +230,7 @@ pub fn under_status(report: &str, marks: &[String]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_name, list, marks, pick, tagged, tags, under_status};
+    use super::{Line, expand, is_name, list, marks, pick, tagged, tags, under_status};
     use crate::gate::GateVerdict;
 
     fn verdict(ran: &[&str], failures: &[&str]) -> GateVerdict {
@@ -238,6 +263,22 @@ mod tests {
     }
 
     /// A verify line's names ride after it, and only names: a comment in the command is not one.
+    #[test]
+    fn a_range_of_lines_names_each_line_in_it() {
+        let names = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        assert_eq!(
+            expand(&names(&["D1-D3", "D7", "D9 - D10"])),
+            names(&["D1", "D2", "D3", "D7", "D9", "D10"])
+        );
+        assert_eq!(expand(&names(&["D4-D2", "x-y"])), names(&["D4-D2", "x-y"]));
+        let list: Vec<Line> = (1..=4)
+            .map(|i| (format!("D{i}"), format!("t{i}")))
+            .collect();
+        let (found, missing) = pick(&names(&["D2-D4"]), &list);
+        assert_eq!(found.len(), 3);
+        assert_eq!(missing, Vec::<String>::new());
+    }
+
     #[test]
     fn a_verify_line_carries_its_names_after_it() {
         assert_eq!(tagged("pytest -q", "D4, D5").unwrap(), "pytest -q # D4, D5");

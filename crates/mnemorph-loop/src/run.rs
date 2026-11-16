@@ -3420,7 +3420,8 @@ impl Run {
                 .iter()
                 .any(|t| t.name() == crate::verify_tool::VERIFY)
         {
-            let coded = crate::verify_tool::run(self.cx.world(), &self.body.name, input);
+            let coded =
+                crate::verify_tool::run(self.cx.world(), &self.body.name, self.cx.done(), input);
             return if coded.is_error {
                 coded
             } else {
