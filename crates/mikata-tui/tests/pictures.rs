@@ -212,9 +212,10 @@ fn without_images_the_logo_is_glyph_cells_and_stands_still() {
     let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
     let buf = draw(&mut m, &mut t);
     assert_eq!(m.pictures.wanted(), Vec::new());
+    // The sidebar's head, the logo's ten rows, without the state line under it.
     let head = |buf: &Buffer| -> String {
-        (0..buf.area.width)
-            .flat_map(|x| (2..18).map(move |y| (x, y)))
+        (85..buf.area.width)
+            .flat_map(|x| (2..12).map(move |y| (x, y)))
             .map(|(x, y)| buf[(x, y)].symbol().to_owned())
             .collect()
     };

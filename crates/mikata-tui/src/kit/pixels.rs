@@ -532,8 +532,23 @@ pub fn square(cols: u16, cell: (u16, u16)) -> (u16, u32, u32) {
     (rows, wide, u32::from(rows) * ch)
 }
 
-/// Mikata's logo, a 256 px RGBA PNG: the two cells on their tile, which the sidebar's head shows.
+/// Mikata's logo, a 256 px RGBA PNG: the two cells on their tile, which the sidebar's head shows
+/// as real pixels.
 pub const LOGO: &[u8] = include_bytes!("../../assets/brand/mikata-icon.png");
+
+/// Mikata's mark for glyph cells, flat and without its glow, rendered at the exact sub-pixels of
+/// each glyph set for 32 columns by 10 rows (`assets/source/mikata-mark-cells.svg`): a glowing
+/// picture shrunk to 32 sub-pixels across is a blur.
+#[must_use]
+pub fn mark(glyphs: crate::kit::glyphs::Glyphs) -> &'static [u8] {
+    use crate::kit::glyphs::Glyphs;
+    match glyphs {
+        Glyphs::Half => include_bytes!("../../assets/brand/mikata-mark-half.png"),
+        Glyphs::Quadrants => include_bytes!("../../assets/brand/mikata-mark-quadrants.png"),
+        Glyphs::Sextants => include_bytes!("../../assets/brand/mikata-mark-sextants.png"),
+        Glyphs::Octants => include_bytes!("../../assets/brand/mikata-mark-octants.png"),
+    }
+}
 
 /// `source` (a PNG) as half blocks `cols` cells wide: each cell's upper pixel its foreground, its
 /// lower its background, on `bg`. For a terminal that draws no images.

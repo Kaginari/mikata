@@ -1062,9 +1062,11 @@ arguments arrive, its class read by the classifier off the UI thread; its durati
 to its result. Time is the model's clock, advanced by its ticks.
 
 The sidebar's head is Mikata's logo, embedded from `assets/brand/mikata-icon.png` (256 px), and it
-never moves: idle or working, it asks no tick. Without real pixels it is drawn once, per
-background, into glyph cells, 32 columns by 16 rows, each cell the best two-colour split of its
-sub-pixels: octants (2 × 4 a cell) where the terminal draws them itself whatever the font (Kitty,
+never moves: idle or working, it asks no tick. Without real pixels it is the mark flat, without
+its glow (`assets/source/mikata-mark-cells.svg`), rendered ahead at the exact sub-pixels of each
+glyph set and drawn once, per background, into glyph cells, 32 columns by 10 rows, with no resize
+(a glowing picture shrunk to 32 sub-pixels across is a blur), each cell the best two-colour split
+of its sub-pixels: octants (2 × 4 a cell) where the terminal draws them itself whatever the font (Kitty,
 Ghostty), sextants (2 × 3) in WezTerm and foot, quadrants (2 × 2, block elements every font has)
 elsewhere, half blocks on the Linux console; `MIKATA_TUI_GLYPHS=half|quadrants|sextants|octants`
 overrides it. `kit::glyphs` is vendored from Kaginari/mnemorph-animations' player crate (which

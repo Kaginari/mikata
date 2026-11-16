@@ -653,7 +653,7 @@ fn large_output_stays_folded() {
 /// The picture at the sidebar's head: its rows, the padding that centres it cut away.
 fn head(m: &Model) -> Vec<String> {
     let lines = mikata_tui::sidebar::view(m, 29, 37);
-    lines[..16]
+    lines[..logo(m).len()]
         .iter()
         .map(|l| format!("{:?}", &l.spans[1..]))
         .collect()
@@ -675,7 +675,7 @@ fn the_head_is_the_logo_and_the_activity_follows_the_working_body() {
     let mut m = model();
     update(&mut m, Msg::Resize(120, 40));
     assert_eq!(head(&m), logo(&m), "idle");
-    assert_eq!(logo(&m).len(), 16, "the logo is drawn, 16 rows of cells");
+    assert_eq!(logo(&m).len(), 10, "the mark is drawn, 10 rows of cells");
     send(&mut m, "judge it");
     ev(
         &mut m,

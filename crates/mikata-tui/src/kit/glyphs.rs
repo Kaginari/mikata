@@ -70,17 +70,21 @@ pub fn lines(rows: &[Vec<Cell>], under: Option<Rgb>) -> Lines {
         .collect()
 }
 
-/// A PNG as cells `cols` wide and half as many rows, in `glyphs`: the picture shrunk to the
-/// glyphs' sub-pixels, its clear pixels showing the cells' own background. `None` when the PNG
-/// cannot be read.
+/// A PNG as cells `cols` by `rows` in `glyphs`, its clear pixels showing the cells' own
+/// background. A PNG already of the glyphs' sub-pixels (`cols × gw` by `rows × gh`) is taken as it
+/// is, every sub-pixel its own; any other is resized to them first. `None` when the PNG cannot
+/// be read.
 #[must_use]
-pub fn picture(png: &[u8], cols: usize, glyphs: Glyphs) -> Option<Vec<Vec<Cell>>> {
+pub fn picture(png: &[u8], (cols, rows): (usize, usize), glyphs: Glyphs) -> Option<Vec<Vec<Cell>>> {
     let (gw, gh) = glyphs.grid();
     let img = image::load_from_memory(png).ok()?.to_rgba8();
     let w = u32::try_from(cols * gw).ok()?;
-    let h = u32::try_from(cols / 2 * gh).ok()?;
-    let small = image::imageops::resize(&img, w, h, image::imageops::FilterType::Triangle);
-    Some(cells(&small, glyphs))
+    let h = u32::try_from(rows * gh).ok()?;
+    if img.dimensions() == (w, h) {
+        return Some(cells(&img, glyphs));
+    }
+    let fitted = image::imageops::resize(&img, w, h, image::imageops::FilterType::Lanczos3);
+    Some(cells(&fitted, glyphs))
 }
 
 /// Which glyphs draw the sub-pixels.

@@ -415,9 +415,11 @@ mod tests {
         for w in [80u16, 120, 200] {
             let mut m = model(Variant::Light);
             let (text, _) = screen(&mut m, w, 60);
-            // The card's rows joined, its frame and bullets cut away: wrapped lines read whole.
+            // The card's rows joined, the sidebar beside them, its frame and bullets cut away:
+            // wrapped lines read whole.
             let flat: String = text
                 .lines()
+                .map(|l| l.split('│').nth(1).unwrap_or(l))
                 .map(|l| {
                     l.trim_matches(|c: char| " ▌▏▕▖▘▝▀▄│".contains(c))
                         .trim_start_matches("▸ ")

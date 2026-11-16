@@ -947,8 +947,11 @@ fn bodies(m: &Model, w: usize, rows: usize) -> Lines {
     out
 }
 
-/// The logo's width, in cells; it is half as many rows tall.
+/// The logo's width, in cells.
 const PORTRAIT: u16 = 32;
+
+/// The mark's rows in glyph cells: it is wider than tall, 32 columns by 10 rows.
+const MARK_ROWS: usize = 10;
 
 /// Mikata's logo in glyph cells, in the glyphs the terminal draws, built once per background and
 /// glyph set.
@@ -968,9 +971,13 @@ pub fn logo_cells(t: &crate::theme::Theme) -> Lines {
     {
         return lines.clone();
     }
-    let lines = glyphs::picture(crate::kit::pixels::LOGO, usize::from(PORTRAIT), g)
-        .map(|rows| glyphs::lines(&rows, Some(t.p.bg)))
-        .unwrap_or_default();
+    let lines = glyphs::picture(
+        crate::kit::pixels::mark(g),
+        (usize::from(PORTRAIT), MARK_ROWS),
+        g,
+    )
+    .map(|rows| glyphs::lines(&rows, Some(t.p.bg)))
+    .unwrap_or_default();
     *c = Some((t.p.bg, g, lines.clone()));
     lines
 }
