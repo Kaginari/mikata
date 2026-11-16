@@ -7566,3 +7566,11 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Result, bar written first:** 3, 4 and 3 of 5 (mean 3.3), 17 to 40 minutes, $2.36 a run. Routing fired in all three. Above the chain's count before (3.0) and light-coding as shipped (2.5); below one body with 400 steps (3.5).
 - **What is left:** checks the Orcs wrote too weak to fail (one printed its result with no assertion) still came back PASS, 12 lines over two runs. Next lever: a PASS that was green before any change said as "held, not shown".
 - **Spent:** about $7.90 on steps 21c and 21d.
+
+### [2026-11-16T09:35:00+00:00] aibo Summoner — light-coding splits by project; structured-coding frozen
+- **Asked by** the owner: freeze structured-coding (agreed), and test whether the split, not the chain, was the win.
+- **Step 22, no code:** each of the five projects alone, light-coding as shipped: 5 of 5, twice, $1.41 a round.
+- **Built, #437:** a light-coding ask that names two or more root folders, each with its own project file, runs one body a project at once, each rooted in its folder; the Summoner checks after.
+- **Step 22b, bar written first:** the five-project ask itself, 5 and 4 of 5 (mean 4.5), about 19 minutes and $1.72 a run. One body did 2.5 (3.5 with 400 steps); the chain 3.3. At the bar's "pays well" line.
+- **Dropped:** the "held, not shown" check lever. Light-coding's Done-when lines are run by the model, not the harness, so it would help only the frozen chain.
+- **Spent:** $6.27 on steps 22 and 22b.
