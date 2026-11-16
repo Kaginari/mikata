@@ -141,7 +141,7 @@ mikata/
 | logs | the run's journal, JSONL under `.mikata/instruments/loop/` | the journal is an instrument |
 | tests | nextest, proptest; Ratatui's test backend; vitest; Playwright for the board (M12) | every rung testable alone |
 | TS tooling | Node 22, pnpm workspaces, Biome | Node is already the platform Claude Code runs on |
-| distribution | GitHub release archives per target — `mikata`, `mikatad` and, on Linux, `mikata-guard` — with `SHA256SUMS`; `install.sh`, which refuses an archive that does not match; `cargo install --path` from a checkout ([releasing](releasing.md)) | one plain binary for people and for servers. The name `mikata` on crates.io is taken: the published names are settled in phase D |
+| distribution | GitHub release archives per target — `mikata`, `mikatad` and, on Linux, `mikata-guard` — with `SHA256SUMS`; `install.sh`, which refuses an archive that does not match; `cargo install --path` from a checkout ([releasing](releasing.md)) | one plain binary for people and for servers. The name `mikata` is free on crates.io (checked 16 November 2026); the crates are not published yet |
 
 ### The terminal UI
 
@@ -196,11 +196,11 @@ records directly, without a session. Both link the same crates (`mikata-loop`, `
 | open the board | `mikatad board`, then the URL it prints |
 
 `resume <run|last>` opens the session on a run that stopped instead of a new one, through the
-same opening and the same end gate ([Resume](03-loop.md#budgets-are-readings)); a run with nothing
+same opening and the same end gate ([Resume](02-loop.md#budgets-are-readings)); a run with nothing
 to resume is refused in plain text, before the terminal is taken. `mikatad runs` lists them.
 
 **The mode.** `--mode auto|light-coding|structured-coding|collective-coding` goes with the app, `resume`, `run` and
-`status`, and with `mikatad` for a program ([the three modes](02-races.md#the-three-modes);
+`status`, and with `mikatad` for a program ([the three modes](experimental/races.md#the-three-modes);
 [which one, and when](01-overview.md#which-mode-and-how-to-start-it)). It is the command line's
 alone, as `--no-law` is: no configuration a world holds asks for a mode, and neither does a
 journal: a resumed run's mode is decided again, as a fresh session's is, and when that is not the
@@ -540,7 +540,7 @@ it — is shown and grants nothing.
 | `memory` | `shared`, `grounded`, `proposed`, `retired`, `unproven`, counted as `mikatad memory status` counts them | `.mikata/memory/` | no |
 | `challenges` | the open challenges `pending`, `blocked`, `verifying`; those with an `unstaffed` speciality; their `findings`; `unreadable` record lines — as `mikatad challenge list` reads them | the challenge records under the state directory | yes |
 | `gate` | how many verdicts, and the last: `{at, body, verdict, changed}` or `null` before the first | the gate's verdict journal under the state directory | yes |
-| `meters` | each living creature's meters with their `status` (`counted`, `noReports`, `unavailable` with `why`), `successes`, `n`, the point estimate and the 95% Wilson interval `lo`–`hi`, or `null`s for no report — as `mikatad meters --json` (which also gives each creature its pending `proposal` and `probation`, and the `unknown` input its law reads that no trusted journal carries) | the roster in the world over the challenge records' folds and the report fold of the trusted journals under the state directory ([the report fold](02-races.md#the-report-fold)) | no |
+| `meters` | each living creature's meters with their `status` (`counted`, `noReports`, `unavailable` with `why`), `successes`, `n`, the point estimate and the 95% Wilson interval `lo`–`hi`, or `null`s for no report — as `mikatad meters --json` (which also gives each creature its pending `proposal` and `probation`, and the `unknown` input its law reads that no trusted journal carries) | the roster in the world over the challenge records' folds and the report fold of the trusted journals under the state directory ([the report fold](experimental/races.md#the-report-fold)) | no |
 | `spend` | the latest session in the usage ledger: `calls`, `usd` (`null` when none was priced), `unpriced`, weighted tokens | `.mikata/instruments/usage.jsonl` | no |
 | `waiting` | the gate asks the board's chats keep for the human; a terminal session's asks wait in its terminal | the board's chats | yes |
 | `updates` | `pushed`, or `slowed` when the world is past the watcher's budget (below) | the board's watcher | yes |
@@ -645,7 +645,7 @@ Minds too: a card that names a Mind its row does not hold wears none of it.
 Rises, falls and adoptions are the human's alone: `mikatad roster adopt`, `set-race` and
 `retire`, each asked at the terminal (`/dev/tty`; piped input is refused) or under `--yes` for a
 script the human runs, and `roster rise` and `fall`, which apply the move the compiled law
-proposes at the terminal alone ([applying a rise or a fall](02-races.md#applying-a-rise-or-a-fall)),
+proposes at the terminal alone ([applying a rise or a fall](experimental/races.md#applying-a-rise-or-a-fall)),
 each refused inside a body's command, under any `mikata`, `mikatad` or
 `mikata-guard` ancestor, and with a state directory inside the world. The ancestry is read
 from the process tree, so a command that leaves it — `setsid`, or a daemon re-parented to init —
@@ -708,7 +708,7 @@ its start read from the name, its first ask, its last gate word and its ending (
 journals, 4 MiB each, 64 MiB in all, each opened only as a regular file) — and the end gate's
 verdicts from its chained journal, numbered as a settle cites them. A commission is in-world, a
 verdict trusted. Each commission also shows its acts in order, the newest 200, with a chip per
-[guts class](03-loop.md#stress-in-four-instruments), read from the harness's chained guts record
+[guts class](02-loop.md#stress-in-four-instruments), read from the harness's chained guts record
 under the state directory while its chain holds — trusted, whatever the journal is; the page says
 why when they cannot be shown. It filters by kind and body, and pages.
 
@@ -1238,7 +1238,7 @@ WCAG contrast: text 4.5:1 on its page and panels, the accent, alarm and the huma
 
 The board is the web cockpit `mikatad` serves on loopback — the human's page, and another thing
 than the work board the bodies of a session share
-([`.mikata/tmp/board.md`](02-races.md#the-three-modes)): `packages/board`, React 19 built by
+([`.mikata/tmp/board.md`](experimental/races.md#the-three-modes)): `packages/board`, React 19 built by
 Vite into static files, with no router, state or chart library. It looks like the terminal app
 and reads like claude.ai: a **rail** on the left, the **centre**, and a foldable **pane** on the
 right.
@@ -1457,28 +1457,28 @@ the memory, ontology and bodies pages watch, each shown live. The screenshots ar
 |---|---|---|
 | law, creature docs, Minds | `.mikata/law.md`, `.mikata/<race>/<name>/README.md`, `.mikata/minds/` | yes |
 | journal | `.mikata/log.md` — append-only writer | yes |
-| shared notes | `.mikata/memory/shared/notes.jsonl` — append-only note events ([memory](08-memory.md)) | yes |
+| shared notes | `.mikata/memory/shared/notes.jsonl` — append-only note events ([memory](07-memory.md)) | yes |
 | personal notes | `.mikata/memory/creature/<name>.jsonl` — one creature's note events | yes |
 | semantic cache | `.mikata/memory/short/` — one body's recent recalls | no — machine-local |
 | shared work queue | `.mikata/shared/queue.jsonl` — append-only snapshots; its witness under `$XDG_STATE_HOME/mikata/queue/` | no — machine-local |
 | Kijin post journals | `.mikata/kijin/<post>/post.jsonl` — each outward act's receipt, one row per state, stamped `build: { version, commit }`; an untyped command only by its program and digest; every row witnessed under `$XDG_STATE_HOME/mikata/kijin/<world>-<fnv64a>/<post>.jsonl`, which the tripwire rebuilds it from and the count reads — the witness hash-chained, its head anchored with the other chained journals as `kijin-<post>`, and the journal holding its bytes; beside the witness, `<post>.intents.jsonl` (each act's key, typed request and whole pin), `<post>.incidents.jsonl` (each rolled-back or corrected act's incident and its receipts) and `<post>.lock` (one act of a post at a time) — the folder `0700`, its files `0600` | yes (the witness, intents, incidents and lock: no — machine-local) |
 | Dark Elf proving ground | `.mikata/dark-elf/` | yes (frozen witnesses are evidence) |
-| Dark Elf challenges | `$XDG_STATE_HOME/mikata/challenges/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each landing as it was routed with its tree hash and author, how each routed speciality is staffed (commissioned with its spend, queued, unstaffed), each speciality's coverage ledger, its findings of medium or higher with each verifier's staffing, verdict (the verifier, its speciality, the evidence hashes) and seal proposal (its witness frozen by hash), and the human's waiver, append-only and hash-chained ([the chain](06-consumption.md#the-usage-row)) — each row that settles a finding (found, ruled, decided) stamped `build: { version, commit }`, the build `status` prints, a row from before reading `unknown`; a line that does not parse holds its challenge pending, never skipped — outside the world and out of every command's reach | no — machine-local |
+| Dark Elf challenges | `$XDG_STATE_HOME/mikata/challenges/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each landing as it was routed with its tree hash and author, how each routed speciality is staffed (commissioned with its spend, queued, unstaffed), each speciality's coverage ledger, its findings of medium or higher with each verifier's staffing, verdict (the verifier, its speciality, the evidence hashes) and seal proposal (its witness frozen by hash), and the human's waiver, append-only and hash-chained ([the chain](05-consumption.md#the-usage-row)) — each row that settles a finding (found, ruled, decided) stamped `build: { version, commit }`, the build `status` prints, a row from before reading `unknown`; a line that does not parse holds its challenge pending, never skipped — outside the world and out of every command's reach | no — machine-local |
 | evolution ledger | `$XDG_STATE_HOME/mikata/evolution/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each swap with its exact file set hashed before and after, the soil diff the harness saw and the tasks its plan was proven on (the record that keeps a held-out task to one use and out of two splits), each run of a swapped body or of its do-nothing control stamped with the swap's id, the build and the named files' state before and after the run, and each swap's settling — kept or rolled back, by the harness's rule or the human; written by the harness alone, append-only and hash-chained, its head anchored with the other chained journals; outside the world and out of every command's reach | no — machine-local |
 | evolution proposals | `$XDG_STATE_HOME/mikata/proposals/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each plan drawn for the human: its id, creature, arm and file set, every file's digest as the world held it when drawn and as staged, and its closing (`applied` or `rejected`); written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
 | strain journal | `$XDG_STATE_HOME/mikata/strain/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each body's strain, warrants, clears and doom checkpoints, for evolution's trigger; written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
 | gate verdicts | `$XDG_STATE_HOME/mikata/gate/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each verdict the end gate journals in `log.md`, again: the body and the run whose landing it judged (a row from before runs were named carries none), the verdict, the paths changed, the failures and unverified checks, the `log.md` heading, and `build: { version, commit }` (a row from before reading `unknown`; `mikata_world::verdicts::by_build` keeps one build's); written by the harness alone, append-only and hash-chained, anchored as `gate`; outside the world | no — machine-local |
-| guts classes | `$XDG_STATE_HOME/mikata/guts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — one row per act the loop classed: the run, the body, the tool call and tool, its [guts classes](03-loop.md#stress-in-four-instruments), and `build: { version, commit }`; written by the harness alone, append-only and hash-chained, anchored as `guts`; read by `status` and the board's timeline only while the chain holds; outside the world | no — machine-local |
-| report ledger | `$XDG_STATE_HOME/mikata/reports/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — every race's reports but the Dark Elf's, folded from the usage witness, the gate verdicts, the challenge records and the Kijin posts' witnesses alone, each walked and held to its anchor — a journal gone while its anchor stays stops the fold ([the report fold](02-races.md#the-report-fold)): one row per report, with `ts`, the trusted time it began — `run` (gate word, first try, holes, verify lines green, dispatches landed and re-asked, passes and those overturned), `ask` (a throne landing done or reopened) or `act` (an outward act clean or rolled back) — each with the `build` of the journal row that settled it (`unstamped` where that row carries none), chained from its genesis; a pass counts as verified only on a line the human pinned. Derived: `mikatad meters` rebuilds it whole and puts it in place by a rename when its bytes change, never edited in place, so a replay of the same journals reproduces it byte for byte; a fold whose journal does not hold keeps no new ledger | no — machine-local |
+| guts classes | `$XDG_STATE_HOME/mikata/guts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — one row per act the loop classed: the run, the body, the tool call and tool, its [guts classes](02-loop.md#stress-in-four-instruments), and `build: { version, commit }`; written by the harness alone, append-only and hash-chained, anchored as `guts`; read by `status` and the board's timeline only while the chain holds; outside the world | no — machine-local |
+| report ledger | `$XDG_STATE_HOME/mikata/reports/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — every race's reports but the Dark Elf's, folded from the usage witness, the gate verdicts, the challenge records and the Kijin posts' witnesses alone, each walked and held to its anchor — a journal gone while its anchor stays stops the fold ([the report fold](experimental/races.md#the-report-fold)): one row per report, with `ts`, the trusted time it began — `run` (gate word, first try, holes, verify lines green, dispatches landed and re-asked, passes and those overturned), `ask` (a throne landing done or reopened) or `act` (an outward act clean or rolled back) — each with the `build` of the journal row that settled it (`unstamped` where that row carries none), chained from its genesis; a pass counts as verified only on a line the human pinned. Derived: `mikatad meters` rebuilds it whole and puts it in place by a rename when its bytes change, never edited in place, so a replay of the same journals reproduces it byte for byte; a fold whose journal does not hold keeps no new ledger | no — machine-local |
 | board answers | `$XDG_STATE_HOME/mikata/answers/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each answer to the gate given on the board, taken or refused: the chat, the ask, the tab's connection, the act as shown, the digest shown and the one named, the timing since the ask and the render acknowledgement; written by the board alone, append-only and hash-chained, anchored as `answers` with the other chained journals | no — machine-local |
-| verify pins | `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's pinned verify lines: a `pin` row (the whole set, by the human or by relief), a `code` row (one line an Orc coded through the harness) or a `withdraw` row (the lines an Orc coded before for a `Done when` name it codes again; a line the human pinned stays), with `by` and `build` — each line keeps its author, so an Orc's line is no bench and its pass is the Orc's; append-only and hash-chained, anchored as `verify`; the end gate runs only these lines, and only while the card says the same ([the verify pins](03-loop.md#the-verify-pins)) | no — machine-local |
+| verify pins | `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's pinned verify lines: a `pin` row (the whole set, by the human or by relief), a `code` row (one line an Orc coded through the harness) or a `withdraw` row (the lines an Orc coded before for a `Done when` name it codes again; a line the human pinned stays), with `by` and `build` — each line keeps its author, so an Orc's line is no bench and its pass is the Orc's; append-only and hash-chained, anchored as `verify`; the end gate runs only these lines, and only while the card says the same ([the verify pins](02-loop.md#the-verify-pins)) | no — machine-local |
 | creatures' witness | `$XDG_STATE_HOME/mikata/roster/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's whole standing as of the row: its name, race (rank included), `reports_to`, post or speciality, ground with its `ground_sha256`, whether retired, the act (`relief`, `evolution`, `adopt`, `set-race`, `retire`, `rise`, `fall`), `by` and `build`, and on a `rise` or `fall` the `proposal` it applied, its `inputs_sha256` and the `as_of` it was read at, which `mikatad roster replay` recomputes from the journals; append-only and hash-chained, anchored as `roster` from the state directory alone. It is the roster's source of truth: every privilege reads a card only as held to its row, and the cards in the world are display-only ([the roster's trust](#the-rosters-trust)) | no — machine-local |
 | Minds' witness | `$XDG_STATE_HOME/mikata/minds/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each Mind the human adopted, retired or unretired: its doc, the SHA-256 of its bytes then, its owner (on adoption) and `build`; written only by `mikatad mind` at the terminal, append-only and hash-chained, anchored as `minds`; a Mind loads only while its doc holds the adopted bytes | no — machine-local |
 | envelope uses and revocations | `$XDG_STATE_HOME/mikata/oni/uses.jsonl` and `revoked.jsonl` (else `~/.local/state/…`), one pair for every world — each act an Oni envelope admitted, counted under `uses.lock`, and each revocation; append-only and hash-chained, anchored as `uses` and `revocations` with each world's chained journals | no — machine-local |
 | chain anchors | `$XDG_STATE_HOME/mikata/anchors/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each chained journal's newest head that held, written with its `log.md` entry by `mikatad housekeep --verify`; every walk is held to it | no — machine-local |
 | plan | `.mikata/plan.md` — the throne's | yes |
-| dimension manifest | `.mikata/dimension.toml` — the copy of the relations this world states, for readers; what it states beyond them is a proposal, never a relation ([ontology](09-ontology.md#relations-between-worlds)) | yes |
-| ontology facts | `.mikata/ontology/facts.jsonl` — the copy of the trusted facts, for readers; never read for trust ([ontology](09-ontology.md#facts-who-said-what)) | yes |
+| dimension manifest | `.mikata/dimension.toml` — the copy of the relations this world states, for readers; what it states beyond them is a proposal, never a relation ([ontology](experimental/ontology.md#relations-between-worlds)) | yes |
+| ontology facts | `.mikata/ontology/facts.jsonl` — the copy of the trusted facts, for readers; never read for trust ([ontology](experimental/ontology.md#facts-who-said-what)) | yes |
 | trusted facts | `$XDG_STATE_HOME/mikata/facts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — territory facts, counters, labels, settles and the one import, as events; written by the harness and the human's settle alone, append-only and hash-chained, anchored as `facts`; outside the world | no — machine-local |
 | relations | `$XDG_STATE_HOME/mikata/dimension/<world>-<fnv64a>/relations.jsonl` (else `~/.local/state/…`) — each relation the human stated or revoked, and each inverse declared, with `build`; written only by `mikatad onto relate`, `unrelate` and `inverse`, append-only and hash-chained, anchored as `relations`; outside the world | no — machine-local |
 | relation sightings | `$XDG_STATE_HOME/mikata/dimension/<world>-<fnv64a>/sightings.jsonl` (else `~/.local/state/…`) — cross-world references the harness saw a body read in a committed manifest, the other world named by id; the ledger relations are learned from, the harness's alone | no — machine-local |
@@ -1486,7 +1486,7 @@ the memory, ontology and bodies pages watch, each shown live. The screenshots ar
 | world registry | `$XDG_STATE_HOME/mikata/worlds.jsonl` (else `~/.local/state/…`), one for every world — a row each time a session opens: the world's canonical path, its id `<world>-<fnv64a>`, its `origin` remote normalised (`host/owner/repo`, never a credential) and when; the board finds worlds there, and a world's row count is the session clock a learned relation's expiry reads | no — machine-local |
 | advisory mirror | `.mikata/intel/osv-scalibr/` — refreshed by `mikatad scout`, audited against by `mikatad scout audit` | no — hundreds of MB |
 | attic | `$XDG_STATE_HOME/mikata/attic/<world>/` (else `~/.local/state/…`) — outside the world, out of every command's reach: a git object store of working-tree snapshots, hard links to `.git`'s objects, copies of its refs | no |
-| usage + value ledgers | `.mikata/instruments/*.jsonl` — the usage ledger hash-chained, its every byte witnessed under `$XDG_STATE_HOME/mikata/usage/` for the tripwire, its head anchored in `log.md` and kept under `$XDG_STATE_HOME/mikata/anchors/` ([the chain](06-consumption.md#the-usage-row)) | no — machine-local |
+| usage + value ledgers | `.mikata/instruments/*.jsonl` — the usage ledger hash-chained, its every byte witnessed under `$XDG_STATE_HOME/mikata/usage/` for the tripwire, its head anchored in `log.md` and kept under `$XDG_STATE_HOME/mikata/anchors/` ([the chain](05-consumption.md#the-usage-row)) | no — machine-local |
 | derived indexes | none on disk: recall builds its BM25 index in memory | — |
 | run journals | `.mikata/instruments/loop/` | no |
 | CI runs | `.mikata/instruments/ci.jsonl` — each forge run as `mikatad ci` read it; body-writable, said as last read | no |
@@ -1494,7 +1494,7 @@ the memory, ontology and bodies pages watch, each shown live. The screenshots ar
 Every index is derived and can be deleted, and is rebuilt from what it derives from; a stale index
 is rebuilt, never routed around.
 
-The chained journals ([the chain](06-consumption.md#the-usage-row)), each a name in
+The chained journals ([the chain](05-consumption.md#the-usage-row)), each a name in
 `mikatad housekeep --verify` and in its `log.md` anchors:
 
 | Name | The journal | Writers |
@@ -1771,7 +1771,7 @@ flowchart LR
     network and read the credentials a read needs (`.ssh`, `.netrc`, `.git-credentials`, git's
     credential store, `.config/gh`), and write nothing but its scratch directory. Only a probe
     that shows the planned effect makes the act `observed`; anything else is `reconcile`
-    ([races](02-races.md)). The Kijin's act runner (`mikata_config::Runner`, its `outward`
+    ([races](experimental/races.md)). The Kijin's act runner (`mikata_config::Runner`, its `outward`
     tool) spawns through the bash tool's own path (`mikata_tools::shell::spawn_approved`):
     the sandbox, the tripwire's and the attic's snapshots, the plan rechecked at the spawn, and
     any text the act sends (a pull request's description) on the command's standard input from
@@ -1781,7 +1781,7 @@ flowchart LR
     human always asked, and is done only when a probe sees the effect gone; its incident
     (`mikata_config::closure`) stays open, suspending the envelopes that read the act and
     refusing new acts on its target, until its four receipts — undone, journal corrected,
-    downstream told, lesson — are each found in the witness ([races](02-races.md)).
+    downstream told, lesson — are each found in the witness ([races](experimental/races.md)).
   - **Limits** — no core dumps, files up to 4 GiB, at most 8192 processes for the user; and no
     new namespaces: `unshare` and a `clone` carrying a namespace flag fail, `clone3` reports
     itself missing so the C library falls back to `clone`.
@@ -1887,7 +1887,7 @@ flowchart LR
   (metadata anywhere, for path lookups), writes only the world, and only the system services
   commands need: not LaunchServices, through which `open -a` would start an application outside
   the sandbox.
-- `--container`: the container **is** the sandbox — one container per body, its mounts limited
+- Not built: a `--container` mode, where the container **is** the sandbox — one container per body, its mounts limited
   to the body's soil and its network to the policy. It does not nest landlock or namespaces
   inside Docker's default profile.
 - The sandbox is applied by the core when spawning; a tool cannot opt out.
@@ -1939,7 +1939,7 @@ an empty list or table never overrides a lower layer:
   `refresh.ci_minutes` and `refresh.scout_hours`, how often the standing reads run (15 and 24; 0
   turns one off), are the human's alone: a mirror can be hundreds of megabytes.
   `evolution.min_net_wins`, how many more paired tasks an evolution must win than lose against
-  doing nothing to be kept ([judged after the freeze](02-races.md#evolution--the-other-way-to-change);
+  doing nothing to be kept ([judged after the freeze](experimental/races.md#evolution--the-other-way-to-change);
   2, at least 1), is the human's alone too: a lower bar keeps more.
 - **Holes and errors.** An unknown key is a hole, reported with its file, and the session goes
   on. A file that does not parse, a value of the wrong type, a floor rule in `ask_rules`, an
@@ -1960,7 +1960,7 @@ an empty list or table never overrides a lower layer:
   (`owner/name`) it is signed for, or both — one naming neither admits nothing — and may name a
   `post` and a `body`. `uses` caps the acts an envelope covers in
   all, at least one; no two envelopes share a name. `Envelope::admits(today,
-  used)` is the check the gate makes at the moment of use ([races](02-races.md#ascension--earned-granted-revocable)),
+  used)` is the check the gate makes at the moment of use ([races](experimental/races.md#ascension--earned-granted-revocable)),
   with the count of acts the envelope already admitted, kept in the uses ledger
   (`mikata_ledger::Uses`, `$XDG_STATE_HOME/mikata/oni/uses.jsonl`, outside every world and
   counted under its lock); it names the lapse that stops one: revoked, not yet in force, expired,
@@ -2248,7 +2248,7 @@ flowchart LR
 - **Decision points.** Each reads `Decision::sure` and journals its decision and outcome rows.
   **`bench.outcome` is attached to the loop:** a run built with
   `decisions(config, world, model, env)` reads a piped test run's output, so a sure green or red
-  counts in the tally as seen (*the bench tally*, [the loop](03-loop.md)). It is on with decisions
+  counts in the tally as seen (*the bench tally*, [the loop](02-loop.md)). It is on with decisions
   unless `decide.bench = false`; when no System One answers, the fallback asks `decide.llm`
   through the run's own provider. What leaves for the decider is the command and the last 12 000
   bytes of its output; test output can print anything, so a provider outside the machine sees
@@ -2256,7 +2256,7 @@ flowchart LR
   M6). **`model.route` is Metis** (`decide.route = true`, off by default, the human's files
   only): `route(config, decisions, caller, work, stop, meter)` returns the model a body rides
   and why, moving it within its office's band on a sure answer (*Metis routes within a band*,
-  [the races](02-races.md)). Each route is journaled and priced into the meter's ledger, waits at
+  [the races](experimental/races.md)). Each route is journaled and priced into the meter's ledger, waits at
   most the least of 30 s and the caller's time left, and ends on an Esc. What leaves for the
   decider is the commission's first 8 000 bytes. It is honoured once dispatch builds bodies from
   commissions (M7). The others attach with

@@ -5,10 +5,12 @@ description: Mikata's visual theme — the holographic HUD look. Use when buildi
 
 # The Mikata theme
 
-**Techno-arcane**: a fantasy world seen through a holographic HUD. Deep night surfaces, one cyan
-**holo** accent that glows, gold kept for the throne and titles, every race in its **hex**. The
-banner (`assets/brand/banner.jpg`) and the icon sheet (`assets/source/race-icons.jpg`) are the
-reference look; when in doubt, match them.
+**Techno-arcane**: deep night surfaces, one cyan **holo** accent that glows, gold kept for you and
+for titles. Mikata's logo (`assets/source/mikata-logo-dark.svg`: two cells mid-division, gold you
+and cyan Mikata, hexagon nuclei) is the reference look; when in doubt, match it. The races keep
+their **hex** frames and their own colours in the experimental modes; their old banner and icon
+sheet (`docs/experimental/assets/mnemorph-banner.jpg`, `assets/source/race-icons.jpg`) are
+references for race surfaces only.
 
 ## The source of truth
 
@@ -44,9 +46,10 @@ sans for prose — long reading stays in a proportional face.
 
 | What | Where |
 |---|---|
-| the emblem (dragon and crowned slime) | `assets/brand/mnemorph-icon{,@512,@256,@128,@64,@32}.png`, `favicon.ico` |
-| the emblem in a hex, beside the race icons | `assets/brand/mnemorph-hex{,@64,@32}.png` |
-| the banner, the link card | `assets/brand/banner.jpg`, `assets/brand/social-preview.jpg` |
+| Mikata's logo, for dark and light pages | `assets/brand/mikata-logo-{dark,light}.png`, from `assets/source/mikata-logo-{dark,light}.svg` |
+| Mikata's icon (the mark on its tile) | `assets/brand/mikata-icon{,@256,@128,@64,@32}.png`, `favicon.ico`, from `assets/source/mikata-icon.svg` |
+| the link card | `assets/brand/social-preview.png` (1280×640) |
+| Mnemorph's emblem, banner and deck (the races, experimental) | `docs/experimental/assets/mnemorph-*` |
 | race icons, already cut to hexagons | `assets/portraits/<race>{,@64,@32}.png` |
 | race cards | `assets/cards/<race>.png` — drawn by `python3 tools/cards.py` |
 | fonts for images | `assets/fonts/` (Cinzel, Rajdhani; OFL) |

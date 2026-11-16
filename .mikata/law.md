@@ -1,6 +1,6 @@
 # The law
 
-Mikata's world. The races are compiled in ([docs/02-races.md](../docs/02-races.md)); this file
+Mikata's world. The races are compiled in ([docs/experimental/races.md](../docs/experimental/races.md)); this file
 holds the crest every body reads first. It changes only as a diff Player applies.
 
 ## The crest

@@ -19,9 +19,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   `Kaginari/mikata`. A world's `.mnemorph/` folder and the `mnemorph` folders under the config and
   state homes are moved to their Mikata names the first time Mikata runs, and the move is said; when
   both exist, nothing is touched.
+- **Mikata's own look.** The logo is two cells mid-division, gold for you and cyan for Mikata;
+  `assets/brand/` holds it for dark and light pages, the icon at 512 to 32 px, the favicon and the
+  social card, rendered from `assets/source/mikata-*.svg`. The terminal app's welcome spells MIKATA
+  and says what light-coding does.
+- **The book is Mikata's.** The README and `docs/` are about Mikata: the overview, the loop, the
+  architecture, the client protocol (now its own page), consumption, MCP and memory, renumbered.
+  Mnemorph's races, its chain and collective modes, the ontology, the old M0 to M14 roadmap, its
+  emblem, banner and deck are in `docs/experimental/`, the lab, frozen. A short roadmap says what
+  comes next. Claims the docs made of things not built (a Claude Code hooks adapter, a
+  `--container` sandbox mode) now say they are not built.
 
 ### Fixed
 
+- **A split ask is held to your caps.** The bodies light-coding starts for each project were given
+  the session's limits but not its spend caps, so a split run could spend past a month, day or
+  session cap. They now read the same ledger and stop at the same caps.
 - **A piped check is judged by its own exit status.** The shell now reads a pipeline's first stage's
   status (`PIPESTATUS`), so `pytest | tail` or `python3 -c '…' 2>&1 | grep -v noise` counts as the
   pass or failure it was, not as a run whose status was hidden. Hidden runs stop a body after eight;
@@ -171,7 +184,7 @@ context; they are for asking, not the default.
   chain yet.
 - The book says the three modes: which to use, how to start each and what each needs
   ([overview](docs/01-overview.md#which-mode-and-how-to-start-it),
-  [the three modes](docs/02-races.md#the-three-modes)). The overview, order and client-protocol
+  [the three modes](docs/experimental/races.md#the-three-modes)). The overview, order and client-protocol
   canvases are redrawn, and [lessons](docs/lessons.md) lists what our own bench measured.
 - A `tree` beat after every landed write hashes the files the ask has changed and says how
   many times that tree has stood: a run that goes round between the same trees can be read from

@@ -5,7 +5,7 @@
 <a href="./canvas/loop-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./canvas/loop-dark.svg">
-  <img src="./canvas/loop-light.svg" alt="The loop: perceive, recall, plan, act, verify, record; back to perceive while tool calls remain, else the end gate: a pass reports up, a failure retries or goes up as FAIL">
+  <img src="./canvas/loop-light.svg" alt="The loop: perceive, recall, plan, act, verify, record; back to perceive while tool calls remain, else the end gate: a pass is the answer, a failure retries or ends as FAIL">
 </picture>
 </a>
 
@@ -28,9 +28,9 @@ flowchart LR
     VF --> REC["📝 record<br/>journal · ledger"]
     REC -->|more tool calls| P
     REC -->|model answered| G{"🚪 end gate<br/>(if files written)"}
-    G -->|pass| DONE(["report up"])
+    G -->|pass| DONE(["the answer"])
     G -->|fail, retries left| P
-    G -->|fail, none left| FAIL(["FAIL up"])
+    G -->|fail, none left| FAIL(["FAIL, and why"])
     classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
     class P,RC,PL,A,VF,REC step
     classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
@@ -45,29 +45,34 @@ flowchart LR
 
 ## In plain words
 
-Every body — Summoner, an Elf, a Slime — runs the same six beats, over and over, until it has an
-answer:
+A body runs the same six beats, over and over, until it has an answer:
 
 1. **Perceive** — check the fuel gauge: how much budget, time and context is left. If it is
    running out, save what matters and stop cleanly instead of crashing.
 2. **Recall** — pull in the few memories and tools that fit the question, as pointers, not
-   pasted text, always including one that disagrees if any does ([memory](08-memory.md)).
+   pasted text, always including one that disagrees if any does ([memory](07-memory.md)).
 3. **Plan** — ask the model what to do next.
-4. **Act** — run one tool the model asked for, after checking that this race may use it and,
-   for anything that leaves the machine or destroys something, after asking you.
+4. **Act** — run one tool the model asked for, after checking that the act is on the body's shelf
+   (light-coding's body reads and writes; a push or a publish is refused) and, where a guard rule
+   you set says so, after asking you.
 5. **Verify** — did the tool work? A failure counts against the body; a command that ran and
    answered "no" (a test that is red, a search that finds nothing) is a result, not a failure.
 6. **Record** — write what happened to the journal and the ledger.
 
 When the model stops calling tools and answers, the **gate** judges any files the body wrote.
-If it fails, the body gets one chance to fix it. Then the report goes up.
+If it fails, the body gets one chance to fix it. Then it answers you.
 
-In light-coding, the body does one more thing before it answers: it runs the list it wrote at the
+The body does one more thing before it answers: it runs the list it wrote at the
 start, every output the ask states, and the tests for the files it changed. A difference or a red
 test means it is not done. The gate checks what the human pinned; the list checks what the ask
 said.
 
 ## Technical detail
+
+The loop is one function for every body Mikata runs. Where a rule below names a race, a commission
+or a lane, it applies only in the [lab's](experimental/) modes, where bodies hand work to each
+other; in light-coding the session's one body is the Summoner, with the whole repository as its
+soil.
 
 ### One act, in order
 
@@ -125,7 +130,7 @@ Before every model call the loop reads four meters from the core, never from the
 | steps | per race, passed down whole, never split (Summoner 40, Elf 30, Orc 30, Slime 40, Named Slime 60, Kijin 20, Dark Elf 40), or the human's `steps.<race>` — `steps.slime`, `steps.named-slime`, … — carried by the commissioner to every body of that race; the session's own body, Elves below it or none, does a whole chain's work and gets 200, or `steps.solo` | checkpoint, one salvage turn of ≤ 4096 tokens to write down what it learned |
 | wall clock | what the parent has left, passed down whole (session default 60 min, or `limits.session_minutes`) | checkpoint, one salvage resume of ≤ 4096 tokens to land `@U`/`@F` |
 | context | an absolute line, `stress.context_tokens` (150k), never past 90% of the model's window (below) | at 60%: old tool outputs fold; at 75%: the body is told to write down what is not durable; at the line: a structured compaction, twice an ask, and the run goes on; after that a drain turn, then checkpoint, telling the human to break |
-| cost | the commission's `@BUDGET`, in cache-weighted cost — the only budget that is carved | checkpoint with `@? budget` to the parent ([Consumption](06-consumption.md)) |
+| cost | the commission's `@BUDGET`, in cache-weighted cost — the only budget that is carved | checkpoint with `@? budget` to the parent ([Consumption](05-consumption.md)) |
 
 One model reply may take `limits.reply_tokens` tokens, 16,384 by default, every commissioned body
 included. A model that thinks before it answers spends its thinking from the same room, so a cap too
@@ -142,7 +147,7 @@ could change is asked again.
 A checkpoint is an honest stop: the journal holds every beat, and `mikata resume <run>` picks
 up from it. An outward act cut mid-flight is never replayed: before its post's next act is
 gated, its probe says whether it landed (settled, not asked again), never did (gated again as a
-new act) or cannot be told (`reconcile`, for the human) — [races](02-races.md).
+new act) or cannot be told (`reconcile`, for the human) — [races](experimental/races.md).
 
 **A command's output** is kept to 30,000 bytes for each of stdout and stderr. A longer one keeps
 its first 15,000 and its last 15,000, with one line between saying how many bytes went: a log's
@@ -276,7 +281,7 @@ line, and only when it takes out a fifth of the line or more. A jump past the li
 60% — one huge output — or a resume above it folds first, whatever the batch: the checkpoint comes
 only when folding cannot bring the next request under the line. Between folds the conversation
 sent only grows, and each turn reads it from the provider's cache
-([Consumption](06-consumption.md)). The journal is never touched: compaction shapes only what is sent. A 40-step run whose
+([Consumption](05-consumption.md)). The journal is never touched: compaction shapes only what is sent. A 40-step run whose
 history would be 150 KB sends at most about 55 KB a turn, and with the cache it is billed a third of its input.
 
 **A full context compacts**: at the stress line, once folding cannot bring the next request
@@ -297,7 +302,7 @@ come back drains instead.
 told to call no tool but sent with the same tools as any turn, so the cached prefix is read, capped at 4096 tokens, within what is left of the clock up to two minutes — to write down what is not durable, `@U <law|colony|territory> <fact>`
 for each thing it learned that is written nowhere, then what is left. Each `@U law` or `@U colony`
 line is kept as the body's proposed note (tagged `drain`, beside its home); each `@U territory`
-fact is filed to the ontology, as a report's is ([Memory](08-memory.md)). The checkpoint carries
+fact is filed to the ontology, as a report's is ([Memory](07-memory.md)). The checkpoint carries
 the turn as its salvage, and an escalation keeps it before the report it hands up. A run drains
 once — a resume reads that from its journal — and a jump that leaves less than two such turns of
 room in the window checkpoints without one.
@@ -311,7 +316,7 @@ A tool the body calls anyway on a drain or salvage turn never runs: only its wor
 made. A model fallback, a new date, working directory or mode, or a reloaded configuration is
 said to the body as a `[context update]` line before its next request, and journaled as a note,
 so a resume rebuilds the same conversation. Only a fold or a compaction rewrites what was sent; a
-`prefix` beat records each such move ([Consumption](06-consumption.md)).
+`prefix` beat records each such move ([Consumption](05-consumption.md)).
 
 ### The session: queue and interrupt
 
@@ -333,7 +338,7 @@ dropped when the next ask starts.
 A client watches a run through its **observer**: every beat at the moment it is journaled, and
 every call's spend — a model turn or a decision — with the run's running total and its context
 against the stress line. It is how the terminal app and the board show a run live
-([the client protocol](04-communication.md#the-client-protocol)) without reading the journal
+([the client protocol](04-protocol.md#the-client-protocol)) without reading the journal
 back. `open(world, gate, observer, env)` builds the session a client talks to — light-coding, and with the
 `commission` tool and an envelope from the human's caps when the world has Elves under a living
 throne: the configuration, the model through the human's backend, the tools under the kernel
@@ -458,7 +463,7 @@ The classes are kept twice: on the beat, in the run's journal inside the world; 
 act — the run, the body, the tool call, its classes and the build that classed it — in a journal
 the harness alone writes, outside the world: `$XDG_STATE_HOME/mikata/guts/<world>-<fnv64a>.jsonl`,
 chained by hash and anchored with the world's other chained journals
-([chains](05-architecture.md#configuration)). Only that record is shown. `mikata status` counts the
+([chains](03-architecture.md#configuration)). Only that record is shown. `mikata status` counts the
 last run's acts per class from it, while its chain holds:
 
 ```text
@@ -474,7 +479,7 @@ The board's timeline shows a chip per class on each act of a commission, the new
 
 **They are signals, never verdicts.** No bar, rise, fall, warning or stop reads a class: the guts
 score, the stalls and escalation are unchanged by them. They are the record a learned value
-([M11](roadmap.md), [races](02-races.md#ascension--earned-granted-revocable)) will train on, and
+([M11](roadmap.md), [races](experimental/races.md#ascension--earned-granted-revocable)) will train on, and
 the red pin's weight in any such model is pinned at 0, left out of every update: a red test
 written before the change is the right process, and a model that learned to punish it would teach
 bodies to skip the test.
@@ -536,10 +541,10 @@ The world repairs itself in small, mechanical steps, each one written to the led
   Without `--heal` it says what it would fix. It exits 0 when the roster is whole, 1 while anything
   is left or a repair waits for `--heal`, 2 on an error or inside a body's command. With
   `--verify` it walks the chained journals instead and anchors their heads in `log.md`
-  ([the chain](06-consumption.md#the-usage-row)).
+  ([the chain](05-consumption.md#the-usage-row)).
   It is also the board's routine: with `--heal` it forgets from the board's list the worlds missing
   longer than `board.prune_after_days` (14; 0 never), and without it names them — the list
-  alone, never a directory or a journal ([missing worlds](05-architecture.md#the-board-server)).
+  alone, never a directory or a journal ([missing worlds](03-architecture.md#the-board-server)).
 - **One live court per seat**: a second commission to a busy seat waits in its lane.
 
 ### The verify pins
@@ -550,7 +555,7 @@ out later, a merge, a pull — and a cloned repository brings every card from a 
 gate never runs a verify line because a card says it. It runs the lines **pinned** for the
 creature in a witness kept outside the world, `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl`
 (else under `~/.local/state`), hash-chained and anchored as `verify` with the world's other chained
-journals ([storage](05-architecture.md#storage-files-are-the-truth)), and only while the card
+journals ([storage](03-architecture.md#storage-files-are-the-truth)), and only while the card
 still says the same set of lines.
 
 - **A card that differs from its pin** — a line changed, added or removed — runs nothing. The
@@ -610,7 +615,7 @@ whole, `cargo test --workspace`, with no name read from its manifest. For a comp
 project (Cargo, Go, TypeScript) the suggestion also says that a cold build may outrun the limit
 on each verify command, and names the key that raises it. The gate runs:
 
-1. **Right author** — every path lies in the writer's own soil ([soil](02-races.md#soil--who-may-write-what));
+1. **Right author** — every path lies in the writer's own soil ([soil](experimental/races.md#soil--who-may-write-what));
    for a Slime's doc the gate diffs by line range: the verify block is the Orc's, the rest is the
    Slime's. The records under `.mikata/` are outside the tree's snapshot: the tripwire refuses
    or reverts a tool's write there, beyond the shared queue, scratch and the advisory mirror.
@@ -619,7 +624,7 @@ on each verify command, and names the key that raises it. The gate runs:
    as the commission found it, and the failure names the owner and the route (`` `lib/x.rs` is
    slime-b's (zone lib/), not slime-a's — ask slime-b ``). A critical or high ontology finding
    that touches the landing fails this check, read on the tree as the landing leaves it, so a
-   landing that ends a finding is not blocked by it ([ontology](09-ontology.md#findings)). Writes are
+   landing that ends a finding is not blocked by it ([ontology](experimental/ontology.md#findings)). Writes are
    attributed per body: under a kernel guard a commissioned body's commands write only what it is
    granted — its soil, its build output, its scratch, its plan — so a change outside that, a
    second session's on the same world, is not its to answer for, a failed landing's put-back
@@ -694,7 +699,7 @@ throne's answer says each challenge it moved — pending, verifying, blocked, un
 cleared — with each finding's verdict, and the landing counts as landed only once its challenge
 clears or the human waives it. A reviewer's finding of medium or higher is sent in the same sweep
 to a verifier of another speciality, given the record alone
-([the challenge](02-races.md#-dark-elf--the-adversary)).
+([the challenge](experimental/races.md#-dark-elf--the-adversary)).
 
 The verdict goes to `log.md` through the append-only writer: one entry per verdict, stamped,
 naming the body and the verdict — `PASS`, `FAIL` or `NOT_VERIFIED`, with `, handed back` on a

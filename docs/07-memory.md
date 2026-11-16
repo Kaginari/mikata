@@ -53,16 +53,18 @@ commits. It is never rewritten. The **traces** are the memory: short notes, each
 evidence it came from, each marked as agreeing, disagreeing or correcting. Traces may change;
 the archive never does, so any belief can be walked back to the bytes behind it.
 
-Memory also has two scopes. **Personal** memory belongs to one creature: it writes there
-freely, and only it recalls from there, so its mistakes cannot spread. **Shared** memory is what
-every creature reads, and only confirmed notes enter it.
+Memory also has two scopes. **Personal** memory belongs to one body's name (in light-coding, the
+session's body, which counts as the Summoner): it writes there freely, and only it recalls from
+there, so its mistakes cannot spread. **Shared** memory is what every session of the world reads,
+and only confirmed notes enter it.
 
 Six rules follow:
 
 1. **Proposals stay personal.** What a model says, including the unsaid it surfaces, lands in
-   its creature's personal memory as *proposed*. It reaches shared memory only once it is
-   *grounded*: a check passed, the commissioner accepted a finding, a second creature found the
-   same thing on its own evidence, or the human confirmed it.
+   its body's personal memory as *proposed*. It reaches shared memory only once it is
+   *grounded*: a check passed (your verify line, in the end gate), you confirmed it, or, in the
+   [lab's](experimental/) modes, a commissioner accepted a finding or a second body found the
+   same thing on its own evidence.
 2. **Recall always shows the other side.** If any note disagrees with or corrects what is being
    recalled, one seat is reserved for it, however low it ranks.
 3. **Corrections outrank habits.** A note born from a failed check starts well ahead of an
@@ -137,7 +139,7 @@ host may or may not load:
 
 - **The law** (`.mikata/law.md`, at most 4,000 characters) closes every body's system prompt,
   Summoner's and each commissioned body's. It changes only as the human's diff, so the prompt stays
-  the stable, cached prefix ([consumption](06-consumption.md#cache-first-prompt-layout)).
+  the stable, cached prefix ([consumption](05-consumption.md#cache-first-prompt-layout)).
 - **The journal's last entries** (`.mikata/log.md`, the last five within 8,000 characters, the
   oldest dropped first) open the session's first ask, in the changing tail, and are said once. A
   commissioned body gets its commission instead.
@@ -241,7 +243,7 @@ evidence is never corroborated.
 at once (see *Reconsolidation*). The body's explanation of *why* it failed stays personal and
 proposed until a route promotes it.
 
-**`@U territory` is not memory.** A territory fact goes to [the ontology](09-ontology.md#facts-who-said-what),
+**`@U territory` is not memory.** A territory fact goes to [the ontology](experimental/ontology.md#facts-who-said-what),
 where it is remembered with who said it and can be countered; ownership is checked by the gate's
 *right author* rule, not by recall.
 
@@ -269,7 +271,7 @@ paying for it in the uncached tail every turn:
 When no dissenting note was selected, recall says *none selected*, never *none exist*.
 
 **On the wire.** Recall reaches the body as `@M` lines in the recall-anchors tier
-([communication](04-communication.md#the-wire-envelope)):
+([communication](experimental/communication.md#the-wire-envelope)):
 
     @M <anchor> personal|shared proposed|grounded support|counter|revise[ review]: <text>
     @M -<n> <anchor> <anchor> <anchor>        # n cut above θ; at most three named
@@ -365,7 +367,7 @@ proposed — the first number to read after a run, since only shared notes reach
 ### Reconsolidation
 
 A first failure is part of working: it goes back to the body as a note
-([the loop](03-loop.md#the-end-gate)) and writes nothing to memory. Only a run-ending failure —
+([the loop](02-loop.md#the-end-gate)) and writes nothing to memory. Only a run-ending failure —
 the body's last chance spent after a gate verdict of `FAIL` — reconsolidates, and then once, by
 that `FAIL`: a check that wrote, or one that gave no result, says nothing of what the body knew.
 
@@ -395,7 +397,7 @@ that `FAIL`: a check that wrote, or one that gave no result, says nothing of wha
   counted since it was last grounded. Both copies of a grounded note, the creature's and the
   shared one, move together. A shared note whose owner's memory is frozen is left for the human.
 - **Distilled** (`distilled`). When an evolution whose traits cite a creature's desk notes is kept
-  ([evolution](02-races.md#evolution--the-other-way-to-change)), those notes go to sleep —
+  ([evolution](experimental/races.md#evolution--the-other-way-to-change)), those notes go to sleep —
   dormant, their events kept, no longer recalled — with why: the evolution that distils them.
   The trait in the creature's doc carries them now. Only the owner's live personal notes move,
   each once; a frozen memory moves none.
@@ -432,7 +434,7 @@ It also lists each creature's proposed claims, newest first, ten at most, each w
 the **confirmed** route, in its creature's tier and in shared memory, citing the human's word.
 The board's memory page lists every note with its route, proof and claim-graph state, and offers
 the same two acts — confirm and wake — through the same functions, behind a dialog that names the
-note, cited as the human's from the board ([the board](05-architecture.md#the-memory-and-ontology-pages)).
+note, cited as the human's from the board ([the board](03-architecture.md#the-memory-and-ontology-pages)).
 
 ### The claim graph
 
@@ -457,7 +459,7 @@ dropped.
 | Kind | Key | Moves when |
 |---|---|---|
 | `claim` | the claim's id | it is superseded by a new version or retired; doubted by a first attributable failure (direct only) |
-| `fact` | the fact's id in [the ontology](09-ontology.md#facts-who-said-what) | an event leaves it contested (direct only) |
+| `fact` | the fact's id in [the ontology](experimental/ontology.md#facts-who-said-what) | an event leaves it contested (direct only) |
 | `file` | the path, and the SHA-256 of its bytes (16 hex digits) | a landing the gate passed changes or deletes it |
 | `creature` | its name | it is rebirthed, rewritten or retired — the lifecycle's call, `invalidate(Moved::Creature)` |
 
@@ -514,7 +516,7 @@ good health and is still recalled.
 ### Consolidation and forgetting
 
 The desk's distillation — when a creature's desk is distilled into a rule, a trait or a wrap-up
-([evolution](02-races.md#evolution-the-other-way-to-change)) — merges agreeing notes into one
+([evolution](experimental/races.md#evolution-the-other-way-to-change)) — merges agreeing notes into one
 schema note: $s = 0.8$, confidence the mean of the four most salient merged notes' confidence,
 capped at 0.95, and the two most salient originals stay active beside it, as in
 MIKATA-85. **Dissent is exempt:** no counter or
@@ -607,7 +609,7 @@ Know-how a body may load, in two levels, priced by exactly what each injects:
   whoever names it; `unretire` takes that back. Its file stays on disk. A Mind never adopted does
   not load: it is shown *unadopted* in `status`, and a world from before the witness adopts its
   Minds once. A body never writes `.mikata/minds/`
-  ([Mind provenance](02-races.md)).
+  ([Mind provenance](experimental/races.md)).
 - **Every command a prompt or hint names exists in the build.** A test reads every backticked
   `mikata …` or `mikatad …` command in the shipped sources against the help of the binary it
   names — `mikata` or `mikatad`.

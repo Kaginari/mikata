@@ -1,9 +1,11 @@
 # Experimental modes
 
 Light-coding is the product: one body that writes down what "done" means, does the work and
-checks it. This page is the other two modes, **structured-coding** and **collective-coding**.
-They are our lab. They work, they are tested, you can use them, and on our bench they have not yet
-beaten one body. Each section says what the mode is, what it costs, and what we are building next.
+checks it. This page is the other two modes, **structured-coding** and **collective-coding**,
+Mnemorph's chain of races and its collective. They are the lab. They work, they are tested, you
+can use them, and on our bench neither beat one body. Both are **frozen** since 16 November 2026:
+no new work and no bench runs on them until there is work where structure should clearly win.
+Each section says what the mode is, what it cost, and where it stopped.
 
 ## In one picture
 
@@ -61,7 +63,7 @@ interesting thing in the harness, and the most expensive.
 
 **What it costs today.** Counted only after the fix each screen called for, light-coding did as
 much or more for a fraction of the price on work that fits one context
-([the numbers](bench.md#the-modes-against-each-other)). Asked to fix five whole repositories at
+([the numbers](../bench.md#the-modes-against-each-other)). Asked to fix five whole repositories at
 once: structured-coding 3, 4 and 3 of 5 (17 to 40 minutes, $2.36 a run on average); light-coding
 as shipped 3 and 2 of 5 (about 12 minutes, $0.75), and with 400 steps 4 and 3 of 5 (about $1).
 More than the default, less than one body given room, at about three times the price.
@@ -123,7 +125,7 @@ will say so here.
 
 A mode the world cannot give opens no session: it is refused with what is missing, before any key
 is asked for. `mikata status` says the mode and why. The rest is in the
-[overview](01-overview.md#which-mode-and-how-to-start-it).
+[overview](../01-overview.md#which-mode-and-how-to-start-it).
 
 ### What carries over to light-coding
 
@@ -138,6 +140,6 @@ The chain's ideas did not stay in the chain. Light-coding is one body that keeps
 
 ### Where to read more
 
-- The races, their tools and limits: [races](02-races.md).
-- One order down the chain and back: [communication](04-communication.md).
-- Every screen behind these numbers: [the bench](bench.md).
+- The races, their tools and limits: [races](races.md).
+- One order down the chain and back: [communication](communication.md).
+- Every screen behind these numbers: [the bench](../bench.md).

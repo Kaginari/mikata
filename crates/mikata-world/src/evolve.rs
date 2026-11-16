@@ -1,4 +1,4 @@
-//! When a creature is due to evolve, and by which arm ([the book](../../../docs/02-races.md)):
+//! When a creature is due to evolve, and by which arm ([the book](../../../docs/experimental/races.md)):
 //! **stressed** and its **desk full**, read over the harness's trusted journals, the creatures'
 //! witness and the world. Proposed only: this module drafts and swaps nothing — a plan is staged
 //! and swapped in by the human (`mikatad evolution swap`).

@@ -1,4 +1,4 @@
-// Enforces the crate graph of docs/05-architecture.md: every dependency edge between workspace
+// Enforces the crate graph of docs/03-architecture.md: every dependency edge between workspace
 // crates (normal, dev and build) must be one the architecture draws, and the sandbox's own lint
 // table must mirror the workspace's but for unsafe_code. Fails with every offence.
 import { execFileSync } from 'node:child_process';

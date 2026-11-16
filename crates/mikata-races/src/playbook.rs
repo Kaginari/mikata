@@ -179,9 +179,9 @@ fn relevant(surface: &str) -> Option<&'static [AttackClass]> {
         "packages/board/**" => &[AuthBypass, CrossSiteRequest, ClientInjection],
         "packages/sdk/**" => &[AuthBypass, RequestForgery, UnsafeDeserialisation],
         // Law.
-        "crates/mikata-races/**" | "docs/02-races.md" | "crates/mikata-loop/src/route.rs" => {
-            &[UnboundedDelegation, LedgerIntegrity]
-        }
+        "crates/mikata-races/**"
+        | "docs/experimental/races.md"
+        | "crates/mikata-loop/src/route.rs" => &[UnboundedDelegation, LedgerIntegrity],
         "crates/mikata-world/**" => &[UnboundedDelegation, LedgerIntegrity, PhantomEffect],
         "crates/mikata-ledger/**" => &[ResourceExhaustion, LedgerIntegrity, PhantomEffect],
         "crates/mikata-loop/src/budget.rs" => &[ResourceExhaustion, UnboundedDelegation],

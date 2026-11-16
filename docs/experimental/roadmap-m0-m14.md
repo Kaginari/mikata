@@ -1,4 +1,8 @@
-# Roadmap
+# How it was built: M0 to M14
+
+This is the roadmap Mikata was built by, as Mnemorph, kept as it was written: the book first,
+then fourteen milestones, rung by rung. What comes next is [the roadmap](../roadmap.md).
+
 
 ## In one picture
 
@@ -68,12 +72,12 @@ Pages 01–06, races, lessons, card prompt (this book). Then:
 - the canvases: one per page, drawn from its Mermaid sketches — overview, races and ascensions,
   the loop, one order down and back, the client protocol, architecture, sandbox, consumption — as
   `docs/canvas/<page>.tldr`, each sketch exported to light and dark SVG and embedded in its page
-  ([Diagrams](README.md#diagrams));
+  ([Diagrams](../README.md#diagrams));
 
-- your review of [Races](02-races.md): bars, privileges, falls, Kijin posts, Dark Elf duties;
+- your review of [Races](races.md): bars, privileges, falls, Kijin posts, Dark Elf duties;
 - the race cards generated from [the prompt](race-cards-prompt.md) and reviewed;
-- the name decided — `mikata` is taken on npm and crates.io, so the published crate and npm
-  names (and an npm scope) are settled here; then the GitHub repository is created
+- the name decided (then: Mnemorph; renamed Mikata in November 2026), the published crate and npm
+  names (and an npm scope) settled here; then the GitHub repository is created
   (`gh repo create`, your call: public or private);
 - whether Mikata has distributions (isekai's agent-one lineage: one engine, a lexicon file plus
   defaults) — it shapes the terminal app's wording and the card text;
@@ -103,7 +107,7 @@ The human said the book is right on 2026-11-05. Open: the higher-resolution card
 
 Pure crates, no I/O.
 
-- `mikata-wire`: every tag of [Communication](04-communication.md), parser + encoder, trimming
+- `mikata-wire`: every tag of [Communication](communication.md), parser + encoder, trimming
   order, envelope. Fixtures transcribed from isekai's `wire/` tests. Property test round-trip.
 - `mikata-races`: the enum and its methods, shelves, soil, gates, dispatch decision table, score
   formulas, ascension and fall predicates, budget shares. Table-driven tests: every cell of the
@@ -222,7 +226,7 @@ build Mikata in light-coding.
 - The send and wake lanes per body (a report wakes its own parent), the shared work queue —
   revisioned snapshots with a witness out of reach, the rank law, relay-hold, the `queue` tool — and
   its door in the terminal, `mikatad q`.
-- The ontology, following [its page](09-ontology.md), rungs lowest first:
+- The ontology, following [its page](ontology.md), rungs lowest first:
   1. the graph derived from the docs' Territory, Domain, chain and Minds fields, and inference to
      its fixed point, rebuilt on the docs' fingerprint;
   2. ownership as one function, called by the gate, the dispatch card and `onto owner`, with the
@@ -235,10 +239,10 @@ build Mikata in light-coding.
      collision.
 
 Built since: decisions with Jev first and the LLM in its place
-([System One decisions](05-architecture.md#system-one-decisions)). Measured since: light-coding
+([System One decisions](../03-architecture.md#system-one-decisions)). Measured since: light-coding
 against collective-coding on the same multi-part tasks, and light-coding won, so it is the
 default mode and the other two are asked for
-([which mode, and how to start it](01-overview.md#which-mode-and-how-to-start-it)).
+([which mode, and how to start it](../01-overview.md#which-mode-and-how-to-start-it)).
 Structured-coding, counted only after the fix each screen called for: once its gates stopped
 refusing a part for a line that needs another part too, its bodies land their parts, and it is
 still about seven times slower than light-coding on work that fits one context. And light-coding was measured on asks
@@ -249,7 +253,7 @@ body's steps, light-coding fixed 2.5 of 5 on average; the chain, once the harnes
 work out by domain, 3.3 of 5 on average at about three times the price, below one body given
 400 steps (3.5). Run alone, one body a project fixed 5 of 5, twice; light-coding now does that
 split itself, one body a project at once: 4.5 of 5 on average for $1.72. Structured-coding is
-frozen ([experimental modes](experimental-modes.md)).
+frozen ([experimental modes](modes.md)).
 
 **Exit:** the full "one order, down and back" sequence runs with scripted bodies and passes its
 gate; every refusal names its lawful route; a creature claiming `.mikata` owns none of the seats,
@@ -262,7 +266,7 @@ a free fact resembling an older one reaches the parent, and left unlabeled raise
 
 ### M8 — Memory and toolbox · L
 
-Memory follows [its page](08-memory.md): the archive is never rewritten, notes are traces that
+Memory follows [its page](../07-memory.md): the archive is never rewritten, notes are traces that
 point at it, and only a route's proof grounds a note into shared memory. Rungs, lowest first:
 
 1. **Notes as events.** The trace schema (polarity, salience, confidence, status, source), the
@@ -314,7 +318,7 @@ Built: typed outward acts (`PushNewBranch`, `OpenPullRequest`, `AddLabel`, `Comm
 `outward` tool, the plan fingerprint an approval binds to, receipts with a read-only probe, the
 act runner with request keys and the probe of a cut act, per-post journals, closure on four
 receipts, and a push and its pull request under one approval, each act receipted and undone on
-its own ([races](02-races.md)).
+its own ([races](races.md)).
 
 **Exit:** a branch pushed and a PR opened through `kijin-forge` with one gate prompt; a cut run
 mid-act is probed first — settled if it landed, gated again if not — never replayed; an undo runs
@@ -335,7 +339,7 @@ login in the sandbox.
 - Six specialities born like Kijin posts — `dark-elf-harness`, `dark-elf-agent`,
   `dark-elf-supply`, `dark-elf-secrets`, `dark-elf-web`, `dark-elf-law` — each with its surfaces
   and a playbook of attack classes compiled into the law, and the plain `dark-elf` generalist for
-  threat models and cross-surface attack chains ([races](02-races.md#-dark-elf--the-adversary)).
+  threat models and cross-surface attack chains ([races](races.md#-dark-elf--the-adversary)).
 - Diff challenge routed by the written paths to the specialities they touch, offline CVE audit
   over the scout's mirror, secret scanning, rule-pack static analysis, threat models, the law
   audit.
@@ -365,7 +369,7 @@ Built: every rung, 1 to 11 — the specialities, each one's attack classes compi
 surfaces, `route`, the wire's finding fields, the finding record and the coverage ledger with
 their validators (`mikata-proving`), the compiled playbooks, one per class, loaded by speciality
 and surface (`for_landing`), the challenge routed from the reserve, and the seeded fixture
-repository ([races](02-races.md#-dark-elf--the-adversary)): 18 planted flaws and 7 negative
+repository ([races](races.md#-dark-elf--the-adversary)): 18 planted flaws and 7 negative
 controls over all six hunters, held with no model to routing, the playbook brief, the finding
 and coverage validators and the challenge's block, with a paid evaluation of recall and precision
 (`just seeded-eval`) kept out of CI, the fresh verifier, each speciality's score folded
@@ -385,10 +389,10 @@ includes the witness.
 
 - The value ledger and its fold into each race's signals (built: the report fold over the
   harness's trusted journals into the chained report ledger, and every race's meters from it —
-  [the report fold](02-races.md#the-report-fold); and rises and falls proposed from it by the
+  [the report fold](races.md#the-report-fold); and rises and falls proposed from it by the
   compiled law over the 28-day window, through probation, applied only by the human's `mikatad
   roster rise|fall` and replayed exactly from the journals and the witness —
-  [applying a rise or a fall](02-races.md#applying-a-rise-or-a-fall)),
+  [applying a rise or a fall](races.md#applying-a-rise-or-a-fall)),
   score folds per race, meters, minimum record, evolution — its trigger (stress and a full desk), split / rebirth / mutate staged and
   proven over an overlay, the 10-run cooldown, proposals with `evolution apply | reject`, and
   each swap judged after the freeze — on its post-swap window against do-nothing fixtures, over
@@ -424,7 +428,7 @@ includes the witness.
   outcome, journaled on its beat and in a chained, build-stamped record outside the world, counted
   in `mikata status` and chipped on the board's timeline; replaying a run journal gives the same
   classes. Signals only: nothing rises or falls on them, and the red pin weighs 0
-  ([the loop](03-loop.md#stress-in-four-instruments)). The benches the classes trust are the
+  ([the loop](../02-loop.md#stress-in-four-instruments)). The benches the classes trust are the
   verify lines the human pinned, out of a body's reach.
 
 **Exit:** replaying a recorded ledger reproduces every ascension and fall exactly.
@@ -442,7 +446,7 @@ includes the witness.
 - `mikata mcp serve` (memory and law as MCP tools), a Claude Code hooks adapter (the law inside
   Claude Code: session start, pre-tool gate, stop gate, pre-compact drain), and
   `mikata import <dir>/.isekai` to bring an isekai world over.
-- Relations between worlds, following [the ontology](09-ontology.md#relations-between-worlds): the
+- Relations between worlds, following [the ontology](ontology.md#relations-between-worlds): the
   first milestone where a second world is in reach — relation sightings, the named-twice proposal
   with its synonym check and expiry, and `onto check --dimension`.
 - The MCP client (#48): race-scoped servers by class, the spec cache with lazy start, the cursor
@@ -464,7 +468,7 @@ plainly where it does not.
 
 - Signed release binaries, npm distribution, installer, changelog, the decks.
 - The release path: the release-candidate smoke test, `install.sh`, the tag-only release
-  workflow that drafts and never publishes, `CHANGELOG.md` ([releasing](releasing.md)).
+  workflow that drafts and never publishes, `CHANGELOG.md` ([releasing](../releasing.md)).
 - `@mikata/protocol` and `@mikata/sdk` 0.1.0 are on npm, installed and imported from the
   public registry. Still the human's: turning on signing, cutting 1.0.
 - The deck is one presentation of Mikata: `assets/deck/mikata.html` and its PDF, made with
@@ -477,6 +481,6 @@ plainly where it does not.
 - One milestone open at a time; rungs within it in order.
 - Nothing is ported without its test: read the isekai source, transcribe its tests as fixtures,
   then write the Rust.
-- Every lesson in [lessons](lessons.md) is enforced in the milestone it names.
+- Every lesson in [lessons](../lessons.md) is enforced in the milestone it names.
 - isekai keeps living; Mikata never edits it. Lessons flow from it as reading, never as code
   copied blind.

@@ -9,7 +9,7 @@
 //! [`coverage`] holds a speciality's coverage ledger of a landing to its strict state table.
 //!
 //! The rules adapt Cloudflare's `validate-findings.cjs` and `validate-coverage-ledger.cjs` (MIT;
-//! `THIRD-PARTY-NOTICES.md`). The contract is in the book, `docs/02-races.md`.
+//! `THIRD-PARTY-NOTICES.md`). The contract is in the book, `docs/experimental/races.md`.
 
 mod accept;
 pub mod coverage;

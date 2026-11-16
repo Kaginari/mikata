@@ -3,7 +3,7 @@
 //!
 //! A [`Commission`] goes down (`@ROOT @SCOPE @ASK @CAP @BUDGET @DUMP @SIZE`), a [`Report`] comes
 //! back (`@S @? @U @V @F @W @T @$ @FORGE @R @H @E`). The tags and their meaning are defined in
-//! the book, `docs/04-communication.md`.
+//! the book, `docs/experimental/communication.md`.
 //!
 //! Four promises hold for every report this crate emits:
 //! - `@E` is the exact byte length of the whole answer, its own line included;

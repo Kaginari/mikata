@@ -3,7 +3,7 @@
 [DIKWP-MESH²](https://github.com/YucongDuan/DIKWP-MESH-) (Yucong Duan, Apache-2.0) is a Python
 prototype that treats meaning as a network seen by many observers at once, rather than as one
 definition. This page explains its mathematics, says what its code really computes, and works out
-which of its ideas fit Mikata's [ontology](../09-ontology.md) and which do not. Formulas marked
+which of its ideas fit Mikata's [ontology](../ontology.md) and which do not. Formulas marked
 **[code]** are read out of `src/dikwp_mesh2/`; **[model]** marks a formula written for this page.
 
 ## In one picture
@@ -274,7 +274,7 @@ Mikata's ontology inherits isekai's: a set of triples, rules and shapes.
   territories are disjoint; every `above` target has a doc.
 - **Ownership** is a total function $\mathrm{own} : \text{Path} \to \text{Creature} \cup
   \{\bot\}$, a lexicographic rule over soil kinds and prefix length, ties broken by creature name (see
-  [the ontology](../09-ontology.md#ownership-one-function)). It must be deterministic: two
+  [the ontology](../ontology.md#ownership-one-function)). It must be deterministic: two
   answers would let two bodies write one file, or none judge it.
 - **`above` must be acyclic** — a tree from Slime to the throne. MESH's audit treats a missing
   cycle as a defect; for the chain of command, a cycle *is* the defect.
@@ -283,9 +283,9 @@ Mikata's ontology inherits isekai's: a set of triples, rules and shapes.
 
 | MESH idea | Where in MESH | In Mikata |
 |---|---|---|
-| Claims indexed by observer, with stance and source | `SemanticAtom`, $\kappa_a$ | territory facts carry `by` and `source`, and creatures support or counter them ([ontology](../09-ontology.md#facts-who-said-what)) |
+| Claims indexed by observer, with stance and source | `SemanticAtom`, $\kappa_a$ | territory facts carry `by` and `source`, and creatures support or counter them ([ontology](../ontology.md#facts-who-said-what)) |
 | Contradictions kept as obstructions, decided by the counting rule | `gluing.py` | the `contested-fact` finding, with the 0.35 tolerance measured on the losing side; the projection shows both sides |
-| Stances as input | `SemanticAtom.stance`, filled in by hand in the demo bundle | agents do not volunteer stances, so counters are derived: keyed facts compared by code, anchors that drift, and the parent's triage when a new fact resembles an old one ([ontology](../09-ontology.md#catching-what-nobody-flags)) |
+| Stances as input | `SemanticAtom.stance`, filled in by hand in the demo bundle | agents do not volunteer stances, so counters are derived: keyed facts compared by code, anchors that drift, and the parent's triage when a new fact resembles an old one ([ontology](../ontology.md#catching-what-nobody-flags)) |
 | Local sections glued on overlaps | §4 | worlds of a dimension as local sections: a relation two worlds state differently is an obstruction reported to Summoner |
 | The install protocol for a new axis | formal model §6 | learning a relation: a sightings ledger, named twice, a no-synonym check, the human's yes, a rollback by expiry |
 | Coded findings with severities | `audit.py` | every `onto check` finding has a code and a severity; the gate blocks on critical and high in the landing's territory |
@@ -293,7 +293,7 @@ Mikata's ontology inherits isekai's: a set of triples, rules and shapes.
 ### 10. What Mikata does not take
 
 - **Plural ownership.** Gluing never touches `own`.
-- **The aggregate leakage score.** Findings stand alone, as in [memory](../08-memory.md): a clean
+- **The aggregate leakage score.** Findings stand alone, as in [memory](../../07-memory.md): a clean
   count elsewhere cannot excuse one critical finding.
 - **DIKWP typing of every node** and the 25 operators. The ontology's classes are races, Minds,
   docs and facts; a simplex membership adds nothing the gate can check.

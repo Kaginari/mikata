@@ -1,4 +1,4 @@
-//! May one body commission another? The decision table of `docs/04-communication.md`.
+//! May one body commission another? The decision table of `docs/experimental/communication.md`.
 
 use std::fmt;
 

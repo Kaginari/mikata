@@ -5,7 +5,7 @@
 <a href="./canvas/consumption-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./canvas/consumption-dark.svg">
-  <img src="./canvas/consumption-light.svg" alt="Consumption: your caps fund the session envelope; Summoner slices budgets to the Elf, the Kijin and the Dark Elf, the Elf to the Orc, the Orc to the Slime; every spend lands in the usage ledger, which feeds the meters">
+  <img src="./canvas/consumption-light.svg" alt="Consumption: your caps fund the session; Mikata's body, and the body of each project when an ask is split, spend from it; every spend lands in the usage ledger, read again before every model call and shown by the meters">
 </picture>
 </a>
 
@@ -21,34 +21,19 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    CAP["💰 your caps<br/>month · day · session"] --> SES["session envelope"]
-    SES --> R["👑 Summoner"]
-    R -->|"@BUDGET slice"| E["🌿 Elf"]
-    R -->|"@BUDGET slice"| K["👹 Kijin"]
-    R -->|"@BUDGET slice"| D["🌑 Dark Elf"]
-    E -->|"@BUDGET slice"| O["🪓 Orc"]
-    O -->|"@BUDGET slice"| S["💧 Slime"]
-    S -. "spend" .-> L[("📒 usage ledger")]
-    O -. "spend" .-> L
-    E -. "spend" .-> L
-    R -. "spend" .-> L
+    CAP["💰 your caps<br/>month · day · session"] --> SES["the session"]
+    SES --> B["Mikata's body"]
+    SES --> P["one body a project<br/>when an ask is split"]
+    B -. "spend" .-> L[("📒 usage ledger")]
+    P -. "spend" .-> L
+    L -->|"read again before every model call"| CAP
     L --> M["📊 meters<br/>status line · board"]
-    classDef human fill:#f8efcf,stroke:#D4AF37,stroke-width:2px,color:#3a2e05
-    class CAP human
+    classDef you fill:#fdf3c4,stroke:#c9a400,stroke-width:2px,color:#3a2e05
+    class CAP you
     classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
     class SES,L store
-    classDef throne fill:#dbeefe,stroke:#3FA9F5,stroke-width:2px,color:#0b2540
-    class R throne
-    classDef elf fill:#dcf3e6,stroke:#2FA36B,stroke-width:2px,color:#0b2a1a
-    class E elf
-    classDef kijin fill:#fbdde1,stroke:#D7263D,stroke-width:2px,color:#3d0710
-    class K kijin
-    classDef dark fill:#ebe2fb,stroke:#7B4FD6,stroke-width:2px,color:#22114a
-    class D dark
-    classDef orc fill:#f8e8d2,stroke:#C9822B,stroke-width:2px,color:#3a2408
-    class O orc
-    classDef slime fill:#d6f5f1,stroke:#19C3B0,stroke-width:2px,color:#06302b
-    class S slime
+    classDef mikata fill:#d7f8fb,stroke:#00a7b3,stroke-width:2px,color:#06302b
+    class B,P mikata
     classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
     class M step
 ```
@@ -57,12 +42,10 @@ flowchart TD
 
 ## In plain words
 
-Budget flows down like context; spend flows up like memory.
-
-You set caps — per month, per day, per session. A session gets an envelope. Summoner carves a slice
-of it for each order it gives, each Elf carves slices for its Orcs, and so on. No body can spend
-more than its slice: before every model call the core checks whether the call could fit, and if
-not, the body stops cleanly and asks its parent for more instead of overspending.
+You set caps: per month, per day, per session. Before every model call, the body reads the usage
+ledger again and checks the call fits under every cap; if it does not, the body stops cleanly at a
+checkpoint you can resume, instead of overspending. When an ask is split by project, every
+project's body reads the same ledger and stops at the same caps.
 
 Every model call writes one line to the usage ledger: who spent it, on which model, how much was
 cached. The terminal status line and the board show it live: tokens, cost, cache hits, burn rate,
@@ -71,6 +54,10 @@ what is left.
 The biggest saving is designed in, not bolted on: every prompt is laid out so its start never
 changes between calls, which lets the provider's prompt cache serve most of it at a fraction of
 the price.
+
+In the [lab's](experimental/) modes, budget also flows down a chain: the Summoner carves a slice of
+the session for each order it gives, an Elf for its Orcs, and no body spends more than its slice.
+The technical detail below covers both.
 
 ## Technical detail
 
@@ -160,7 +147,7 @@ Every trust journal is chained, walked and anchored (`mikata_world::chains::jour
 usage ledger, the Dark Elf's value ledger (its challenge records, seal proposals among them), the
 evolution ledger, the end gate's verdicts, the acts' guts classes, the Minds' witness, the verify
 pins, the Oni envelopes' uses and revocations, and each Kijin post's witness. Where each lives is
-in the [storage table](05-architecture.md#storage-files-are-the-truth).
+in the [storage table](03-architecture.md#storage-files-are-the-truth).
 
 Two meters, one implementation each, never confused:
 
@@ -234,7 +221,7 @@ Currency caps convert through the same table; a model with no known price is sti
   cap; a dollar cap could not promise that, and the dollar keys (`budget.*_usd`) are a view for
   the board (M12), never a limit.
 - **Only cost is carved.** Steps and the wall clock pass down whole, per race
-  ([the loop](03-loop.md#budgets-are-readings)); splitting them would leave the Slime — the only
+  ([the loop](02-loop.md#budgets-are-readings)); splitting them would leave the Slime — the only
   body that writes code — a handful of steps.
 - **Carving follows the plan.** A parent keeps a 10% reserve of its own envelope; splitting the
   rest across its plan's open items by their declared weight comes once plans carry weights. Each race has a
@@ -325,7 +312,7 @@ conversation, not its prompt, so one breakpoint always rides the conversation's 
   request's tail too, so a turn that appends many blocks still lands within the provider's
   lookback of the entry the last one wrote.
 - Compaction rewrites the conversation from its first folded message on, so it folds only in
-  rare, large batches ([The loop](03-loop.md)): between folds, the history is read, not resent.
+  rare, large batches ([The loop](02-loop.md)): between folds, the history is read, not resent.
 - Every request only appends to the one before, between folds. The system prompt and the tools
   are built once, when the run is made, and sent byte-identical for the whole session. Anything
   that changes mid-session rides as a new message, never a rebuilt prefix:
@@ -389,7 +376,7 @@ conversation, not its prompt, so one breakpoint always rides the conversation's 
 
   The loop still sends its notes as user messages: where a note is put changes what the model
   is told, and is a decision of its own. `mikatad runs --session` counts what it costs today
-  ([The loop](03-loop.md)).
+  ([The loop](02-loop.md)).
 
 - The toolbox's level-1 manifest is **text** in the changing tail, never tool definitions — so
   offering different tools per turn never breaks the cache.
@@ -406,7 +393,7 @@ conversation, not its prompt, so one breakpoint always rides the conversation's 
 
 An MCP tool's schema would ride every request of a run that carried it, so none does: a run
 carries four fixed doors, and MCP reaches a body in three levels, each priced before it loads
-([MCP](07-mcp.md#three-levels-priced)):
+([MCP](06-mcp.md#three-levels-priced)):
 
 - level 0 — one line per server, with the weighted tokens of opening it — rides the first ask's
   uncached tail, and `mikata status` shows the same lines;
@@ -417,22 +404,22 @@ carries four fixed doors, and MCP reaches a body in three levels, each priced be
   view without a search turn;
 - when the catalog is large and the top scores sit close, one fast-tier call reranks the
   shortlist: a usage ledger row like any call, its cost said in the run's journal, and kept for
-  the session so the same ask never pays twice ([MCP](07-mcp.md#reranked-by-the-fast-tier));
+  the session so the same ask never pays twice ([MCP](06-mcp.md#reranked-by-the-fast-tier));
 - the tools block never changes mid-run, so the doors are read from the cache at the cache-read
   price after the first request, and every loaded level is in the usage ledger's input like any
   other tool result;
 - a creature's habitual tools — chosen once, when the session starts, from the MCP journal — ride
   its frame up front, within what the race's prefix ceiling leaves; a server whose schemas
   together pass the ceiling stays at level 0, and a level whose price passes the run's envelope
-  is refused before it loads ([MCP](07-mcp.md#budgeted));
+  is refused before it loads ([MCP](06-mcp.md#budgeted));
 - on Anthropic, every other tool in scope is a native deferred tool: sent, but out of the context
-  and the cached prefix until level 2 references it ([MCP](07-mcp.md#native-deferred-tools)).
+  and the cached prefix until level 2 references it ([MCP](06-mcp.md#native-deferred-tools)).
 
 ### Reads by range
 
 File reads are the largest class of tokens a body spends: a file read whole is paid for when it
 is read, then again at the cache-read price on every later turn until a fold takes it out. So a
-body reads a skeleton first and then only the lines it needs ([the tools](05-architecture.md)):
+body reads a skeleton first and then only the lines it needs ([the tools](03-architecture.md)):
 `index` gives each symbol's line range, and `read` takes a range or `path#symbol`. A file over
 `tools.read.range_over` lines (400) read without a range answers with its skeleton, not its
 text. On this repository's `crates/mikata-tools/src/files.rs` (1,293 lines), a whole read is
@@ -452,7 +439,7 @@ read's, and the files it outlines count as what the ask read.
 
 `mikatad usage [--window 7d|28d|all] [--json]` prints the same folds in the terminal — by race,
 model, body, day and session — and the board's metrics are that fold ([the board's
-metrics](05-architecture.md#metrics-and-integrations)). A group with no priced call reads
+metrics](03-architecture.md#metrics-and-integrations)). A group with no priced call reads
 `unpriced`, never $0. A group with calls that carried a provider's own cost also reads
 `provider-reported $… (n calls)`, summed over those calls only (`reportedUsd` and `reported` in
 `--json`).

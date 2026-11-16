@@ -11,7 +11,7 @@ covers, as its licence asks.
 - **What Mikata adapts:** the Dark Elf's audit discipline — its playbooks of attack classes,
   the finding contract (a line-free root-cause fingerprint, the "needs validation" verdict,
   severity capped at demonstrated impact), the coverage ledger and independent verification
-  ([races](docs/02-races.md#-dark-elf--the-adversary)), and the rules of its
+  ([races](docs/experimental/races.md#-dark-elf--the-adversary)), and the rules of its
   `validate-findings.cjs` and `validate-coverage-ledger.cjs` that `crates/mikata-proving` holds
   a finding record and a coverage ledger to. The playbooks and the validators are rewritten in
   Mikata's own words, format and language, not copied; material taken from a later upstream

@@ -2,10 +2,10 @@
 
 ## In one picture
 
-<a href="./canvas/races-light.svg">
+<a href="../canvas/races-light.svg">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./canvas/races-dark.svg">
-  <img src="./canvas/races-light.svg" alt="Races and ascensions: Player above Summoner; the chain Elf, Orc, Slime and, beside it, the Kijin and the Dark Elf; each race ascends: High Elf, High Orc, Named Slime, Oni, Arch Dark Elf">
+  <source media="(prefers-color-scheme: dark)" srcset="../canvas/races-dark.svg">
+  <img src="../canvas/races-light.svg" alt="Races and ascensions: Player above Summoner; the chain Elf, Orc, Slime and, beside it, the Kijin and the Dark Elf; each race ascends: High Elf, High Orc, Named Slime, Oni, Arch Dark Elf">
 </picture>
 </a>
 
@@ -62,11 +62,11 @@ flowchart TD
 
 </details>
 
-| <img src="../assets/portraits/summoner@64.png" width="64" alt="Summoner"> | <img src="../assets/portraits/elf@64.png" width="64" alt="Elf"> | <img src="../assets/portraits/orc@64.png" width="64" alt="Orc"> | <img src="../assets/portraits/slime@64.png" width="64" alt="Slime"> | <img src="../assets/portraits/kijin@64.png" width="64" alt="Kijin"> | <img src="../assets/portraits/dark-elf@64.png" width="64" alt="Dark Elf"> |
+| <img src="../../assets/portraits/summoner@64.png" width="64" alt="Summoner"> | <img src="../../assets/portraits/elf@64.png" width="64" alt="Elf"> | <img src="../../assets/portraits/orc@64.png" width="64" alt="Orc"> | <img src="../../assets/portraits/slime@64.png" width="64" alt="Slime"> | <img src="../../assets/portraits/kijin@64.png" width="64" alt="Kijin"> | <img src="../../assets/portraits/dark-elf@64.png" width="64" alt="Dark Elf"> |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | **Summoner** | **Elf** | **Orc** | **Slime** | **Kijin** | **Dark Elf** |
 
-| <img src="../assets/portraits/high-elf@64.png" width="64" alt="High Elf"> | <img src="../assets/portraits/high-orc@64.png" width="64" alt="High Orc"> | <img src="../assets/portraits/named-slime@64.png" width="64" alt="Named Slime"> | <img src="../assets/portraits/oni@64.png" width="64" alt="Oni"> | <img src="../assets/portraits/arch-dark-elf@64.png" width="64" alt="Arch Dark Elf"> |
+| <img src="../../assets/portraits/high-elf@64.png" width="64" alt="High Elf"> | <img src="../../assets/portraits/high-orc@64.png" width="64" alt="High Orc"> | <img src="../../assets/portraits/named-slime@64.png" width="64" alt="Named Slime"> | <img src="../../assets/portraits/oni@64.png" width="64" alt="Oni"> | <img src="../../assets/portraits/arch-dark-elf@64.png" width="64" alt="Arch Dark Elf"> |
 |:---:|:---:|:---:|:---:|:---:|
 | **High Elf** | **High Orc** | **Named Slime** | **Oni** | **Arch Dark Elf** |
 
@@ -78,17 +78,17 @@ anyone else's:
 
 | Race | Its job, in one line | Can write code? | Can reach outside? | Commands |
 |---|---|---|---|---|
-| <img src="../assets/portraits/summoner@64.png" width="28" alt="Summoner"> Summoner | understand the human, plan, answer; in light-coding, do the work itself | light-coding: **yes, the whole repository**; collective-coding: no | no | Elves, Kijin, Dark Elves; in collective-coding, any member |
-| <img src="../assets/portraits/elf@64.png" width="28" alt="Elf"> Elf | plan one lane of work across domains | no | no | its Orcs |
-| <img src="../assets/portraits/orc@64.png" width="28" alt="Orc"> Orc | own a domain: write the test first, judge the landing | no (only tests' verify lines on its slimes' docs) | no | its Slimes, other Orcs sideways |
-| <img src="../assets/portraits/slime@64.png" width="28" alt="Slime"> Slime | change the code of its one zone, with its doc | **yes, its zone only** | no | nobody |
-| <img src="../assets/portraits/kijin@64.png" width="28" alt="Kijin"> Kijin | everything that leaves the machine: CI, release, deploy, PRs, intel | its post's files only | **yes, through the gate** | nobody |
-| <img src="../assets/portraits/dark-elf@64.png" width="28" alt="Dark Elf"> Dark Elf | attack the code; prove every weakness it claims | no (only proofs in its own ground) | no | nobody |
+| <img src="../../assets/portraits/summoner@64.png" width="28" alt="Summoner"> Summoner | understand the human, plan, answer; in light-coding, do the work itself | light-coding: **yes, the whole repository**; collective-coding: no | no | Elves, Kijin, Dark Elves; in collective-coding, any member |
+| <img src="../../assets/portraits/elf@64.png" width="28" alt="Elf"> Elf | plan one lane of work across domains | no | no | its Orcs |
+| <img src="../../assets/portraits/orc@64.png" width="28" alt="Orc"> Orc | own a domain: write the test first, judge the landing | no (only tests' verify lines on its slimes' docs) | no | its Slimes, other Orcs sideways |
+| <img src="../../assets/portraits/slime@64.png" width="28" alt="Slime"> Slime | change the code of its one zone, with its doc | **yes, its zone only** | no | nobody |
+| <img src="../../assets/portraits/kijin@64.png" width="28" alt="Kijin"> Kijin | everything that leaves the machine: CI, release, deploy, PRs, intel | its post's files only | **yes, through the gate** | nobody |
+| <img src="../../assets/portraits/dark-elf@64.png" width="28" alt="Dark Elf"> Dark Elf | attack the code; prove every weakness it claims | no (only proofs in its own ground) | no | nobody |
 
 The table is the chain at work. Most sessions never use it: **light-coding is the default mode**,
 one body with Summoner's voice and a Slime's hands. The chain is structured-coding, and
 collective-coding is the third
-([which mode, and how to start it](01-overview.md#which-mode-and-how-to-start-it); the rules of
+([which mode, and how to start it](../01-overview.md#which-mode-and-how-to-start-it); the rules of
 each are [below](#the-three-modes)).
 
 A creature that keeps doing its job well **ascends**: the harness promotes it, with your
@@ -169,7 +169,7 @@ default tiers are compiled: **frontier** for Summoner, Elf and Dark Elf (the pla
 adversary think hardest), **strong** for Orc, Slime and Kijin.
 
 **Metis routes within a band** (`decide.route`, off by default). Metis, wise counsel,
-is a decision point (`model.route`, [the architecture](05-architecture.md)): before a body runs,
+is a decision point (`model.route`, [the architecture](../03-architecture.md)): before a body runs,
 the decider reads the commission and answers how demanding it is (routine, involved, hard) and
 whether a mistake would be hard to undo. On a sure answer the body moves within its office's band:
 
@@ -197,7 +197,7 @@ the human pinned for the child stands as pinned.
 
 ### The three modes
 
-A session opens in one of three modes ([`Mode`](05-architecture.md#the-terminal-ui), in
+A session opens in one of three modes ([`Mode`](../03-architecture.md#the-terminal-ui), in
 `mikata_loop::open`), and says which and why on `mikata status`, on the app's first lines, in
 the protocol's `initialize` answer and on the run's `law` beat.
 
@@ -240,7 +240,7 @@ is the human's page.
   body read the same
   files again, cold (17 to 29 bodies a run in the chain). The board is the answer to that.
   Measured since: findings were carried (16 of 28 briefs in one run) and the price did not move;
-  the board was not what the chain was missing ([experimental modes](experimental-modes.md)).
+  the board was not what the chain was missing ([experimental modes](modes.md)).
 
 **Light-coding.** One body runs as Summoner's voice and a single Slime's hands — Summoner's prompt, the
 Slime's shelf (`read`, `write`; nothing outward) — under the shelves,
@@ -347,7 +347,7 @@ for that name before, on the doc and in the pins, and the Orc is told what it re
 line used to be added only, so a line that could not run, or that needed another zone's code,
 stayed and failed every later landing: in one kept chain run all 14 failed Slime landings failed
 on such a line (7 of each kind), though the Orcs had coded better ones since; no body's file tools write a creature's doc, so no body rewrites its own checks. The
-pin is what the Slime's end gate runs ([the verify pins](03-loop.md#the-verify-pins)): the Orc's
+pin is what the Slime's end gate runs ([the verify pins](../02-loop.md#the-verify-pins)): the Orc's
 word on its own Slime, kept by the harness under the human's state directory, where no body
 writes, and kept as the Orc's — no test bench, and a pass on it alone is the Orc's check, never
 the human's. And a check
@@ -392,7 +392,7 @@ both answer to routes it. A path no Slime keeps, an Orc's domain alone covering 
 the Orc starts a Slime on it with the `summon` tool, or Summoner routes its birth. Either way — **widen**: the body asks for it in its own ground. A seat
 or another body's scratch is never routed: a body writes only its own plan and its own scratch.
 The human's soil and the harness's are named as theirs, with no way to write them.
-The full order, and the findings it raises, are in [the ontology](09-ontology.md#ownership-one-function).
+The full order, and the findings it raises, are in [the ontology](ontology.md#ownership-one-function).
 
 **An Orc may start Slimes for its commission.** With the `summon` tool it starts a Slime on part of
 its own domain, never on ground a living Slime keeps, and with no human asked: the harness writes
@@ -414,13 +414,13 @@ seat alone, until the human adopts it (`mikatad roster adopt`). The harness writ
 the births it makes — relief's young, at their parent's base race, and a Slime an Orc starts —
 and holds a card an
 evolution swap rewrites to its row; a new name a swap brings, a rise, a fall and an adoption are
-the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
+the human's alone ([the roster's trust](../03-architecture.md#the-rosters-trust)).
 
 ---
 
 ### 👑 Summoner — the throne
 
-<img src="../assets/portraits/summoner@64.png" width="72" alt="Summoner">
+<img src="../../assets/portraits/summoner@64.png" width="72" alt="Summoner">
 
 *The slime who became a sovereign: one body across every world, the only voice the human hears.*
 
@@ -454,7 +454,7 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
 
 ### 🌿 Elf — the lane's planner and voice
 
-<img src="../assets/portraits/elf@64.png" width="72" alt="Elf">
+<img src="../../assets/portraits/elf@64.png" width="72" alt="Elf">
 
 *Long memory, wide sight: it sees across domains and speaks for the lane.*
 
@@ -466,7 +466,7 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
   `- [ ] <orc>: <what it does>`. The order may carry the item itself (`plan_item`), and the
   harness then opens it; it names the `Done when` lines the part serves (`| D1, D3`), and the
   harness ticks it, `- [x]`, when the Orc's landing passes, so a retried Elf is not told finished
-  work as open ([one list](04-communication.md#dispatch-rules-all-compiled-in)).
+  work as open ([one list](communication.md#dispatch-rules-all-compiled-in)).
 - **Parallelism.** Two Orcs run at once only if their territories are disjoint — computed, not
   trusted. An Elf runs its Orcs in the foreground; running them in the background needs
   Summoner's leave, asked once per commission.
@@ -475,7 +475,7 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
 
 ### 🪓 Orc — the domain and its gate
 
-<img src="../assets/portraits/orc@64.png" width="72" alt="Orc">
+<img src="../../assets/portraits/orc@64.png" width="72" alt="Orc">
 
 *Strong, territorial, fair: nothing lands in its domain without its pass.*
 
@@ -486,18 +486,18 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
   `Done when` line that needs several Slimes' parts is the Orc's to run when they have landed.
   The gate holds to that whatever the Orc codes: a named line that was red before a Slime began
   stands open and refuses no landing of that Slime
-  ([traits hold](03-loop.md#the-end-gate)). Judge each landing. Negotiate contracts with
+  ([traits hold](../02-loop.md#the-end-gate)). Judge each landing. Negotiate contracts with
   neighbouring domains sideways.
 - **Domain.** Its doc's Domain field names directory prefixes. The domain is what the Orc routes
   and judges: a path inside it that no Slime's zone covers is the Orc's to have a Slime born or
   extended for, and its tests' verify lines are the Orc's to write. It grants no write to the code
-  itself ([ownership](09-ontology.md#ownership-one-function)).
+  itself ([ownership](ontology.md#ownership-one-function)).
 - **Reports to** its Elf. **Commands** its own Slimes; reaches other Orcs sideways.
 - **Shelf.** `read`, `dispatch`, `write` restricted to the verify block of its Slimes' docs and
   its own doc.
 - **The gate.** Six checks, run by the harness at the end of every authoring turn — isekai's four
   (right author, traits hold, duties done, doc truthful) plus tests intact and no seal; see
-  [the loop](03-loop.md#the-end-gate). The verdict is appended to `log.md`.
+  [the loop](../02-loop.md#the-end-gate). The verdict is appended to `log.md`.
 - **Answering a Dark Elf.** A finding on its domain reaches the Orc through Summoner. The Orc
   either orders the fix, or contests it with `@? contest #<finding-id>: <reason>`, which Summoner
   puts to the human.
@@ -505,7 +505,7 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
 
 ### 💧 Slime — the ground truth of a zone
 
-<img src="../assets/portraits/slime@64.png" width="72" alt="Slime">
+<img src="../../assets/portraits/slime@64.png" width="72" alt="Slime">
 
 *Small, exact, everywhere: in the chain it is the only one who touches the code.*
 
@@ -548,7 +548,7 @@ chain. Asked for with `mikata --mode collective-coding`, or switched on for ever
 
 ### 👹 Kijin — the hands that reach outside
 
-<img src="../assets/portraits/kijin@64.png" width="72" alt="Kijin">
+<img src="../../assets/portraits/kijin@64.png" width="72" alt="Kijin">
 
 *Ogres named by the throne, each given a post. Disciplined, loyal, and the only ones who leave
 the village.*
@@ -572,7 +572,7 @@ or none, stays with the human.
 | `kijin-release` | the smith | changelog, versioning, release config, installers | `fetch`, `push-tag`, `publish` (registries, images, GitHub releases) — both `destructive` |
 | `kijin-deploy` | the commander | deploy manifests, environments | `fetch` (health checks), `deploy`, `rollback`, `write-outside` |
 | `kijin-forge` | the shrine keeper of records | PR templates, issue templates | `fetch` (issues, PRs), `push-branch`, `pull-request`, `comment`, `label` — typed through `outward`: a new branch, a pull request opened (alone, or with the push of its head under one approval), a label, a comment |
-| `kijin-scout` | the shadow (and **agent-mcp**: the MCP catalog's curator and conduit — [MCP](07-mcp.md)) | `.mikata/intel/` (machine-local, not tracked: the advisory mirror is hundreds of MB) | `fetch` only (advisory databases such as OSV, upstream releases): no outward write |
+| `kijin-scout` | the shadow (and **agent-mcp**: the MCP catalog's curator and conduit — [MCP](../06-mcp.md)) | `.mikata/intel/` (machine-local, not tracked: the advisory mirror is hundreds of MB) | `fetch` only (advisory databases such as OSV, upstream releases): no outward write |
 
 The kinds, as the classifier reads them. A kind is read only from what the command's own words
 say: a git global option (`-c`, `--config-env`, `-C` outside the world, `--git-dir`), a word
@@ -601,7 +601,7 @@ act after it `other`.
 - **Every outward act** goes through the same pipeline: *plan* (render exactly what would happen:
   command, target, diff) → *gate* (the human says yes, or a signed Oni envelope covers it) →
   *journal intent* → *act* → *journal result*. The approval is bound to the plan the human saw —
-  the commit, the working tree and the target ([the sandbox](05-architecture.md#sandbox)) — and
+  the commit, the working tree and the target ([the sandbox](../03-architecture.md#sandbox)) — and
   rechecked just before the act: a world that changed meanwhile runs nothing and is asked again.
 - **The act runner** (`mikata_config::Runner`) is the one path a typed act takes. A Kijin asks
   for one through its `outward` tool, with a typed act — `{kind: "push-new-branch", remote,
@@ -804,7 +804,7 @@ chain walked and anchored, and the journal holds the same bytes; after each comm
   and is journaled like any result; where the target can, the rollback is a compare-and-swap on
   the deployed version, not a read then a deploy. There is no override. This is the deploy
   post's work in M9; files already follow the rule in the attic
-  ([architecture](05-architecture.md)): an undo writes nothing unless every path is still as
+  ([architecture](../03-architecture.md)): an undo writes nothing unless every path is still as
   the act left it.
 - **Secrets** never enter the context. The Kijin names a secret (`secret:GH_TOKEN`); the core
   injects it into the sandboxed process environment and redacts it from every output.
@@ -840,14 +840,14 @@ chain walked and anchored, and the journal holds the same bytes; after each comm
 
 ### 🌑 Dark Elf — the adversary
 
-<img src="../assets/portraits/dark-elf@64.png" width="72" alt="Dark Elf">
+<img src="../../assets/portraits/dark-elf@64.png" width="72" alt="Dark Elf">
 
 *It answers only to the throne, trusts nothing the chain built, and never claims what it cannot
 prove.*
 
 The Dark Elf challenges the code itself. It is independent of the chain it attacks: it is never
 dispatched by the Orc whose domain it reviews, and its verdicts go to Summoner. It is built in M10
-([roadmap](roadmap.md#m10--dark-elf--m)); until then this section is its specification.
+([roadmap](roadmap-m0-m14.md#m10--dark-elf--m)); until then this section is its specification.
 
 **Specialities.** Dark Elves are born like Kijin posts: six **specialities**, named by the
 creature, each with its surfaces and its attack classes compiled into the law
@@ -872,7 +872,7 @@ that touch two specialities' surfaces or more, and those that touch the `Surface
 in its doc: the world's catch-all.
 
 The compiled surfaces are path globs (`*` inside one segment, `**` across any number); a world adds
-its own in a Dark Elf's doc, as a `Surfaces` field of paths ([fields](09-ontology.md)). A
+its own in a Dark Elf's doc, as a `Surfaces` field of paths ([fields](ontology.md)). A
 declared surface only adds: it never takes a path off a compiled one. Written paths are read as
 ownership reads them, so `./`, `//`, `..` and `\` route the same as the plain path. The classes
 are the playbooks' headings, each owned once:
@@ -884,7 +884,7 @@ are the playbooks' headings, each owned once:
 | `dark-elf-supply` | `**/Cargo.toml`, `**/Cargo.lock`, `**/package.json`, `**/pnpm-lock.yaml`, `**/package-lock.json`, `**/yarn.lock`, `**/go.mod`, `**/go.sum`, `**/Dockerfile`, `**/*.Dockerfile`, `.github/workflows/**`, `.github/actions/**`, `.cargo/**`, `deny.toml`, `rust-toolchain.toml`, `pnpm-workspace.yaml` | known-vulnerability, dependency-confusion, workflow-injection, release-integrity, container-image |
 | `dark-elf-secrets` | `crates/mikata-config/**`, `crates/mikata-ledger/src/journal.rs`, `crates/mikata-loop/src/beats.rs`, `**/.env`, `**/.env.*`, `**/*.pem`, `**/*.key`, `**/*credential*`, `**/*secret*` | secret-exposure, credential-grant, redaction-gap, data-isolation, weak-crypto |
 | `dark-elf-web` | `crates/mikata-server/**`, `crates/mikatad/**`, `packages/protocol/**`, `packages/board/**`, `packages/sdk/**` | auth-bypass, cross-site-request, client-injection, request-forgery, unsafe-deserialisation, cloud-identity |
-| `dark-elf-law` | `crates/mikata-races/**`, `crates/mikata-world/**`, `crates/mikata-ledger/**`, `crates/mikata-loop/src/budget.rs`, `crates/mikata-loop/src/route.rs`, `crates/mikata-loop/src/session.rs`, `crates/mikata-loop/src/solo.rs`, `crates/mikata-provider/src/retry.rs`, `docs/02-races.md`, `**/log.md` | resource-exhaustion, unbounded-delegation, detached-work, ledger-integrity, phantom-effect |
+| `dark-elf-law` | `crates/mikata-races/**`, `crates/mikata-world/**`, `crates/mikata-ledger/**`, `crates/mikata-loop/src/budget.rs`, `crates/mikata-loop/src/route.rs`, `crates/mikata-loop/src/session.rs`, `crates/mikata-loop/src/solo.rs`, `crates/mikata-provider/src/retry.rs`, `docs/experimental/races.md`, `**/log.md` | resource-exhaustion, unbounded-delegation, detached-work, ledger-integrity, phantom-effect |
 
 **Routing.** The harness routes each landing at the gate — `route(written paths) → specialities` —
 and commissions only the specialities whose surfaces those paths touch, in the table's order, and
@@ -1029,14 +1029,14 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
        shown. The file tools refuse `.mikata/minds/` with a message that says whose it is,
        and the shell classifier refuses a command that writes or removes there (`mind`, a floor
        rule). What wearing a Mind injects names its doc and the digest of the bytes worn
-       ([the toolbox](08-memory.md#the-toolbox)). Witnessed by
+       ([the toolbox](../07-memory.md#the-toolbox)). Witnessed by
        `a_mind_edited_since_adoption_does_not_load`, `retirement_comes_from_the_witness`,
        `an_adopted_mind_names_its_owner`, `an_unadopted_mind_does_not_load_until_adopted`,
        `the_witness_is_chained_and_an_edit_is_found`,
        `a_body_never_adopts_retires_or_unretires_a_mind`, `a_retired_mind_never_loads` and
        `a_worn_mind_names_its_source`.
      - **Journal chains** (`ledger-integrity`). The usage ledger and the value ledger are
-       hash-chained ([the chain](06-consumption.md#the-usage-row)): the audit walks each
+       hash-chained ([the chain](../05-consumption.md#the-usage-row)): the audit walks each
        (`mikata_world::chains::verify`, the walk `mikatad housekeep --verify` runs) and checks
        its head against the newest head kept under the state directory or anchored in `log.md`. A broken link is found
        at its line; a torn tail is a truncation; a kept head the chain no longer holds means rows
@@ -1257,7 +1257,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
 - **A seal is not the end gate's only refusal.** By its own rule, independent of any Dark Elf, the
   end gate refuses a landing that a critical or high **ontology** finding touches, read on the tree
   as the landing leaves it — no human confirms it, and a landing that ends the finding is not
-  blocked by it ([the end gate](03-loop.md#the-end-gate), [ontology](09-ontology.md#findings)).
+  blocked by it ([the end gate](../02-loop.md#the-end-gate), [ontology](ontology.md#findings)).
 - **Score** `0.7·upheldRate + 0.3·precision`, per speciality: each speciality is its own
   creature, so its score and its ascension are its own — `dark-elf-supply` may rise to Arch Dark
   Elf while `dark-elf-agent` has not. Meter: *Upheld*, ok ≥ 80, warn ≥ 50, ranked on findings.
@@ -1407,11 +1407,11 @@ enters them. The two thresholds are apart on purpose (hysteresis), so a creature
 
 | Form | From | Rises when | Grants | Falls when |
 |---|---|---|---|---|
-| <img src="../assets/portraits/high-elf@64.png" width="28" alt="High Elf"> **High Elf** | Elf | reports ≥ 20, planLandRate ≥ 85%, reaskRate ≤ 10% | may order work in **another lane** — sent as `@$ <that lane's elf>: <ask>`, so it travels through the other Elf, never past it, and like any Elf's order it needs a plan item naming its target; runs its Orcs in the background without asking Summoner; may *propose* rules for every Elf, which reach their prompts only as a diff the human applies | planLandRate < 70% over the last 10 |
-| <img src="../assets/portraits/high-orc@64.png" width="28" alt="High Orc"> **High Orc** | Orc | reports ≥ 20, gateRight ≥ 90%, holeRate ≤ 10%, no overturned pass on a sealed territory in the window | may **amend** (never weaken) its slimes' verify lines mid-turn; fast-path gate on doc-only changes; may adopt a retired neighbour's domain | gateRight < 75% over the last 10, or one overturned pass on a sealed territory |
-| <img src="../assets/portraits/named-slime@64.png" width="28" alt="Named Slime"> **Named Slime** | Slime | reports ≥ 20, landRate ≥ 90%, gateRate ≥ 90%, holeRate ≤ 5%, no *tests intact* failure in the window | may add verify lines to its own doc (they run this turn, not next); +50% step budget; first claim on an adjacent zone left open by relief | landRate < 75% over the last 10, or a *tests intact* failure |
-| <img src="../assets/portraits/oni@64.png" width="28" alt="Oni"> **Oni** | Kijin | outward acts ≥ 30, outwardCleanRate ≥ 95%, zero rollbacks and zero corrections in the window | may act under **Oni envelopes**: standing permissions the human signs once (e.g. "push to `feat/*`, re-run CI, comment on PRs") — no prompt inside the envelope | any rollback or human correction of an envelope act — immediate, no probation |
-| <img src="../assets/portraits/arch-dark-elf@64.png" width="28" alt="Arch Dark Elf"> **Arch Dark Elf** | Dark Elf | findings ≥ 20, upheldRate ≥ 80%, precision ≥ 85% — per speciality, each its own record | its seal proposals go straight to the human, skipping Summoner's triage; may run background fuzz campaigns with their own budget | precision < 70% over the last 10 settled findings, or cannot-verify > 50% of the last 10 findings filed |
+| <img src="../../assets/portraits/high-elf@64.png" width="28" alt="High Elf"> **High Elf** | Elf | reports ≥ 20, planLandRate ≥ 85%, reaskRate ≤ 10% | may order work in **another lane** — sent as `@$ <that lane's elf>: <ask>`, so it travels through the other Elf, never past it, and like any Elf's order it needs a plan item naming its target; runs its Orcs in the background without asking Summoner; may *propose* rules for every Elf, which reach their prompts only as a diff the human applies | planLandRate < 70% over the last 10 |
+| <img src="../../assets/portraits/high-orc@64.png" width="28" alt="High Orc"> **High Orc** | Orc | reports ≥ 20, gateRight ≥ 90%, holeRate ≤ 10%, no overturned pass on a sealed territory in the window | may **amend** (never weaken) its slimes' verify lines mid-turn; fast-path gate on doc-only changes; may adopt a retired neighbour's domain | gateRight < 75% over the last 10, or one overturned pass on a sealed territory |
+| <img src="../../assets/portraits/named-slime@64.png" width="28" alt="Named Slime"> **Named Slime** | Slime | reports ≥ 20, landRate ≥ 90%, gateRate ≥ 90%, holeRate ≤ 5%, no *tests intact* failure in the window | may add verify lines to its own doc (they run this turn, not next); +50% step budget; first claim on an adjacent zone left open by relief | landRate < 75% over the last 10, or a *tests intact* failure |
+| <img src="../../assets/portraits/oni@64.png" width="28" alt="Oni"> **Oni** | Kijin | outward acts ≥ 30, outwardCleanRate ≥ 95%, zero rollbacks and zero corrections in the window | may act under **Oni envelopes**: standing permissions the human signs once (e.g. "push to `feat/*`, re-run CI, comment on PRs") — no prompt inside the envelope | any rollback or human correction of an envelope act — immediate, no probation |
+| <img src="../../assets/portraits/arch-dark-elf@64.png" width="28" alt="Arch Dark Elf"> **Arch Dark Elf** | Dark Elf | findings ≥ 20, upheldRate ≥ 80%, precision ≥ 85% — per speciality, each its own record | its seal proposals go straight to the human, skipping Summoner's triage; may run background fuzz campaigns with their own budget | precision < 70% over the last 10 settled findings, or cannot-verify > 50% of the last 10 findings filed |
 
 How a fall is read (`mikata-races`, `falls`):
 
@@ -1539,7 +1539,7 @@ or before it. A creature's meters are its name's rows under its doc's base race:
 one the usage witness says it ran as, so a doc that claims another race claims no record.
 
 The fold is kept in the **report ledger**, `$XDG_STATE_HOME/mikata/reports/<world>-<fnv64a>.jsonl`
-([storage](05-architecture.md#storage-files-are-the-truth)) — one row per report (`run`, `ask` or
+([storage](../03-architecture.md#storage-files-are-the-truth)) — one row per report (`run`, `ask` or
 `act`), each with every input value above and the `build` of the journal row that settled it, and
 chained from its genesis; a row whose source row carries no build says `unstamped`.
 `mikatad meters` folds and keeps it; `mikata status` and the board
@@ -1616,9 +1616,9 @@ never judged on.
 **The guts classes are signals for a learned value, never a meter.** Every act of every body is
 classed `fail`, `red-pin`, `positive`, `repeat`, `echo` or `thrash` by harness code from its
 structured outcome, never from text — only a trusted verify line, matched exactly, is a bench: a
-line [pinned](03-loop.md#the-verify-pins) for the body outside the world — and kept in a chained record
+line [pinned](../02-loop.md#the-verify-pins) for the body outside the world — and kept in a chained record
 outside the world
-([the loop](03-loop.md#stress-in-four-instruments)). No bar reads them, and no rise, fall or
+([the loop](../02-loop.md#stress-in-four-instruments)). No bar reads them, and no rise, fall or
 probation follows from them. When a learned value model reads them, two rules are fixed structure
 that no update may undo:
 
@@ -1711,7 +1711,7 @@ Rules that hold for every ascension:
   advance by the human, scoped, expiring (at most `oni.envelope_days` after its signing — 30
   unless the human's own file says, from 1 to 365), capped in uses if the human says so,
   revocable, listed to the human, and its time and count checked at the moment of use, not only
-  when the act was planned. A revoked envelope stays on record ([config](05-architecture.md#configuration)).
+  when the act was planned. A revoked envelope stays on record ([config](../03-architecture.md#configuration)).
 - **How the gate admits an act under an envelope** (`mikata_config::EnvelopeGate`, step 4 of
   [the act runner](#-kijin--the-hands-that-reach-outside)). It reads, in this order, and stops at
   the first that fails — the act then goes to the human, the card saying why:
@@ -1757,7 +1757,7 @@ Rules that hold for every ascension:
   cannot be read suspends every envelope.
 - **An envelope that is a bare `*`** — a pattern whose only word is `*`, or one whose words a `*`
   could fill with a destructive argument — is refused when the configuration loads, with the
-  file named ([config](05-architecture.md#configuration)).
+  file named ([config](../03-architecture.md#configuration)).
 - **What an envelope can never cover** (compiled, whatever the envelope says) — and the same
   exclusions bind every other standing approval, `gate.approve` among them, once the gate reads
   it:

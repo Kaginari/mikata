@@ -39,8 +39,12 @@ global configuration, inside the sandbox, and shows each body only the tools of 
 named for its race that its shelf can use.
 
 Every tool has a class — read, write, outward or destructive — that you declare for the tool or
-its server; a tool nobody declared is outward — unless the sandbox proves it a read — so it reaches
-only Kijin and Oni and asks you before each call. Most MCP traffic leaves the machine, so most of it is Kijin ground.
+its server; a tool nobody declared is outward, unless the sandbox proves it a read.
+
+**For Mikata's own body, two settings matter.** A session's body counts as `summoner`, and it reads
+and writes but never reaches outside. So a server it may use names `summoner` in its `races`, and
+its tools are declared `read` or `write`; an undeclared tool is outward and is never offered to it.
+Outward tools reach only the [lab's](experimental/) Kijin and Oni, and ask you before each call.
 
 A server always sends every one of its tool definitions, so Mikata shows them in three levels,
 each priced before it loads:
@@ -73,7 +77,7 @@ everyone who clones the repository) nor the local one (`.mikata/config.local.tom
 world, where a body's command or a repository's script may write it) can declare one: each of
 their `mcp.*` keys is a hole `status` shows, since a server is a program started with its own
 reach. The same holds for `sandbox.allow_unguarded` and every key that loosens the gate
-([configuration](05-architecture.md#configuration)).
+([configuration](03-architecture.md#configuration)).
 
 ```toml
 [mcp]
@@ -98,18 +102,18 @@ asks = 10                  # chosen over its last N asks (at least 10)
 share_pct = 60             # from the tools it called on at least this share of them
 tools = 3                  # at most this many
 
-[mcp.servers.search]
-command = "web-search-mcp"
+[mcp.servers.docs]
+command = "docs-index-mcp"
 args = ["--stdio"]
-env = ["SEARCH_API_KEY"]   # passed by name; every other secret is scrubbed
-races = ["kijin", "slime"] # who may be offered its tools; none by default
-purpose = "Web search"     # its level-0 line
-class = "outward"          # every tool's class, unless the tool declares its own
-network = true             # sockets allowed in its sandbox
+env = ["DOCS_INDEX_TOKEN"] # passed by name; every other secret is scrubbed
+races = ["summoner"]       # who may be offered its tools; none by default (summoner: Mikata's body)
+purpose = "This project's API docs"  # its level-0 line
+class = "read"             # every tool's class, unless the tool declares its own
+network = false            # no sockets in its sandbox: a server that reaches outside is outward
 timeout_secs = 30          # this server's wait for each of its steps, over `mcp.timeouts`
 
-[mcp.servers.search.tools.lookup]
-class = "read"             # this tool runs at `read`: a Slime may use it, with no question
+[mcp.servers.docs.tools.reindex]
+class = "write"            # a tool may declare its own class over its server's
 ```
 
 A server's name is lower-case letters, digits and dashes. An unknown race, a class other than
@@ -208,7 +212,7 @@ by name answers that no such tool is in scope.
 ### Three levels, priced
 
 The tools block is built once, when a run is made, and sent byte-identical for its whole life
-([consumption](06-consumption.md#cache-first-prompt-layout)). A run any server may serve carries
+([consumption](05-consumption.md#cache-first-prompt-layout)). A run any server may serve carries
 four doors, all `read` themselves, and no MCP tool joins the frame:
 
 | Door | Loads | Starts a server |
@@ -264,7 +268,7 @@ server under the ceiling, within the room the ceiling leaves; `status` says whic
 any did not.
 
 The choice is made once: the journal changing mid-session changes no frame — the request only
-grows ([consumption](06-consumption.md#cache-first-prompt-layout)) — and the next session
+grows ([consumption](05-consumption.md#cache-first-prompt-layout)) — and the next session
 chooses again. Nothing read from the world counts: the journal lives under the state directory,
 and a journal that is not believed promotes nothing, saying why.
 

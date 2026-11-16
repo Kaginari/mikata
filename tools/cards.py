@@ -1,4 +1,4 @@
-"""Draw the race cards: the hex portraits framed with the words of the race law (docs/02-races.md).
+"""Draw the race cards: the hex portraits framed with the words of the race law (docs/experimental/races.md).
 
 Usage: python3 tools/cards.py   (from the repository root; needs Pillow)
 Writes assets/cards/<race>.png and back.png, 600x840, and assets/cards/hires/<race>.webp and
@@ -256,7 +256,7 @@ def back():
     halo = Image.new('L', (W, H), 0)
     ImageDraw.Draw(halo).ellipse((W // 2 - 380, 380, W // 2 + 380, 1140), fill=220)
     glow(img, halo, (255, 190, 90), 80, 0.6)
-    em = Image.open(f'{REPO}/assets/brand/mnemorph-icon@512.png').convert('RGBA').resize((640, 640), Image.LANCZOS)
+    em = Image.open(f'{REPO}/docs/experimental/assets/mnemorph-icon@512.png').convert('RGBA').resize((640, 640), Image.LANCZOS)
     img.alpha_composite(em, (W // 2 - 320, 440))
     tm = text_mask((W // 2, 1180), 'MIKATA', font('Cinzel.ttf', 104))
     glow(img, tm, (255, 190, 80), 12, 1.0)

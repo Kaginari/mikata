@@ -38,7 +38,7 @@ task once per harness, November 2026:
   light-coding on work that fits one context, and on five whole repositories at once a little
   more than light-coding as shipped, less than one body given more steps, at three times the
   price; light-coding's split by project beat it. They are
-  [experimental](experimental-modes.md), and the page says why.
+  [experimental](experimental/modes.md), and the page says why.
 
 ## Technical detail
 
@@ -99,7 +99,7 @@ the failure, not the mode:
 
 The bench's own reports name the modes `solo`, `hierarchy` and `collective`, the names they had
 when they ran. Why they lose, and what we are building next, is on
-[experimental modes](experimental-modes.md).
+[experimental modes](experimental/modes.md).
 
 ### What the numbers do not say
 

@@ -1,89 +1,50 @@
-<p align="center"><img src="assets/brand/banner.jpg" alt="Mikata — the throne, the races, and the storm dragon over the city" width="100%"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/mikata-logo-dark.png">
+    <img src="./assets/brand/mikata-logo-light.png" alt="Mikata: two cells mid-division, gold for you and cyan for Mikata" width="220">
+  </picture>
+</p>
 
 # Mikata
 
-<p><img src="assets/portraits/summoner@64.png" width="48" alt="Summoner"> <img src="assets/portraits/elf@64.png" width="48" alt="Elf"> <img src="assets/portraits/orc@64.png" width="48" alt="Orc"> <img src="assets/portraits/slime@64.png" width="48" alt="Slime"> <img src="assets/portraits/kijin@64.png" width="48" alt="Kijin"> <img src="assets/portraits/dark-elf@64.png" width="48" alt="Dark Elf"> <img src="assets/portraits/high-elf@64.png" width="48" alt="High Elf"> <img src="assets/portraits/high-orc@64.png" width="48" alt="High Orc"> <img src="assets/portraits/named-slime@64.png" width="48" alt="Named Slime"> <img src="assets/portraits/oni@64.png" width="48" alt="Oni"> <img src="assets/portraits/arch-dark-elf@64.png" width="48" alt="Arch Dark Elf"></p>
+**The coding agent on your side** (味方, *mikata*: ally). You give it an ask; one body writes down
+what "done" means before any code, does the work, and checks every line of it before it
+answers. Every change then passes the end gate: your verify line runs green, and no test is
+deleted or skipped.
 
-An agent harness grown from [isekai](https://github.com/Kaginari/isekai): the nine natures and
-the wire, rebuilt as a Rust core with a Rust terminal app — `mikata` — plus a TypeScript SDK
-and a web board. Races are compiled in — what each one may do, whom it answers to, how
-it is scored and how it ascends is code, not configuration.
-
-**Light-coding, the default mode, is the point.** One body writes down what "done" means before
-any code, does the work, and checks every line of it before answering. On our bench, ten real
-fixes in a large Python library with the same small open model in every harness
-([the bench](docs/bench.md)):
+On our bench, ten real fixes in a large Python library, with the same small open model in every
+harness ([the bench](docs/bench.md)):
 
 | Harness | Passed | Per pass |
 |---|---|---|
-| **Mikata, light-coding** | **9 of 10** | **$0.43** |
+| **Mikata** | **9 of 10** | **$0.43** |
 | Maki 0.7.1 | 8 of 10 | $0.97 |
 | OpenCode 1.19.5 | 7 of 10 | $0.67 |
 
-One run a task, so read ours as "8 or 9"; the price per pass held in every screen. The chain of
-races and the collective are [experimental modes](docs/experimental-modes.md): our lab, usable,
-not yet ahead of one body.
+One run a task, so read ours as "8 or 9"; the price per pass held in every screen.
 
-**Status:** M0–M14 are built: the wire and the races, the ledger, the providers, the tools,
-sandbox and human gate, configuration, the loop with its long runs and resume, the protocol and
-the terminal app, memory and the toolbox, the world and its measured hierarchy, the Kijin's typed
-outward acts, the Dark Elf specialities, evolution on trial, the board on loopback, the
-integrations, and the release path. The version is 1.0.0; its release waits on the macOS
-build fix and the rename. Start with
-[the book](docs/README.md); the plan is the [roadmap](docs/roadmap.md) and its
-[milestones](https://github.com/Kaginari/mikata/milestones).
+**An ask that spans several projects is split by itself.** Name two or more folders that each hold
+a project of their own, and Mikata runs one body a project, at once, then checks each. Five whole
+repositories in one ask: one body fixed 2.5 of 5 on average; one body a project, 4.5 of 5.
+
+**It stays on your machine.** It reads and writes inside your repository, every command runs in a
+sandbox, and an act that reaches outside (a push, a publish, a deploy) is refused.
 
 | Read | For |
 |---|---|
-| [Overview](docs/01-overview.md) | the world in one picture; light-coding, and when to use another mode |
-| [The bench](docs/bench.md) | what we measured against OpenCode and Maki, and every screen since |
-| [Experimental modes](docs/experimental-modes.md) | structured-coding and collective-coding: what they cost, why, what is next |
-| [Races](docs/02-races.md) | the six races, five ascensions, Kijin posts and outward acts, the Dark Elf's specialities and witness rule |
-| [The loop](docs/03-loop.md) | the six beats of one turn, budgets, stress, resume |
-| [Communication](docs/04-communication.md) | the wire between bodies, the lanes, the client protocol |
-| [Architecture](docs/05-architecture.md) | crates, packages, the terminal UI, storage, sandbox, configuration |
-| [Consumption](docs/06-consumption.md) | how every token is budgeted, metered and stopped |
-| [MCP](docs/07-mcp.md) | the MCP client, agent-mcp and toolbox-mcp (M13) |
-| [Memory](docs/08-memory.md) | the archive, notes as traces, recall, the write rule |
-| [Ontology](docs/09-ontology.md) | who owns each path, facts with who said them |
-| [Lessons](docs/lessons.md) | what isekai taught, and what our own bench has since, each one a test or a rule |
-| [Roadmap](docs/roadmap.md) | the book, then M0–M14, rung by rung |
-| [Releasing](docs/releasing.md) | how a version is tagged, built, smoke-tested, drafted and published |
+| [Overview](docs/01-overview.md) | what Mikata does with an ask, in one picture |
+| [The loop](docs/02-loop.md) | one turn, budgets, the stress instruments, resume, the end gate |
+| [Architecture](docs/03-architecture.md) | crates, the terminal UI, the board, storage, sandbox, configuration |
+| [The client protocol](docs/04-protocol.md) | how the SDK and the board speak to `mikatad` |
+| [Consumption](docs/05-consumption.md) | how every token is budgeted, metered and stopped |
+| [MCP](docs/06-mcp.md) | MCP servers: declared, scoped, priced, ranked |
+| [Memory](docs/07-memory.md) | the archive, notes, recall, the write rule |
+| [The bench](docs/bench.md) | what we measured, against whom, and every screen since |
+| [Roadmap](docs/roadmap.md) | what comes next |
+| [Lessons](docs/lessons.md) · [Releasing](docs/releasing.md) | what we learned; how a version ships |
+| [Experimental: the lab](docs/experimental/) | the races, the chain and the collective: Mikata's past as Mnemorph, kept and frozen |
 
-## Set up a machine
-
-| Tool | Version | Install |
-|---|---|---|
-| Rust | pinned in `rust-toolchain.toml` | [rustup](https://rustup.rs) — the pin installs itself |
-| cargo-nextest, cargo-deny, cargo-llvm-cov | latest | prebuilt: [nexte.st](https://nexte.st), [cargo-deny releases](https://github.com/EmbarkStudios/cargo-deny/releases) |
-| just | latest | [just.systems](https://just.systems) |
-| actionlint | latest | [releases](https://github.com/rhysd/actionlint/releases) |
-| Node | 22 (`.nvmrc`) | your usual Node manager |
-| pnpm | pinned in `package.json` | `corepack enable` |
-
-```sh
-just setup   # install the TypeScript workspace
-just         # the full check: Rust, TypeScript, the layering, the book, the workflows
-just docs-dev  # read the book as a website while writing it
-```
-
-### Install `mikata`
-
-Mikata ships two Rust binaries over the same core — and, on Linux, `mikata-guard`, the kernel
-guard every command runs through, found beside `mikata`. Install them together.
-
-| Binary | For | Use it to |
-|---|---|---|
-| `mikata` | you, at a terminal, and your scripts | talk to Summoner in the terminal app (`mikata`), ask once without it (`mikata run "<ask>"`), pick up a run that stopped (`mikata resume <run|last>`), check the setup (`mikata status`) |
-| `mikatad` | other programs, and the world's upkeep | serve the client protocol (JSON-RPC over stdio) to the TypeScript SDK, and the web board on loopback (`mikatad board`); run the admin commands: `runs`, `memory`, `onto`, `q`, `incident`, `housekeep`, `relief` |
-
-They are two binaries because they answer two kinds of caller. `mikata` holds the session in
-its own process, so nothing sits between the screen and the core. `mikatad` is the core
-**served**: a program that is not Rust — the SDK, an editor plugin — starts it as a child and speaks
-the protocol to it, and the web board (from M12) is served by it, so every client sees the same
-sessions, gate and events. The world's
-upkeep commands live with the server because they read and change the world's records directly,
-without a session. Both share the same crates, so a rule enforced in one is enforced in the other.
+## Install
 
 **With the installer** (Linux x86_64 and arm64, macOS Apple Silicon and Intel):
 
@@ -94,11 +55,9 @@ sh install.sh --version 1.0.0 --dir ~/bin    # a given release, somewhere else
 
 It downloads the release's archive for this machine, refuses it unless it matches the release's
 `SHA256SUMS`, and puts the binaries in `~/.local/bin` (`MIKATA_INSTALL_DIR` or `--dir` to
-choose). It needs no sudo and edits no shell profile: when the directory is not on PATH, it
-prints the line to add.
-
-Once a release carries build provenance ([releasing](docs/releasing.md#provenance-signing)), an
-archive can also be checked against the workflow that built it:
+choose). It needs no sudo and edits no shell profile: when the directory is not on PATH, it prints
+the line to add. Once a release carries build provenance ([releasing](docs/releasing.md#provenance-signing)),
+an archive can also be checked against the workflow that built it:
 `gh attestation verify mikata-<target>.tar.gz --repo Kaginari/mikata`.
 
 **By hand**, from [the releases](https://github.com/Kaginari/mikata/releases): download
@@ -120,15 +79,28 @@ pnpm install --frozen-lockfile && pnpm --filter @mikata/board build   # the boar
 cargo install --path crates/mikatad         # mikatad: the server, the board and the admin commands
 ```
 
+Three binaries, one core:
+
+| Binary | For | Use it to |
+|---|---|---|
+| `mikata` | you, at a terminal, and your scripts | a session in the terminal app (`mikata`), one ask without it (`mikata run "<ask>"`), pick up a run that stopped (`mikata resume last`), check the setup (`mikata status`) |
+| `mikatad` | other programs, and the world's upkeep | serve the [client protocol](docs/04-protocol.md) to the TypeScript SDK, the web board on loopback (`mikatad board`), and the admin commands: `runs`, `memory`, `q`, `incident`, `housekeep` |
+| `mikata-guard` | Linux | the kernel guard every command runs through, found beside `mikata`; without it, on Linux, `mikata` runs no command and `mikata status` says so |
+
 `mikatad` embeds the board as it finds it built in `packages/board/dist` when it is compiled;
-compiled without it, it serves a page saying so, and its API. On Linux, `mikata` without
-`mikata-guard` beside it runs no command, and `mikata status` says so. How a release is cut,
-tested and published: [releasing](docs/releasing.md); what changed: [the changelog](CHANGELOG.md).
+compiled without it, it serves a page saying so, and its API.
+
+**Coming from Mnemorph?** The first time `mikata` or `mikatad` runs, a world's `.mnemorph/`
+folder and the `mnemorph` folders under your config and state homes are moved to their Mikata
+names, and the move is said. The `MNEMORPH_*` environment variables are no longer read: use
+`MIKATA_*`.
+
+## Set a model
 
 Name a provider and a model once, for every world, in `~/.config/mikata/config.toml`
 (`$XDG_CONFIG_HOME/mikata/config.toml`). A world's `.mikata/config.local.toml` overrides it,
 except for providers, caps, MCP servers and anything that loosens the gate or the sandbox, which
-only this global file sets ([configuration](docs/05-architecture.md#configuration)):
+only this global file sets ([configuration](docs/03-architecture.md#configuration)):
 
 ```toml
 [providers.openrouter]
@@ -145,78 +117,79 @@ default = "anthropic/claude-sonnet-5.5"
 `key_file` is read only from this global file, never from a world's config. The file must be
 yours, mode `600`, and outside every world.
 
-### Run it
+**Give it your test command.** The end gate runs your project's verify line on every change.
+Until a world has one, nothing a session claims is grounded, and `mikatad memory status` suggests
+the line for your project (`cargo test --workspace`, `pytest`, `npm test`, …).
+
+## Run it
 
 ```sh
-export OPENROUTER_API_KEY=…         # or keep it in the key_file, which every shell and the board read
+export OPENROUTER_API_KEY=…         # or keep it in the key_file
 mikata                            # a session in this world, in the terminal app
 mikata --world ~/code/project     # …in another
-mikata status                     # the mode and why, the model, the key's origin, the sandbox, the config's holes
-mikata --mode light-coding        # choose the mode: light-coding, structured-coding or collective-coding
+mikata status                     # the mode, the model, the key's origin, the sandbox, the config's holes
 mikata run "<ask>"                # one ask without the app: the answer on stdout
 echo "<ask>" | mikata run --json  # every event as a JSON line, then a result line
 mikata resume last                # pick up the newest run that stopped
 mikatad runs                      # the runs that may be resumed
-mikatad board                     # the board on 127.0.0.1:7878: open the URL it prints
+mikatad board                     # the web board on 127.0.0.1:7878: open the URL it prints
+mikata --web                      # the terminal app, with the board started and opened
 ```
-
-**Three ways to work.** A session opens in one of three modes; `mikata status` says which, and
-why ([which mode, and how to start it](docs/01-overview.md#which-mode-and-how-to-start-it)):
-
-| Mode | What happens | Start it |
-|---|---|---|
-| **light-coding** (the default) | Summoner does the work itself: it writes down what "done" is, plans, changes the files, checks, answers | `mikata`, or `mikata --mode light-coding` in a world with creatures |
-| **structured-coding** (experimental) | Summoner may hand a lane's work to its Elf; Orcs code the check first, Slimes write, each in its own zone | `mikata` in a world where an adopted Elf reports to Summoner, or `--mode structured-coding` |
-| **collective-coding** (experimental) | Summoner writes the work board, splits the ask by zone and summons its members, which work at once | `mikata --mode collective-coding` |
-
-Start with light-coding: it is the mode the measurements favour ([the bench](docs/bench.md)). In the other two the bodies share the work
-board, `.mikata/tmp/board.md`: what each one found, carried in every brief.
-
-`mikatad board` is another thing, the web board: it prints `http://127.0.0.1:7878/#k=<key>`; the key works once, traded by the page
-for a session cookie. It listens on loopback only — from another machine, forward the same port:
-`ssh -L 7878:127.0.0.1:7878 <host>`, then open the printed URL. A second `mikatad board` prints
-the running board's URL, with the key waiting now ([the board server](docs/05-architecture.md#the-board-server)).
-Each link works once, in one browser: a link VS Code's browser opened first is spent for Chrome.
-The board answers at `127.0.0.1`, `[::1]` and `localhost`, and refuses every other host name, to
-block DNS rebinding.
-
-To have `mikata` start the board (or reuse the running one), add the world to it and open it in
-your browser as a session opens, launch it with `--web`:
-
-```sh
-mikata --web
-```
-
-Without `--web` no board starts with the app. The board's colours are chosen on its Settings page,
-apart from the terminal's `--theme`: the same schemes, each kept on its own.
-
-The board outlives the app; `mikatad board stop` stops it.
-
-The board is every world on the machine in one page: its worlds, chats in the terminal's grammar,
-the approval card with the terminal's protections, memory, ontology, bodies and metrics, live.
-⌘K (Ctrl+K) jumps anywhere; `?` lists every shortcut ([the board](docs/05-architecture.md#the-board)).
-
-| | Dark | Light |
-|---|---|---|
-| Worlds | <img src="docs/img/board/worlds-dark.png" width="400" alt="The worlds page, dark: each world's status, memory standing, gate and spend"> | <img src="docs/img/board/worlds-light.png" width="400" alt="The worlds page, light"> |
-| Chat | <img src="docs/img/board/chat-dark.png" width="400" alt="A chat, dark: tool cards, a numbered diff, the end gate's verdict, the session pane"> | <img src="docs/img/board/chat-light.png" width="400" alt="A chat, light"> |
-| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval card, dark: the act whole with every hidden character escaped, Yes disabled until read"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval card, light"> |
-| Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day by race, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
-| Phone | <img src="docs/img/board/phone-chat-dark.png" width="160" alt="A chat at phone width, dark: the rail behind the menu"> | <img src="docs/img/board/phone-chat-light.png" width="160" alt="A chat at phone width, light"> |
 
 `mikata run` goes through the same session and end gate as the app, and exits 0 only when the
 answer landed; it denies every act that needs your approval unless you pass `--gate-tty`
-([`mikata run`](docs/05-architecture.md#mikata-run)). From a checkout, `cargo run -p
-mikata-tui --` runs the same binary.
+([`mikata run`](docs/03-architecture.md#mikata-run)). From a checkout, `cargo run -p mikata-tui --`
+runs the same binary.
 
-## Layout
+**Say what the result must be.** An ask with examples of the expected output passed twice as often
+on our bench as the same ask in prose: Mikata checks its work against what you wrote, so one
+example of what must change and one of what must not is worth more than a paragraph.
+
+### The board
+
+`mikatad board` prints `http://127.0.0.1:7878/#k=<key>`; the key works once, traded by the page for
+a session cookie. It listens on loopback only: from another machine, forward the same port
+(`ssh -L 7878:127.0.0.1:7878 <host>`), then open the printed URL. A second `mikatad board` prints
+the running board's URL, with a new key waiting. The board answers at `127.0.0.1`, `[::1]` and
+`localhost` and refuses every other host name, to block DNS rebinding. `mikatad board stop` stops
+it ([the board](docs/03-architecture.md#the-board)).
+
+It is every world on the machine in one page: chats in the terminal's grammar, the approval card
+with the terminal's protections, memory and metrics, live. ⌘K (Ctrl+K) jumps anywhere; `?` lists
+every shortcut.
+
+| | Dark | Light |
+|---|---|---|
+| Chat | <img src="docs/img/board/chat-dark.png" width="400" alt="A chat, dark: tool cards, a numbered diff, the end gate's verdict, the session pane"> | <img src="docs/img/board/chat-light.png" width="400" alt="A chat, light"> |
+| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval card, dark: the act whole with every hidden character escaped, Yes disabled until read"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval card, light"> |
+| Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
+
+## Build it
+
+| Tool | Version | Install |
+|---|---|---|
+| Rust | pinned in `rust-toolchain.toml` | [rustup](https://rustup.rs): the pin installs itself |
+| cargo-nextest, cargo-deny, cargo-llvm-cov | latest | prebuilt: [nexte.st](https://nexte.st), [cargo-deny releases](https://github.com/EmbarkStudios/cargo-deny/releases) |
+| just | latest | [just.systems](https://just.systems) |
+| actionlint | latest | [releases](https://github.com/rhysd/actionlint/releases) |
+| Node | 22 (`.nvmrc`) | your usual Node manager |
+| pnpm | pinned in `package.json` | `corepack enable` |
+
+```sh
+just setup     # install the TypeScript workspace
+just           # the full check: Rust, TypeScript, the layering, the book, the workflows
+just docs-dev  # read the book as a website while writing it
+```
 
 | Path | Holds |
 |---|---|
-| `crates/` | the Rust core — one crate per concern, layered ([architecture](docs/05-architecture.md)) |
+| `crates/` | the Rust core, one crate per concern, layered ([architecture](docs/03-architecture.md)) |
 | `packages/` | the TypeScript side: protocol, sdk, theme, board |
-| `docs/` | the book |
+| `docs/` | the book; `docs/experimental/` is the lab |
 | `site/` | the book as a website (VitePress) |
-| `assets/` | race portraits and cards |
-| `.mikata/` | Mikata's own world: law, creatures, journal |
+| `assets/` | Mikata's logo and icons; the races' portraits and cards |
+| `.mikata/` | Mikata's own world: its law, journal and the lab's creature cards |
 | `tools/` | repository checks |
+
+What changed in each version: [the changelog](CHANGELOG.md). Mikata is MIT licensed
+([LICENSE](LICENSE)); what it bundles: [third-party notices](THIRD-PARTY-NOTICES.md).

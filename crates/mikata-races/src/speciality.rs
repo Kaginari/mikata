@@ -206,7 +206,7 @@ impl Speciality {
                 "crates/mikata-loop/src/session.rs",
                 "crates/mikata-loop/src/solo.rs",
                 "crates/mikata-provider/src/retry.rs",
-                "docs/02-races.md",
+                "docs/experimental/races.md",
                 "**/log.md",
             ],
             Speciality::General => &[],
@@ -629,7 +629,7 @@ mod tests {
     fn route_none() {
         assert_eq!(route::<&str>(&[]), Vec::<Speciality>::new());
         assert_eq!(
-            route(&["README.md", "docs/03-loop.md", "site/index.html"]),
+            route(&["README.md", "docs/02-loop.md", "site/index.html"]),
             Vec::<Speciality>::new()
         );
     }
@@ -693,6 +693,6 @@ mod tests {
         assert!(!glob("a*b*c", "aXc"));
         assert!(!glob("ab*b", "ab"));
         assert!(!glob("deny.toml", "x/deny.toml"));
-        assert!(!glob("docs/02-races.md", "docs"));
+        assert!(!glob("docs/experimental/races.md", "docs"));
     }
 }

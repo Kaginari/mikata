@@ -61,7 +61,7 @@ board-e2e:
     cargo build -p mikata-server --example board_e2e
     pnpm --filter @mikata/board e2e
 
-# Every crate depends only on lower layers (docs/05-architecture.md).
+# Every crate depends only on lower layers (docs/03-architecture.md).
 layers:
     node tools/check-layers.mjs
     # The shipped binaries are built without the board's test seams.

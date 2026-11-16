@@ -6,7 +6,7 @@ tasks. This is that bench: thirty small stdlib-Python tasks, each run in each mo
 - **solo** — the ask as written, in a world of the throne alone: nobody to hand work to.
 - **hierarchy** — the same ask, handed to the Elf (`elf-e`), down through its Orc and Slime.
 - **auto** — the ask as written, in the full world: whatever the harness decides, escalating on the
-  signals code reads ([solo mode](../docs/02-races.md)). This is what a human gets, and the score.
+  signals code reads ([solo mode](../docs/experimental/races.md)). This is what a human gets, and the score.
 
 `auto` **holds** when it matches the better fixed arm on success, at no more than 1.5 times solo's
 median weighted tokens. The report says so, or says which part failed. Older rows have no `auto`:
@@ -15,7 +15,7 @@ read them with `--modes solo,hierarchy`.
 Each mode may run under two **law arms**: law on, as every session runs, and law off —
 `mikata run --no-law`, whose prompts carry none of the world's own words (its law, the creature
 cards and docs, the Minds' manifests, the journal's opening). That measures what the fixed
-per-session prompt buys against what it costs ([consumption](../docs/06-consumption.md)). Both arms
+per-session prompt buys against what it costs ([consumption](../docs/05-consumption.md)). Both arms
 of a case share its trial key (`<task>/<mode>`) and run in a fresh world each. The switch is the
 bench's command line alone: no configuration a world holds sets it, so no body can.
 

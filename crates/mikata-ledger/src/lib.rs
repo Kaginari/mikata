@@ -7,7 +7,7 @@
 //! Budget flows down like context; spend flows up like memory. Every model call writes one
 //! [`UsageRow`] to an append-only journal; envelopes carve the session's budget down the chain;
 //! caps and folds read the journal back; a journal may chain its rows by
-//! hash ([`chain`]), so a silent edit is found. The book's page is `docs/06-consumption.md`.
+//! hash ([`chain`]), so a silent edit is found. The book's page is `docs/05-consumption.md`.
 
 mod build;
 mod caps;

@@ -1039,7 +1039,7 @@ mod tests {
         }
         for path in [
             "src/lib.rs",
-            "docs/02-races.md",
+            "docs/experimental/races.md",
             "src/charts/line.ts",
             ".mikata/log.md",
             "README.md",

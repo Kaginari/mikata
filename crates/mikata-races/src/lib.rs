@@ -2,7 +2,7 @@
 //! ascension and falls, and the Dark Elf's specialities, routing and playbooks. No I/O.
 //!
 //! Everything a race may do is compiled here and nowhere else; no configuration adds a race,
-//! changes a reporting line or widens a shelf. The book's page is `docs/02-races.md`; where the
+//! changes a reporting line or widens a shelf. The book's page is `docs/experimental/races.md`; where the
 //! two could read differently, this crate is what runs and the page is corrected.
 
 mod dispatch;

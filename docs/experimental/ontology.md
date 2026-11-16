@@ -91,7 +91,7 @@ landing only on the serious ones, in the territory it touches. There is no overa
 
 The derived graph is never written back; docs are the truth. Asserted facts and sightings are
 append-only event files, folded in $(\text{time}, \text{event id})$ order like
-[memory notes](08-memory.md#the-two-layers).
+[memory notes](../07-memory.md#the-two-layers).
 
 **Inference.** Subclass and sub-bond closure, inverses and the transitivity of `above` —
 and, with the classes facts and worlds bring, domain and range typing — applied until nothing new appears: the least fixed point
@@ -145,7 +145,7 @@ the world is $\bot$. Then it takes the first rule that matches:
 2. **Scratch** — `.mikata/tmp/<body>/`: the body that owns the nest.
 3. **A seat** — a living creature's directory under `.mikata/<race>/<name>/`: that creature,
    even inside a broader claim; the deepest seat wins.
-4. **The compiled soils** of [the races](02-races.md#soil--who-may-write-what): the plan
+4. **The compiled soils** of [the races](races.md#soil--who-may-write-what): the plan
    (`.mikata/plan.md`) and the dimension manifest, the throne's; the proving ground
    `.mikata/dark-elf/`, one ground with one keeper, the first living Dark Elf by name; the
    longest claim of a Kijin's post; the workspace — every root file, and `tools/`.
@@ -156,12 +156,12 @@ the world is $\bot$. Then it takes the first rule that matches:
 
 Owning a path is not the right to write it. The gate's *right author* holds only when
 $\mathrm{own}(\text{path})$ is the writer **and** the writer's race authors there
-([soil](02-races.md#soil--who-may-write-what)): an Orc that owns a path by rule 6 routes it — a
+([soil](races.md#soil--who-may-write-what)): an Orc that owns a path by rule 6 routes it — a
 Slime is born or extended for it — and writes it never, beyond its tests' verify lines.
 
 $\mathrm{own}$ returns one creature per path. A Slime's doc is the Slime's; the gate's line-range
 split, which gives the verify block to its Orc, is a refinement the *right author* check applies
-to that one file ([the end gate](03-loop.md#the-end-gate)). Retired creatures own nothing: their
+to that one file ([the end gate](../02-loop.md#the-end-gate)). Retired creatures own nothing: their
 seats and claims are skipped. When two creatures tie on the same claim — itself a critical
 finding — the tie breaks by creature name, so the answer stays deterministic while the finding
 blocks.
@@ -178,7 +178,7 @@ asking `own` of every claim inside the body's, never by restating the rules, and
 the two to the same answer on every tracked file.
 
 $\mathrm{own}$ reads the trusted roster, never the cards alone: each card held to its row in the
-creatures' witness under the state directory ([the roster's trust](05-architecture.md#the-rosters-trust)).
+creatures' witness under the state directory ([the roster's trust](../03-architecture.md#the-rosters-trust)).
 A card that differs from its row owns only the ground both name; a stranger — a card no row
 holds — owns its seat and scratch and nothing else, the workspace's root files and `tools/` not
 even under the workspace's name. So a body that commits a wider `Territory` to its own card, or a
@@ -312,9 +312,9 @@ on a passing end-gate verdict in the trusted gate journal — one that checked s
 the human pinned, of a landing on the fact's path — since the roster that names a body an Orc is
 the world's; without one the fact stays as it stood; or the human (`mikatad onto settle <id>`, or **Settle** on the board's ontology page, which asks
 for a proof: a passing end-gate verdict that landed on the fact's path, or the human's own
-statement — see [the board](05-architecture.md#the-memory-and-ontology-pages)); a landing by the
+statement — see [the board](../03-architecture.md#the-memory-and-ontology-pages)); a landing by the
 path's owner that passed its gate and cites the fact is a third route, deferred: not built, and no settle rests on it. A
-creature's projection (`@ONTO`, [communication](04-communication.md#the-wire-envelope)) shows a
+creature's projection (`@ONTO`, [communication](communication.md#the-wire-envelope)) shows a
 contested fact with both sides, the way recall always seats one dissenting note: each ask carries
 it, beside the recalled notes, for the paths it concerns — a commissioned body's soil and every
 existing path the ask names — when the ontology holds a fact on any of them.
@@ -333,14 +333,14 @@ countered, not contested; a support or a counter that reaches a merged fact coun
 was merged into; and the projection marks a stale fact `[stale]` and names each counter's reason. `onto check`
 reports `facts-unavailable`, `untrusted-fact`, `unproven-settle`, `contested-fact`, `stale-fact`
 and `untriaged-fact` beside the shape findings, and
-`no-session-verify` when the session's card has no verify line ([the end gate](03-loop.md#the-end-gate)).
+`no-session-verify` when the session's card has no verify line ([the end gate](../02-loop.md#the-end-gate)).
 
 **Where a fact's trust comes from.** Nothing read from inside a world grants trust: a body's
 commit of an edited file stays in git and comes back on the next checkout, and a cloned
 repository's `.mikata/` is a stranger's from the start. So the events that count live under
 the human's state directory, at `$XDG_STATE_HOME/mikata/facts/<world>-<fnv64a>.jsonl` (else
 `~/.local/state/…`; the world named by its real path), hash-chained and anchored as `facts` with
-the world's other chained journals ([the chain](06-consumption.md#the-usage-row)). Their writers
+the world's other chained journals ([the chain](../05-consumption.md#the-usage-row)). Their writers
 are the harness — a body's `@U territory` facts, filed by the loop in the body's name; a parent's
 labels; an Orc's `@V settle` — and the human's settle, `onto settle` and the board's. A body's
 command writes none: the sandbox grants no command the state directory, every write is refused
@@ -369,13 +369,13 @@ that cannot write the state directory reads the import as it would be written, a
 nothing.
 
 **A contested fact moves the claims resting on it.** A memory note may name a fact it rests on, by
-id ([the claim graph](08-memory.md#the-claim-graph)). When an event leaves a fact contested that
+id ([the claim graph](../07-memory.md#the-claim-graph)). When an event leaves a fact contested that
 was not before, every claim resting on it directly needs review — one creature's counter can
 contest a fact, so the mark goes no further downstream: marked, never deleted, and recalled lower
 until a route grounds it again. Settling the fact clears nothing
 by itself; the claim is grounded again on its own evidence.
 
-`@U law` and `@U colony` are not ontology facts; they land as [memory notes](08-memory.md).
+`@U law` and `@U colony` are not ontology facts; they land as [memory notes](../07-memory.md).
 
 ### Relations between worlds
 
@@ -415,7 +415,7 @@ Only the human's yes states it.
 `read` or `index` succeeds on a manifest inside its world — `Cargo.toml`, `package.json`,
 `go.mod`, `.gitmodules` — that git tracks and that is unchanged from `HEAD` (a manifest a body
 only wrote is no evidence), the harness reads that same file and looks for the worlds the
-[registry](05-architecture.md#storage-files-are-the-truth) knows. A dependency by path names the
+[registry](../03-architecture.md#storage-files-are-the-truth) knows. A dependency by path names the
 deepest known world whose root holds the path (`depends-on`); one by git URL or Go module, the
 known world with that remote (`depends-on`); a submodule's URL, `vendors`. The anchor is the
 manifest's `file:line`, the body the one that read it, and the session this world's count of
