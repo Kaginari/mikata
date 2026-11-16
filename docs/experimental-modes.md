@@ -43,6 +43,11 @@ flowchart LR
 
 ### Structured-coding: the fun part
 
+> **Frozen, 16 November 2026.** Usable and kept, but not developed or benchmarked further until
+> there is work where structure should clearly win. On its last screen, five whole repositories
+> in one ask, the chain did 3.3 of 5; light-coding running one body a project did 4.5, for less.
+> What helped was the split by project, and it moved into light-coding.
+
 For work too large for one head, the Summoner hands it down a chain of races. Each race has one job
 and **only the tools of that job, enforced by the compiler, not asked for in a prompt**:
 
@@ -76,10 +81,10 @@ the domains of two or more of its Orcs, the harness starts each on its own domai
 lines that name it, before the Elf's first turn. The Elf reads their reports and sends failures
 back. Measured on the same task: it fired in all three runs, every Orc within seconds.
 
-**What is next: checks that can fail.** The misses since are parts whose Orc wrote a check too
-weak to catch them: one only printed its result, one tested another query and asserted the wrong
-answer. They came back PASS. A check that passes before any change proves nothing new, and the
-gate already runs lines before a landing: such a PASS can be said as "held, not shown".
+**Where it stopped.** The misses since were parts whose Orc wrote a check too weak to catch them:
+one only printed its result, one tested another query and asserted the wrong answer. They came
+back PASS. That is the next lever if the chain is taken up again: a check that passes before any
+change proves nothing new, and could be said as "held, not shown" instead of PASS.
 
 ### Collective-coding: the research mode
 

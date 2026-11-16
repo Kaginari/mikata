@@ -154,11 +154,12 @@ journal `log.md`, the ledgers. Sessions forget; the world remembers.
   gives no mode, and the reason says how many wait:
   `… no Elf reports to the Summoner in this world; 9 cards here are not adopted yet …`.
 
-**Start with light-coding.** It is the mode the measurements favour. On every screen of our bench
-but the last, it did as much as the other two modes or more, for a fraction of the price. The
-last, five whole repositories in one ask: light-coding fixed 2.5 of 5 on average in 12 minutes
-for $0.75, and 3.5 with more steps for about $1; structured-coding, once the harness handed
-the work out by domain, 3.3 of 5 on average for $2.36. Every screen, and why the other two lose:
+**Start with light-coding.** It is the mode the measurements favour: on every screen of our
+bench it did as much as the other two modes or more, for a fraction of the price. The last, five
+whole repositories in one ask: light-coding, running one body a project at once, fixed 4.5 of 5
+on average in 19 minutes for $1.72; structured-coding, once the harness handed the work out by
+domain, 3.3 of 5 for $2.36. An ask that names two or more separate projects of the world (each a
+root folder with its own project file) is split that way by itself. Every screen, and why the other two lose:
 [the bench](bench.md#the-modes-against-each-other) and [experimental
 modes](experimental-modes.md).
 

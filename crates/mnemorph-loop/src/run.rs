@@ -434,6 +434,8 @@ pub struct Run {
     fanned: std::collections::BTreeSet<String>,
     /// The Orcs the harness handed this Elf's lane out to, by domain ([`Run::by_domain`]).
     routed: std::collections::BTreeSet<String>,
+    /// The projects light-coding split this run's ask into ([`Run::by_project`]).
+    split: Vec<String>,
 }
 
 /// How a pass stands on its challenge.
@@ -559,6 +561,7 @@ impl Run {
             challenged: Vec::new(),
             fanned: std::collections::BTreeSet::new(),
             routed: std::collections::BTreeSet::new(),
+            split: Vec::new(),
         }
     }
 
@@ -1583,8 +1586,10 @@ impl Run {
         self.cx
             .set_deadline(Some(self.started + self.limits.deadline));
         self.cx.set_pace(self.pace());
-        // An Elf whose ask names its Orcs' domains has its lane handed out before its first turn.
+        // An Elf whose ask names its Orcs' domains has its lane handed out before its first turn;
+        // a light-coding ask that names separate projects, one body a project.
         self.by_domain().await;
+        self.by_project().await;
         // Only an Esc fired during this ask counts; a line sent to a turn that ended is not this
         // ask's to read. A commissioned body shares its dispatcher's flag: an Esc fired while the
         // commission was being prepared is this ask's.
@@ -3503,6 +3508,101 @@ impl Run {
                 order.outcome
             }
         }
+    }
+
+    /// Light-coding's split ([`crate::split`]): when the ask names two or more separate projects
+    /// of the world, one light-coding body a project runs at once, its folder as its root, before
+    /// the Summoner's first turn; their answers are added to the ask the Summoner reads.
+    fn by_project(
+        &mut self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
+        Box::pin(async move {
+            if self.mode != Some("light-coding")
+                || self.commissioner.is_some()
+                || !self.split.is_empty()
+            {
+                return;
+            }
+            let parts = crate::split::projects(self.cx.world(), &self.asked);
+            if parts.len() < 2 {
+                return;
+            }
+            self.split.clone_from(&parts);
+            let asks: Vec<String> = parts
+                .iter()
+                .map(|p| crate::split::scoped(&self.asked, p))
+                .collect();
+            let mut runs: Vec<Run> = parts.iter().map(|p| self.sibling(p)).collect();
+            let endings = all(runs
+                .iter_mut()
+                .zip(&asks)
+                .map(|(run, ask)| {
+                    Box::pin(async move { run.ask(ask, &mut |_| {}).await })
+                        as std::pin::Pin<Box<dyn std::future::Future<Output = Ending> + Send + '_>>
+                })
+                .collect())
+            .await;
+            let mut out = format!(
+                "[the harness ran one body a project, at once, each with its project's folder as \
+                 its root: {} projects. Their answers are below. Check each project once, from \
+                 inside its folder, and answer; redo only a part that is not done]",
+                parts.len()
+            );
+            for (part, ending) in parts.iter().zip(endings) {
+                let said = match ending {
+                    Ending::Answered(text) => text,
+                    other => format!("it did not answer: {other:?}"),
+                };
+                let _ = write!(out, "\n\n## `{part}/`\n{said}");
+            }
+            push_user(
+                &mut self.messages,
+                vec![Block::Text {
+                    text: out,
+                    cache: false,
+                }],
+            );
+        })
+    }
+
+    /// A light-coding body for one project of this run's world: this run's model, limits,
+    /// sandbox and ledger, the project's folder as its root, its own journal.
+    fn sibling(&self, part: &str) -> Run {
+        let root = self.cx.world().join(part);
+        let (body, cx) = crate::solo::solo_as(&root, &self.body.model, self.law.0);
+        let id = format!("{}-{part}-{}", self.caller.run, crate::commission::stamp());
+        let journal = self.journal.path().parent().map_or_else(
+            || root.join(format!("{id}.jsonl")),
+            |d| d.join(format!("{id}.jsonl")),
+        );
+        let setup = Setup {
+            model: Arc::clone(&self.model),
+            tools: mnemorph_tools::registry(),
+            cx: cx.inherit(&self.cx),
+            journal: Journal::new(journal),
+            ledger: self.ledger.clone(),
+            prices: self.prices.clone(),
+            caller: Caller {
+                session: self.caller.session.clone(),
+                run: id.clone(),
+                body: body.name.clone(),
+                race: body.race.name().to_owned(),
+                commission: Some(self.body.name.clone()),
+                prefix: 0,
+            },
+        };
+        let mut run = Run::new(body, self.limits, setup).with_sampling(self.sampling.clone());
+        if let Some(watch) = self.observer.clone() {
+            let part = part.to_owned();
+            run = run.with_observer(Arc::new(move |seen: &Seen| {
+                watch(&Seen::From {
+                    body: format!("summoner/{part}"),
+                    run: id.clone(),
+                    seen: Box::new(seen.clone()),
+                });
+            }));
+        }
+        run
     }
 
     /// The lane's parts by domain ([`crate::commission::by_domain`]), started at once before the
