@@ -2439,6 +2439,72 @@ async fn an_orc_cannot_code_a_check_for_a_line_it_was_not_given() {
     );
 }
 
+/// An Elf's lane whose ask names the domains of two or more of its Orcs is handed out by the
+/// harness, by domain, before the Elf's first turn: each Orc takes the part in its own domain and
+/// the lines that name it, at once. Four kept runs of five projects, one Orc a project folder, broke
+/// on four different plans by the Elf: one project at a time, every Orc given every project's lines,
+/// its plan written to a guessed path, and the work split by layer across all five folders.
+#[tokio::test]
+async fn an_elfs_lane_is_handed_out_by_domain_before_its_first_turn() {
+    let w = World::new("by-domain");
+    summoner_list(&w);
+    fs::write(w.0.join(".mnemorph/elf/e/plan.md"), "").unwrap();
+    w.doc(
+        "elf",
+        "e",
+        "# elf-e\n\n- **Race:** elf\n- **Reports to:** summoner\n- **Territory:** src/, lib/\n",
+    );
+    w.doc(
+        "orc",
+        "p",
+        "# orc-p\n\n- **Race:** orc\n- **Reports to:** elf-e\n- **Domain:** lib/\n",
+    );
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::tool(
+            "c1",
+            "commission",
+            json!({"to": "elf-e", "ask": "fix src/ and keep lib/ as it is", "lines": ["D1", "D3"]}),
+        ),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("@S DONE\n@E"),
+        ScriptedModel::text("Done."),
+    ]));
+    let mut run = w.summoner(model.clone());
+    let ending = run.ask("fix src and keep lib", &mut |_| {}).await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let requests = model.requests();
+    assert_eq!(
+        requests.len(),
+        5,
+        "both Orcs ran before the Elf's one turn, then the Summoner"
+    );
+    let orcs: Vec<String> = requests[1..3]
+        .iter()
+        .map(|r| format!("{:?}", r.messages))
+        .collect();
+    let of = |domain: &str| {
+        orcs.iter()
+            .find(|m| m.contains(&format!("names your domain ({domain})")))
+            .unwrap_or_else(|| panic!("no Orc was started for {domain}: {orcs:?}"))
+            .clone()
+    };
+    let (o, p) = (of("src/"), of("lib/"));
+    assert!(
+        o.contains("D1: src/done.txt") && !o.contains("D3: keep"),
+        "{o}"
+    );
+    assert!(
+        p.contains("D3: keep: lib/ unchanged") && !p.contains("D1: src/"),
+        "{p}"
+    );
+    let elf = format!("{:?}", requests[3].messages);
+    assert!(
+        elf.contains("[started by the harness by domain, before your first turn"),
+        "{elf}"
+    );
+}
+
 /// The harness starts a plan item once: an Elf that orders again does not start it again.
 #[tokio::test]
 async fn the_harness_starts_a_plan_item_once() {

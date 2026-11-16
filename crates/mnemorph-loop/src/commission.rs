@@ -570,6 +570,71 @@ pub(crate) fn fan_out(
     out
 }
 
+/// The orders the harness gives for an Elf before its first turn: one for each Orc of its lane
+/// whose domain the Elf's ask names, when it names two or more. Each Orc takes the ask's work in
+/// its own domain and the lines carried to the Elf that name it; a line that names no domain
+/// stays the Elf's. The Elf's planning is left out of the split: given five projects, one Orc a
+/// folder, it handed them out one at a time, gave every Orc every project's lines, wrote its
+/// plan to a guessed path, and split the work by layer across all five folders.
+pub(crate) fn by_domain(
+    world: &Path,
+    parent: &Body,
+    asked: &str,
+    carried: &[crate::lines::Line],
+) -> Vec<String> {
+    if parent.race.base() != Race::Elf {
+        return Vec::new();
+    }
+    let roster = Roster::load(world);
+    let ask = asked
+        .split(OPEN_PLAN)
+        .next()
+        .and_then(|a| a.split(crate::lines::BRIEF_HEAD).next())
+        .unwrap_or(asked);
+    let mut out = Vec::new();
+    for (name, c) in &roster.creatures {
+        if c.race.base() != Race::Orc || c.reports_to.as_deref() != Some(parent.name.as_str()) {
+            continue;
+        }
+        let dirs: Vec<&str> = c
+            .domain
+            .iter()
+            .map(|d| d.trim().trim_end_matches('/'))
+            .filter(|d| !d.is_empty() && *d != ".")
+            .collect();
+        if dirs.is_empty() || !dirs.iter().any(|d| names_dir(ask, d)) {
+            continue;
+        }
+        let lines: Vec<&str> = carried
+            .iter()
+            .filter(|(_, text)| dirs.iter().any(|d| names_dir(text, d)))
+            .map(|(n, _)| n.as_str())
+            .collect();
+        let domain = c.domain.join(", ");
+        let ask = format!(
+            "Your part of your Elf's lane, started by the harness because the lane's ask names \
+             your domain ({domain}): do the lane's work that falls in your domain, and only that. \
+             The other domains are other Orcs' and run at the same time.\n\nThe lane as your Elf \
+             was asked it, for context:\n\n{ask}"
+        );
+        out.push(
+            json!({"to": name, "ask": ask, "lines": lines, "plan_item": format!("the part in {domain}")})
+                .to_string(),
+        );
+    }
+    if out.len() < 2 {
+        return Vec::new();
+    }
+    out
+}
+
+/// Whether `text` names the folder `dir` as a word: `03-alter`, `03-alter/` or `(03-alter)`, and
+/// not `03-alter-drop` or `src` inside `source`. The Summoner wrote one ask's folders as
+/// `**Problem 3 (03-alter-drop-multiple-columns):**`.
+fn names_dir(text: &str, dir: &str) -> bool {
+    crate::split::names_word(text, dir)
+}
+
 /// The text under `heading` in a markdown page, to the next heading of its level or above, or the
 /// first plan item.
 fn section(page: &str, heading: &str) -> Option<String> {
@@ -699,7 +764,9 @@ the marks the reports carried. When the work spans \
 the domains of several Orcs, first write under `## Contract` in your plan.md what their parts share \
 (names, signatures, data, who makes and who uses each), then commission each Orc its part in the \
 same turn, the contract in every brief: commissions to different bodies in one turn run at once. \
-When you order, the harness also starts at once every other Orc of your lane that an open item \
+When your ask names the domains of two or more of your Orcs, the harness hands each its part \
+before your first turn and you read their reports: do not hand those parts out again. Otherwise, \
+when you order, the harness also starts at once every other Orc of your lane that an open item \
 of your plan names, with that item as its part and only the `Done when` lines the item names \
 after `|`: write an item for every part before your first order, each with its lines \
 (`- [ ] orc-a: <its part> | D1, D3`). Tests of the whole change are a second wave: order them only after every part has landed. When \
@@ -2249,7 +2316,7 @@ fn repair(
 }
 
 /// A run id's suffix: unique within the session.
-fn stamp() -> String {
+pub(crate) fn stamp() -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let nanos = std::time::SystemTime::now()
@@ -2459,6 +2526,18 @@ mod clock_tests {
 #[cfg(test)]
 mod write_rule_tests {
     use super::*;
+
+    #[test]
+    fn a_folder_is_named_as_a_word() {
+        let d = "03-alter-drop";
+        assert!(names_dir("**Problem 3 (03-alter-drop):**", d));
+        assert!(names_dir("in `03-alter-drop/`", d));
+        assert!(names_dir("03-alter-drop", d));
+        assert!(!names_dir("03-alter-drop-multiple", d));
+        assert!(!names_dir("x03-alter-drop", d));
+        assert!(!names_dir("the source tree", "src"));
+        assert!(names_dir("leave src/done.txt", "src"));
+    }
 
     /// M8's exit run of the write rule, through what the loop runs after every child's landing —
     /// `checked_proof` over the gate's verdict, then `remember` over the child's report. It drives

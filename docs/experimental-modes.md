@@ -43,6 +43,11 @@ flowchart LR
 
 ### Structured-coding: the fun part
 
+> **Frozen, 16 November 2026.** Usable and kept, but not developed or benchmarked further until
+> there is work where structure should clearly win. On its last screen, five whole repositories
+> in one ask, the chain did 3.3 of 5; light-coding running one body a project did 4.5, for less.
+> What helped was the split by project, and it moved into light-coding.
+
 For work too large for one head, the Summoner hands it down a chain of races. Each race has one job
 and **only the tools of that job, enforced by the compiler, not asked for in a prompt**:
 
@@ -57,9 +62,9 @@ interesting thing in the harness, and the most expensive.
 **What it costs today.** Counted only after the fix each screen called for, light-coding did as
 much or more for a fraction of the price on work that fits one context
 ([the numbers](bench.md#the-modes-against-each-other)). Asked to fix five whole repositories at
-once: structured-coding 2 and 4 of 5 (22 and 63 minutes, $3.90 a run on average); light-coding as shipped 3 and 2 of 5
-(about 12 minutes, $0.75), and with 400 steps 4 and 3 of 5 (about $1). More than the default, less
-than one body given room, at about four times the price.
+once: structured-coding 3, 4 and 3 of 5 (17 to 40 minutes, $2.36 a run on average); light-coding
+as shipped 3 and 2 of 5 (about 12 minutes, $0.75), and with 400 steps 4 and 3 of 5 (about $1).
+More than the default, less than one body given room, at about three times the price.
 
 **Why, as measured.** Each screen found a different cause, and each one we could fix is fixed:
 
@@ -68,17 +73,18 @@ than one body given room, at about four times the price.
 | Multi-part fixes | every body re-read the same files, cold | the work board, carried in every brief; not measured since |
 | A two-part fix | a part could not land until the whole ask passed, so no part ever landed | fixed in the gate: a named line red before the landing stays open, the part lands |
 | Thirty small projects | tool frictions (a textual null, a folder given to `index`, checks lumped as one bench) | fixed; 28 of 30 since |
-| Five whole repositories | the Elf planned all five, then handed out **one at a time** | the harness starts the plan's other parts with the Elf's order (PR #433): all five Orcs at once, 2 and 4 of 5 since |
+| Five whole repositories | the Elf's plan: one project at a time, every Orc given every project's lines, its plan at a guessed path, the work split by layer across folders | the harness hands the lane out by domain before the Elf's first turn (PR #436): 3, 4 and 3 of 5 since |
 
-**The harness fans out, not the model.** The chain had five minds and used one: a model told to
-order independent parts in one turn still handed them out in order. Now, when an Elf orders, the
-harness starts every other Orc its open plan items name, at once, each item once. Measured on the
-same task: all five Orcs started within a second, in both runs.
+**The harness splits the lane, not the model.** Four runs broke on four different plans by the
+Elf, each a new mistake. The harness already knows each Orc's domain, so when an Elf's ask names
+the domains of two or more of its Orcs, the harness starts each on its own domain's work, with the
+lines that name it, before the Elf's first turn. The Elf reads their reports and sends failures
+back. Measured on the same task: it fired in all three runs, every Orc within seconds.
 
-**What is next: quality per part.** The misses since are wrong code, not hand-offs: a parser
-reading a keyword as a table, an argument a class does not take. Five bodies make the same
-misreadings one body makes. And two runs of the same build differed by two parts and forty
-minutes, so two runs do not yet separate the chain from one body given more steps.
+**Where it stopped.** The misses since were parts whose Orc wrote a check too weak to catch them:
+one only printed its result, one tested another query and asserted the wrong answer. They came
+back PASS. That is the next lever if the chain is taken up again: a check that passes before any
+change proves nothing new, and could be said as "held, not shown" instead of PASS.
 
 ### Collective-coding: the research mode
 

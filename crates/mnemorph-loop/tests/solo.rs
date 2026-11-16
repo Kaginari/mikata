@@ -761,3 +761,74 @@ fn the_solo_prompt_plans_before_it_writes() {
         "{p}"
     );
 }
+
+/// An ask that names two or more separate projects of the world, each a folder with its own
+/// project file, runs one light-coding body a project, at once, each with that folder as its
+/// root; the Summoner then reads their answers. Five sqlglot copies asked as one: one body fixed
+/// 2.5 of 5 on average, 3.5 given 400 steps; one body a project fixed 5 of 5, twice.
+#[tokio::test]
+async fn an_ask_naming_separate_projects_runs_one_body_a_project() {
+    let w = World::new("split");
+    for p in ["alpha", "beta"] {
+        fs::create_dir_all(w.world().join(p)).unwrap();
+        fs::write(w.world().join(p).join("pyproject.toml"), "[project]\n").unwrap();
+    }
+    // A folder the ask names that is no project stays the Summoner's.
+    fs::create_dir_all(w.world().join("notes")).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::text("alpha is fixed"),
+        ScriptedModel::text("beta is fixed"),
+        ScriptedModel::text("Both are fixed."),
+    ]));
+    let mut run = w.run(Arc::clone(&model), &[]).with_mode("light-coding");
+    let ending = run
+        .ask(
+            "Fix the parser in `alpha/` and the printer in beta/, and keep notes/ as it is.",
+            &mut |_| {},
+        )
+        .await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let requests = model.requests();
+    assert_eq!(requests.len(), 3, "two parts at once, then the Summoner");
+    let parts: Vec<String> = requests[..2]
+        .iter()
+        .map(|r| format!("{:?} {:?}", r.system, r.messages))
+        .collect();
+    for p in ["alpha", "beta"] {
+        let part = parts
+            .iter()
+            .find(|m| m.contains(&format!("the project in `{p}/`")))
+            .unwrap_or_else(|| panic!("no body for {p}: {parts:?}"));
+        // On macOS the temporary folder is a link: the root is said as it resolves.
+        let root = fs::canonicalize(w.world().join(p)).unwrap();
+        assert!(
+            part.contains(&root.display().to_string())
+                || part.contains(&w.world().join(p).display().to_string()),
+            "its root is its folder: {part}"
+        );
+    }
+    assert!(!parts.iter().any(|m| m.contains("the project in `notes/`")));
+    let summoner = format!("{:?}", requests[2].messages);
+    assert!(
+        summoner.contains("[the harness ran one body a project, at once")
+            && summoner.contains("alpha is fixed")
+            && summoner.contains("beta is fixed"),
+        "{summoner}"
+    );
+}
+
+/// One project named, or none, is one body's work, as ever.
+#[tokio::test]
+async fn an_ask_naming_one_project_runs_one_body() {
+    let w = World::new("split-one");
+    fs::create_dir_all(w.world().join("alpha")).unwrap();
+    fs::write(
+        w.world().join("alpha").join("pyproject.toml"),
+        "[project]\n",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([ScriptedModel::text("done")]));
+    let mut run = w.run(Arc::clone(&model), &[]).with_mode("light-coding");
+    run.ask("Fix the parser in alpha/.", &mut |_| {}).await;
+    assert_eq!(model.requests().len(), 1);
+}

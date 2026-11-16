@@ -245,9 +245,11 @@ still about seven times slower than light-coding on work that fits one context. 
 with no examples: half the passes of the same asks with them (4 of 8 against 4 of 4).
 On work wider than one task, light-coding fixed 30 of 30 small projects in one ask, and the
 chain 28 of 30 at three times the price. On five whole repositories in one ask, more than one
-body's steps, light-coding fixed 2.5 of 5 on average; the chain, once the harness started the
-Elf's plan items together, 3 of 5 on average at about four times the price, below one body
-given 400 steps (3.5) ([experimental modes](experimental-modes.md)).
+body's steps, light-coding fixed 2.5 of 5 on average; the chain, once the harness handed the
+work out by domain, 3.3 of 5 on average at about three times the price, below one body given
+400 steps (3.5). Run alone, one body a project fixed 5 of 5, twice; light-coding now does that
+split itself, one body a project at once: 4.5 of 5 on average for $1.72. Structured-coding is
+frozen ([experimental modes](experimental-modes.md)).
 
 **Exit:** the full "one order, down and back" sequence runs with scripted bodies and passes its
 gate; every refusal names its lawful route; a creature claiming `.mnemorph` owns none of the seats,

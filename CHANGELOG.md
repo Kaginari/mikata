@@ -21,6 +21,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **Light-coding splits an ask across separate projects.** When an ask names two or more folders at
+  the world's root that each hold a project file of their own (`pyproject.toml`, `Cargo.toml`,
+  `package.json`, …), one light-coding body a project runs at once, its folder as its root, and the
+  Summoner then reads their answers and checks each project once. Measured before: five sqlglot
+  copies asked as one, one body fixed 2.5 of 5 on average (3.5 given 400 steps); each project alone
+  fixed 5 of 5, twice. Measured after, on the same ask: 5 and 4 of 5, about 19 minutes and $1.72 a
+  run.
+- **Structured-coding is frozen.** It stays usable and documented, but is not developed or
+  benchmarked further until there is work where structure should clearly win.
 - **Structured-coding fans out by itself.** When an Elf orders work, the harness also starts every
   other Orc of its lane that an open item of its plan names, at once, with that item, the plan's
   `## Contract` and the Elf's ask as its brief; each item is started this way once per Elf body,
@@ -32,6 +41,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   Measured before: in a five-project run every Orc the harness started was told all 31 lines, coded
   checks for other projects' lines, ran them in its own project's folder, and reported one unfixed
   project done.
+- **Structured-coding hands a lane out by domain.** When an Elf's ask names the domains of two or
+  more of its Orcs, the harness starts each of them before the Elf's first turn, at once, on the
+  ask's work in its own domain and the `Done when` lines that name it; the Elf reads their reports
+  and sends failures back. Measured before: on five projects, one Orc a folder, four runs broke on
+  four different plans by the Elf.
 
 ## [1.0.0] - 2026-11-14
 

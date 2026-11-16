@@ -30,11 +30,14 @@ task once per harness, November 2026:
 - **Asks with examples pass twice as often.** The same four tasks: 4 of 4 with the ask's examples
   and expected output, 4 of 8 as one paragraph of prose, at the same price. Without examples the
   model checks against its own reading, and a wrong reading passes its own checks.
+- **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
+  light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
+  a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
 - **The other two modes have not paid yet.** The collective cost several times more for fewer
   passes. The chain, counted only after the fix each screen called for, did less than
   light-coding on work that fits one context, and on five whole repositories at once a little
-  more than light-coding as shipped, less than one body given more steps, at four times the
-  price. They are
+  more than light-coding as shipped, less than one body given more steps, at three times the
+  price; light-coding's split by project beat it. They are
   [experimental](experimental-modes.md), and the page says why.
 
 ## Technical detail
@@ -91,7 +94,8 @@ the failure, not the mode:
 | Multi-part fixes (composite) | 3 of 8, $0.62 | not run since the work board and the gate fix | 1 of 4, $2.02 |
 | Two-part fix, after the chain's fixes | pass, 6 min, $0.32 | half done at the 45-minute clock, $1.99 | — |
 | Thirty small projects, after the tool fixes | 30 of 30, $0.10 | 28 of 30, 7.5 min, $0.33 | — |
-| Five whole repositories, after the fan-out | 2.5 of 5 on average, 12 min, $0.75 (3.5 with 400 steps, about $1) | 3 of 5 on average (2 and 4), 22 and 63 min, $3.90 a run | — |
+| Five whole repositories, handed out by domain | 2.5 of 5 on average, 12 min, $0.75 (3.5 with 400 steps, about $1) | 3.3 of 5 on average (3, 4, 3), 17 to 40 min, $2.36 a run | — |
+| Five whole repositories, light-coding one body a project | 4.5 of 5 on average (5, 4), 19 min, $1.72 a run | — | — |
 
 The bench's own reports name the modes `solo`, `hierarchy` and `collective`, the names they had
 when they ran. Why they lose, and what we are building next, is on
