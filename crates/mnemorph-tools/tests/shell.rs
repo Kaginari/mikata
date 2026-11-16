@@ -1301,3 +1301,39 @@ fn a_models_timeout_under_the_default_is_read_as_the_default() {
     let garbled = "not json";
     assert_eq!(model_call("bash", garbled), garbled);
 }
+
+/// A pipeline's first stage's exit status reaches the outcome, from the shell's `PIPESTATUS`: a
+/// check piped into a filter, `python3 -c '…' 2>&1 | grep -v noise`, hid its failures behind the
+/// filter's success, and eight such runs stopped a body that was still making progress. The
+/// command's own exit is unchanged, and so is its output.
+#[test]
+fn a_pipelines_stages_exit_statuses_are_reported() {
+    let w = World::new("pipestatus");
+    let gate = Arc::new(Scripted::new([]));
+    let mut cx = w.cx(Race::Slime, gate);
+    let o = bash(&mut cx, "echo out; false | cat");
+    assert_eq!(o.meta.pipe, Some(1), "{o:?}");
+    assert_eq!(
+        o.meta.exit,
+        Some(0),
+        "the command's own exit, as bash gives it"
+    );
+    assert_eq!(o.content, "out\n", "{o:?}");
+    let o = bash(&mut cx, "set -o pipefail; false | cat");
+    assert_eq!(o.meta.pipe, Some(1));
+    assert_eq!(o.meta.exit, Some(1), "pipefail's exit kept");
+    let o = bash(&mut cx, "true | cat  # a comment at the end");
+    assert_eq!(o.meta.pipe, Some(0));
+    let o = bash(&mut cx, "false | cat; exit 3");
+    assert_eq!(
+        o.meta.pipe, None,
+        "a command that exits itself leaves no reading"
+    );
+    assert_eq!(o.meta.exit, Some(3));
+    // A command with no pipe, or one a line after it could change, runs exactly as written.
+    let o = bash(&mut cx, "exit 4");
+    assert_eq!((o.meta.pipe, o.meta.exit), (None, Some(4)));
+    let o = bash(&mut cx, "cat <<EOF | cat\nhi\nEOF");
+    assert_eq!(o.meta.pipe, None, "a heredoc's command runs as written");
+    assert_eq!(o.content, "hi\n", "{o:?}");
+}

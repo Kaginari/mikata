@@ -93,6 +93,11 @@ pub struct Meta {
     pub wrote: Vec<PathBuf>,
     /// The exit code of a command; `None` for other tools, or a command killed by a signal.
     pub exit: Option<i32>,
+    /// The exit status of the first stage of a command's last pipeline, read from the shell's
+    /// `PIPESTATUS` when it had two or more stages: `cargo test | tail` failing is `Some(101)`.
+    /// `None` for other tools, a command with no pipeline, and one that ended before its last
+    /// line (an `exit`, a kill, a timeout).
+    pub pipe: Option<u8>,
     /// The command was killed at its deadline.
     pub timed_out: bool,
     /// Lines the call added to the files it wrote, counted as a multiset against what they held

@@ -149,10 +149,14 @@ fn answer(text: &str) -> Result<Response, Error> {
     })
 }
 
-/// Nine piped test runs with a fix landing between each: without a read, a muted bench stalls.
+/// Nine piped test runs with a fix landing between each, a command after the pipe so the shell
+/// gives no status of the bench: without a read, a muted bench stalls.
 fn piped_runs(then_answer: bool) -> Arc<ScriptedModel> {
-    runs_of("pytest -q | tail -1", then_answer)
+    runs_of(PIPED, then_answer)
 }
+
+/// A piped bench whose status nothing reads: the line after the pipe is the shell's last.
+const PIPED: &str = "pytest -q | tail -1; echo done";
 
 fn runs_of(command: &str, then_answer: bool) -> Arc<ScriptedModel> {
     let mut script = Vec::new();
@@ -269,7 +273,7 @@ async fn a_sure_read_turns_a_muted_bench_green_and_the_run_finishes() {
         body["state"]
             .as_str()
             .unwrap()
-            .starts_with("$ pytest -q | tail -1\n")
+            .starts_with(&format!("$ {PIPED}\n"))
     );
 
     let rows = w.decisions_journal().read().unwrap().rows;
