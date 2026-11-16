@@ -343,10 +343,10 @@ fn main() -> ExitCode {
     }
     // Mnemorph's folders take Mikata's names the first time Mikata runs: the homes, and the world
     // a command finds where it stands.
-    for said in mikata_sandbox::dirs::migrate_homes().into_iter().chain(
+    for said in mikata_server::dirs::migrate_homes().into_iter().chain(
         std::env::current_dir()
             .ok()
-            .and_then(|cwd| mikata_sandbox::dirs::migrate_world(&cwd)),
+            .and_then(|cwd| mikata_server::dirs::migrate_world(&cwd)),
     ) {
         eprintln!("mikatad: {said}");
     }

@@ -58,11 +58,13 @@ pub use mikata_provider::anthropic_prices;
 pub use mikata_races::ToolClass;
 /// The plan a gate approval binds to.
 pub use mikata_tools::Fingerprint as GateFingerprint;
+/// A `git` command started without the harness's secrets.
+/// The human's state and config homes, and the move of Mnemorph's folders to Mikata's names.
+pub use mikata_tools::dirs;
 /// The human gate's types, for a client that answers it.
 pub use mikata_tools::gate::{
     Answer as GateAnswer, Ask as GateAsk, Gate, admitted_line as gate_admitted_line,
 };
-/// A `git` command started without the harness's secrets.
 pub use mikata_tools::git;
 /// Close the harness's `/proc` files (its environment, where provider keys live) to other processes.
 pub use mikata_tools::harden_self;

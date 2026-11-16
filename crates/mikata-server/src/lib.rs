@@ -17,6 +17,8 @@ pub use mikata_loop::auto;
 /// The Dark Elf challenges as the human reads them.
 pub use mikata_loop::challenge;
 /// An evolution drafted by a model, for a creature due.
+/// The human's homes, and the move of Mnemorph's folders to Mikata's names.
+pub use mikata_loop::dirs;
 pub use mikata_loop::draft;
 /// The human's door to the Oni's envelopes.
 pub use mikata_loop::envelope;

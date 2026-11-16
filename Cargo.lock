@@ -1738,7 +1738,6 @@ dependencies = [
 name = "mikatad"
 version = "1.0.0"
 dependencies = [
- "mikata-sandbox",
  "mikata-server",
  "serde_json",
  "sha2",
