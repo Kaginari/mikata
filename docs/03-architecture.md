@@ -1215,8 +1215,8 @@ right.
 
 <img src="../assets/board/desktop-dark-world.png" width="640" alt="A world's page, dark: its status, last activity, memory, challenges, end gate, spend and meters, each with its source">
 
-**The rail.** At its head the `◈ MIKATA` wordmark, its letters running the races' colours as
-the terminal's welcome does, then search, the **worlds** (each with its state in words: *present*
+**The rail.** At its head Mikata's icon and name, the name running the logo's gold into cyan
+(`--mn-brand-*`, fixed in every scheme, a deeper ink of each on a light page), then search, the **worlds** (each with its state in words: *present*
 with the age of its latest session or *never opened*, or *missing*, never dropped) and the board's
 own pages:
 Metrics, Integrations, Settings. Inside a world the rail becomes that world's: back to every

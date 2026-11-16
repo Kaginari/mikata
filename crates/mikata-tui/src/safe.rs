@@ -34,6 +34,20 @@ pub fn one_line(text: &str) -> String {
     render(text, false).replace('\n', "\\u{a}")
 }
 
+/// A body's name as the human reads it, on one line: the session's own body is called
+/// `summoner` inside — its memory, its MCP scope and its events keep that name — and Mikata on
+/// the screen; the body of each project of a split, `summoner/<project>`, is `mikata/<project>`.
+/// Every other name is as it is.
+#[must_use]
+pub fn shown(name: &str) -> String {
+    match name.strip_prefix("summoner") {
+        Some(rest) if rest.is_empty() || rest.starts_with('/') => {
+            one_line(&format!("mikata{rest}"))
+        }
+        _ => one_line(name),
+    }
+}
+
 /// [`clean`], [`code`] and [`one_line`]: with `prose`, what [`kept_in_prose`] names is kept;
 /// without, the card's rule ([`Strict`]) applies.
 fn render(text: &str, prose: bool) -> String {
@@ -99,6 +113,27 @@ fn strip_sgr(text: &str) -> std::borrow::Cow<'_, str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_session_s_body_is_shown_as_mikata_and_no_other_name_changes() {
+        use super::shown;
+        assert_eq!(shown("summoner"), "mikata");
+        assert_eq!(shown("summoner/01-duckdb"), "mikata/01-duckdb");
+        for other in [
+            "summoners",
+            "elf-e",
+            "orc-sql",
+            "slime-parser",
+            "not-summoner",
+        ] {
+            assert_eq!(shown(other), other);
+        }
+        assert_eq!(
+            shown("summoner/\u{1b}[2J"),
+            "mikata/\\u{1b}[2J",
+            "escaped as ever"
+        );
+    }
 
     #[test]
     fn colours_drop_and_everything_hidden_shows() {

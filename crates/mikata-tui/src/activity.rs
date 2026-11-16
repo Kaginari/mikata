@@ -211,7 +211,7 @@ pub fn strip(m: &Model, w: usize) -> Lines {
     first.push(Span::styled(format!(" ({})", meta.join(" · ")), t.muted()));
     let mut second = vec![
         Span::raw("   "),
-        Span::styled(one_line(&who), t.race(race)),
+        Span::styled(crate::safe::shown(&who), t.race(race)),
         Span::styled(" · ", t.frame()),
         Span::styled(doing(m, &phase), t.muted()),
     ];

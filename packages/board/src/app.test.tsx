@@ -46,7 +46,7 @@ async function mount(hash: string, body: unknown = fixtureWorlds, status = 200) 
 test('the home lists every world, each state in words', async () => {
   await mount('#/');
   const text = host.textContent ?? '';
-  expect(text).toContain('MIKATA');
+  expect(text).toContain('Mikata');
   for (const n of ['tempest-try', 'sqlglot', 'notes', 'old-spike']) expect(text).toContain(n);
   expect(text).toContain('never opened');
   expect(text).toContain('missing');
@@ -55,7 +55,9 @@ test('the home lists every world, each state in words', async () => {
 test('a world name is shown, never run', async () => {
   const evil = { ...fixtureWorlds.worlds[0], name: '<img src=x onerror=alert(1)>\u202e' };
   await mount('#/', { worlds: [evil] });
-  expect(host.querySelector('img')).toBeNull();
+  // The board's own icon is the only image, from its own path: nothing from the name.
+  const images = [...host.querySelectorAll('img')];
+  expect(images.map((i) => i.getAttribute('src'))).toEqual(['/mikata-icon.png']);
   expect(host.textContent).toContain('<img src=x onerror=alert(1)>\\u{202e}');
 });
 

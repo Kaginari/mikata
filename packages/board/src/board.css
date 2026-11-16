@@ -233,41 +233,31 @@ code {
 
 .wordmark {
   display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
   font-family: var(--mn-font-ui);
   font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.18em;
+  font-size: 19px;
+  letter-spacing: 0.06em;
 }
-.wordmark-diamond {
-  color: var(--mn-race-summoner);
+.wordmark-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
 }
+/* The logo's two colours: gold for you into Mikata's cyan. */
 .wordmark-name {
-  background: linear-gradient(
-    90deg,
-    var(--wm-1) 0%,
-    var(--wm-2) 35%,
-    var(--wm-3) 70%,
-    var(--wm-4) 100%
-  );
+  background: linear-gradient(90deg, var(--wm-1) 0%, var(--wm-2) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  --wm-1: var(--mn-race-summoner);
-  --wm-2: var(--mn-race-elf);
-  --wm-3: var(--mn-race-orc);
-  --wm-4: var(--mn-race-slime);
+  --wm-1: var(--mn-brand-you);
+  --wm-2: var(--mn-brand-ally);
 }
 :root[data-theme="light"] .wordmark-name {
-  --wm-1: color-mix(in oklab, var(--mn-race-summoner) 70%, var(--mn-text));
-  --wm-2: color-mix(in oklab, var(--mn-race-elf) 70%, var(--mn-text));
-  --wm-3: color-mix(in oklab, var(--mn-race-orc) 70%, var(--mn-text));
-  --wm-4: color-mix(in oklab, var(--mn-race-slime) 60%, var(--mn-text));
-}
-:root[data-theme="light"] .wordmark-diamond {
-  color: var(--mn-holo);
+  --wm-1: var(--mn-brand-you-ink);
+  --wm-2: var(--mn-brand-ally-ink);
 }
 
 .rail-search {

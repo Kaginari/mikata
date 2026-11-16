@@ -278,7 +278,7 @@ fn every_section_shows_what_the_observer_and_the_world_gave() {
         "└ A test_collate.py",
         r"D old\u{202e}.py",
         "bodies · 3 · 2 live",
-        "◆ summoner",
+        "◆ mikata",
         "● orc-sql",
         "● slime-parser",
     ] {

@@ -58,6 +58,18 @@ export const races = {
 export type RaceKey = keyof typeof races;
 
 /**
+ * Mikata's logo colours, fixed in every scheme and mode: gold for you, cyan for Mikata, and a
+ * deeper ink of each for a light page. The logo is the brand, not the interface's accent: a
+ * scheme that turns the accent magenta never turns the logo.
+ */
+export const brand = {
+  you: '#f7d002',
+  ally: '#00f2ff',
+  youInk: '#8a6d00',
+  allyInk: '#00747e',
+} as const;
+
+/**
  * A colour scheme: the board and the terminal app wear the same ones. `hud` is the palette above
  * (`dark`, `light`); the others are built on four-colour palettes, their values derived in the
  * terminal app's `theme.rs` — a test there keeps the two equal, and prints these on a change.

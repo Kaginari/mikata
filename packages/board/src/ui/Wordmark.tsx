@@ -1,11 +1,9 @@
-/** `◈ MIKATA`, its letters running the races' colours as the terminal's welcome does. */
+/** Mikata's logo and name: the icon itself, and the name in its gold into cyan. */
 export function Wordmark() {
   return (
     <a className="wordmark" href="#/" title="All worlds">
-      <span className="wordmark-diamond" aria-hidden="true">
-        ◈
-      </span>
-      <span className="wordmark-name">MIKATA</span>
+      <img className="wordmark-icon" src="/mikata-icon.png" alt="" width="24" height="24" />
+      <span className="wordmark-name">Mikata</span>
     </a>
   );
 }

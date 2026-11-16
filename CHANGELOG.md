@@ -48,6 +48,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The session's body is shown as Mikata.** The terminal app and `mikata run` show the session's
+  body as `mikata`, and a split's project bodies as `mikata/<project>`; inside, its name is still
+  `summoner`, which its memory, its MCP scope and its events keep.
+- **The board's rail opens on Mikata's icon and name**, the name in the logo's gold into cyan. The
+  theme has fixed brand colours for it, `--mn-brand-you`, `--mn-brand-ally` and their inks for a
+  light page, which no scheme changes.
 - **Light-coding splits an ask across separate projects.** When an ask names two or more folders at
   the world's root that each hold a project file of their own (`pyproject.toml`, `Cargo.toml`,
   `package.json`, …), one light-coding body a project runs at once, its folder as its root, and the

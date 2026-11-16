@@ -130,7 +130,7 @@ fn markdown_reads_with_its_elements_and_code_in_colour() {
     let buf = draw(&mut m, 100, 40);
     let scr = screen(&buf);
     for want in [
-        "◆ summoner",
+        "◆ mikata",
         "The fix",
         "_parse_types",
         "• first",
@@ -315,7 +315,7 @@ fn the_header_and_the_status_bar_read_what_the_observer_gave() {
     let buf = draw(&mut m, 100, 20);
     let r = rows(&buf);
     assert!(
-        r[0].starts_with("╭─ ◈ MIKATA · summoner · deepseek-v4-flash"),
+        r[0].starts_with("╭─ ◈ MIKATA · mikata · deepseek-v4-flash"),
         "{}",
         r[0]
     );

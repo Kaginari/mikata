@@ -183,13 +183,13 @@ fn the_ask_is_a_raised_panel_with_room_and_a_footer() {
     }
     assert!(rows[at + 3].contains("────"), "the rule: {}", rows[at + 3]);
     let foot = rows[at + 4];
-    assert!(foot.contains("◆ summoner · light-coding"), "{foot}");
+    assert!(foot.contains("◆ mikata · light-coding"), "{foot}");
     assert!(foot.contains("enter send · alt+enter line"), "{foot}");
     assert!(rows[at + 5].contains("▀▀▀▀"), "its bottom bevel:\n{scr}");
     // Busy, the footer says where a line goes; with an approval up, what comes first.
     send(&mut m, "fix it");
     let scr = screen(&mut m, 120, 40);
-    assert!(scr.contains("enter queues for summoner"), "{scr}");
+    assert!(scr.contains("enter queues for mikata"), "{scr}");
     update(&mut m, Msg::Gate(card("git push origin main")));
     let scr = screen(&mut m, 120, 40);
     assert!(scr.contains("answer the card first"), "{scr}");
@@ -207,7 +207,7 @@ fn the_status_shows_on_send_before_any_token() {
     // No event has come back: the first frame after the send already says what happens.
     let scr = screen(&mut m, 100, 32);
     assert!(scr.contains("Thinking… (0s · esc to interrupt)"), "{scr}");
-    assert!(scr.contains("summoner · thinking"), "{scr}");
+    assert!(scr.contains("mikata · thinking"), "{scr}");
     // The header's chip, and the sidebar's state under the portrait, turn as the strip does.
     let spin = m.spinner.view();
     let tall = screen(&mut m, 100, 44);
@@ -249,7 +249,7 @@ fn the_phase_follows_the_turn() {
         },
     );
     assert_eq!(activity::phase(&m), Some(Phase::Calling("bash".into())));
-    assert!(screen(&mut m, 100, 32).contains("summoner · calling bash"));
+    assert!(screen(&mut m, 100, 32).contains("mikata · calling bash"));
     ev(
         &mut m,
         Event::ToolCall {
@@ -265,7 +265,7 @@ fn the_phase_follows_the_turn() {
     let scr = screen(&mut m, 100, 32);
     assert!(scr.contains("Running bash…"), "{scr}");
     assert!(
-        scr.contains("summoner · running bash: pytest -q tests/"),
+        scr.contains("mikata · running bash: pytest -q tests/"),
         "{scr}"
     );
     // An act at the gate: the status waits for the human.
