@@ -4,20 +4,20 @@
 # file, so nothing the tests do can reach the developer's real config or state. Cargo and rustup
 # keep their own homes. Afterwards the sentinel must read exactly as before — every path, mtime
 # and content hash — or the run fails: a test wrote to the home it was started under, which on a
-# developer's machine is their real `~/.local/state/mnemorph`. (nextest gives the tests a home of
+# developer's machine is their real `~/.local/state/mikata`. (nextest gives the tests a home of
 # their own, `tools/test-home.sh`; the sentinel is what they must never touch.)
 #
 #   tools/test-env.sh cargo nextest run --workspace
 set -euo pipefail
 [ $# -gt 0 ] || { echo "usage: tools/test-env.sh <command> [args…]" >&2; exit 2; }
 
-sentinel=$(mktemp -d "${TMPDIR:-/tmp}/mnemorph-sentinel.XXXXXX")
+sentinel=$(mktemp -d "${TMPDIR:-/tmp}/mikata-sentinel.XXXXXX")
 # The run's temporary directory: every test home and world under it goes when the run ends.
-scratch=$(mktemp -d "${TMPDIR:-/tmp}/mnemorph-test-tmp.XXXXXX")
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/mikata-test-tmp.XXXXXX")
 trap 'rm -rf "$sentinel" "$scratch"' EXIT
-for d in home state/mnemorph config/mnemorph data cache run; do mkdir -p "$sentinel/$d"; done
-chmod 700 "$sentinel" "$sentinel/state" "$sentinel/state/mnemorph" "$sentinel/run"
-for f in home/MARKER state/mnemorph/MARKER config/mnemorph/MARKER data/MARKER cache/MARKER run/MARKER; do
+for d in home state/mikata config/mikata data cache run; do mkdir -p "$sentinel/$d"; done
+chmod 700 "$sentinel" "$sentinel/state" "$sentinel/state/mikata" "$sentinel/run"
+for f in home/MARKER state/mikata/MARKER config/mikata/MARKER data/MARKER cache/MARKER run/MARKER; do
   echo "a test must never write here" > "$sentinel/$f"
 done
 
@@ -44,7 +44,7 @@ CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rust
   XDG_CACHE_HOME="$sentinel/cache" \
   XDG_RUNTIME_DIR="$sentinel/run" \
   TMPDIR="$scratch" \
-  MNEMORPH_ISOLATED=1 \
+  MIKATA_ISOLATED=1 \
   "$@" || status=$?
 
 after=$(survey)

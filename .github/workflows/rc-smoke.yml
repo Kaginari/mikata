@@ -17,7 +17,7 @@ on:
       - Cargo.toml
       - Cargo.lock
       - rust-toolchain.toml
-      - crates/mnemorph-sandbox/**
+      - crates/mikata-sandbox/**
   schedule:
     - cron: "23 3 * * 1"
   workflow_dispatch:
@@ -46,16 +46,16 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           key: release
-      # The board is left unbuilt here (mnemorphd then serves a page saying so): the release
+      # The board is left unbuilt here (mikatad then serves a page saying so): the release
       # workflow builds it, and the board's own job tests it.
       - name: Build the release binaries
-        run: cargo build --release --locked -p mnemorph-tui -p mnemorphd -p mnemorph-sandbox --bins
+        run: cargo build --release --locked -p mikata-tui -p mikatad -p mikata-sandbox --bins
       - name: Package as the release does
         run: |
           version=$(awk -F'"' '/^version *=/{print $2; exit}' Cargo.toml)
           echo "VERSION=$version" >> "$GITHUB_ENV"
           tools/package-release.sh target/release "$TARGET" "$version" dist
       - name: The release-candidate smoke test, on the archive in a fresh HOME
-        run: tools/rc-smoke.sh "dist/mnemorph-$TARGET.tar.gz" "$VERSION"
+        run: tools/rc-smoke.sh "dist/mikata-$TARGET.tar.gz" "$VERSION"
       - name: The installer, on the archive, offline and timed
-        run: tools/test-install.sh "dist/mnemorph-$TARGET.tar.gz"
+        run: tools/test-install.sh "dist/mikata-$TARGET.tar.gz"

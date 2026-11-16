@@ -72,7 +72,7 @@ flowchart TD
 ## In plain words
 
 You talk to **Summoner**. What happens next depends on the **mode** the session opened in, and
-`mnemorph status` says which one you are in and why.
+`mikata status` says which one you are in and why.
 
 **Light-coding is the default, and the mode to use.** Summoner does the work itself, in one body
 over your whole repository, the way a careful engineer would:
@@ -104,7 +104,7 @@ and usable, not yet ahead of one body.
 
 In structured-coding and collective-coding the bodies share **the work board**, one page in the
 world
-(`.mnemorph/tmp/board.md`): every body's brief carries it, and what each body found is posted back
+(`.mikata/tmp/board.md`): every body's brief carries it, and what each body found is posted back
 to it, so a body ordered later builds on what an earlier one read.
 
 Two races stand beside the chain, both answering to Summoner:
@@ -120,37 +120,37 @@ Two races stand beside the chain, both answering to Summoner:
 Reports flow back up the same chain, each rank compressing what the rank below said, until
 Summoner answers you in plain language.
 
-Everything that matters is written to the world directory `.mnemorph/` — creature documents, the
+Everything that matters is written to the world directory `.mikata/` — creature documents, the
 journal `log.md`, the ledgers. Sessions forget; the world remembers.
 
 ### Which mode, and how to start it
 
 | Mode | Use it when | Start it | It needs |
 |---|---|---|---|
-| **light-coding** | almost always: a bug, a feature, a refactor, a question about the code | `mnemorph`, in a world where no Elf reports to Summoner; `mnemorph --mode light-coding` anywhere | nothing |
-| **structured-coding** (experimental) | the work is too large for one context, or must stay inside zones that each have their own check | `mnemorph`, in a world where an Elf reports to Summoner; or `mnemorph --mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
-| **collective-coding** (experimental) | an ask has separate parts in separate zones, and you want them worked at once | `mnemorph --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
+| **light-coding** | almost always: a bug, a feature, a refactor, a question about the code | `mikata`, in a world where no Elf reports to Summoner; `mikata --mode light-coding` anywhere | nothing |
+| **structured-coding** (experimental) | the work is too large for one context, or must stay inside zones that each have their own check | `mikata`, in a world where an Elf reports to Summoner; or `mikata --mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
+| **collective-coding** (experimental) | an ask has separate parts in separate zones, and you want them worked at once | `mikata --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
 
-- **`--mode` goes wherever a session opens:** `mnemorph`, `mnemorph resume <run>`,
-  `mnemorph run "<ask>"`, and `mnemorphd` for a program. `auto` is the default:
+- **`--mode` goes wherever a session opens:** `mikata`, `mikata resume <run>`,
+  `mikata run "<ask>"`, and `mikatad` for a program. `auto` is the default:
   collective-coding when `collective.on` is set and Summoner has members, structured-coding when
   an Elf reports to it, else light-coding.
-- **`mnemorph status` says the mode and why**, with no key needed:
+- **`mikata status` says the mode and why**, with no key needed:
   `mode     light-coding — no Elf reports to the Summoner in this world`. The app says it on its
   first
-  lines, the web board in the session pane, `mnemorph run --json` on its result line, and the
+  lines, the web board in the session pane, `mikata run --json` on its result line, and the
   run's journal on its `law` beat.
-- **A mode the world cannot give opens no session.** `mnemorph --mode structured-coding` in a world
+- **A mode the world cannot give opens no session.** `mikata --mode structured-coding` in a world
   with
   no Elf is refused with what is missing, before any key is asked for; it never falls back to
   another mode in silence.
-- **A resumed run's mode is decided again.** `mnemorph resume <run>` with no `--mode` opens in
+- **A resumed run's mode is decided again.** `mikata resume <run>` with no `--mode` opens in
   the mode the world gives now. When that is not the mode the run stopped in, the first lines say
   so: pass `--mode` to go on in the old one.
-- **Creatures are cards you write and adopt.** A card is `.mnemorph/<race>/<name>/README.md`: its
+- **Creatures are cards you write and adopt.** A card is `.mikata/<race>/<name>/README.md`: its
   race, whom it reports to and its ground ([soil](02-races.md#soil--who-may-write-what)). A card
-  is a stranger until you adopt it with `mnemorphd roster adopt`; `mnemorphd roster list` shows
-  who is here, and this repository's own `.mnemorph/` is a worked example. A card that waits
+  is a stranger until you adopt it with `mikatad roster adopt`; `mikatad roster list` shows
+  who is here, and this repository's own `.mikata/` is a worked example. A card that waits
   gives no mode, and the reason says how many wait:
   `… no Elf reports to the Summoner in this world; 9 cards here are not adopted yet …`.
 
@@ -184,11 +184,11 @@ config:
 ---
 flowchart LR
     subgraph user["your machine"]
-      CLI["mnemorph<br/>Rust · Ratatui<br/>the core in-process"]
+      CLI["mikata<br/>Rust · Ratatui<br/>the core in-process"]
       BOARD["board<br/>TypeScript · React<br/>in the browser"]
-      CORE["mnemorphd<br/>Rust core, served"]
+      CORE["mikatad<br/>Rust core, served"]
       SB["sandboxed tools<br/>landlock + seccomp / Seatbelt"]
-      W[(".mnemorph/<br/>docs · log.md · ledgers")]
+      W[(".mikata/<br/>docs · log.md · ledgers")]
     end
     LLM[("model providers<br/>Anthropic · OpenAI-compatible")]
 
@@ -215,13 +215,13 @@ flowchart LR
 - **The core** (Rust crates) owns everything that must be correct: the loop, the races, the gate,
   the sandbox, the ledgers, the provider clients. It has no UI, and every surface links the same
   crates.
-- **`mnemorph`** (Rust, Ratatui) is the command you run. With no subcommand it is the terminal
-  app; `mnemorph run "<ask>"` asks once without it, for scripts. It hosts the session in its own
+- **`mikata`** (Rust, Ratatui) is the command you run. With no subcommand it is the terminal
+  app; `mikata run "<ask>"` asks once without it, for scripts. It hosts the session in its own
   process — no protocol between the screen and the core — and draws the same events the server
   sends ([the terminal UI](05-architecture.md#the-terminal-ui)). It renders; it decides nothing.
-- **`mnemorphd`** (Rust) is the core as a server: JSON-RPC 2.0 over stdio for the TypeScript SDK,
-  and the world's admin commands (`mnemorphd runs`, `mnemorphd memory status`, `mnemorphd q list`, …).
-- **The board** (TypeScript, React) is the web cockpit, served by `mnemorphd` on loopback. It
+- **`mikatad`** (Rust) is the core as a server: JSON-RPC 2.0 over stdio for the TypeScript SDK,
+  and the world's admin commands (`mikatad runs`, `mikatad memory status`, `mikatad q list`, …).
+- **The board** (TypeScript, React) is the web cockpit, served by `mikatad` on loopback. It
   speaks the same protocol over a WebSocket. (The *work board* above is another thing: a page in
   the world that the bodies of a session share.)
 - One protocol, defined once in Rust; the TypeScript types are generated from it. A client can
@@ -239,11 +239,11 @@ flowchart LR
 | what is `read`, `write`, `outward`, `destructive` | Oni envelopes: standing outward permissions you sign |
 
 Races are behaviour; creatures, Minds and models are data. That is the line isekai blurred with a
-configurable rank table, and the line Mnemorph keeps.
+configurable rank table, and the line Mikata keeps.
 
 ### What stays from isekai
 
-The nine natures, the crest, the wire register, the gate's four checks (Mnemorph adds two: tests
+The nine natures, the crest, the wire register, the gate's four checks (Mikata adds two: tests
 intact and no seal), territories, Minds,
 memory tiers, the value ledger, evolution (split, mutate, rebirth) and ascension. What changes is
 where they live: in typed Rust instead of prose plus configuration, with the docs in this book

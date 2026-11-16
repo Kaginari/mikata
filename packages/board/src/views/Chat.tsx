@@ -3,7 +3,7 @@
  * waiting, the composer — or a past one, read-only from its run journal, with a resume when it
  * stopped. The session's vitals, files and bodies go to the side pane.
  */
-import type { BoardWorld, Hello } from '@mnemorph/protocol';
+import type { BoardWorld, Hello } from '@mikata/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chat, type ChatView, type Entry } from '../data/chat.ts';
 import { type Chats, startChat, useRun } from '../data/chats.ts';

@@ -18,7 +18,7 @@ export interface ColonyNode {
   name: string;
   /** The race's job, in one line (docs/02-races.md's plain-words table). */
   job: string;
-  /** The race's colour token (`--mn-race-*` in @mnemorph/theme's tokens.css). */
+  /** The race's colour token (`--mn-race-*` in @mikata/theme's tokens.css). */
   token: string;
   /** World position, in the layout's own units. */
   position: readonly [number, number, number];

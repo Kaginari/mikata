@@ -1,6 +1,6 @@
 # Communication
 
-Two different conversations happen in Mnemorph, and they speak different languages:
+Two different conversations happen in Mikata, and they speak different languages:
 
 - **between bodies** — the wire: terse, tagged, built to save tokens;
 - **between the core and its clients** — the protocol: typed JSON-RPC, built to be exact;
@@ -129,7 +129,7 @@ hole names the cut (`@? @CAP 2048: 12 lines cut — full report at <dump>`). `@S
 `@R`, `@H` and `@$` are never cut: losing a hole, the unsaid, the courier or an order costs more
 than any byte. The courier threshold (600 bytes) is what the **reader** receives inline: a report
 between 600 and 2048 bytes is complete, but travels as an envelope — `@R` to the file under
-`.mnemorph/instruments/loop/`, `@H`, one `@W` per written path, the orders, and a digest of the
+`.mikata/instruments/loop/`, `@H`, one `@W` per written path, the orders, and a digest of the
 first eight verdicts and findings — and the parent opens the file only when its verdict needs the
 flesh.
 
@@ -192,7 +192,7 @@ The grammar's readings, all of them:
   of a `Proven` finding: each `@F`'s record, at its `rec:` path, gives the root cause or the reason
   it gives none, and the finding is proven only when it has a witness and a record and its stated
   id is the fingerprint derived from that record. The harness reads a Dark Elf's report through
-  `mnemorph_proving::accept`, which reads each record from the landing's tree and validates it,
+  `mikata_proving::accept`, which reads each record from the landing's tree and validates it,
   so a proven finding's record is also `Valid` — the one type a score or a seal takes. Any other
   `@F` is read back as `@?` — `unproven:` (no fingerprint-shaped id, witness or record),
   `no record:` (the record cannot be read), `invalid record (<rule>, …):` (the record breaks the
@@ -207,7 +207,7 @@ The grammar's readings, all of them:
 Council answers (`@INSTRUCT`, `@SPLIT`, `@ESCALATE`) are not wire tags yet: the loop that sends
 them (M5) defines them, here, when it lands.
 
-In code the wire is one crate (`mnemorph-wire`, no I/O, its one dependency `sha2` for the
+In code the wire is one crate (`mikata-wire`, no I/O, its one dependency `sha2` for the
 fingerprint) with a parser and an encoder that round-trip; property tests hold
 `parse(emit(r)) == r` for any report, an exact `@E`, and a cut that never loses what must stay.
 
@@ -336,11 +336,11 @@ flowchart LR
     H(["🐉 you"]) -->|"typed while a turn runs"| Q["queue<br/>next turn, in order"]
     H -->|"/send body: text"| S["send<br/>the body's next tool step"]
     BG["background body<br/>reports"] --> W["wake<br/>its own parent's next turn"]
-    R["a report's @$ orders"] --> SQ[("shared work queue<br/>.mnemorph/shared/queue.jsonl")]
+    R["a report's @$ orders"] --> SQ[("shared work queue<br/>.mikata/shared/queue.jsonl")]
     SQ -->|"the wake claims each<br/>for the body it names"| T["the parent's next turn:<br/>dispatch, re-checked"]
     Q --> T
     W --> T
-    TQ["mnemorphd q · the queue tool"] <--> SQ
+    TQ["mikatad q · the queue tool"] <--> SQ
     classDef human fill:#f8efcf,stroke:#D4AF37,stroke-width:2px,color:#3a2e05
     class H human
     classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
@@ -356,7 +356,7 @@ flowchart LR
 **In plain words.** A session never loses what arrives while it works. What you type during a
 turn waits its turn; what you `/send` reaches a running body at its next tool step; a background
 body's report wakes the body that sent it. Work ordered down the ranks (`@$` lines) is written to a
-shared queue on disk that every session, the terminal, the board and `mnemorphd q` can see — so a
+shared queue on disk that every session, the terminal, the board and `mikatad q` can see — so a
 restart, a second session or a lost report never drops an order, and nobody has to wonder what is
 waiting.
 
@@ -379,10 +379,10 @@ it, one model did what the line asked in 6 runs of 6 and another in 2 of 6.
 
 **The shared work queue** is the durable form of the order book.
 
-- One file, `.mnemorph/shared/queue.jsonl`, on the shared shelf: harness soil, ignored by git, so
-  the queue belongs to one machine. It moves only through the harness and the human's `mnemorphd q`;
+- One file, `.mikata/shared/queue.jsonl`, on the shared shelf: harness soil, ignored by git, so
+  the queue belongs to one machine. It moves only through the harness and the human's `mikatad q`;
   each line they write is written again to a witness under the human's state directory
-  (`$XDG_STATE_HOME/mnemorph/queue/`), out of every command's reach. A body's command that touches
+  (`$XDG_STATE_HOME/mikata/queue/`), out of every command's reach. A body's command that touches
   the queue has it rebuilt from what it held and what the witness gained since, in the witness's
   order — whatever the command did to the file, a forged line, a deletion or a link in its place,
   never counts, and the human's moves made while the command ran are kept. The harness, the human's
@@ -410,7 +410,7 @@ it, one model did what the line asked in 6 runs of 6 and another in 2 of 6.
   said as it runs and opens the session's next turn. The throne's own work waits for the human's
   turn; a turn the human interrupted wakes nothing, an Esc during the wake stops it, and a spent
   budget leaves every order waiting.
-- **Doors.** `mnemorphd q list [--all] | show | add [--for] [--rank] | claim [--as] | touch | requeue
+- **Doors.** `mikatad q list [--all] | show | add [--for] [--rank] | claim [--as] | touch | requeue
   | close [--drop]` for the human (`--json`; a refusal exits 2); a `queue` tool on every shelf for
   bodies — reading is free, moving takes only what the body holds or stands over — and a body never
   closes or drops its own order: its report settles what it ran, and only a body above it discharges
@@ -421,17 +421,17 @@ it, one model did what the line asked in 6 runs of 6 and another in 2 of 6.
 
 ### The client protocol
 
-`mnemorphd` exposes one JSON-RPC 2.0 API. The TypeScript SDK reaches it over stdio, the board over
+`mikatad` exposes one JSON-RPC 2.0 API. The TypeScript SDK reaches it over stdio, the board over
 a loopback WebSocket. Types are defined in Rust and generated into TypeScript
-(`@mnemorph/protocol`), so the clients cannot drift. The terminal app, `mnemorph`, needs no wire:
+(`@mikata/protocol`), so the clients cannot drift. The terminal app, `mikata`, needs no wire:
 it hosts the session in its own process and draws the same events, made by the same function
-(`mnemorph_server::events`); its gate cards answer the same questions `gate/ask` carries, and
-`mnemorph run --json` prints those events as JSON lines.
+(`mikata_server::events`); its gate cards answer the same questions `gate/ask` carries, and
+`mikata run --json` prints those events as JSON lines.
 
 <a href="./canvas/client-protocol-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./canvas/client-protocol-dark.svg">
-  <img src="./canvas/client-protocol-light.svg" alt="The client protocol: the SDK client initializes and prompts mnemorphd; the turn's events stream back; gate/ask waits for the client's allow; the gate verdict and the turn's end close it">
+  <img src="./canvas/client-protocol-light.svg" alt="The client protocol: the SDK client initializes and prompts mikatad; the turn's events stream back; gate/ask waits for the client's allow; the gate verdict and the turn's end close it">
 </picture>
 </a>
 
@@ -448,7 +448,7 @@ config:
 ---
 sequenceDiagram
     participant C as SDK client
-    participant D as mnemorphd
+    participant D as mikatad
     rect rgba(2,132,199,0.10)
     C->>D: initialize {clientInfo}
     D-->>C: {protocol, version, world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}
@@ -495,29 +495,29 @@ carries the same count as the session opens, and the status line reads "N held" 
 zero. A `toolResult` carries at most 16 000 bytes and
 says how many it cut; the journal keeps the whole.
 
-`mnemorphd` serves it: `mnemorphd [--world <dir>] [--mode <mode>]` speaks on stdin and stdout,
+`mikatad` serves it: `mikatad [--world <dir>] [--mode <mode>]` speaks on stdin and stdout,
 opens the session from the world's configuration on `initialize`, in the mode asked for or the
 world's own, and answers `--help` and `--version`
 before it looks for any world. Inside, one thread owns the output, so no two lines interleave or
 reorder; one thread reads the input and answers the gate's waits itself, so a gate holding a
 turn never blocks the read that would release it; and one task owns the session.
 
-The clients reach it through two packages. `@mnemorph/protocol` is the protocol's types,
+The clients reach it through two packages. `@mikata/protocol` is the protocol's types,
 generated from the Rust (`ts-rs`) into `src/generated` and checked in: the check regenerates them
-and fails when they drift, and a test holds the TypeScript `PROTOCOL` to the core's. `@mnemorph/sdk`
-is the client: `stdio()` starts `mnemorphd` and speaks on its pipes; a `Client` sends typed
+and fails when they drift, and a test holds the TypeScript `PROTOCOL` to the core's. `@mikata/sdk`
+is the client: `stdio()` starts `mikatad` and speaks on its pipes; a `Client` sends typed
 requests, refuses a core that speaks another protocol, delivers every event to its listeners in
 order and once each (`resync()` replays from the last `seq` it saw, dropping what it already
 had), answers `gate/ask` with the handler the interface gives it — denying when there is none —
-and fails whatever waits when the core's end closes, with the reason the core gave. `ws()` (from `@mnemorph/sdk/browser`, which leaves Node
+and fails whatever waits when the core's end closes, with the reason the core gave. `ws()` (from `@mikata/sdk/browser`, which leaves Node
 out) is the board's transport: it reconnects, and the client then takes control back if it had it
 and replays from the last `seq`, holding live events until the replay is done.
 
-**The terminal client.** `mnemorph` opens a session in this world, hosted in its own process,
-and draws it in the terminal ([the terminal UI](05-architecture.md#the-terminal-ui)); `mnemorph
+**The terminal client.** `mikata` opens a session in this world, hosted in its own process,
+and draws it in the terminal ([the terminal UI](05-architecture.md#the-terminal-ui)); `mikata
 run "<ask>"` asks once without the app, prints the answer on stdout and the calls and the ending
 on stderr, and exits 0 only when the body answered and the end gate passed
-([`mnemorph run`](05-architecture.md#mnemorph-run)). `run` reads its ask from stdin only when none
+([`mikata run`](05-architecture.md#mikata-run)). `run` reads its ask from stdin only when none
 is on the command line (`run` or `run -`) and stdin is no terminal, and it asks no one: an act that
 needs the human is denied, and the denial says so, unless `--gate-tty` puts it to them on the
 terminal. `--help` and `--version` answer before any world is looked for; a session that will not
@@ -527,13 +527,13 @@ approval when one is asked — beside a sidebar of vitals, memory, files and bod
 and the status line: model, spend (`unpriced` when the price tables do not know the model),
 context against the stress line, the cache's share, and what the human's caps leave
 ([consumption](06-consumption.md)). A tool call shows as soon as it starts, before its input has
-streamed. **`mnemorph status`** prints the build's version, the world, the model and its
+streamed. **`mikata status`** prints the build's version, the world, the model and its
 provider, where the provider's key comes from (its variable and the file that names it, never the
 value), the sandbox actually in force (or `none — <reason>`), what the caps leave, the
 configuration's holes, and each living creature's meters on one line — each with its count and
 its 95% interval, or `no reports` where no fold reads it yet
 ([meters](02-races.md#ascension--earned-granted-revocable)), and the last run's acts counted per
-[guts class](03-loop.md#stress-in-four-instruments), printed even when no session opens. **`mnemorphd onto owner <path>...`** asks the core who owns each path, by
+[guts class](03-loop.md#stress-in-four-instruments), printed even when no session opens. **`mikatad onto owner <path>...`** asks the core who owns each path, by
 which rule and claim ([ontology](09-ontology.md#ownership-one-function)), with no session and no
 key. **Enter** sends, and while a turn runs the line waits its turn; **Alt+Enter** starts a new
 line; **`/send <text>`** steers the turn that runs, the text reaching the body after its next tool
@@ -566,7 +566,7 @@ Rules:
   human did not answer. Planned, with no milestone: the run checkpoints as `SUSPENDED` instead (a
   neutral word: no strain, no failure) and resumes at that act when the human answers — an
   overnight run waits instead of dying.
-- The board carries this protocol over `WS /ws/session/<id>`, a child `mnemorphd` per chat
+- The board carries this protocol over `WS /ws/session/<id>`, a child `mikatad` per chat
   ([the chat bridge](05-architecture.md#the-chat-bridge)): its Host and Origin are checked, the
   cookie traded for the printed key and the CSRF token are required, and the bridge adds
   `board/role`, `board/askGone`, `board/refused`, `board/ended` and `board/oversize`, `leftMs` on a

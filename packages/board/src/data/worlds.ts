@@ -3,7 +3,7 @@
  * answer is checked field by field before the page uses it: a row that does not hold together is
  * left out and counted, never guessed at.
  */
-import type { BoardMissing, BoardWorld, WorldState } from '@mnemorph/protocol';
+import type { BoardMissing, BoardWorld, WorldState } from '@mikata/protocol';
 import { useCallback, useEffect, useState } from 'react';
 import { type Change, usePush } from './push.ts';
 import { establish, signedOut } from './session.ts';
@@ -101,7 +101,7 @@ export function useWorlds(): Load {
         if (res.status === 401) {
           signedOut();
           throw new Error(
-            'this browser holds no board session: open the URL `mnemorphd board` prints',
+            'this browser holds no board session: open the URL `mikatad board` prints',
           );
         }
         if (!res.ok) throw new Error(`the board server answered ${res.status}`);

@@ -5,7 +5,7 @@
 
 The matrix is fixed up front — every task in every mode under every law arm, exactly once. A run
 missing, extra or recorded twice is an error, never dropped, and so is a run whose own record of
-the law (`law_said`, from `mnemorph run --json`) is not its arm's; --partial reports a run still in
+the law (`law_said`, from `mikata run --json`) is not its arm's; --partial reports a run still in
 progress and names the gaps. A task succeeds only when its verify passed, the run ended answered,
 no rule refused any of its acts (a breach), and a hierarchy run ran below the throne. Every other
 run is told by why it ended: a stop the harness made — an escalation, a checkpoint, the gate, a
@@ -40,7 +40,7 @@ def expected_tasks():
 
 
 # How a run ended, read from its recorded ending — or, for a run recorded before endings were,
-# from the `mnemorph: <ending>` line the CLI writes to stderr for any ending but `answered`.
+# from the `mikata: <ending>` line the CLI writes to stderr for any ending but `answered`.
 HARNESS = {"escalated", "checkpoint", "gate", "refused", "breach", "never delegated"}
 # The rules a run's acts meet: one that refused an act is a breach, however the run ended.
 RULES = ("envelope", "gate", "sandbox")
@@ -60,8 +60,8 @@ def ending(r):
         return r["ending"]
     if r.get("exit") == 0:
         return "answered"
-    lines = [l for l in (r.get("stderr") or "").splitlines() if l.startswith("mnemorph: ")]
-    return lines[-1][len("mnemorph: "):] if lines else ""
+    lines = [l for l in (r.get("stderr") or "").splitlines() if l.startswith("mikata: ")]
+    return lines[-1][len("mikata: "):] if lines else ""
 
 
 def law(r):
@@ -71,7 +71,7 @@ def law(r):
 
 def breaches(r):
     """How many of the run's acts a rule refused — the envelope, the human gate, the sandbox's
-    guard — as `mnemorph run --json` named them. The race's shelf is not among them."""
+    guard — as `mikata run --json` named them. The race's shelf is not among them."""
     return sum((r.get("refusals") or {}).get(k, 0) for k in RULES)
 
 

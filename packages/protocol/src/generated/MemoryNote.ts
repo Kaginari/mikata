@@ -76,7 +76,7 @@ born: number,
 seen: string, 
 /**
  * Whether the human may confirm it: a proposed claim in its owner's tier, or one grounded and
- * waiting under review — as `mnemorphd memory confirm` would take it.
+ * waiting under review — as `mikatad memory confirm` would take it.
  */
 confirm: boolean, 
 /**

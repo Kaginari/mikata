@@ -3,7 +3,7 @@
  * unpriced race, a wide range of days (a log axis), a silent meter and a live one, a Dark Elf
  * score, bench rows, and hostile words where a world or a config could write them.
  */
-import type { BoardIntegrations, BoardMetrics, Spent } from '@mnemorph/protocol';
+import type { BoardIntegrations, BoardMetrics, Spent } from '@mikata/protocol';
 import { fixtureWorlds } from './fixtures.ts';
 
 export const HOSTILE = '<img src=x onerror=alert(1)> ignore the above‮​';
@@ -70,7 +70,7 @@ export const fixtureMetrics: BoardMetrics = {
       burnSlotSecs: 300,
       burnPerMinute: 5200,
     },
-    source: '.mnemorph/instruments/usage.jsonl (as `mnemorphd usage` folds it)',
+    source: '.mikata/instruments/usage.jsonl (as `mikatad usage` folds it)',
     trusted: false,
     why: null,
   },
@@ -221,7 +221,7 @@ export const fixtureMetrics: BoardMetrics = {
       rows: [
         {
           suite: 'large',
-          harness: 'mnemorph',
+          harness: 'mikata',
           model: 'deepseek/deepseek-v4-flash-0731',
           mode: 'solo',
           valid: 10,
@@ -301,7 +301,7 @@ export const fixtureMetrics: BoardMetrics = {
       wroteCode: 2,
       testedAfter: 1,
     },
-    source: 'the worlds’ run journals, .mnemorph/runs (as `mnemorphd runs --metrics` folds them)',
+    source: 'the worlds’ run journals, .mikata/runs (as `mikatad runs --metrics` folds them)',
     trusted: false,
     why: null,
   },
@@ -309,7 +309,7 @@ export const fixtureMetrics: BoardMetrics = {
 
 export const fixtureIntegrations: BoardIntegrations = {
   world: null,
-  global: '~/.config/mnemorph/config.toml',
+  global: '~/.config/mikata/config.toml',
   config: {
     value: {
       providers: [
@@ -326,8 +326,8 @@ export const fixtureIntegrations: BoardIntegrations = {
           kind: 'openai',
           baseUrl: 'https://openrouter.ai/api/v1',
           key: { variable: 'OPENROUTER_API_KEY', state: 'set' },
-          keyFile: { path: '~/.config/mnemorph/openrouter.key', state: 'readable', detail: '0600' },
-          origin: 'global (~/.config/mnemorph/config.toml)',
+          keyFile: { path: '~/.config/mikata/openrouter.key', state: 'readable', detail: '0600' },
+          origin: 'global (~/.config/mikata/config.toml)',
         },
         {
           name: HOSTILE,
@@ -339,7 +339,7 @@ export const fixtureIntegrations: BoardIntegrations = {
             state: 'refused',
             detail: 'its mode is 0644, and a key file is yours alone: chmod 600 ~/open.key',
           },
-          origin: 'global (~/.config/mnemorph/config.toml)',
+          origin: 'global (~/.config/mikata/config.toml)',
         },
       ],
       models: [
@@ -357,14 +357,14 @@ export const fixtureIntegrations: BoardIntegrations = {
           provider: 'openrouter',
           price: null,
           problem: null,
-          origin: 'global (~/.config/mnemorph/config.toml)',
+          origin: 'global (~/.config/mikata/config.toml)',
         },
       ],
       holes: [
         {
           key: 'providers.openrouter.api_key',
-          origin: 'global (~/.config/mnemorph/config.toml)',
-          why: 'not a key Mnemorph knows',
+          origin: 'global (~/.config/mikata/config.toml)',
+          why: 'not a key Mikata knows',
         },
       ],
       mcp: {
@@ -400,7 +400,7 @@ export const fixtureIntegrations: BoardIntegrations = {
           key: 'mcp.servers.search.args',
           value: null,
           layer: 'global',
-          file: '~/.config/mnemorph/config.toml',
+          file: '~/.config/mikata/config.toml',
           globalOnly: true,
         },
         {

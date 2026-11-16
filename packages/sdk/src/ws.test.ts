@@ -82,7 +82,7 @@ test('the socket offers the chat subprotocol and the CSRF token, fetched per con
   const c = connect(board, () => `t${++n}`);
   await tick();
   expect(board.last.url).toBe('ws://127.0.0.1:7878/ws/session/abc');
-  expect(board.last.protocols).toEqual(['mnemorph.v1', 'mnemorph.csrf.t1']);
+  expect(board.last.protocols).toEqual(['mikata.v1', 'mikata.csrf.t1']);
   // A request before the socket opens waits for it.
   const hello = c.initialize({ name: 't' });
   board.last.open();
@@ -91,7 +91,7 @@ test('the socket offers the chat subprotocol and the CSRF token, fetched per con
   board.last.drop();
   await tick(5);
   expect(board.sockets).toHaveLength(2);
-  expect(board.last.protocols).toEqual(['mnemorph.v1', 'mnemorph.csrf.t2']);
+  expect(board.last.protocols).toEqual(['mikata.v1', 'mikata.csrf.t2']);
 });
 
 test('a socket killed mid-turn delivers every event once, in order, after it reconnects', async () => {

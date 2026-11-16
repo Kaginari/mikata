@@ -223,7 +223,7 @@ export async function openChat(
       json({
         memory: {
           value: { shared: 12, grounded: 41, proposed: 9, retired: 3, unproven: 0 },
-          source: '.mnemorph/memory',
+          source: '.mikata/memory',
           trusted: false,
           why: null,
         },
@@ -332,7 +332,7 @@ export function digestOf(id: string, a: AskFields): string {
     h.update(b);
     h.update('\n');
   };
-  h.update('mnemorph.ask.v1\n');
+  h.update('mikata.ask.v1\n');
   for (const s of [id, a.body, a.race, a.class, a.act]) field(s);
   for (const l of [a.why, a.outside]) {
     h.update(`${l.length}\n`);

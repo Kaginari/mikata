@@ -1,5 +1,5 @@
 /**
- * How each entry of a transcript reads, in the TUI's grammar (crates/mnemorph-tui/src/blocks.rs):
+ * How each entry of a transcript reads, in the TUI's grammar (crates/mikata-tui/src/blocks.rs):
  * the human's line on a gold spine, the answer on a holo spine under `✦ <body>`, a tool call as a
  * card coloured by its class — a look in Summoner's blue, a write in the Dark Elf's violet, a
  * destructive act in the alarm — its class always named beside the colour, its output folded to

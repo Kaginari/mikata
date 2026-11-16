@@ -46,7 +46,7 @@ async function mount(hash: string, body: unknown = fixtureWorlds, status = 200) 
 test('the home lists every world, each state in words', async () => {
   await mount('#/');
   const text = host.textContent ?? '';
-  expect(text).toContain('MNEMORPH');
+  expect(text).toContain('MIKATA');
   for (const n of ['tempest-try', 'sqlglot', 'notes', 'old-spike']) expect(text).toContain(n);
   expect(text).toContain('never opened');
   expect(text).toContain('missing');
@@ -149,7 +149,7 @@ test('the palette lists only addresses: picking one moves the page', async () =>
 test('the colony net page names every race and form, and a legend click opens its card', async () => {
   await mount('#/net');
   const text = host.textContent ?? '';
-  expect(document.title).toBe('Colony net · Mnemorph');
+  expect(document.title).toBe('Colony net · Mikata');
   expect(host.querySelector('canvas.net-canvas')).not.toBeNull();
   for (const n of NODES) expect(text, n.name).toContain(n.name);
   expect(text).toContain('6 command edges · 5 ascension edges · one throne');

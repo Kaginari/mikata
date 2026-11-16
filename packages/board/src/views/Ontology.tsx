@@ -12,7 +12,7 @@ import type {
   FactAnchor,
   FactSide,
   ProofVerdict,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useState } from 'react';
 import {
   FACT_STATUSES,
@@ -298,8 +298,8 @@ function SettleDialog({
       </fieldset>
       <p className="panel-note">
         Filed <code className="mono">by: human (board)</code> with its proof, as{' '}
-        <code className="mono">mnemorphd onto settle</code> files yours. The server checks again
-        that this fact still says exactly this.
+        <code className="mono">mikatad onto settle</code> files yours. The server checks again that
+        this fact still says exactly this.
       </p>
     </Confirm>
   );

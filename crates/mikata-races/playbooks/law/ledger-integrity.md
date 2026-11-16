@@ -1,0 +1,7 @@
+### ledger-integrity
+Invariant: `log.md`, gate verdicts, finding records and coverage ledgers hold what the harness wrote or recomputed, never what a body declared. A Mind is know-how, never law: what it injects names its doc and digest; it loads only as the witness adopted it, and a retired Mind stops loading.
+Look: who writes each record; whether the harness derives ids and hashes itself; `mikata-world` `minds.rs` (survey, load, injected) and the Minds' witness under the state directory; the chained journals (`chains::verify`) and the heads anchored in `log.md`.
+Check: edit a record; declare a hash. Wear a Mind and find its doc and digest in what was injected; edit an adopted Mind's doc, or mark it `- **Retired:** yes`, and try to wear it; can a body un-retire or adopt one (`.mikata/minds/` writes, `mikatad mind`)? Walk each chain: is an edited or removed row found at its line; does its head match the newest anchored one?
+Witness: a forged record accepted, or a retired or changed Mind worn. Held by `a_retired_mind_never_loads`, `a_mind_edited_since_adoption_does_not_load`, `retirement_comes_from_the_witness`, `a_worn_mind_names_its_source` and `a_silent_edit_is_found_at_its_row`.
+Not a finding: a body editing its own draft; a retired Mind's file kept on disk; an unadopted Mind listed but not loaded.
+Regression: self-declared ids and hashes (a fingerprint not recomputed, a hash of the command instead of its output); hollow coverage (uniform reasons on many pairs).

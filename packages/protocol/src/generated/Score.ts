@@ -2,7 +2,7 @@
 import type { Meter } from "./Meter.js";
 
 /**
- * One Dark Elf speciality's value ledger, as `mnemorphd challenge score` says it.
+ * One Dark Elf speciality's value ledger, as `mikatad challenge score` says it.
  */
 export type Score = { 
 /**

@@ -1,0 +1,463 @@
+//! The run's journal: one append-only line per beat, enough to rebuild the conversation exactly.
+
+use mikata_ledger::Timestamp;
+use mikata_provider::{Block, Message, Role};
+use mikata_tools::ReadSpan;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
+
+/// One line of a run's journal.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "beat", rename_all = "snake_case")]
+pub enum Beat {
+    /// The human's ask (or a queued line) that starts or continues the run.
+    Ask {
+        /// The text.
+        text: String,
+    },
+    /// What the model answered: its blocks, kept whole (thinking included) so a resume sends them
+    /// back unchanged.
+    Model {
+        /// The response's blocks, as stored by [`block_json`].
+        content: Vec<Value>,
+        /// Why it stopped.
+        stop: String,
+        /// When the answer came back. Absent from journals written before it was kept.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        at: Option<Timestamp>,
+        /// How long the call took, in milliseconds, retries of a broken stream not included.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ms: Option<u64>,
+        /// The provider's id for the answer: the usage row's `messageId`, which a report joins
+        /// the turn to its row on. Absent when the provider names none.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+    },
+    /// What a tool returned.
+    Result {
+        /// The tool call it answers.
+        tool_use_id: String,
+        /// Its text.
+        content: String,
+        /// Whether it failed.
+        is_error: bool,
+        /// The deferred tools it loaded, by name: a resumed conversation references them again.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        references: Vec<String>,
+        /// The rule that refused the call — `envelope`, `gate`, `sandbox` or `shelf` — when one
+        /// did ([`mikata_tools::Meta::refusal`]).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        refused: Option<String>,
+        /// The call's numbers: what `mikatad runs --metrics` reads.
+        #[serde(flatten)]
+        facts: Facts,
+    },
+    /// A note the loop added to the conversation (a guts warning, a salvage instruction).
+    Note {
+        /// The text.
+        text: String,
+    },
+    /// A warning from the provider (a tool call cut by the output ceiling, …): journaled for the
+    /// human, never fed back to the model.
+    Warning {
+        /// The text.
+        text: String,
+    },
+    /// The end gate's verdict on an answer.
+    Gate {
+        /// The paths the run changed.
+        changed: Vec<String>,
+        /// What failed; empty when it passed.
+        failures: Vec<String>,
+        /// The checks that gave no result.
+        #[serde(default)]
+        unverified: Vec<String>,
+        /// PASS, FAIL or `NOT_VERIFIED`.
+        #[serde(default)]
+        verdict: String,
+        /// Files changed and no verify line ran: a pass that checked nothing.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        unchecked: bool,
+        /// Whose pins the lines that ran are: `the human's pin`, `orc-o's pin`.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        verified_by: Vec<String>,
+        /// The `Done when` lines that fail still, as they did before the body began: they
+        /// refuse no landing, and are no pass.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        open: Vec<String>,
+    },
+    /// A structured compaction: the body's summary of the conversation before it, and how many
+    /// of the newest messages were kept verbatim after it — what a resume rebuilds.
+    Compacted {
+        /// The summary, in its fixed sections.
+        summary: String,
+        /// The messages kept verbatim, counted from the end.
+        tail: usize,
+        /// What leads the compacted conversation: the ask as journaled, with the Minds'
+        /// manifest when the ask did not carry it.
+        #[serde(default)]
+        head: String,
+        /// The context the compacted conversation was estimated to carry: what a resume reads
+        /// instead of the summary turn's full reading.
+        #[serde(default)]
+        occupancy: u64,
+    },
+    /// What recall gave a turn: the anchors it showed the body, and how many it cut above the
+    /// floor — the turn's journal row a run-ending failure reconsolidates by.
+    Recall {
+        /// The recalled notes' ids, best first.
+        anchors: Vec<String>,
+        /// How many cleared the floor and were cut.
+        cut: usize,
+    },
+    /// One act as the guts read it, with the instruments a learned value model will train on.
+    /// Journaled for the record, never fed back to the model.
+    Guts {
+        /// The tool call it reads.
+        tool_use_id: String,
+        /// The tool.
+        tool: String,
+        /// The act's score: +2 a landed write, −1 a failed act or an unchanged re-read, else 0.
+        score: i32,
+        /// The guts window's sum after the act.
+        window: i32,
+        /// The guts window fell below its floor on this act: a warning, or the stop that follows the
+        /// last one.
+        warned: bool,
+        /// The act failed.
+        failed: bool,
+        /// Files it wrote.
+        wrote: u32,
+        /// Lines it added to them, as a multiset: a moved line is neither added nor removed.
+        lines_added: u32,
+        /// Lines it removed from them.
+        lines_removed: u32,
+        /// An edit whose `old_string` was not in the file.
+        edit_miss: bool,
+        /// The bench it ran, if any: a test runner or a verification script.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bench: Option<String>,
+        /// How that bench run counted: green, red, muted, read green or read red.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bench_outcome: Option<String>,
+        /// The command's exit code; `None` for other tools, or a command killed by a signal.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        exit: Option<i32>,
+        /// The act's guts classes ([`crate::guts`]), read by harness code from the facts above and
+        /// the acts before it, never from any text: signals for a learned value, deciding nothing.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        classes: Vec<crate::guts::Class>,
+    },
+    /// The tree a landed write left: the files the ask has changed, hashed, and how many times that
+    /// tree has stood after a write ([`crate::returns`]). A second visit is a tree that came back.
+    /// Journaled for the record, never fed back to the model; nothing acts on it.
+    Tree {
+        /// The tool call whose write it reads.
+        tool_use_id: String,
+        /// The tree's hash: each changed file's path with what it holds, 16 hex digits.
+        digest: String,
+        /// How many times this tree has stood after a landed write, this one included; 0 for the
+        /// starter, which is never counted.
+        visit: u32,
+        /// How many files the ask has changed so far.
+        files: u32,
+        /// Every changed file holds again what it held before the ask first wrote it: a full
+        /// revert, said apart.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        starter: bool,
+    },
+    /// A request that rewrote what the one before it sent: where the cached prefix moved, why — a
+    /// fold, a compaction, or nothing documented — and how many thinking blocks the recovery
+    /// stripped. Journaled for the record, never fed back to the model.
+    Prefix {
+        /// The first block that changed, counted over the frame and then the conversation.
+        at: usize,
+        /// `fold`, `compaction`, or `unexplained`.
+        why: String,
+        /// Thinking blocks stripped from the earlier asks when the move was unexplained.
+        #[serde(default)]
+        stripped: usize,
+    },
+    /// The model the run rides from here: said when it first asks and whenever the model it
+    /// rides changed since — what a resume keeps it on. Journaled for the record, never fed back to
+    /// the model.
+    Rides {
+        /// The model, as the run sends it.
+        model: String,
+        /// The sampling temperature the run sends with it; absent when the host's default rules.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        temperature: Option<f64>,
+        /// The nucleus share it sends; absent when the host's default rules.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        top_p: Option<f64>,
+        /// The thinking effort it sends; absent when the model's default rules.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        effort: Option<String>,
+        /// Whether the model's reasoning is sent back with later turns, when the human said:
+        /// `false` is a run that leaves it out. Absent, it is replayed, as it always was.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        replay_reasoning: Option<bool>,
+    },
+    /// Whether the run's fixed prompt carries the world's law, cards, manifests and opening
+    /// ([`crate::Law`]): said before the first request of every opening of the run — the last
+    /// one holds from there. A run whose law beats disagree mixed arms, and a report refuses it.
+    /// Journaled for the record, never fed back to the model; a resume never reads it back.
+    Law {
+        /// The world's words were said.
+        on: bool,
+        /// How the session's bodies work together, on the session's own run: `light-coding`,
+        /// `structured-coding` or `collective-coding` ([`crate::open::Mode`]). Absent on a
+        /// commissioned body's run, and in journals written before it was kept.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mode: Option<String>,
+        /// Said by a resume, which always holds the law: the run before it may not have.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        resumed: bool,
+    },
+    /// How the run ended.
+    End {
+        /// The ending, in words.
+        ending: String,
+    },
+}
+
+/// The numbers of one tool call, journaled flat beside its result. Each is absent from journals
+/// written before it was kept, and `ms` from a call that never ran in this loop's hands.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Facts {
+    /// How long the call took, in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ms: Option<u64>,
+    /// The bytes of the result the model reads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+    /// Its lines.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lines: Option<u64>,
+    /// A cap cut the result.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub truncated: bool,
+    /// What a read looked at.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read: Option<ReadSpan>,
+}
+
+impl Facts {
+    /// The facts of a result: its size counted from `content`, the rest from the call's meta.
+    #[must_use]
+    pub fn of(content: &str, ms: Option<u64>, meta: &mikata_tools::Meta) -> Self {
+        Self {
+            ms,
+            bytes: Some(content.len() as u64),
+            lines: Some(content.lines().count() as u64),
+            truncated: meta.truncated,
+            read: meta.read.as_deref().cloned(),
+        }
+    }
+}
+
+/// A block as the journal keeps it: lossless, provider-neutral.
+#[must_use]
+pub fn block_json(b: &Block) -> Value {
+    match b {
+        Block::Text { text, cache } => json!({"type": "text", "text": text, "cache": cache}),
+        Block::ToolUse { id, name, input } => {
+            json!({"type": "tool_use", "id": id, "name": name, "input": input})
+        }
+        Block::ToolResult {
+            tool_use_id,
+            content,
+            is_error,
+            cache,
+            references,
+        } => {
+            let mut v = json!({"type": "tool_result", "tool_use_id": tool_use_id, "content": content, "is_error": is_error, "cache": cache});
+            if !references.is_empty() {
+                v["references"] = json!(references);
+            }
+            v
+        }
+        Block::Opaque(v) => json!({"type": "opaque", "value": v}),
+    }
+}
+
+/// A block back from the journal.
+#[must_use]
+pub fn json_block(v: &Value) -> Option<Block> {
+    let s = |k: &str| v.get(k).and_then(Value::as_str).map(str::to_owned);
+    let b = |k: &str| v.get(k).and_then(Value::as_bool).unwrap_or(false);
+    Some(match v.get("type")?.as_str()? {
+        "text" => Block::Text {
+            text: s("text")?,
+            cache: b("cache"),
+        },
+        "tool_use" => Block::ToolUse {
+            id: s("id")?,
+            name: s("name")?,
+            input: v.get("input")?.clone(),
+        },
+        "tool_result" => Block::ToolResult {
+            tool_use_id: s("tool_use_id")?,
+            content: s("content")?,
+            is_error: b("is_error"),
+            cache: b("cache"),
+            references: v
+                .get("references")
+                .and_then(Value::as_array)
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|n| n.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        },
+        "opaque" => Block::Opaque(v.get("value")?.clone()),
+        _ => return None,
+    })
+}
+
+/// Rebuild the conversation a journal records. A tool call the journal shows no result for —
+/// the run stopped between the model's ask and the tool's answer — is answered with an error:
+/// it may not have run, and an act cut mid-flight is gated again, never replayed.
+#[must_use]
+pub fn conversation(beats: &[Beat]) -> Vec<Message> {
+    let mut messages: Vec<Message> = Vec::new();
+    let mut pending: Vec<String> = Vec::new();
+    let mut asked = String::new();
+    let close = |messages: &mut Vec<Message>, pending: &mut Vec<String>| {
+        if pending.is_empty() {
+            return;
+        }
+        let content = pending
+            .drain(..)
+            .map(|id| Block::ToolResult {
+                tool_use_id: id,
+                content: "the run stopped before this call answered; it may not have run — ask again if it is still needed".into(),
+                is_error: true,
+                cache: false,
+                references: Vec::new(),
+            })
+            .collect();
+        push_user(messages, content);
+    };
+    for beat in beats {
+        match beat {
+            Beat::Ask { text } | Beat::Note { text } => {
+                if let Beat::Ask { text } = beat {
+                    text.clone_into(&mut asked);
+                }
+                close(&mut messages, &mut pending);
+                push_user(
+                    &mut messages,
+                    vec![Block::Text {
+                        text: text.clone(),
+                        cache: false,
+                    }],
+                );
+            }
+            Beat::Model { content, .. } => {
+                close(&mut messages, &mut pending);
+                let blocks = clean(content.iter().filter_map(json_block).collect());
+                pending = blocks
+                    .iter()
+                    .filter_map(|b| match b {
+                        Block::ToolUse { id, .. } => Some(id.clone()),
+                        _ => None,
+                    })
+                    .collect();
+                messages.push(Message {
+                    role: Role::Assistant,
+                    content: blocks,
+                });
+            }
+            Beat::Result {
+                tool_use_id,
+                content,
+                is_error,
+                references,
+                ..
+            } => {
+                pending.retain(|id| id != tool_use_id);
+                push_user(
+                    &mut messages,
+                    vec![Block::ToolResult {
+                        tool_use_id: tool_use_id.clone(),
+                        content: content.clone(),
+                        is_error: *is_error,
+                        cache: false,
+                        references: references.clone(),
+                    }],
+                );
+            }
+            Beat::End { .. } => close(&mut messages, &mut pending),
+            Beat::Compacted {
+                summary,
+                tail,
+                head,
+                ..
+            } => {
+                close(&mut messages, &mut pending);
+                let from = messages.len().saturating_sub(*tail);
+                let head = if head.is_empty() { &asked } else { head };
+                messages = crate::compact::compacted(head, summary, &messages[from..]);
+            }
+            Beat::Gate { .. }
+            | Beat::Warning { .. }
+            | Beat::Guts { .. }
+            | Beat::Tree { .. }
+            | Beat::Recall { .. }
+            | Beat::Prefix { .. }
+            | Beat::Rides { .. }
+            | Beat::Law { .. } => {}
+        }
+    }
+    close(&mut messages, &mut pending);
+    messages
+}
+
+/// Append blocks as the user's turn, merging into the last user message so results of one model
+/// turn, and a note after them, travel together.
+pub(crate) fn push_user(messages: &mut Vec<Message>, content: Vec<Block>) {
+    match messages.last_mut() {
+        Some(m) if m.role == Role::User => m.content.extend(content),
+        _ => messages.push(Message {
+            role: Role::User,
+            content,
+        }),
+    }
+}
+
+/// What the model returned, made fit to send back: empty text blocks dropped, a repeated tool
+/// call id made unique, and an empty reply stated as such — a provider refuses all three, and
+/// the loop must never build a conversation it would refuse.
+#[must_use]
+pub fn clean(content: Vec<Block>) -> Vec<Block> {
+    let mut ids = std::collections::BTreeSet::new();
+    let mut out: Vec<Block> = content
+        .into_iter()
+        .filter(|b| !matches!(b, Block::Text { text, .. } if text.trim().is_empty()))
+        .map(|b| match b {
+            Block::ToolUse { id, name, input } => {
+                let mut unique = id.clone();
+                let mut n = 2;
+                while !ids.insert(unique.clone()) {
+                    unique = format!("{id}-{n}");
+                    n += 1;
+                }
+                Block::ToolUse {
+                    id: unique,
+                    name,
+                    input,
+                }
+            }
+            other => other,
+        })
+        .collect();
+    if out.is_empty() {
+        out.push(Block::Text {
+            text: "(the model returned nothing)".into(),
+            cache: false,
+        });
+    }
+    out
+}

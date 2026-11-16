@@ -1,5 +1,5 @@
 /**
- * The approval card's rules, apart from its drawing — the TUI's card (`mnemorph-tui`'s
+ * The approval card's rules, apart from its drawing — the TUI's card (`mikata-tui`'s
  * `approval.rs`) on the web:
  *
  * - **Arming.** The card arms {@link ARM_MS} after it is first *visible* — the tab visible, the
@@ -18,7 +18,7 @@
  * The board holds the same rules it can see — the digest, the acknowledgement, the 300 ms, one
  * answer, the controller only — whatever this page does.
  */
-import type { GateRequest } from '@mnemorph/protocol';
+import type { GateRequest } from '@mikata/protocol';
 
 /** How long the card ignores input once it is visible. */
 export const ARM_MS = 300;
@@ -109,7 +109,7 @@ export function escapes(text: string): { text: string; escaped: boolean }[] {
  */
 export async function askDigest(id: string, a: GateRequest): Promise<string> {
   const enc = new TextEncoder();
-  const parts: Uint8Array[] = [enc.encode('mnemorph.ask.v1\n')];
+  const parts: Uint8Array[] = [enc.encode('mikata.ask.v1\n')];
   const field = (s: string) => {
     const b = enc.encode(s);
     parts.push(enc.encode(`${b.length}:`), b, enc.encode('\n'));

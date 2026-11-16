@@ -139,7 +139,7 @@ anything was shown; past that, nothing half-streamed entered the conversation, s
 same request again, twice at most in a row, and the journal says so. Only an error another attempt
 could change is asked again.
 
-A checkpoint is an honest stop: the journal holds every beat, and `mnemorph resume <run>` picks
+A checkpoint is an honest stop: the journal holds every beat, and `mikata resume <run>` picks
 up from it. An outward act cut mid-flight is never replayed: before its post's next act is
 gated, its probe says whether it landed (settled, not asked again), never did (gated again as a
 new act) or cannot be told (`reconcile`, for the human) — [races](02-races.md).
@@ -187,10 +187,10 @@ Whether a model does its work as well without its earlier reasoning is a measure
 default: the switch ships off the default until a paired screen says.
 
 **Resume.** A session's run stops at a checkpoint, an interrupt, or a turn the process died in;
-`mnemorphd runs` lists such runs, newest first — the id, when its journal was last written, why it
+`mikatad runs` lists such runs, newest first — the id, when its journal was last written, why it
 stopped, the last ask — and the session says the command when it stops at a checkpoint.
-`mnemorph resume <run>` (or `last`, the newest; `mnemorph --resume <run>` is the same;
-`mnemorphd --resume <run>` for an SDK client) opens a session on it:
+`mikata resume <run>` (or `last`, the newest; `mikata --resume <run>` is the same;
+`mikatad --resume <run>` for an SDK client) opens a session on it:
 
 - **One door.** A resumed session opens exactly as a fresh one does — the configuration, the
   provider and its key, the sandbox, the end gate, the observer, the commissioner when the world
@@ -202,10 +202,10 @@ stopped, the last ask — and the session says the command when it stops at a ch
   dispatcher's.
 - **One session per run.** A live session holds its run — a lock beside its journal that the
   operating system lets go of when the process ends, however it ends — and a resume of a held run
-  is refused; a run whose lock cannot be made opens no session at all. `mnemorphd runs` only probes
+  is refused; a run whose lock cannot be made opens no session at all. `mikatad runs` only probes
   the lock, and a resume waits that instant out. When a session ends with nothing left to resume,
   its lock file is removed while still held. What `runs` prints from a journal — the last ask, why
-  it stopped — has every character `mnemorph_loop::hidden` names (controls, format and bidi
+  it stopped — has every character `mikata_loop::hidden` names (controls, format and bidi
   characters, separators, default-ignorables) escaped.
 - **The model it rode.** The journal says which model the run rides, and a resumed run keeps it.
   When the configuration now names another, the run switches and the body is told as a context
@@ -224,16 +224,16 @@ Each model turn carries when it came back (`at`) and how long the call took (`ms
 carries its call's numbers beside it: `ms`, the `bytes` and `lines` the model reads, `truncated`
 when a cap cut it (output bytes dropped, matches past the limit, a line cut short), and for a read
 `read` — the file, the `lines` shown, and `unchanged` when the window was skipped as unchanged.
-`mnemorphd runs --metrics <run>` (or `last`, or a journal's path; `--json` for a script) reads
+`mikatad runs --metrics <run>` (or `last`, or a journal's path; `--json` for a script) reads
 them back: time in the model against time in tools, bytes, lines, truncations and context share
 by tool, the share of reads that re-read lines already read, the lines written, and whether a
 test ran after the last change to a code file (a command that names a test runner or runs a file
-under `tests/` or named `test_*.py`; a probe is not a test, and a write under `.mnemorph` is not
+under `tests/` or named `test_*.py`; a probe is not a test, and a write under `.mikata` is not
 code). That last reading is reported, not acted on: over the kept one-body runs that answered,
 12 of 23 failed qwen runs ran no test after their last code write, against 5 of 21 that passed.
 A journal written before a number was kept counts sizes from its text and its calls as untimed.
 
-`mnemorphd runs --session [<dir>]` reads a whole session across its bodies, from the run
+`mikatad runs --session [<dir>]` reads a whole session across its bodies, from the run
 journals and the usage ledger (the world's instruments, or `<dir>`, a world or a kept
 instruments directory; `--json` for a script). A turn is joined to its ledger row by the
 provider's message id, which the model beat keeps as `id` and the usage row as `messageId`; a turn
@@ -265,7 +265,7 @@ and said to have no dollars. It reports:
   first line) is new, read again in the same order, read in the same body's earlier order
   (whether that order kept its conversation or started cold), or read first by another member.
 - **Orders by outcome**, with their dollars and the top's own: ended at the step cap, escalated,
-  refused, landed lines outside `.mnemorph`, or landed nothing.
+  refused, landed lines outside `.mikata`, or landed nothing.
 
 **Replay compaction** is a pure function over a copy of the conversation: old tool outputs fold
 to a one-line caption — "folded: 100 lines of earlier output, call the tool again if you need
@@ -393,7 +393,7 @@ tally as if the exit status had been seen. A read moves only the tally: a read r
 act, so the guts and escalation are untouched. An unsure answer, a failed decision, output the
 shell cut short, stdout or stderr (its summary is in the part dropped), an Esc during the command or the decision,
 or the run's clock running out leaves the run muted, as it was. Each decision is journaled in
-`.mnemorph/instruments/decisions.jsonl`, priced into the usage ledger, and named in a warning in
+`.mikata/instruments/decisions.jsonl`, priced into the usage ledger, and named in a warning in
 the beat journal (for the human, never replayed to the model).
 
 **Trees that come back.** After every write that landed through a file tool, the files the ask
@@ -421,7 +421,7 @@ its classes reach a surface.
 
 **The guts classes.** Each guts beat also names the act's **classes**, isekai's words for what an
 act was, read by harness code from the act's structured outcome and the run's acts before it
-(`mnemorph_loop::guts`):
+(`mikata_loop::guts`):
 
 | Class | The act |
 |---|---|
@@ -456,9 +456,9 @@ class read from words alone, is not kept.
 
 The classes are kept twice: on the beat, in the run's journal inside the world; and as one row per
 act — the run, the body, the tool call, its classes and the build that classed it — in a journal
-the harness alone writes, outside the world: `$XDG_STATE_HOME/mnemorph/guts/<world>-<fnv64a>.jsonl`,
+the harness alone writes, outside the world: `$XDG_STATE_HOME/mikata/guts/<world>-<fnv64a>.jsonl`,
 chained by hash and anchored with the world's other chained journals
-([chains](05-architecture.md#configuration)). Only that record is shown. `mnemorph status` counts the
+([chains](05-architecture.md#configuration)). Only that record is shown. `mikata status` counts the
 last run's acts per class from it, while its chain holds:
 
 ```text
@@ -487,7 +487,7 @@ The council's keys are `stress.escalate_at` (5), `stress.relieve_at` (7) and `st
 read from the body's own first `@S`, never from how the loop ended — a court that reports
 `@S FAIL` still finishes its loop cleanly. A clean landing clears it; the human's denials and
 interrupted or dry runs never add to it. Every relief resets its own trigger, or the next run dies
-on its first act. The tally is `.mnemorph/instruments/council.jsonl`, sat after every commission that answered: a
+on its first act. The tally is `.mikata/instruments/council.jsonl`, sat after every commission that answered: a
 run whose report did not say `DONE` adds its failed acts and one more — a gate denial is the
 human's, never a failed act — and a `DONE` clears it. Relief acts only after a warrant, and a
 relief that cannot act escalates instead, the tally kept; re-asks are not counted yet. The warrant reaches the parent as a hole in the child's report —
@@ -511,12 +511,12 @@ The world repairs itself in small, mechanical steps, each one written to the led
   `Retired: yes` line, and on a split a `Heirs` line naming its young, and nothing else changes;
   its open queue orders are named, to re-route.
   Every check runs before any write, and a failed write is undone. The
-  human can act it with `mnemorphd relief <name> [--apply]` — without `--apply` it says what it
+  human can act it with `mikatad relief <name> [--apply]` — without `--apply` it says what it
   would do; never from a body's command. `--around <part>,<part>` splits it around two parts of
   its ground — one to each young, the rest shared out evenly — as evolution's trigger names them
   where its trouble clusters.
 - **A clock death leaves a memo**: a court killed by its deadline gets its one salvage turn, then
-  its lane goes into the instruments as a `death` row (`.mnemorph/instruments/deaths.jsonl`, with
+  its lane goes into the instruments as a `death` row (`.mikata/instruments/deaths.jsonl`, with
   the body named next) and the next-fit lane is suggested on the wire, as a hole — the living
   sibling of the same base race under the same parent, not stuck on its files, with the best
   worth (a tie to the one that spent least), or, with none, a smaller order or a longer clock —
@@ -526,7 +526,7 @@ The world repairs itself in small, mechanical steps, each one written to the led
   fingerprint moves — another session's relief, a hand edit — the roster is rebuilt before the
   next dispatch, so no court is created for a retired seat. A heal never moves trust: a body's
   verify lines change only through its own gate.
-- **`mnemorphd housekeep --heal`** fixes what is mechanical — a creature without a doc, a broken
+- **`mikatad housekeep --heal`** fixes what is mechanical — a creature without a doc, a broken
   *Reports to* link — and reports everything else. A seat with no doc gets a retired stub, so its
   memory stays visible and it claims nothing; a *Reports to* that names no living creature is
   relinked to the nearest living ancestor of the race that may command it (an Orc for a Slime, an
@@ -548,7 +548,7 @@ A creature's card lives in the world, and nothing read from inside a world grant
 can reach a card through routes no tool guard sees — a commit made with git's plumbing and checked
 out later, a merge, a pull — and a cloned repository brings every card from a stranger. So the end
 gate never runs a verify line because a card says it. It runs the lines **pinned** for the
-creature in a witness kept outside the world, `$XDG_STATE_HOME/mnemorph/verify/<world>-<fnv64a>.jsonl`
+creature in a witness kept outside the world, `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl`
 (else under `~/.local/state`), hash-chained and anchored as `verify` with the world's other chained
 journals ([storage](05-architecture.md#storage-files-are-the-truth)), and only while the card
 still says the same set of lines.
@@ -556,27 +556,27 @@ still says the same set of lines.
 - **A card that differs from its pin** — a line changed, added or removed — runs nothing. The
   landing fails closed at once, NOT_VERIFIED with no retry, since no retry of the body's can pin a
   line: "the verify line in `<card>` differs from the pinned one: run
-  `mnemorphd verify pin <creature>` to accept it".
+  `mikatad verify pin <creature>` to accept it".
 - **A card with lines and no pin** — a fresh world, a cloned one, a card born since — runs nothing
   the same way, with the same way on. A card with no line and no pin runs no check: its landing
   passes as the baseline, journaled `PASS, unchecked` with "no verify line ran", shown so in the
-  terminal app and `mnemorph status`, and never counted as verified — not by a body's worth,
+  terminal app and `mikata status`, and never counted as verified — not by a body's worth,
   nor as a fact's ground.
 - **A witness whose chain does not walk whole** — a row edited, a tail dropped against its anchor —
-  trusts no pin: every landing fails closed until the human looks (`mnemorphd housekeep --verify`
+  trusts no pin: every landing fails closed until the human looks (`mikatad housekeep --verify`
   says where it breaks).
 
-Three writers, none of them a body's command: the human's `mnemorphd verify pin <creature>`, which
+Three writers, none of them a body's command: the human's `mikatad verify pin <creature>`, which
 shows the card's lines and asks at the terminal (`/dev/tty`; piped input is refused), or pins
 without asking under `--yes` for a script the human runs — a benchmark harness that writes the
 card itself; the harness, for the line an Orc codes on its own Slime with the `verify` tool (and
 for the withdrawal of the line an Orc coded before for the same `Done when` name, which the new
 one replaces; a line the human pinned is never withdrawn); and
 relief, which pins each young to the lines its parent's pin held, never to the card's. Every write
-is refused inside a body's command (`MNEMORPH_BODY` is set there), and the sandbox grants no
+is refused inside a body's command (`MIKATA_BODY` is set there), and the sandbox grants no
 command the state directory. A body could unset the variable where no sandbox holds it
 (`sandbox.allow_unguarded`), so the human's pin — the command and the first-run prompt — is also
-refused when any process above it is `mnemorph`, `mnemorphd` or `mnemorph-guard` (read from
+refused when any process above it is `mikata`, `mikatad` or `mikata-guard` (read from
 `/proc` on Linux, `ps` on macOS; an ancestry that cannot be read refuses). A state directory that
 lies inside the world — `XDG_STATE_HOME` pointed there — holds no pin: nothing is written or read
 there, and the gate fails closed.
@@ -585,13 +585,13 @@ there, and the gate fails closed.
 the human's check. A line an Orc coded is the Orc's own word on its Slime: the gate runs it, but
 it earns no test bench for the guts classes (no `positive`, no `red-pin`; its failure is a
 `fail`), and a pass on an Orc's lines alone is journaled "verified by `<orc>`'s pin", apart from
-"the human's pin", so whatever weighs the verdicts can tell them apart. `mnemorphd verify list`
+"the human's pin", so whatever weighs the verdicts can tell them apart. `mikatad verify list`
 and the first-run prompt show each pinned line's author.
 
 The first run in a fresh or cloned world asks once. Before the terminal app takes the screen, it
 lists every living creature whose card holds lines the pins do not — the card, the lines, whether
 it is unpinned or differs — and asks one question; `y` pins exactly the lines shown, anything else
-pins nothing and says the landings fail closed until `mnemorphd verify pin`. `mnemorph run` never
+pins nothing and says the landings fail closed until `mikatad verify pin`. `mikata run` never
 asks: its gate fails closed with the hint. A pin is the human's word on one world, named by its
 real path: a copy of the world is pinned again.
 
@@ -599,10 +599,10 @@ real path: a copy of the world is pinned again.
 
 Runs on the body's own writes (minus what its Courts already landed on their own account) — a
 commissioned body's, and the session's own: Summoner's verify lines are the `Verify:` line of its
-card (`.mnemorph/summoner/summoner/README.md`), read when the session opens and run only as
+card (`.mikata/summoner/summoner/README.md`), read when the session opens and run only as
 [pinned](#the-verify-pins), and in light-coding the whole repository is its soil, so right author holds
 by construction. A card with no verify line runs no
-check, and then no claim of a light-coding session is ever grounded: `mnemorphd memory status` and
+check, and then no claim of a light-coding session is ever grounded: `mikatad memory status` and
 `onto check` (`no-session-verify`, low) say so and suggest the line — the command the project's
 manifest names (Cargo, Python, Node, Go, a Makefile's `test`), picked by the harness and never a
 model's words, since the human may paste it — for the human to add. A Cargo project is suggested
@@ -612,7 +612,7 @@ on each verify command, and names the key that raises it. The gate runs:
 
 1. **Right author** — every path lies in the writer's own soil ([soil](02-races.md#soil--who-may-write-what));
    for a Slime's doc the gate diffs by line range: the verify block is the Orc's, the rest is the
-   Slime's. The records under `.mnemorph/` are outside the tree's snapshot: the tripwire refuses
+   Slime's. The records under `.mikata/` are outside the tree's snapshot: the tripwire refuses
    or reverts a tool's write there, beyond the shared queue, scratch and the advisory mirror.
    Writes are found by snapshotting the tree, whatever tool made them — a shell
    redirect counts the same as the write tool. A path's owner is read with `own` on the roster
@@ -635,7 +635,7 @@ on each verify command, and names the key that raises it. The gate runs:
    additions excepted). A check never writes: a verify run that changes the tree beyond what
    git ignores — a test run's build output — fails the landing whole, naming what it changed, with
    no second try (a retry would write nothing and pass what the first wrote as the body's work).
-   What a check leaves behind goes to `.mnemorph/report/`, prepared when a session opens: the
+   What a check leaves behind goes to `.mikata/report/`, prepared when a session opens: the
    folder, and the common test leftovers (`__pycache__/`, `.pytest_cache/`, `.mypy_cache/`,
    `.ruff_cache/`, and at the root `/.coverage`, `/htmlcov/`, `/coverage/`, `/.nyc_output/`), are
    ignored through git's local exclude file, never committed, so the project's `.gitignore` stays
@@ -683,7 +683,7 @@ its size — with more skip markers than before (`#[ignore`, `.skip(`, `.only(`,
 `t.Skip(`, `t.Skipf(`, `@pytest.mark.skip`, …) or fewer tests (`#[test]`, `func Test`, `def
 test_`, `it(`, `test(`, `@Test`). Right author holds by
 construction: the whole repository is the body's soil, and the tripwire keeps `.git` and
-`.mnemorph` out. An answer that changed nothing passes untouched. A first failure goes back to
+`.mikata` out. An answer that changed nothing passes untouched. A first failure goes back to
 the body as a note; a second ends the run as FAIL, every verdict journaled.
 
 A landing on a Dark Elf surface passes as `PASS (challenge pending)`: its challenge opens at the
@@ -702,8 +702,8 @@ first one that did not pass and `, unrun` when no kernel guard let any check run
 the paths it changed and what failed; a pass that changed nothing is not journaled. The writer
 only appends, whole entries in one write, each on lines of its own — a control character in a
 command's output or a file name becomes a space — and never writes through a link; a world
-without `.mnemorph/` has no journal. The same verdict is kept again outside the world, by the
-harness alone, in the hash-chained gate journal (`mnemorph_world::verdicts`, anchored as `gate`),
+without `.mikata/` has no journal. The same verdict is kept again outside the world, by the
+harness alone, in the hash-chained gate journal (`mikata_world::verdicts`, anchored as `gate`),
 stamped with the build that gave it; cards and the stuck rule read the verdicts from it, held to
 its newest anchor, and from `log.md` only in a world that keeps none yet (the cards say so). A
 verdict journal that does not verify trusts no body: dispatch waits for the human. Three fails running for the same

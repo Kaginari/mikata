@@ -25,7 +25,7 @@ import type {
   RaceLaw,
   TimelineEntry,
   TimelineKind,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useKnowledge } from './knowledge.ts';
 
 const obj = (v: unknown): Record<string, unknown> | undefined =>

@@ -1,0 +1,1486 @@
+//! The file tools against a real world on disk.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use mikata_races::{Race, ToolClass};
+use mikata_tools::{Context, Outcome, call, registry};
+
+/// A fresh world with a soil (`src/`) and a directory outside it, removed on drop.
+struct World {
+    root: PathBuf,
+}
+
+impl World {
+    fn new(name: &str) -> Self {
+        let root = std::env::temp_dir().join(format!("mikata-files-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("world/src")).unwrap();
+        fs::create_dir_all(root.join("outside")).unwrap();
+        fs::write(root.join("outside/secret.txt"), "secret\n").unwrap();
+        Self { root }
+    }
+
+    fn world(&self) -> PathBuf {
+        self.root.join("world")
+    }
+
+    fn put(&self, rel: &str, content: &str) {
+        let p = self.world().join(rel);
+        fs::create_dir_all(p.parent().unwrap()).unwrap();
+        fs::write(p, content).unwrap();
+    }
+
+    fn get(&self, rel: &str) -> String {
+        fs::read_to_string(self.world().join(rel)).unwrap()
+    }
+
+    fn cx(&self) -> Context {
+        Context::new(Race::Slime, self.world(), &["src"])
+    }
+
+    #[cfg(unix)]
+    fn link(&self, rel: &str, to: &Path) {
+        std::os::unix::fs::symlink(to, self.world().join(rel)).unwrap();
+    }
+}
+
+impl Drop for World {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
+fn run(cx: &mut Context, name: &str, args: &str) -> Outcome {
+    call(&registry(), name, args, cx)
+}
+
+#[test]
+fn every_tool_has_a_schema_an_example_and_a_shelf_seat() {
+    for tool in registry() {
+        let schema = tool.schema();
+        assert_eq!(schema["type"], "object", "{}", tool.name());
+        let props = schema["properties"].as_object().unwrap();
+        let example = tool.example();
+        for key in example.as_object().unwrap().keys() {
+            assert!(
+                props.contains_key(key),
+                "{}: example key `{key}` not in the schema",
+                tool.name()
+            );
+        }
+        for req in schema["required"].as_array().unwrap() {
+            assert!(
+                example.get(req.as_str().unwrap()).is_some(),
+                "{}: example lacks `{req}`",
+                tool.name()
+            );
+        }
+        assert!(
+            Race::ALL.iter().any(|r| r.shelf().contains(&tool.class())),
+            "{} has no shelf seat",
+            tool.name()
+        );
+        assert_ne!(tool.description(), "");
+    }
+}
+
+#[test]
+fn bad_arguments_are_named_errors_and_nothing_runs() {
+    let w = World::new("args");
+    let mut cx = w.cx();
+    let o = run(&mut cx, "write", "{\"path\": \"src/a.rs\", \"content\": ");
+    assert!(
+        o.is_error && o.content.contains("arguments to write are not valid JSON"),
+        "{o:?}"
+    );
+    let o = run(&mut cx, "write", r#"{"path": "src/a.rs", "contents": "x"}"#);
+    assert!(
+        o.is_error && o.content.contains("do not fit its schema"),
+        "{o:?}"
+    );
+    let o = run(&mut cx, "read", r"{}");
+    assert!(o.is_error && o.content.contains("path"), "{o:?}");
+    let o = run(&mut cx, "launch", r"{}");
+    assert!(
+        o.is_error && o.content.contains("there is no tool `launch`"),
+        "{o:?}"
+    );
+    assert!(!w.world().join("src/a.rs").exists());
+}
+
+/// Some models send an optional number as the text `"None"` or `"null"`: it means the parameter is
+/// left at its default, as a JSON null does. One kept run sent `"end": "None"` to `read` 23 times,
+/// each refused, and three bodies ended on those refusals alone. A word that is not a number and
+/// not a null is still refused.
+#[test]
+fn a_null_written_as_text_leaves_an_optional_number_at_its_default() {
+    let w = World::new("textual-null");
+    w.put("src/a.py", "one\ntwo\nthree\n");
+    for null in ["None", "null", "none", "NULL", ""] {
+        // A fresh context each time: a window read again is answered "unchanged".
+        let mut cx = w.cx();
+        let o = run(
+            &mut cx,
+            "read",
+            &format!(r#"{{"path": "src/a.py", "offset": 2, "end": "{null}"}}"#),
+        );
+        assert!(!o.is_error && o.content.contains("three"), "{null}: {o:?}");
+        assert!(!o.content.contains("one"), "{null}: from the offset: {o:?}");
+    }
+    let mut cx = w.cx();
+    let o = run(&mut cx, "read", r#"{"path": "src/a.py", "end": "lots"}"#);
+    assert!(
+        o.is_error && o.content.contains("do not fit its schema"),
+        "{o:?}"
+    );
+}
+
+/// A folder given to `index` is its files: one kept run indexed ten project folders by name, each
+/// refused as "Is a directory", and its body ended on those refusals.
+#[test]
+fn index_reads_a_folder_as_its_files() {
+    let w = World::new("index-folder");
+    w.put("src/pkg/one.py", "def one():\n    return 1\n");
+    w.put("src/pkg/two.py", "def two():\n    return 2\n");
+    let mut cx = w.cx();
+    let o = run(&mut cx, "index", r#"{"path": "src/pkg/"}"#);
+    assert!(!o.is_error, "{o:?}");
+    assert!(
+        o.content.contains("src/pkg/one.py")
+            && o.content.contains("fn one")
+            && o.content.contains("src/pkg/two.py")
+            && o.content.contains("fn two"),
+        "{o:?}"
+    );
+    assert!(o.content.contains("is a folder"), "said: {o:?}");
+}
+
+#[test]
+fn read_numbers_lines_and_withholds_an_unchanged_window() {
+    let w = World::new("read");
+    w.put("src/a.txt", "one\ntwo\nthree\nfour\n");
+    let mut cx = w.cx();
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": 2, "limit": 2}"#,
+    );
+    assert_eq!(
+        o.content,
+        "     2\ttwo\n     3\tthree\n… 1 more lines (offset 4 continues)"
+    );
+    assert_eq!(o.meta.class, Some(ToolClass::Read));
+    assert!(!o.meta.unchanged);
+
+    let again = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": 2, "limit": 2}"#,
+    );
+    assert!(
+        again.meta.unchanged && again.content.contains("unchanged"),
+        "{again:?}"
+    );
+
+    let other = run(&mut cx, "read", r#"{"path": "src/a.txt"}"#);
+    assert!(!other.meta.unchanged, "another window is read in full");
+
+    w.put("src/a.txt", "one\nTWO\nthree\nfour\n");
+    let changed = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": 2, "limit": 2}"#,
+    );
+    assert!(
+        !changed.meta.unchanged && changed.content.contains("TWO"),
+        "{changed:?}"
+    );
+}
+
+#[test]
+fn read_refuses_binary_files_and_offsets_past_the_end() {
+    let w = World::new("binary");
+    fs::write(w.world().join("src/b.bin"), [0u8, 1, 2, 3]).unwrap();
+    w.put("src/short.txt", "a\n");
+    let mut cx = w.cx();
+    assert!(
+        run(&mut cx, "read", r#"{"path": "src/b.bin"}"#)
+            .content
+            .contains("binary")
+    );
+    assert!(run(&mut cx, "read", r#"{"path": "src/short.txt", "offset": 9}"#).is_error);
+}
+
+/// A Rust file of `n` functions, each three lines and documented: `n * 4` lines.
+fn many_fns(n: usize) -> String {
+    use std::fmt::Write as _;
+    let mut text = String::new();
+    for i in 0..n {
+        let _ = write!(text, "/// f{i}.\nfn f{i}() {{\n    let x = {i};\n}}\n");
+    }
+    text
+}
+
+#[test]
+fn index_outlines_files_with_line_ranges() {
+    let w = World::new("index");
+    w.put(
+        "src/a.rs",
+        "use std::fmt;\n\nstruct A;\n\nimpl A {\n    fn go(&self) {}\n}\n",
+    );
+    w.put("notes.md", "# Notes\n\n## One\ntext\n");
+    let mut cx = w.cx();
+    let o = run(
+        &mut cx,
+        "index",
+        r#"{"path": "src/a.rs", "paths": ["notes.md"]}"#,
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(o.meta.class, Some(ToolClass::Read));
+    assert_eq!(
+        o.content,
+        "src/a.rs — rust, 7 lines\nimports 1–1 (1): use std::fmt\n3–3 struct A\n5–7 impl A\n  6–6 fn go\nnotes.md — markdown, 4 lines\n1–4 # Notes\n  3–4 ## One"
+    );
+    // One file of several missing is said in place; all missing is an error.
+    let o = run(
+        &mut cx,
+        "index",
+        r#"{"path": "src/a.rs", "paths": ["src/gone.rs"]}"#,
+    );
+    assert!(
+        !o.is_error && o.content.contains("cannot index `src/gone.rs`"),
+        "{o:?}"
+    );
+    let o = run(&mut cx, "index", r#"{"path": "src/gone.rs"}"#);
+    assert!(o.is_error, "{o:?}");
+    let o = run(&mut cx, "index", r"{}");
+    assert!(o.is_error && o.content.contains("`path`"), "{o:?}");
+}
+
+#[test]
+fn a_large_file_read_without_a_range_answers_with_its_skeleton() {
+    let w = World::new("large");
+    w.put("src/big.rs", &many_fns(150));
+    let mut cx = w.cx();
+    let o = run(&mut cx, "read", r#"{"path": "src/big.rs"}"#);
+    assert!(!o.is_error, "{o:?}");
+    assert!(
+        o.content.starts_with(
+            "`src/big.rs` is large (600 lines, over 400): read it by range — `offset` and `end`, or `src/big.rs#symbol`."
+        ),
+        "{}",
+        o.content
+    );
+    assert!(o.content.contains("\n1–4 fn f0\n"), "{}", o.content);
+    assert!(
+        o.content.contains("… 125 more symbols from line 101"),
+        "{}",
+        o.content
+    );
+    assert!(!o.content.contains("let x"), "no line of the file is shown");
+
+    // By range, the lines asked for.
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/big.rs", "offset": 5, "end": 8}"#,
+    );
+    assert_eq!(
+        o.content,
+        "     5\t/// f1.\n     6\tfn f1() {\n     7\t    let x = 1;\n     8\t}\n… 592 more lines (offset 9 continues)"
+    );
+    // Only a start: the range rule's length from there.
+    let o = run(&mut cx, "read", r#"{"path": "src/big.rs", "offset": 101}"#);
+    assert!(
+        o.content.contains("   500\t") && !o.content.contains("   501\t"),
+        "{}",
+        o.content
+    );
+
+    // By symbol: the symbol's lines, its doc included.
+    let o = run(&mut cx, "read", r#"{"path": "src/big.rs#f2"}"#);
+    assert_eq!(
+        o.content,
+        "fn f2, lines 9–12:\n     9\t/// f2.\n    10\tfn f2() {\n    11\t    let x = 2;\n    12\t}\n… 588 more lines (offset 13 continues)"
+    );
+    let o = run(&mut cx, "read", r#"{"path": "src/big.rs#nope"}"#);
+    assert!(
+        o.is_error && o.content.contains("no symbol `nope`") && o.content.contains("1–4 fn f0"),
+        "{o:?}"
+    );
+    let o = run(&mut cx, "read", r#"{"path": "src/big.rs#f2", "offset": 3}"#);
+    assert!(o.is_error, "{o:?}");
+
+    // Many short lines over the byte line count as large too.
+    w.put("src/wide.txt", &format!("{}\n", "x".repeat(30_000)));
+    let o = run(&mut cx, "read", r#"{"path": "src/wide.txt"}"#);
+    assert!(
+        o.content.contains("is large (30 KB, over 24 KB)"),
+        "{}",
+        o.content
+    );
+}
+
+#[test]
+fn a_symbol_named_twice_is_refused_with_its_candidates() {
+    let w = World::new("twice");
+    w.put(
+        "src/a.rs",
+        "struct A;\nimpl A {\n    fn new() {}\n}\nstruct B;\nimpl B {\n    fn new() {}\n}\n",
+    );
+    let mut cx = w.cx();
+    let o = run(&mut cx, "read", r#"{"path": "src/a.rs#new"}"#);
+    assert!(o.is_error, "{o:?}");
+    assert!(
+        o.content.contains("3–3 fn new (in impl A)")
+            && o.content.contains("7–7 fn new (in impl B)"),
+        "{}",
+        o.content
+    );
+    let o = run(&mut cx, "read", r#"{"path": "src/a.rs#B::new"}"#);
+    assert_eq!(
+        o.content,
+        "fn new (in impl B), lines 7–7:\n     7\t    fn new() {}\n… 1 more lines (offset 8 continues)"
+    );
+}
+
+#[test]
+fn a_small_file_reads_whole_and_a_range_is_clamped() {
+    let w = World::new("small");
+    w.put("src/a.txt", "one\ntwo\nthree\n");
+    w.put("src/b#c.txt", "hash\n");
+    let mut cx = w.cx();
+    let o = run(&mut cx, "read", r#"{"path": "src/a.txt"}"#);
+    assert_eq!(o.content, "     1\tone\n     2\ttwo\n     3\tthree\n");
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": 2, "end": 99}"#,
+    );
+    assert_eq!(
+        o.content,
+        "     2\ttwo\n     3\tthree\n(end 99 is past the file's 3 lines: read to 3)"
+    );
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": 3, "end": 2}"#,
+    );
+    assert!(o.is_error && o.content.contains("before `offset`"), "{o:?}");
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "end": 2, "limit": 1}"#,
+    );
+    assert_eq!(
+        o.content, "     1\tone\n     2\ttwo\n… 1 more lines (offset 3 continues)",
+        "`end` names the last line, whatever `limit` says"
+    );
+    // A file whose name holds `#` is that file.
+    let o = run(&mut cx, "read", r#"{"path": "src/b#c.txt"}"#);
+    assert_eq!(o.content, "     1\thash\n");
+    // A symbol in a file with no skeleton: by range instead.
+    let o = run(&mut cx, "read", r#"{"path": "src/a.txt#one"}"#);
+    assert!(o.is_error && o.content.contains("no skeleton"), "{o:?}");
+}
+
+#[test]
+fn with_the_range_rule_off_a_large_file_reads_whole() {
+    let w = World::new("rule-off");
+    w.put("src/big.rs", &many_fns(150));
+    let mut cx = w.cx().with_range_over(0);
+    let o = run(&mut cx, "read", r#"{"path": "src/big.rs"}"#);
+    assert!(
+        o.content.starts_with("     1\t/// f0.\n") && o.content.contains("   600\t}"),
+        "{}",
+        o.content
+    );
+    // A lower line: the rule asks sooner.
+    let mut cx = w.cx().with_range_over(10);
+    w.put("src/mid.rs", &many_fns(3));
+    let o = run(&mut cx, "read", r#"{"path": "src/mid.rs"}"#);
+    assert!(
+        o.content.contains("is large (12 lines, over 10)"),
+        "{}",
+        o.content
+    );
+}
+
+#[test]
+fn nothing_leaves_the_world() {
+    let w = World::new("border");
+    let mut cx = w.cx();
+    for args in [
+        r#"{"path": "../outside/secret.txt"}"#,
+        r#"{"path": "/etc/hosts"}"#,
+    ] {
+        for tool in ["read", "index"] {
+            let o = run(&mut cx, tool, args);
+            assert!(
+                o.is_error && o.content.contains("outside the world"),
+                "{tool} {args}: {o:?}"
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_out_of_the_world_is_refused_by_every_file_tool() {
+    let w = World::new("symlink");
+    let outside = w.root.join("outside");
+    w.link("src/out", &outside);
+    w.link("src/secret.txt", &outside.join("secret.txt"));
+    let mut cx = w.cx();
+    let attempts = [
+        ("read", r#"{"path": "src/secret.txt"}"#),
+        ("read", r#"{"path": "src/out/secret.txt"}"#),
+        ("read", r#"{"path": "src/secret.txt#secret"}"#),
+        ("index", r#"{"path": "src/secret.txt"}"#),
+        ("index", r#"{"path": "src/out/secret.txt"}"#),
+        ("write", r#"{"path": "src/out/new.txt", "content": "x"}"#),
+        ("write", r#"{"path": "src/secret.txt", "content": "x"}"#),
+        (
+            "edit",
+            r#"{"path": "src/secret.txt", "old_string": "secret", "new_string": "gone"}"#,
+        ),
+        ("glob", r#"{"pattern": "*", "path": "src/out"}"#),
+        ("grep", r#"{"pattern": "secret", "path": "src/out"}"#),
+    ];
+    for (name, args) in attempts {
+        let o = run(&mut cx, name, args);
+        assert!(
+            o.is_error && o.content.contains("outside the world"),
+            "{name} {args}: {o:?}"
+        );
+    }
+    assert_eq!(
+        fs::read_to_string(outside.join("secret.txt")).unwrap(),
+        "secret\n"
+    );
+    assert!(!outside.join("new.txt").exists());
+}
+
+#[test]
+fn writes_stay_in_the_soil() {
+    let w = World::new("soil");
+    let mut cx = w.cx();
+    let o = run(&mut cx, "write", r#"{"path": "README.md", "content": "x"}"#);
+    assert!(
+        o.is_error && o.content.contains("outside your soil") && o.content.contains("src"),
+        "{o:?}"
+    );
+    let o = run(
+        &mut cx,
+        "write",
+        r#"{"path": "src/deep/new.rs", "content": "fn a() {}\n"}"#,
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(o.meta.class, Some(ToolClass::Write));
+    assert_eq!(o.meta.wrote.len(), 1);
+    assert_eq!(w.get("src/deep/new.rs"), "fn a() {}\n");
+}
+
+#[test]
+fn a_write_resets_what_read_withholds() {
+    let w = World::new("reset");
+    w.put("src/a.txt", "one\n");
+    let mut cx = w.cx();
+    run(&mut cx, "read", r#"{"path": "src/a.txt"}"#);
+    run(
+        &mut cx,
+        "write",
+        r#"{"path": "src/a.txt", "content": "two\n"}"#,
+    );
+    let o = run(&mut cx, "read", r#"{"path": "src/a.txt"}"#);
+    assert!(
+        !o.meta.unchanged,
+        "after a write the file is read in full again"
+    );
+}
+
+#[test]
+fn edit_is_strict_and_says_where() {
+    let w = World::new("edit");
+    w.put(
+        "src/lib.rs",
+        "fn alpha() {}\nfn beta() {}\nfn alpha_two() {}\n",
+    );
+    let mut cx = w.cx();
+
+    let none = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/lib.rs", "old_string": "fn betta() {}", "new_string": "x"}"#,
+    );
+    assert!(
+        none.is_error && none.content.contains("closest line is 2: `fn beta() {}`"),
+        "{none:?}"
+    );
+
+    let many = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/lib.rs", "old_string": "fn alpha", "new_string": "fn a"}"#,
+    );
+    assert!(
+        many.is_error
+            && many.content.contains("occurs 2 times")
+            && many.content.contains("lines 1, 3"),
+        "{many:?}"
+    );
+
+    let one = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/lib.rs", "old_string": "fn beta()", "new_string": "fn gamma()"}"#,
+    );
+    assert!(
+        !one.is_error && one.content.contains("from line 2"),
+        "{one:?}"
+    );
+    assert_eq!(one.meta.wrote.len(), 1);
+
+    let all = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/lib.rs", "old_string": "fn alpha", "new_string": "fn a", "replace_all": true}"#,
+    );
+    assert!(!all.is_error, "{all:?}");
+    assert_eq!(
+        w.get("src/lib.rs"),
+        "fn a() {}\nfn gamma() {}\nfn a_two() {}\n"
+    );
+
+    assert!(
+        run(
+            &mut cx,
+            "edit",
+            r#"{"path": "src/lib.rs", "old_string": "", "new_string": "x"}"#
+        )
+        .is_error
+    );
+    assert!(
+        run(
+            &mut cx,
+            "edit",
+            r#"{"path": "src/lib.rs", "old_string": "fn a", "new_string": "fn a"}"#
+        )
+        .is_error
+    );
+}
+
+/// One edit on `file` at `src/f.txt`: the outcome and what the file holds after.
+fn edit_once(name: &str, file: &str, old: &str, new: &str) -> (Outcome, String) {
+    edit_at(name, "src/f.txt", file, old, new)
+}
+
+/// One edit on `file` at `path`: the outcome and what the file holds after.
+fn edit_at(name: &str, path: &str, file: &str, old: &str, new: &str) -> (Outcome, String) {
+    let w = World::new(name);
+    w.put(path, file);
+    let mut cx = w.cx();
+    let args = serde_json::json!({"path": path, "old_string": old, "new_string": new});
+    let o = run(&mut cx, "edit", &args.to_string());
+    (o, w.get(path))
+}
+
+/// Whitespace that carries meaning stays strict: a run inside a quoted string, trailing spaces in
+/// Markdown (a hard break); a replacement line between levels is kept in spaces, and stays strict
+/// in a tab-indented file.
+#[test]
+fn meaningful_whitespace_is_never_forgiven() {
+    let file = "let s = \"a  b\";\n";
+    let (o, got) = edit_once(
+        "forgive-quote",
+        file,
+        "let s = \"a b\";",
+        "let s = \"a c\";",
+    );
+    assert!(o.is_error && o.content.contains("closest line"), "{o:?}");
+    assert_eq!(got, file);
+    let file = "let  s = 'x';\n";
+    let (o, _) = edit_once("forgive-quote-out", file, "let s = 'x';", "let s = 'y';");
+    assert!(
+        !o.is_error && o.content.contains("inner whitespace"),
+        "{o:?}"
+    );
+
+    let file = "# T\nline  \nnext\n";
+    let (o, got) = edit_at("forgive-md", "src/f.md", file, "line\nnext", "l\nn");
+    assert!(o.is_error && o.meta.wrote.is_empty(), "{o:?}");
+    assert_eq!(got, file);
+    let (o, _) = edit_at("forgive-txt", "src/f.txt", file, "line\nnext", "l\nn");
+    assert!(
+        !o.is_error && o.content.contains("trailing whitespace"),
+        "{o:?}"
+    );
+
+    let old = "if x {\n    go();\n}";
+    let new = "if x {\n    go(a,\n      b);\n}";
+    let (o, got) = edit_once(
+        "forgive-half",
+        "fn f() {\n    if x {\n        go();\n    }\n}\n",
+        old,
+        new,
+    );
+    assert!(o.content.contains("indentation (+4 spaces)"), "{o:?}");
+    assert_eq!(
+        got,
+        "fn f() {\n    if x {\n        go(a,\n          b);\n    }\n}\n"
+    );
+    let file = "fn f() {\n\tif x {\n\t\tgo();\n\t}\n}\n";
+    let (o, got) = edit_once("forgive-half-tabs", file, old, new);
+    assert!(o.is_error && o.meta.wrote.is_empty(), "{o:?}");
+    assert_eq!(got, file);
+}
+
+/// With no exact match, each forgiving rung takes its one region, keeps the file's line endings
+/// and indentation, and says what it forgave and where.
+#[test]
+fn each_forgiving_rung_takes_one_region_and_says_so() {
+    let cases: [(&str, &str, &str, &str, &str, &str); 6] = [
+        (
+            "line endings",
+            "a\r\nb\r\nc\r\n",
+            "a\nb\n",
+            "x\ny\n",
+            "x\r\ny\r\nc\r\n",
+            "forgiven: line endings (CRLF) at lines 1–2",
+        ),
+        (
+            "trailing",
+            "fn a() {  \n    x;\n}\n",
+            "fn a() {\n    x;",
+            "fn a() {\n    y;",
+            "fn a() {\n    y;\n}\n",
+            "forgiven: trailing whitespace at lines 1–2",
+        ),
+        (
+            "trailing, CRLF",
+            "a  \r\nb\r\n",
+            "a\nb",
+            "c\nd",
+            "c\r\nd\r\n",
+            "forgiven: trailing whitespace at lines 1–2",
+        ),
+        (
+            "inner",
+            "let  x =\t1;\nlet y = 2;\n",
+            "let x = 1;",
+            "let x = 3;",
+            "let x = 3;\nlet y = 2;\n",
+            "forgiven: inner whitespace at line 1",
+        ),
+        (
+            "indentation",
+            "fn f() {\n    if x {\n        go();\n    }\n}\n",
+            "if x {\n    go();\n}",
+            "if x {\n    go();\n    stop();\n}",
+            "fn f() {\n    if x {\n        go();\n        stop();\n    }\n}\n",
+            "forgiven: indentation (+4 spaces) at lines 2–4",
+        ),
+        (
+            "indentation, tabs",
+            "fn f() {\n\tif x {\n\t\tgo();\n\t}\n}\n",
+            "if x {\n    go();\n}",
+            "if x {\n    go();\n    stop();\n}",
+            "fn f() {\n\tif x {\n\t\tgo();\n\t\tstop();\n\t}\n}\n",
+            "forgiven: indentation (4-space levels as tabs, at 1 tab) at lines 2–4",
+        ),
+    ];
+    for (i, (what, file, old, new, after, note)) in cases.into_iter().enumerate() {
+        let (o, got) = edit_once(&format!("forgive-{i}"), file, old, new);
+        assert!(!o.is_error && o.content.contains(note), "{what}: {o:?}");
+        assert_eq!(got, after, "{what}");
+        assert_eq!(o.meta.wrote.len(), 1, "{what}");
+    }
+}
+
+/// Two places matching a rung are a guess: the edit fails, names both, and writes nothing.
+#[test]
+fn a_forgiving_rung_with_two_places_names_both_and_writes_nothing() {
+    let cases: [(&str, &str, &str, &str); 4] = [
+        ("line endings", "a\r\nb\r\na\r\nb\r\n", "a\nb", "lines 1, 3"),
+        (
+            "trailing whitespace",
+            "x  \ny\nx \ny\n",
+            "x\ny",
+            "lines 1, 3",
+        ),
+        ("inner whitespace", "a  b\nc\na\tb\n", "a b", "lines 1, 3"),
+        (
+            "indentation",
+            "  go();\n  stop();\nz\n\tgo();\n\tstop();\n",
+            "go();\nstop();",
+            "lines 1, 4",
+        ),
+    ];
+    for (i, (rung, file, old, lines)) in cases.into_iter().enumerate() {
+        let (o, got) = edit_once(&format!("forgive-many-{i}"), file, old, "new");
+        assert!(
+            o.is_error
+                && o.meta.edit_miss
+                && o.content
+                    .contains(&format!("forgiving {rung}, it matches 2 places ({lines})")),
+            "{rung}: {o:?}"
+        );
+        assert!(o.meta.wrote.is_empty(), "{rung}");
+        assert_eq!(got, file, "{rung}: nothing was written");
+    }
+}
+
+/// An exact match is never reported as forgiven, and several exact matches stay the strict error.
+#[test]
+fn an_exact_match_forgives_nothing() {
+    let (o, got) = edit_once("forgive-exact", "a  \nb\n", "a  \nb", "c\nd");
+    assert!(!o.is_error && !o.content.contains("forgiven"), "{o:?}");
+    assert_eq!(got, "c\nd\n");
+    let (o, _) = edit_once("forgive-exact-many", "go();\n  go();\n", "go();", "x");
+    assert!(o.is_error && o.content.contains("occurs 2 times"), "{o:?}");
+}
+
+#[test]
+fn glob_lists_honours_gitignore_and_skips_git() {
+    let w = World::new("glob");
+    w.put("src/a.rs", "");
+    w.put("src/nested/b.rs", "");
+    w.put("src/c.txt", "");
+    w.put("target/built.rs", "");
+    w.put(".git/HEAD.rs", "");
+    w.put(".gitignore", "target/\n");
+    fs::create_dir_all(w.world().join(".git")).unwrap();
+    let mut cx = w.cx();
+    let o = run(&mut cx, "glob", r#"{"pattern": "**/*.rs"}"#);
+    assert_eq!(o.content, "src/a.rs\nsrc/nested/b.rs", "{o:?}");
+    let o = run(&mut cx, "glob", r#"{"pattern": "*.rs", "path": "src"}"#);
+    assert_eq!(o.content, "src/a.rs");
+}
+
+#[test]
+fn grep_finds_lines_or_files() {
+    let w = World::new("grep");
+    w.put("src/a.rs", "fn main() {}\nlet x = 1;\n");
+    w.put("src/b.md", "Main idea\n");
+    fs::write(w.world().join("src/c.bin"), b"fn main\0").unwrap();
+    let mut cx = w.cx();
+    let o = run(&mut cx, "grep", r#"{"pattern": "fn main"}"#);
+    assert_eq!(
+        o.content, "src/a.rs:1: fn main() {}",
+        "binary files are skipped"
+    );
+    let o = run(
+        &mut cx,
+        "grep",
+        r#"{"pattern": "main", "ignore_case": true, "files_only": true}"#,
+    );
+    assert_eq!(o.content, "src/a.rs\nsrc/b.md");
+    let o = run(
+        &mut cx,
+        "grep",
+        r#"{"pattern": "main", "ignore_case": true, "glob": "*.md"}"#,
+    );
+    assert_eq!(o.content, "src/b.md:1: Main idea");
+    assert!(run(&mut cx, "grep", r#"{"pattern": "("}"#).is_error);
+}
+
+#[test]
+fn protected_files_are_not_written_by_tools() {
+    let w = World::new("protected");
+    fs::create_dir_all(w.world().join(".git/hooks")).unwrap();
+    fs::write(w.world().join(".git/config"), "[core]\n").unwrap();
+    let mut cx = Context::new(Race::Slime, w.world(), &["."]);
+    for (name, args) in [
+        (
+            "write",
+            r#"{"path": ".git/config", "content": "[core]\n\tfsmonitor = x\n"}"#,
+        ),
+        (
+            "write",
+            r##"{"path": ".git/hooks/pre-commit", "content": "#!/bin/sh\n"}"##,
+        ),
+        (
+            "write",
+            r#"{"path": ".mikata/log.md", "content": "forged"}"#,
+        ),
+        (
+            "edit",
+            r#"{"path": ".git/config", "old_string": "[core]", "new_string": "[x]"}"#,
+        ),
+    ] {
+        let o = run(&mut cx, name, args);
+        assert!(
+            o.is_error && o.content.contains("is protected"),
+            "{name} {args}: {o:?}"
+        );
+    }
+    assert_eq!(
+        fs::read_to_string(w.world().join(".git/config")).unwrap(),
+        "[core]\n"
+    );
+    let o = run(
+        &mut cx,
+        "write",
+        r#"{"path": ".mikata/shared/queue.jsonl", "content": "{}\n"}"#,
+    );
+    // The shared work queue moves only through the harness, never by a body's tool.
+    assert!(o.is_error && o.content.contains("is protected"), "{o:?}");
+    // A Mind is the human's: a body is told so, never silently ignored.
+    fs::create_dir_all(w.world().join(".mikata/minds")).unwrap();
+    fs::write(w.world().join(".mikata/minds/release.md"), "# Release\n").unwrap();
+    for (name, args) in [
+        (
+            "write",
+            r#"{"path": ".mikata/minds/release.md", "content": "- **Retired:** yes\n"}"#,
+        ),
+        (
+            "edit",
+            r##"{"path": ".mikata/minds/release.md", "old_string": "# Release", "new_string": "# Mine"}"##,
+        ),
+        (
+            "write",
+            r##"{"path": ".mikata/minds/new/README.md", "content": "# New\n"}"##,
+        ),
+    ] {
+        let o = run(&mut cx, name, args);
+        assert!(
+            o.is_error && o.content.contains("is a Mind's: Minds are the human's"),
+            "{name} {args}: {o:?}"
+        );
+    }
+    assert_eq!(
+        fs::read_to_string(w.world().join(".mikata/minds/release.md")).unwrap(),
+        "# Release\n"
+    );
+}
+
+fn use_tool(cx: &mut Context, name: &str, args: &serde_json::Value) -> Outcome {
+    call(&registry(), name, &args.to_string(), cx)
+}
+
+/// Several edits, in order, all or none.
+#[test]
+fn multiedit_writes_all_or_nothing() {
+    let w = World::new("multiedit");
+    w.put("src/a.rs", "fn one() {}\nfn two() {}\n");
+    let mut cx = w.cx();
+    let o = use_tool(
+        &mut cx,
+        "multiedit",
+        &serde_json::json!({"path": "src/a.rs", "edits": [
+            {"old_string": "fn one()", "new_string": "fn uno()"},
+            {"old_string": "fn uno() {}\nfn two()", "new_string": "fn uno() {}\nfn dos()"}
+        ]}),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/a.rs"), "fn uno() {}\nfn dos() {}\n");
+    let o = use_tool(
+        &mut cx,
+        "multiedit",
+        &serde_json::json!({"path": "src/a.rs", "edits": [
+            {"old_string": "fn uno()", "new_string": "fn first()"},
+            {"old_string": "fn missing()", "new_string": "x"}
+        ]}),
+    );
+    assert!(
+        o.is_error
+            && o.content.starts_with("edit 2 of 2:")
+            && o.content.ends_with("Nothing was written."),
+        "{o:?}"
+    );
+    assert_eq!(w.get("src/a.rs"), "fn uno() {}\nfn dos() {}\n");
+}
+
+/// A move inside the soil, a directory with its files, never over an existing file, never out —
+/// and inside a folder that holds another's spot, where a command's `mv` is refused.
+#[test]
+fn move_stays_inside_the_soil() {
+    let w = World::new("move");
+    w.put("src/a.rs", "a\n");
+    w.put("src/dir/x.rs", "x\n");
+    w.put("src/other/theirs.rs", "theirs\n");
+    w.put("src/b.rs", "b\n");
+    let mut cx =
+        Context::new(Race::Slime, w.world(), &["."]).with_soil(&["src/"], &["src/other/"], false);
+    let o = use_tool(
+        &mut cx,
+        "move",
+        &serde_json::json!({"from": "src/a.rs", "to": "src/sub/renamed.rs"}),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/sub/renamed.rs"), "a\n");
+    assert!(!w.world().join("src/a.rs").exists());
+    let o = use_tool(
+        &mut cx,
+        "move",
+        &serde_json::json!({"from": "src/dir", "to": "src/moved"}),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/moved/x.rs"), "x\n");
+    for (from, to, why) in [
+        ("src/b.rs", "src/sub/renamed.rs", "already exists"),
+        ("src/b.rs", "src/other/b.rs", "outside your soil"),
+        ("src/other/theirs.rs", "src/stolen.rs", "outside your soil"),
+        ("src/b.rs", "../outside/b.rs", "outside the world"),
+        ("src/nothing.rs", "src/n.rs", "does not exist"),
+    ] {
+        let o = use_tool(
+            &mut cx,
+            "move",
+            &serde_json::json!({"from": from, "to": to}),
+        );
+        assert!(
+            o.is_error && o.content.contains(why),
+            "{from} → {to}: {o:?}"
+        );
+    }
+    assert_eq!(w.get("src/other/theirs.rs"), "theirs\n");
+    assert_eq!(w.get("src/b.rs"), "b\n");
+}
+
+/// A delete keeps a copy in the attic first; a directory, or a body with no attic, is refused.
+#[test]
+fn delete_keeps_a_copy_first() {
+    let w = World::new("delete");
+    w.put("src/gone.rs", "gone\n");
+    w.put("src/dir/x.rs", "x\n");
+    let mut bare = w.cx();
+    let o = use_tool(
+        &mut bare,
+        "delete",
+        &serde_json::json!({"path": "src/gone.rs"}),
+    );
+    assert!(o.is_error && o.content.contains("no attic"), "{o:?}");
+    assert!(w.world().join("src/gone.rs").exists());
+    let attic =
+        mikata_tools::Attic::at(&w.root.join("attic"), &w.world()).expect("git is installed");
+    let mut cx = w.cx().with_attic(attic);
+    let o = use_tool(&mut cx, "delete", &serde_json::json!({"path": "src/dir"}));
+    assert!(o.is_error && o.content.contains("is a directory"), "{o:?}");
+    let o = use_tool(
+        &mut cx,
+        "delete",
+        &serde_json::json!({"path": "src/gone.rs"}),
+    );
+    assert!(
+        !o.is_error && o.content.contains("the attic keeps a copy"),
+        "{o:?}"
+    );
+    assert!(!w.world().join("src/gone.rs").exists());
+    let o = use_tool(
+        &mut cx,
+        "delete",
+        &serde_json::json!({"path": "../outside/secret.txt"}),
+    );
+    assert!(o.is_error, "{o:?}");
+}
+
+/// What the review of the file tools found, each held: a delete with no copy in the attic deletes
+/// nothing; a link is deleted or moved as a link; a folder holding another's spot, even an empty
+/// one, never moves whole; a move into itself leaves nothing behind; a multiedit that changes
+/// nothing writes nothing; git's own files are never a tool's.
+#[cfg(unix)]
+#[test]
+fn the_file_tools_review_held() {
+    let w = World::new("review");
+    w.put(".gitignore", "*.env\n");
+    w.put("src/secret.env", "KEY=1\n");
+    w.put("src/real.rs", "real\n");
+    w.put("src/r2.rs", "r2\n");
+    w.put("src/dir/x.rs", "x\n");
+    w.put("src/a.rs", "aaa\n");
+    w.put(".git/HEAD", "ref: refs/heads/main\n");
+    fs::create_dir_all(w.world().join("src/box/spot/deeper")).unwrap();
+    w.link("src/l", &w.world().join("src/real.rs"));
+    w.link("src/l2", &w.world().join("src/r2.rs"));
+    let attic =
+        mikata_tools::Attic::at(&w.root.join("attic"), &w.world()).expect("git is installed");
+    let mut cx = Context::new(Race::Slime, w.world(), &["."])
+        .with_soil(&["src/", ".git/"], &["src/box/spot/"], false)
+        .with_attic(attic);
+
+    let o = use_tool(
+        &mut cx,
+        "delete",
+        &serde_json::json!({"path": "src/secret.env"}),
+    );
+    assert!(o.is_error && o.content.contains("keeps no copy"), "{o:?}");
+    assert!(w.world().join("src/secret.env").exists());
+
+    let o = use_tool(&mut cx, "delete", &serde_json::json!({"path": "src/l"}));
+    assert!(!o.is_error, "{o:?}");
+    assert!(
+        w.world().join("src/l").symlink_metadata().is_err() && w.get("src/real.rs") == "real\n"
+    );
+    let o = use_tool(
+        &mut cx,
+        "move",
+        &serde_json::json!({"from": "src/l2", "to": "src/m2"}),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert!(
+        w.world()
+            .join("src/m2")
+            .symlink_metadata()
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(w.get("src/r2.rs"), "r2\n");
+
+    let o = use_tool(
+        &mut cx,
+        "move",
+        &serde_json::json!({"from": "src/box", "to": "src/box2"}),
+    );
+    assert!(
+        o.is_error && o.content.contains("holds another's spot"),
+        "{o:?}"
+    );
+    assert!(w.world().join("src/box/spot/deeper").is_dir());
+
+    let o = use_tool(
+        &mut cx,
+        "move",
+        &serde_json::json!({"from": "src/dir", "to": "src/dir/a/b"}),
+    );
+    assert!(o.is_error && o.content.contains("into itself"), "{o:?}");
+    assert!(!w.world().join("src/dir/a").exists());
+
+    let o = use_tool(
+        &mut cx,
+        "multiedit",
+        &serde_json::json!({"path": "src/a.rs", "edits": [
+            {"old_string": "aaa", "new_string": "bbb"},
+            {"old_string": "bbb", "new_string": "aaa"}
+        ]}),
+    );
+    assert!(o.is_error && o.content.contains("as it was"), "{o:?}");
+
+    let o = use_tool(
+        &mut cx,
+        "write",
+        &serde_json::json!({"path": ".git/HEAD", "content": "x"}),
+    );
+    assert!(o.is_error && o.content.contains("is git's"), "{o:?}");
+    assert_eq!(w.get(".git/HEAD"), "ref: refs/heads/main\n");
+}
+
+/// What the review of the review added: a failed move leaves no directory behind; a delete takes
+/// an empty directory; a write of what is already there writes nothing; a file that is not text
+/// is never rewritten by an edit.
+#[test]
+fn refusals_leave_the_tree_as_it_was() {
+    let w = World::new("leave");
+    w.put("src/a.rs", "a\n");
+    w.put("src/taken.rs", "taken\n");
+    fs::create_dir_all(w.world().join("src/empty")).unwrap();
+    fs::write(w.world().join("src/bin.dat"), [0xff, 0xfe, b'x']).unwrap();
+    let attic =
+        mikata_tools::Attic::at(&w.root.join("attic"), &w.world()).expect("git is installed");
+    let mut cx = w.cx().with_attic(attic);
+    // A move into new directories makes them, and reports the file at both ends.
+    let o = use_tool(
+        &mut cx,
+        "move",
+        &serde_json::json!({"from": "src/a.rs", "to": "src/new/deep/a.rs"}),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(o.meta.wrote.len(), 2, "{o:?}");
+    let o = use_tool(&mut cx, "delete", &serde_json::json!({"path": "src/empty"}));
+    assert!(
+        !o.is_error && !w.world().join("src/empty").exists(),
+        "{o:?}"
+    );
+    let o = use_tool(
+        &mut cx,
+        "write",
+        &serde_json::json!({"path": "src/taken.rs", "content": "taken\n"}),
+    );
+    assert!(
+        o.is_error && o.content.contains("already holds exactly that"),
+        "{o:?}"
+    );
+    let o = use_tool(
+        &mut cx,
+        "edit",
+        &serde_json::json!({"path": "src/bin.dat", "old_string": "x", "new_string": "y"}),
+    );
+    assert!(o.is_error && o.content.contains("not UTF-8 text"), "{o:?}");
+    assert_eq!(
+        fs::read(w.world().join("src/bin.dat")).unwrap(),
+        [0xff, 0xfe, b'x']
+    );
+}
+
+/// A unified diff across files, whole or not at all: hunks land where they say or at their one
+/// match, files are created and deleted, and a hunk that does not apply writes nothing anywhere.
+#[test]
+fn patch_applies_whole_or_not_at_all() {
+    let w = World::new("patch");
+    w.put("src/a.rs", "one\ntwo\nthree\nfour\n");
+    w.put("src/b.rs", "alpha\nbeta\n");
+    w.put("src/gone.rs", "bye\n");
+    let attic =
+        mikata_tools::Attic::at(&w.root.join("attic"), &w.world()).expect("git is installed");
+    let mut cx = w.cx().with_attic(attic);
+    let diff = "\
+--- a/src/a.rs
++++ b/src/a.rs
+@@ -2,1 +2,1 @@
+-two
++TWO
+@@ -9,1 +9,2 @@
+ four
++five
+--- a/src/b.rs
++++ b/src/b.rs
+@@ -2 +2 @@
+-beta
+\\ No newline at end of file
++gamma
+\\ No newline at end of file
+--- /dev/null
++++ b/src/new.rs
+@@ -0,0 +1,2 @@
++fn new() {}
++
+--- a/src/gone.rs
++++ /dev/null
+@@ -1 +0,0 @@
+-bye
+";
+    let o = use_tool(&mut cx, "patch", &serde_json::json!({"patch": diff}));
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(
+        w.get("src/a.rs"),
+        "one\nTWO\nthree\nfour\nfive\n",
+        "the second hunk found its one match"
+    );
+    assert_eq!(w.get("src/b.rs"), "alpha\ngamma");
+    assert_eq!(w.get("src/new.rs"), "fn new() {}\n\n");
+    assert!(!w.world().join("src/gone.rs").exists());
+
+    // A pure insertion after an earlier hunk grew the file: it lands shifted by that growth.
+    w.put("src/c.rs", "1\n2\n3\n4\n");
+    let shifted =
+        "--- a/src/c.rs\n+++ b/src/c.rs\n@@ -1 +1,2 @@\n-1\n+1a\n+1b\n@@ -3,0 +5 @@\n+after 3\n";
+    let o = use_tool(&mut cx, "patch", &serde_json::json!({"patch": shifted}));
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/c.rs"), "1a\n1b\n2\n3\nafter 3\n4\n");
+
+    // A hunk that does not apply: nothing anywhere is written.
+    let bad = "\
+--- a/src/a.rs
++++ b/src/a.rs
+@@ -1 +1 @@
+-one
++ONE
+--- a/src/b.rs
++++ b/src/b.rs
+@@ -1 +1 @@
+-not there
++x
+";
+    let o = use_tool(&mut cx, "patch", &serde_json::json!({"patch": bad}));
+    assert!(
+        o.is_error
+            && o.content.contains("hunk 1 of `src/b.rs` does not apply")
+            && o.content.ends_with("Nothing was written."),
+        "{o:?}"
+    );
+    assert_eq!(w.get("src/a.rs"), "one\nTWO\nthree\nfour\nfive\n");
+
+    for (diff, why) in [
+        (
+            "--- a/src/a.rs\n+++ b/src/z.rs\n@@ -1 +1 @@\n-one\n+x\n",
+            "use move",
+        ),
+        (
+            "--- a/../outside/secret.txt\n+++ b/../outside/secret.txt\n@@ -1 +1 @@\n-secret\n+x\n",
+            "outside the world",
+        ),
+        ("just prose", "unified diff"),
+        (
+            "--- /dev/null\n+++ b/src/a.rs\n@@ -0,0 +1 @@\n+x\n",
+            "already exists",
+        ),
+    ] {
+        let o = use_tool(&mut cx, "patch", &serde_json::json!({"patch": diff}));
+        assert!(o.is_error && o.content.contains(why), "{why}: {o:?}");
+    }
+    assert_eq!(
+        fs::read_to_string(w.root.join("outside/secret.txt")).unwrap(),
+        "secret\n"
+    );
+}
+
+/// What the patch review found, each held.
+#[test]
+fn patch_review_held() {
+    let w = World::new("patch-review");
+    w.put("src/a.rs", "1\n2\n3\n4\n5\n6\n7\n8\n");
+    w.put("src/crlf.txt", "one\r\ntwo\r\nthree\r\n");
+    w.put("src/dup.txt", "a\nb\n\nc\na\nb\n");
+    w.put("src/q.sql", "select 1;\n-- old note\nselect 2;\n");
+    w.put("src/file", "a file, not a directory\n");
+    let mut cx = w.cx();
+    let p =
+        |cx: &mut Context, diff: &str| use_tool(cx, "patch", &serde_json::json!({"patch": diff}));
+
+    // A path named twice: the second part applies to the first's result.
+    let o = p(
+        &mut cx,
+        "--- a/src/a.rs\n+++ b/src/a.rs\n@@ -1 +1 @@\n-1\n+one\n--- a/src/a.rs\n+++ b/src/a.rs\n@@ -8 +8 @@\n-8\n+eight\n",
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/a.rs"), "one\n2\n3\n4\n5\n6\n7\neight\n");
+    assert_eq!(o.meta.wrote.len(), 1);
+
+    // CRLF stays CRLF.
+    let o = p(
+        &mut cx,
+        "--- a/src/crlf.txt\n+++ b/src/crlf.txt\n@@ -2 +2 @@\n-two\n+TWO\n",
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/crlf.txt"), "one\r\nTWO\r\nthree\r\n");
+
+    // A trailing blank line is the writer's separator, not context: the hunk stays where it says.
+    let o = p(
+        &mut cx,
+        "--- a/src/dup.txt\n+++ b/src/dup.txt\n@@ -5,2 +5,2 @@\n a\n-b\n+B\n\n",
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/dup.txt"), "a\nb\n\nc\na\nB\n");
+
+    // A removed `-- comment` line is a removed line, not a file header.
+    let o = p(
+        &mut cx,
+        "--- a/src/q.sql\n+++ b/src/q.sql\n@@ -1,3 +1,2 @@\n select 1;\n--- old note\n select 2;\n",
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(w.get("src/q.sql"), "select 1;\nselect 2;\n");
+
+    // A patch that changes nothing writes nothing.
+    let o = p(
+        &mut cx,
+        "--- a/src/q.sql\n+++ b/src/q.sql\n@@ -1 +1 @@\n select 1;\n",
+    );
+    assert!(o.is_error && o.content.contains("as it was"), "{o:?}");
+
+    // A failure at the write puts back what landed before it.
+    let o = p(
+        &mut cx,
+        "--- a/src/q.sql\n+++ b/src/q.sql\n@@ -1 +1 @@\n-select 1;\n+select 3;\n--- /dev/null\n+++ b/src/file/new.rs\n@@ -0,0 +1 @@\n+x\n",
+    );
+    assert!(
+        o.is_error && o.content.contains("every file was put back"),
+        "{o:?}"
+    );
+    assert_eq!(w.get("src/q.sql"), "select 1;\nselect 2;\n");
+
+    // What a text patch cannot apply is refused by name, never skipped.
+    for (diff, why) in [
+        (
+            "diff --git a/src/e b/src/e\nnew file mode 100644\nindex 0000000..e69de29\n",
+            "no text hunks",
+        ),
+        (
+            "diff --git a/i.png b/i.png\nBinary files a/i.png and b/i.png differ\n",
+            "binary",
+        ),
+        (
+            "diff --git a/src/a.rs b/src/a.rs\nold mode 100644\nnew mode 100755\n",
+            "mode change",
+        ),
+    ] {
+        let o = p(&mut cx, diff);
+        assert!(o.is_error && o.content.contains(why), "{why}: {o:?}");
+    }
+}
+
+/// The instruments a learned value model trains on: lines added and removed by a write, counted
+/// as a multiset (a moved line is neither), and an edit whose text was not in the file.
+#[test]
+fn writes_count_their_lines_and_a_missed_edit_is_marked() {
+    let w = World::new("instruments");
+    let mut cx = w.cx();
+
+    let o = run(
+        &mut cx,
+        "write",
+        r#"{"path": "src/a.txt", "content": "one\ntwo\nthree\n"}"#,
+    );
+    assert!(!o.is_error, "{}", o.content);
+    assert_eq!(
+        (o.meta.lines_added, o.meta.lines_removed),
+        (3, 0),
+        "a new file adds every line"
+    );
+
+    let o = run(
+        &mut cx,
+        "write",
+        r#"{"path": "src/a.txt", "content": "three\none\nfour\n"}"#,
+    );
+    assert_eq!(
+        (o.meta.lines_added, o.meta.lines_removed),
+        (1, 1),
+        "two lines moved, one replaced"
+    );
+
+    let o = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/a.txt", "old_string": "four\n", "new_string": "five\nsix\n"}"#,
+    );
+    assert!(!o.is_error, "{}", o.content);
+    assert_eq!((o.meta.lines_added, o.meta.lines_removed), (2, 1));
+    assert!(!o.meta.edit_miss);
+
+    // Text that is not in the file: the body edited what it had not read.
+    let o = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/a.txt", "old_string": "seven", "new_string": "eight"}"#,
+    );
+    assert!(o.is_error && o.meta.edit_miss, "{}", o.content);
+
+    // Text that is there twice is refused, but it is no miss.
+    w.put("src/b.txt", "x\nx\n");
+    let o = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/b.txt", "old_string": "x", "new_string": "y"}"#,
+    );
+    assert!(o.is_error && !o.meta.edit_miss, "{}", o.content);
+
+    // A multiedit whose second edit misses is marked, and writes nothing.
+    let o = run(
+        &mut cx,
+        "multiedit",
+        r#"{"path": "src/a.txt", "edits": [{"old_string": "one", "new_string": "uno"}, {"old_string": "nine", "new_string": "ten"}]}"#,
+    );
+    assert!(o.is_error && o.meta.edit_miss, "{}", o.content);
+    assert_eq!(w.get("src/a.txt"), "three\none\nfive\nsix\n");
+
+    let o = run(
+        &mut cx,
+        "multiedit",
+        r#"{"path": "src/a.txt", "edits": [{"old_string": "one", "new_string": "uno"}]}"#,
+    );
+    assert_eq!((o.meta.lines_added, o.meta.lines_removed), (1, 1));
+}
+
+/// An Elf writes the plan in its own seat — the one record a body may write — and nothing else
+/// there: not its doc, not another's plan.
+#[test]
+fn a_body_writes_its_own_plan_and_no_other_record() {
+    let w = World::new("own-plan");
+    w.put(".mikata/elf/e/README.md", "# elf-e\n");
+    w.put(".mikata/elf/f/README.md", "# elf-f\n");
+    let mut cx = Context::new(Race::Elf, w.world(), &[".mikata/elf/e"]).with_seat(".mikata/elf/e");
+    let plan = run(
+        &mut cx,
+        "write",
+        r#"{"path": ".mikata/elf/e/plan.md", "content": "- [ ] orc-o: the parser\n"}"#,
+    );
+    assert!(!plan.is_error, "{plan:?}");
+    let doc = run(
+        &mut cx,
+        "write",
+        r##"{"path": ".mikata/elf/e/README.md", "content": "# elf-e\n- **Verify:** `true`\n"}"##,
+    );
+    assert!(
+        doc.is_error && doc.content.contains("is protected"),
+        "{doc:?}"
+    );
+    let other = run(
+        &mut cx,
+        "write",
+        r#"{"path": ".mikata/elf/f/plan.md", "content": "x\n"}"#,
+    );
+    assert!(other.is_error, "{other:?}");
+}
+
+/// A refusal names only what can be written: an Orc that wrote a script into its seat was told
+/// the seat was its soil, tried again there, and lost turns. The seat is named by its plan, the
+/// scratch by its folder.
+#[test]
+fn a_refusal_names_only_the_writable_soil() {
+    let w = World::new("open-soil");
+    w.put(".mikata/orc/front/README.md", "# orc-front\n");
+    w.put(".mikata/orc/back/README.md", "# orc-back\n");
+    w.put("src/a.txt", "a\n");
+    let mut cx = Context::new(
+        Race::Orc,
+        w.world(),
+        &[".mikata/orc/front", ".mikata/tmp/orc-front"],
+    )
+    .with_seat(".mikata/orc/front");
+    let open = ".mikata/orc/front/plan.md, .mikata/tmp/orc-front";
+    let seat = run(
+        &mut cx,
+        "write",
+        r#"{"path": ".mikata/orc/front/gate.py", "content": "x\n"}"#,
+    );
+    assert!(
+        seat.is_error && seat.content.contains("is protected") && seat.content.ends_with(open),
+        "{seat:?}"
+    );
+    let outside = run(
+        &mut cx,
+        "write",
+        r#"{"path": "src/a.txt", "content": "b\n"}"#,
+    );
+    assert!(
+        outside.is_error
+            && outside
+                .content
+                .contains(&format!("you may write under: {open}")),
+        "{outside:?}"
+    );
+}
+
+#[test]
+fn a_parameter_sent_as_null_is_one_left_at_its_default() {
+    let w = World::new("nulls");
+    w.put("src/a.txt", "one\ntwo\n");
+    let mut cx = w.cx();
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": null, "end": null}"#,
+    );
+    assert_eq!(o.content, "     1\tone\n     2\ttwo\n");
+    let o = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/a.txt", "old_string": "one", "new_string": "uno", "replace_all": null}"#,
+    );
+    assert!(!o.is_error, "a bool has no null of its own: {o:?}");
+}
+
+/// A nullable type makes some models send a number as a string. What fits the parameter is taken
+/// as what it means; what does not is still refused.
+#[test]
+fn a_number_sent_as_a_string_is_read_as_the_number() {
+    let w = World::new("strings");
+    w.put("src/a.txt", "one\ntwo\nthree\n");
+    let mut cx = w.cx();
+    let o = run(
+        &mut cx,
+        "read",
+        r#"{"path": "src/a.txt", "offset": "2", "end": "3"}"#,
+    );
+    assert_eq!(o.content, "     2\ttwo\n     3\tthree\n");
+    let o = run(
+        &mut cx,
+        "edit",
+        r#"{"path": "src/a.txt", "old_string": "one", "new_string": "uno", "replace_all": "true"}"#,
+    );
+    assert!(!o.is_error, "{o:?}");
+    let o = run(&mut cx, "read", r#"{"path": "src/a.txt", "offset": "two"}"#);
+    assert!(o.is_error && o.content.contains("schema"), "{o:?}");
+}

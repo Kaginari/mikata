@@ -1,5 +1,5 @@
 {
-  "name": "@mnemorph/canvas",
+  "name": "@mikata/canvas",
   "version": "0.0.0",
   "private": true,
   "description": "Draws the book's canvases: each page's Mermaid sketches as tldraw documents and SVGs.",

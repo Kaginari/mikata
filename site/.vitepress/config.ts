@@ -9,7 +9,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 // reaches the root node_modules under pnpm's isolated layout.
 export default withMermaid(
   defineConfig({
-    title: 'Mnemorph',
+    title: 'Mikata',
     description:
       'An agent harness grown from isekai: Rust core and terminal app, TypeScript board.',
     srcDir: '../docs',
@@ -44,7 +44,7 @@ export default withMermaid(
     },
     head: [
       ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
-      ['link', { rel: 'icon', type: 'image/png', href: '/mnemorph-icon@64.png' }],
+      ['link', { rel: 'icon', type: 'image/png', href: '/mikata-icon@64.png' }],
       ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
       [
         'link',
@@ -58,11 +58,11 @@ export default withMermaid(
     appearance: 'dark',
     lastUpdated: true,
     themeConfig: {
-      logo: '/mnemorph-icon@64.png',
+      logo: '/mikata-icon@64.png',
       nav: [
         { text: 'Book', link: '/' },
         { text: 'Roadmap', link: '/roadmap' },
-        { text: 'GitHub', link: 'https://github.com/Kaginari/mnemorph' },
+        { text: 'GitHub', link: 'https://github.com/Kaginari/mikata' },
       ],
       sidebar: [
         {

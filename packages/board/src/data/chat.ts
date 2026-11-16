@@ -1,6 +1,6 @@
 /**
  * A chat's transcript as the board keeps it, folded from the protocol's events in the TUI's
- * grammar (crates/mnemorph-tui/src/transcript.rs): the human's lines, the body's answer in
+ * grammar (crates/mikata-tui/src/transcript.rs): the human's lines, the body's answer in
  * paragraphs as they finish, tool calls as cards from their first byte, consecutive looks (read,
  * index, grep, glob) as one card, the end gate as one line, a turn that ended otherwise as one
  * line, and what a commissioned body did as an indented line under it. Beside it, the session's
@@ -9,7 +9,7 @@
  * Every event is folded once, in `seq` order (the SDK drops a repeat), and nothing here renders:
  * the text is kept as it came and drawn inert by the views.
  */
-import type { Arrived } from '@mnemorph/protocol';
+import type { Arrived } from '@mikata/protocol';
 
 /** What a tool returned. */
 export interface Outcome {

@@ -1,4 +1,4 @@
-// The board's own lint, beside Biome: colours come from @mnemorph/theme's tokens only (no raw
+// The board's own lint, beside Biome: colours come from @mikata/theme's tokens only (no raw
 // hex, rgb(), hsl() or other colour literal in packages/board), and no HTML is ever written as a
 // string (dangerouslySetInnerHTML, innerHTML, outerHTML, insertAdjacentHTML, setHTMLUnsafe,
 // srcdoc, document.write), nor code (eval, new Function), nor a regular expression built at run

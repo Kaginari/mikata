@@ -2,7 +2,7 @@
 import type { UnprovenEvent } from "./UnprovenEvent.js";
 
 /**
- * One creature's memory, as a row of `mnemorphd memory status --json`.
+ * One creature's memory, as a row of `mikatad memory status --json`.
  */
 export type MemoryCreature = { 
 /**

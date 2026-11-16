@@ -8,10 +8,10 @@
 # holding other programs' files; a .bashrc that edits PATH — and a world that is a real git
 # repository with history. The provider is a scripted one on loopback: no network, no key.
 #
-#   tools/rc-smoke.sh <dir holding mnemorph and mnemorphd | release archive .tar.gz> [version]
+#   tools/rc-smoke.sh <dir holding mikata and mikatad | release archive .tar.gz> [version]
 #
 # With a version, both binaries must report it. The real HOME is never read or written: every
-# path the binaries resolve (HOME, XDG_*) points into the temp dir, and the real HOME's Mnemorph
+# path the binaries resolve (HOME, XDG_*) points into the temp dir, and the real HOME's Mikata
 # directories are compared before and after. Exit 0 only when every check passed; each failure
 # says what it saw.
 set -euo pipefail
@@ -28,7 +28,7 @@ pass() { printf '  ok    %s\n' "$1"; }
 fail() { printf '  FAIL  %s\n' "$1" >&2; fails=$((fails + 1)); }
 section() { printf '\n%s\n' "$1"; }
 
-tmp=$(mktemp -d "${TMPDIR:-/tmp}/mnemorph-rc.XXXXXX")
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/mikata-rc.XXXXXX")
 tmp=$(cd "$tmp" && pwd -P)
 case "$tmp/" in
   "$real_home"/*) echo "rc-smoke: the temp dir $tmp is inside the real HOME; set TMPDIR elsewhere" >&2; exit 2 ;;
@@ -50,7 +50,7 @@ section "artifact: $input"
 if [ -f "$input" ]; then
   mkdir "$tmp/unpacked"
   tar -xzf "$input" -C "$tmp/unpacked"
-  bin=$(dirname "$(find "$tmp/unpacked" -type f -name mnemorph | head -n 1)")
+  bin=$(dirname "$(find "$tmp/unpacked" -type f -name mikata | head -n 1)")
   for f in LICENSE README.md; do
     if [ -f "$bin/$f" ]; then pass "archive carries $f"; else fail "archive carries $f"; fi
   done
@@ -59,17 +59,17 @@ elif [ -d "$input" ]; then
 else
   usage
 fi
-for b in mnemorph mnemorphd; do
+for b in mikata mikatad; do
   if [ -x "$bin/$b" ]; then pass "$b is executable"; else fail "$b is missing from $bin"; exit 1; fi
 done
 if [ "$(uname -s)" = Linux ]; then
   # The sandbox finds its guard beside the running binary: without it, no command runs.
-  if [ -x "$bin/mnemorph-guard" ]; then pass "mnemorph-guard ships beside mnemorph"; else fail "mnemorph-guard is missing from $bin"; fi
+  if [ -x "$bin/mikata-guard" ]; then pass "mikata-guard ships beside mikata"; else fail "mikata-guard is missing from $bin"; fi
 fi
 
 # ---- the fresh HOME, with realistic dotfiles ----------------------------------------------------
 home=$tmp/home
-mkdir -p "$home"/.config/{nvim,htop,git,mnemorph} "$home"/.gitconfig.d "$home"/.githooks \
+mkdir -p "$home"/.config/{nvim,htop,git,mikata} "$home"/.gitconfig.d "$home"/.githooks \
   "$home"/.local/state/{nvim,wireplumber} "$home"/.local/share/applications "$home"/.local/bin \
   "$home"/.cache "$home"/bin "$home"/code
 cat > "$home/.gitconfig" <<'EOF'
@@ -161,7 +161,7 @@ provider_pid=$!
 for _ in $(seq 1 100); do [ -s "$tmp/port" ] && break; sleep 0.05; done
 [ -s "$tmp/port" ] || { fail "the scripted provider did not start"; exit 1; }
 port=$(cat "$tmp/port")
-cat > "$home/.config/mnemorph/config.toml" <<EOF
+cat > "$home/.config/mikata/config.toml" <<EOF
 [providers.local]
 kind = "openai"
 base_url = "http://127.0.0.1:$port"
@@ -172,10 +172,10 @@ default = "rc-smoke"
 EOF
 pass "scripted provider on 127.0.0.1:$port"
 
-# The real HOME's Mnemorph directories, as they stand: compared again at the end.
+# The real HOME's Mikata directories, as they stand: compared again at the end.
 real_snapshot() {
-  for d in "$real_home/.config/mnemorph" "$real_home/.local/state/mnemorph" \
-    "$real_home/.local/share/mnemorph" "$real_home/.cache/mnemorph"; do
+  for d in "$real_home/.config/mikata" "$real_home/.local/state/mikata" \
+    "$real_home/.local/share/mikata" "$real_home/.cache/mikata"; do
     if [ -e "$d" ]; then
       find "$d" -exec ls -ld {} + 2>/dev/null | sort
     else
@@ -220,19 +220,19 @@ says() { # name, stream (out|err), fixed string, what
 
 # ---- the commands --------------------------------------------------------------------------------
 section "commands (HOME=$home)"
-run version-tui "$bin/mnemorph" --version
-expect version-tui 0 "mnemorph --version"
-says version-tui out "mnemorph ${want_version}" "mnemorph --version says mnemorph ${want_version:-<version>}"
+run version-tui "$bin/mikata" --version
+expect version-tui 0 "mikata --version"
+says version-tui out "mikata ${want_version}" "mikata --version says mikata ${want_version:-<version>}"
 
-run version-core "$bin/mnemorphd" --version
-expect version-core 0 "mnemorphd --version"
-says version-core out "mnemorphd ${want_version}" "mnemorphd --version says mnemorphd ${want_version:-<version>}"
+run version-core "$bin/mikatad" --version
+expect version-core 0 "mikatad --version"
+says version-core out "mikatad ${want_version}" "mikatad --version says mikatad ${want_version:-<version>}"
 if grep -qE '\((unknown|[0-9a-f]{10})(-dirty)?\)' "$tmp/version-core.out"; then
-  pass "mnemorphd --version names its commit"
-else fail "mnemorphd --version names its commit: $(cat "$tmp/version-core.out")"; fi
+  pass "mikatad --version names its commit"
+else fail "mikatad --version names its commit: $(cat "$tmp/version-core.out")"; fi
 
-run status "$bin/mnemorph" status --world "$world"
-expect status 0 "mnemorph status --world <world>"
+run status "$bin/mikata" status --world "$world"
+expect status 0 "mikata status --world <world>"
 says status out "rc-smoke via local" "status reads the global config's model and provider"
 says status out "world    $world" "status names the world"
 if [ "$(uname -s)" = Linux ]; then
@@ -240,8 +240,8 @@ if [ "$(uname -s)" = Linux ]; then
   else fail "status: the kernel guard is in force — $(grep -E '^sandbox ' "$tmp/status.out")"; fi
 fi
 
-run ask "$bin/mnemorph" run "make out.txt say fixed" --world "$world"
-expect ask 0 "mnemorph run (headless, scripted provider)"
+run ask "$bin/mikata" run "make out.txt say fixed" --world "$world"
+expect ask 0 "mikata run (headless, scripted provider)"
 if [ "$(cat "$tmp/ask.out")" = "Fixed it." ]; then pass "the answer alone on stdout"
 else fail "the answer alone on stdout: $(head -c 400 "$tmp/ask.out")"; fi
 says ask err "write out.txt" "stderr shows the write"
@@ -249,8 +249,8 @@ says ask err "end gate PASS" "the end gate passed"
 if [ "$(cat "$world/out.txt" 2>/dev/null)" = fixed ]; then pass "the act landed: out.txt says fixed"
 else fail "the act landed: out.txt is '$(cat "$world/out.txt" 2>/dev/null)'"; fi
 
-run ask-json "$bin/mnemorph" run --json "make out.txt say fixed" --world "$world"
-expect ask-json 0 "mnemorph run --json"
+run ask-json "$bin/mikata" run --json "make out.txt say fixed" --world "$world"
+expect ask-json 0 "mikata run --json"
 if tail -n 1 "$tmp/ask-json.out" | python3 -c '
 import json, sys
 r = json.loads(sys.stdin.read())
@@ -261,14 +261,14 @@ requests=$(wc -l < "$tmp/requests.jsonl" | tr -d ' ')
 if [ "$requests" -ge 4 ]; then pass "the provider was asked $requests times, on loopback only"
 else fail "the provider was asked $requests times"; fi
 
-run board-help "$bin/mnemorphd" board --help
-expect board-help 0 "mnemorphd board --help"
-says board-help out "board" "mnemorphd board --help names the board"
+run board-help "$bin/mikatad" board --help
+expect board-help 0 "mikatad board --help"
+says board-help out "board" "mikatad board --help names the board"
 
 # ---- nothing touched that was not its own --------------------------------------------------------
 section "the machine around it"
-if [ "$(real_snapshot)" = "$real_before" ]; then pass "the real HOME's Mnemorph directories are untouched"
-else fail "the real HOME's Mnemorph directories changed"; fi
+if [ "$(real_snapshot)" = "$real_before" ]; then pass "the real HOME's Mikata directories are untouched"
+else fail "the real HOME's Mikata directories changed"; fi
 if [ "$(foreign_snapshot)" = "$foreign_before" ]; then pass "other programs' config and state are untouched"
 else fail "other programs' config and state changed"; diff <(echo "$foreign_before") <(foreign_snapshot) >&2 || true; fi
 if [ -s "$home/.githooks.fired" ]; then fail "the user's global git hooks ran: $(tr '\n' ';' < "$home/.githooks.fired")"
@@ -280,8 +280,8 @@ if [ "$head_after" = "$head_before" ] && [ "$commits_after" = "$commits_before" 
 else fail "the world's history changed: $commits_before -> $commits_after commits"; fi
 if (cd "$world" && in_home git diff --quiet HEAD -- README.md src .gitignore); then pass "the world's tracked files are as they were"
 else fail "the world's tracked files changed"; fi
-if [ -d "$home/.local/state/mnemorph" ]; then pass "the harness keeps its state under XDG_STATE_HOME"
-else fail "no state under XDG_STATE_HOME/mnemorph"; fi
+if [ -d "$home/.local/state/mikata" ]; then pass "the harness keeps its state under XDG_STATE_HOME"
+else fail "no state under XDG_STATE_HOME/mikata"; fi
 
 echo
 if [ "$fails" -eq 0 ]; then echo "rc-smoke: PASS"; else echo "rc-smoke: FAIL ($fails)" >&2; exit 1; fi

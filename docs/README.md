@@ -1,7 +1,7 @@
-# Mnemorph — the book
+# Mikata — the book
 
-Mnemorph is the agent harness that grows out of isekai: the same nine natures, the same wire,
-rebuilt as a Rust core with a Rust terminal app, `mnemorph`, plus a TypeScript SDK for the web
+Mikata is the agent harness that grows out of isekai: the same nine natures, the same wire,
+rebuilt as a Rust core with a Rust terminal app, `mikata`, plus a TypeScript SDK for the web
 board. The races are **code**, not
 configuration: what each one may do, whom it answers to, how it is scored and how it ascends is
 compiled into the binary.
@@ -26,7 +26,7 @@ Two layers, one picture each:
   They render on GitHub, diff in review, and are the source a canvas is drawn from: under a
   canvas, its sketch sits folded in a "The sketch in Mermaid" section.
 
-A canvas is drawn, never edited by hand: `pnpm --filter @mnemorph/canvas draw` lays each sketch
+A canvas is drawn, never edited by hand: `pnpm --filter @mikata/canvas draw` lays each sketch
 out with tldraw's own Mermaid converter (`@tldraw/mermaid`) in headless Chromium and writes the
 `.tldr` and both SVGs; the same sketches always make the same files. Its labels are written as
 plain SVG text in tldraw's hand-drawn font, cut down to the characters they use, so an SVG holds
@@ -36,7 +36,7 @@ only (the loop and the sandbox top-down, the architecture by ELK, one order's me
 its rows spaced), its Mermaid text kept as written. A node its sketch dashes keeps the dashed
 border. Each canvas links to its SVG at full size. The list of sketches and their layouts is
 `tools/canvas/draw.mjs`'s; it needs the Chromium `@playwright/test` pins once (`pnpm --filter
-@mnemorph/canvas exec playwright install chromium`).
+@mikata/canvas exec playwright install chromium`).
 
 When the code changes a flow, the sketch and its canvas change in the same change (Vitality).
 Canvases are reviewed like code: a tldraw document or an SVG can carry script, and tldraw
@@ -49,7 +49,7 @@ source outside the file, `<foreignObject>`, embed or media there.
 
 | # | Page | Read it to learn |
 |---|---|---|
-| 1 | [Overview](01-overview.md) | what Mnemorph is, light-coding and the other modes, the processes |
+| 1 | [Overview](01-overview.md) | what Mikata is, light-coding and the other modes, the processes |
 | — | [The bench](bench.md) | what we measured against OpenCode and Maki, how, and every screen since |
 | — | [Experimental modes](experimental-modes.md) | structured-coding and collective-coding: the lab, its costs, what is next |
 | 2 | [Races](02-races.md) | every race and ascension: duty, powers, limits, score, fall |
@@ -71,7 +71,7 @@ source outside the file, `<foreignObject>`, embed or media there.
 - **Race** — a kind of agent, compiled in: six races and five ascended forms. No config adds
   another.
 - **Creature** — one living instance of a race, with a name and a territory: `slime-wire`,
-  `orc-engine`. Creatures are data in `.mnemorph/`.
+  `orc-engine`. Creatures are data in `.mikata/`.
 - **Body** — one running context that a creature rides for one commission. It dies with the
   task. Only what it wrote to the world survives it.
 

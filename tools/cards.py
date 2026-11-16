@@ -233,7 +233,7 @@ def card(c):
         d.text((okx - 30, by + 22), f'ok ≥ {ok}', font=font('Rajdhani-SemiBold.ttf', 28), fill=(160, 168, 190))
     # the footer
     ff = font('Cinzel.ttf', 34)
-    foot = f"MNEMORPH  ·  {c['kind']}"
+    foot = f"MIKATA  ·  {c['kind']}"
     paint(img, text_mask((W // 2, 1580), foot, ff), mix(col, (200, 206, 220), 0.5), 230)
     return img
 
@@ -258,7 +258,7 @@ def back():
     glow(img, halo, (255, 190, 90), 80, 0.6)
     em = Image.open(f'{REPO}/assets/brand/mnemorph-icon@512.png').convert('RGBA').resize((640, 640), Image.LANCZOS)
     img.alpha_composite(em, (W // 2 - 320, 440))
-    tm = text_mask((W // 2, 1180), 'MNEMORPH', font('Cinzel.ttf', 104))
+    tm = text_mask((W // 2, 1180), 'MIKATA', font('Cinzel.ttf', 104))
     glow(img, tm, (255, 190, 80), 12, 1.0)
     paint(img, tm, (246, 214, 140))
     for y in (300, 1380):

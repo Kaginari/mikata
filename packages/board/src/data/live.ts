@@ -13,8 +13,8 @@
  * of it — refused (`board/refused`, the ask still waiting) or gone (`board/askGone`, answered
  * here, elsewhere, withdrawn or past its time). The gate handler itself answers nothing.
  */
-import type { GateReply, GateRequest, Hello, Role } from '@mnemorph/protocol';
-import { type Arrived, Client, ws } from '@mnemorph/sdk/browser';
+import type { GateReply, GateRequest, Hello, Role } from '@mikata/protocol';
+import { type Arrived, Client, ws } from '@mikata/sdk/browser';
 import { useEffect, useRef, useState } from 'react';
 import { Chat, type ChatView } from './chat.ts';
 import { csrf } from './session.ts';
@@ -154,7 +154,7 @@ export function useLive(id: string): Live {
     transport.onDrop?.(() => set((s) => ({ ...s, link: 'reconnecting' })));
     transport.onReopen?.(() => set((s) => ({ ...s, link: 'open' })));
 
-    const hello = c.initialize({ name: 'mnemorph-board' });
+    const hello = c.initialize({ name: 'mikata-board' });
     const caught = c.catchUp();
     hello
       .then((h) => {

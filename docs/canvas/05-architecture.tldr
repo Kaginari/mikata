@@ -1670,7 +1670,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "tui — the mnemorph command"
+									"text": "tui — the mikata command"
 								}
 							]
 						},
@@ -1994,7 +1994,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "mnemorphd"
+									"text": "mikatad"
 								}
 							]
 						},

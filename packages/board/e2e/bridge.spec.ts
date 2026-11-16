@@ -1,13 +1,13 @@
 /**
  * A chat end to end on the board's real server and bridge: the `board_e2e` example of
- * mnemorph-server serves this built page over one fresh world, and each chat's child is a real
+ * mikata-server serves this built page over one fresh world, and each chat's child is a real
  * core — the loop, the tools, the end gate — answering from a scripted model instead of a
  * provider. The page trades the printed key, opens a chat, sends two turns and sees them in the
  * TUI's grammar, under the server's own CSP; a reload replays without duplicating; the past run
  * reads from its journal once the chat ends.
  *
- * The binary is built by `cargo build -p mnemorph-server --example board_e2e` after the board
- * (`pnpm --filter @mnemorph/board build`): CI does both. Locally, the test is skipped without it.
+ * The binary is built by `cargo build -p mikata-server --example board_e2e` after the board
+ * (`pnpm --filter @mikata/board build`): CI does both. Locally, the test is skipped without it.
  */
 import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
@@ -18,7 +18,7 @@ import { expect, test } from '@playwright/test';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const BIN =
-  process.env.MNEMORPH_BOARD_E2E ??
+  process.env.MIKATA_BOARD_E2E ??
   join(process.env.CARGO_TARGET_DIR ?? join(repo, 'target'), 'debug/examples/board_e2e');
 
 test.describe('the real bridge', () => {
@@ -30,7 +30,7 @@ test.describe('the real bridge', () => {
 
   test.beforeEach(async () => {
     test.skip(test.info().project.name !== 'desktop', 'one browser is enough');
-    root = mkdtempSync(join(tmpdir(), 'mnemorph-board-e2e-'));
+    root = mkdtempSync(join(tmpdir(), 'mikata-board-e2e-'));
     server = spawn(BIN, [root], { stdio: ['ignore', 'pipe', 'inherit'] });
     url = await new Promise<string>((resolve, reject) => {
       let out = '';

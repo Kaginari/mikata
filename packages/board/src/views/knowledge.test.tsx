@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { BoardWorld } from '@mnemorph/protocol';
+import type { BoardWorld } from '@mikata/protocol';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -131,7 +131,7 @@ test('confirm opens a dialog naming the exact note, and posts its digest with th
   expect(posts).toEqual([
     {
       url: `/api/w/${WORLD.id}/memory/c1730000000001-1/confirm`,
-      headers: expect.objectContaining({ 'x-mnemorph-csrf': CSRF }),
+      headers: expect.objectContaining({ 'x-mikata-csrf': CSRF }),
       body: { seen: 'b'.repeat(64) },
     },
   ]);
@@ -198,7 +198,7 @@ test('settle names the fact and waits for a proof; a statement is posted as the 
   expect(posts).toEqual([
     {
       url: `/api/w/${WORLD.id}/facts/4be1c0a9d2f3e811/settle`,
-      headers: expect.objectContaining({ 'x-mnemorph-csrf': CSRF }),
+      headers: expect.objectContaining({ 'x-mikata-csrf': CSRF }),
       body: { seen: 'f'.repeat(64), statement: 'I read tokens.py: it quotes' },
     },
   ]);

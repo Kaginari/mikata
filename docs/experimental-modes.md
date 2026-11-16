@@ -55,7 +55,7 @@ and **only the tools of that job, enforced by the compiler, not asked for in a p
 - the **Orc** owns a domain and codes the check that will judge the code *before* the code exists;
 - the **Slime** is the only one who may change the code of its own small zone.
 
-They share the work board (`.mnemorph/tmp/board.md`), carry the same "done" list down, and report
+They share the work board (`.mikata/tmp/board.md`), carry the same "done" list down, and report
 one mark per line, read from the checks, never from what a body claimed. It is the most
 interesting thing in the harness, and the most expensive.
 
@@ -118,11 +118,11 @@ will say so here.
 
 | Mode | Start it | It needs |
 |---|---|---|
-| structured-coding | `mnemorph`, in a world where an adopted Elf reports to Summoner; or `--mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
-| collective-coding | `mnemorph --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
+| structured-coding | `mikata`, in a world where an adopted Elf reports to Summoner; or `--mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
+| collective-coding | `mikata --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
 
 A mode the world cannot give opens no session: it is refused with what is missing, before any key
-is asked for. `mnemorph status` says the mode and why. The rest is in the
+is asked for. `mikata status` says the mode and why. The rest is in the
 [overview](01-overview.md#which-mode-and-how-to-start-it).
 
 ### What carries over to light-coding
@@ -131,7 +131,7 @@ The chain's ideas did not stay in the chain. Light-coding is one body that keeps
 
 | From | Rule | In light-coding |
 |---|---|---|
-| Elf | plan before work, weigh paths | `## Paths` and `## Chosen` in `.mnemorph/tmp/plan.md`, before any code |
+| Elf | plan before work, weigh paths | `## Paths` and `## Chosen` in `.mikata/tmp/plan.md`, before any code |
 | Orc | the check exists before the code | the `## Done when` list, `D1`, `D2`…, written first |
 | Slime | change only what you own, checked on landing | the end gate on every changed file, tests intact, no seal |
 | Kijin | only one race reaches outside, and only through you | nothing outward at all: its shelf is read and write |

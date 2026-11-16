@@ -3,7 +3,7 @@
 # shellcheck disable=SC2016
 #
 # The installer, offline: a fake release (an archive per target and SHA256SUMS) is served from a
-# local directory on loopback, and install.sh is pointed at it through MNEMORPH_RELEASE_BASE.
+# local directory on loopback, and install.sh is pointed at it through MIKATA_RELEASE_BASE.
 # A fake `uname` on PATH plays each supported machine. The fresh install is timed against the
 # M14 exit (under two minutes), and every way a download can be wrong is refused.
 #
@@ -15,7 +15,7 @@ set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 installer=$here/../install.sh
-tmp=$(mktemp -d "${TMPDIR:-/tmp}/mnemorph-install-test.XXXXXX")
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/mikata-install-test.XXXXXX")
 server_pid=
 cleanup() {
   if [ -n "$server_pid" ]; then kill "$server_pid" 2>/dev/null || true; fi
@@ -45,24 +45,24 @@ publish() { # dir, version
   mkdir -p "$out"
   for t in $targets; do
     if [ -n "$real" ] && [ "$t" = "$host" ] && [ "$v" = "$version" ]; then
-      cp "$real" "$out/mnemorph-$t.tar.gz"
+      cp "$real" "$out/mikata-$t.tar.gz"
       continue
     fi
-    stage=$tmp/stage/mnemorph-$v-$t
+    stage=$tmp/stage/mikata-$v-$t
     mkdir -p "$stage"
-    for b in mnemorph mnemorphd; do
+    for b in mikata mikatad; do
       printf '#!/bin/sh\necho "%s %s (%s)"\n' "$b" "$v" "$t" > "$stage/$b"
       chmod +x "$stage/$b"
     done
     case $t in *linux*)
-      printf '#!/bin/sh\nexit 0\n' > "$stage/mnemorph-guard"; chmod +x "$stage/mnemorph-guard" ;;
+      printf '#!/bin/sh\nexit 0\n' > "$stage/mikata-guard"; chmod +x "$stage/mikata-guard" ;;
     esac
     printf 'MIT\n' > "$stage/LICENSE"
-    printf '# Mnemorph\n' > "$stage/README.md"
-    tar -czf "$out/mnemorph-$t.tar.gz" -C "$tmp/stage" "mnemorph-$v-$t"
+    printf '# Mikata\n' > "$stage/README.md"
+    tar -czf "$out/mikata-$t.tar.gz" -C "$tmp/stage" "mikata-$v-$t"
     rm -rf "$tmp/stage"
   done
-  (cd "$out" && for f in mnemorph-*.tar.gz; do printf '%s  %s\n' "$(sha "$f")" "$f"; done > SHA256SUMS)
+  (cd "$out" && for f in mikata-*.tar.gz; do printf '%s  %s\n' "$(sha "$f")" "$f"; done > SHA256SUMS)
 }
 publish "$rel/download/v$version" "$version"
 publish "$rel/download/v1.0.0" 1.0.0
@@ -71,7 +71,7 @@ cp -R "$rel/download/v$version" "$rel/latest/download"
 # Broken releases: one archive altered after its sum was written, one with no SHA256SUMS, one
 # whose SHA256SUMS lacks the archive's line.
 cp -R "$rel/download/v$version" "$rel/download/v6.6.6"
-for t in $targets; do printf 'tampered' >> "$rel/download/v6.6.6/mnemorph-$t.tar.gz"; done
+for t in $targets; do printf 'tampered' >> "$rel/download/v6.6.6/mikata-$t.tar.gz"; done
 cp -R "$rel/download/v$version" "$rel/download/v7.7.7"
 rm "$rel/download/v7.7.7/SHA256SUMS"
 cp -R "$rel/download/v$version" "$rel/download/v8.8.8"
@@ -90,19 +90,19 @@ def member(tf, name, kind=tarfile.REGTYPE, link=""):
 bad = {
     "5.5.1": ("../crafted", tarfile.REGTYPE, ""),
     "5.5.2": (sys.argv[2] + "/crafted-absolute", tarfile.REGTYPE, ""),
-    "5.5.3": ("d/mnemorph-guard", tarfile.SYMTYPE, "/etc/passwd"),
-    "5.5.4": ("d/README.md", tarfile.LNKTYPE, "d/mnemorph"),
+    "5.5.3": ("d/mikata-guard", tarfile.SYMTYPE, "/etc/passwd"),
+    "5.5.4": ("d/README.md", tarfile.LNKTYPE, "d/mikata"),
 }
 for v, (name, kind, link) in bad.items():
     out = os.path.join(sys.argv[1], "v" + v)
     os.makedirs(out)
-    path = os.path.join(out, "mnemorph-" + t + ".tar.gz")
+    path = os.path.join(out, "mikata-" + t + ".tar.gz")
     with tarfile.open(path, "w:gz") as tf:
-        member(tf, "d/mnemorph")
-        member(tf, "d/mnemorphd")
+        member(tf, "d/mikata")
+        member(tf, "d/mikatad")
         member(tf, name, kind, link)
     digest = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    open(os.path.join(out, "SHA256SUMS"), "w").write(digest + "  mnemorph-" + t + ".tar.gz\n")
+    open(os.path.join(out, "SHA256SUMS"), "w").write(digest + "  mikata-" + t + ".tar.gz\n")
 ' "$rel/download" "$tmp"
 
 # ---- served from that directory on loopback ------------------------------------------------------
@@ -129,11 +129,11 @@ machine() { # name, os, arch
   chmod +x "$m/fakebin/uname"
   echo "$m"
 }
-install_on() { # machine dir, then installer arguments; MNEMORPH_* from the caller's environment
+install_on() { # machine dir, then installer arguments; MIKATA_* from the caller's environment
   local m=$1; shift
-  env -i "HOME=$m/home" "PATH=${MACHINE_PATH:-$m/fakebin:/usr/bin:/bin}" "MNEMORPH_RELEASE_BASE=${RELEASE_BASE:-$base}" \
-    ${MNEMORPH_VERSION:+"MNEMORPH_VERSION=$MNEMORPH_VERSION"} \
-    ${MNEMORPH_INSTALL_DIR:+"MNEMORPH_INSTALL_DIR=$MNEMORPH_INSTALL_DIR"} \
+  env -i "HOME=$m/home" "PATH=${MACHINE_PATH:-$m/fakebin:/usr/bin:/bin}" "MIKATA_RELEASE_BASE=${RELEASE_BASE:-$base}" \
+    ${MIKATA_VERSION:+"MIKATA_VERSION=$MIKATA_VERSION"} \
+    ${MIKATA_INSTALL_DIR:+"MIKATA_INSTALL_DIR=$MIKATA_INSTALL_DIR"} \
     sh "$installer" "$@" > "$m/out" 2>&1
 }
 
@@ -147,18 +147,18 @@ bashrc_before=$(cksum < "$m/home/.bashrc")
 start=$(date +%s)
 if install_on "$m"; then pass "a fresh install of the latest release"; else fail "a fresh install: $(cat "$m/out")"; fi
 # Installed means running: the first command the human types, inside the timed path.
-installed=$(env -i "HOME=$m/home" PATH=/usr/bin:/bin "$m/home/.local/bin/mnemorph" --version 2>&1) || installed="failed: $installed"
+installed=$(env -i "HOME=$m/home" PATH=/usr/bin:/bin "$m/home/.local/bin/mikata" --version 2>&1) || installed="failed: $installed"
 elapsed=$(( $(date +%s) - start ))
 if [ "$elapsed" -lt 120 ]; then pass "installed and running in ${elapsed}s (the exit: under 120s)"
 else fail "the fresh install took ${elapsed}s (the exit: under 120s)"; fi
-bins="mnemorph mnemorphd"
-case $host in *linux*) bins="$bins mnemorph-guard" ;; esac
+bins="mikata mikatad"
+case $host in *linux*) bins="$bins mikata-guard" ;; esac
 for b in $bins; do
   if [ -x "$m/home/.local/bin/$b" ]; then pass ".local/bin/$b in the fresh HOME"; else fail ".local/bin/$b is missing from the fresh HOME"; fi
 done
 if [ -n "$real" ]; then
-  case $installed in "mnemorph "*) pass "the real build runs: $installed" ;; *) fail "the real build runs: $installed" ;; esac
-elif [ "$installed" = "mnemorph $version ($host)" ]; then
+  case $installed in "mikata "*) pass "the real build runs: $installed" ;; *) fail "the real build runs: $installed" ;; esac
+elif [ "$installed" = "mikata $version ($host)" ]; then
   pass "the latest is $version, the $host build"
 else fail "installed: $installed"; fi
 if grep -qF "export PATH=\"$m/home/.local/bin:\$PATH\"" "$m/out"; then pass "the PATH hint is printed"
@@ -167,10 +167,10 @@ if [ "$(cksum < "$m/home/.bashrc")" = "$bashrc_before" ] \
   && [ -z "$(cd "$m/home" && find . -maxdepth 1 -type f ! -name .bashrc)" ]; then
   pass "no shell profile written or changed"
 else fail "a shell profile was written or changed"; fi
-if grep -q "verified mnemorph-$host.tar.gz" "$m/out"; then pass "the checksum was verified"
+if grep -q "verified mikata-$host.tar.gz" "$m/out"; then pass "the checksum was verified"
 else fail "the checksum was verified: $(cat "$m/out")"; fi
 # Again over itself: an upgrade in place.
-if MNEMORPH_VERSION=1.0.0 install_on "$m" && [ "$("$m/home/.local/bin/mnemorph" --version)" = "mnemorph 1.0.0 ($host)" ]; then
+if MIKATA_VERSION=1.0.0 install_on "$m" && [ "$("$m/home/.local/bin/mikata" --version)" = "mikata 1.0.0 ($host)" ]; then
   pass "reinstalled over itself at another version"
 else fail "reinstall: $(cat "$m/out")"; fi
 
@@ -181,22 +181,22 @@ for spec in "Linux aarch64 aarch64-unknown-linux-gnu" "Linux arm64 aarch64-unkno
   set -- $spec
   m=$(machine "$1-$2" "$1" "$2")
   # The host's own archive is the real build when one is given: it prints its own version line.
-  want="mnemorph $version ($3)"
+  want="mikata $version ($3)"
   if [ -n "$real" ] && [ "$3" = "$host" ]; then want=real; fi
   if install_on "$m" --version "$version" --dir "$m/home/bin" \
-    && got=$("$m/home/bin/mnemorph" --version) \
-    && { [ "$got" = "$want" ] || { [ "$want" = real ] && case $got in "mnemorph "*) true ;; *) false ;; esac; }; }; then
+    && got=$("$m/home/bin/mikata" --version) \
+    && { [ "$got" = "$want" ] || { [ "$want" = real ] && case $got in "mikata "*) true ;; *) false ;; esac; }; }; then
     pass "$1 $2 installs $3"
   else fail "$1 $2 installs $3: $(cat "$m/out")"; fi
   case $1 in Darwin)
-    if [ ! -e "$m/home/bin/mnemorph-guard" ]; then pass "no guard on macOS (the Seatbelt sandbox)"
+    if [ ! -e "$m/home/bin/mikata-guard" ]; then pass "no guard on macOS (the Seatbelt sandbox)"
     else fail "a guard was installed on macOS"; fi ;;
   esac
 done
 m=$(machine envdir Linux x86_64)
-if MNEMORPH_INSTALL_DIR=$m/home/tools MNEMORPH_VERSION=v$version install_on "$m" && [ -x "$m/home/tools/mnemorphd" ]; then
-  pass "MNEMORPH_INSTALL_DIR and MNEMORPH_VERSION are honoured"
-else fail "MNEMORPH_INSTALL_DIR: $(cat "$m/out")"; fi
+if MIKATA_INSTALL_DIR=$m/home/tools MIKATA_VERSION=v$version install_on "$m" && [ -x "$m/home/tools/mikatad" ]; then
+  pass "MIKATA_INSTALL_DIR and MIKATA_VERSION are honoured"
+else fail "MIKATA_INSTALL_DIR: $(cat "$m/out")"; fi
 
 # ---- refusals ------------------------------------------------------------------------------------
 refused() { # name, wanted message, version (or -), os, arch
@@ -230,8 +230,8 @@ RELEASE_BASE=ftp://127.0.0.1/releases refused "another scheme" "must be https://
 m=$(machine truncated Linux x86_64)
 half=$(( $(wc -c < "$installer") / 2 ))
 head -c "$half" "$installer" | env -i "HOME=$m/home" "PATH=$m/fakebin:/usr/bin:/bin" \
-  "MNEMORPH_RELEASE_BASE=$base" sh > "$m/out" 2>&1 || true
-if [ ! -e "$m/home/.local" ] && ! grep -q 'mnemorph-install: installing' "$m/out"; then
+  "MIKATA_RELEASE_BASE=$base" sh > "$m/out" 2>&1 || true
+if [ ! -e "$m/home/.local" ] && ! grep -q 'mikata-install: installing' "$m/out"; then
   pass "half the installer, piped to sh, runs nothing"
 else fail "half the installer ran: $(cat "$m/out")"; fi
 
@@ -253,7 +253,7 @@ real_curl=$(command -v curl)
 } > "$m/fakebin/wget"
 chmod +x "$m/fakebin/wget"
 if MACHINE_PATH=$m/fakebin:$m/tools RELEASE_BASE=https://releases.test install_on "$m" \
-  && [ -x "$m/home/.local/bin/mnemorph" ]; then
+  && [ -x "$m/home/.local/bin/mikata" ]; then
   pass "wget installs when there is no curl"
 else fail "wget installs: $(cat "$m/out")"; fi
 if [ "$(grep -c -- '--https-only --secure-protocol=TLSv1_2' "$m/wget.args" 2>/dev/null)" = 2 ]; then

@@ -16,7 +16,7 @@ import type {
   PriceView,
   ProviderView,
   Setting,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useEffect, useState } from 'react';
 import { sourced } from './metrics.ts';
 import { establish, signedOut } from './session.ts';
@@ -184,7 +184,7 @@ export function keyWords(k: KeySource): string {
   return `env ${k.variable}: ${k.state}`;
 }
 
-/** A key file in words: `file ~/.config/mnemorph/openrouter.key: readable (0600)`, or why not. */
+/** A key file in words: `file ~/.config/mikata/openrouter.key: readable (0600)`, or why not. */
 export function keyFileWords(f: KeyFileView): string {
   const path = f.path ?? 'hidden';
   return f.state === 'readable'

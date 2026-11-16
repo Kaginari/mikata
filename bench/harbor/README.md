@@ -13,12 +13,12 @@ this page named before, is not there. Every task runs through
 it, then runs the tests. Harbor 0.25 calls a harness through a `BaseInstalledAgent`: `install`,
 `run` and `populate_context_post_run`.
 
-## What stops Mnemorph today
+## What stops Mikata today
 
-A terminal task installs packages, edits `/etc`, starts services and fetches files. Mnemorph
+A terminal task installs packages, edits `/etc`, starts services and fetches files. Mikata
 refuses all four, by design:
 
-| A task does | Mnemorph's class today | So, headless and solo |
+| A task does | Mikata's class today | So, headless and solo |
 |---|---|---|
 | `pip install`, `apt-get install`, `npm install` | `install`, outward | refused: no Kijin, no human to ask |
 | `curl`, `wget` | network, outward | refused |
@@ -26,7 +26,7 @@ refuses all four, by design:
 | writes under `/etc`, `/usr/local` | outside the world | `write` and `edit` refuse; `bash` needs the guard's grant |
 | any command | needs a kernel guard | Docker's default seccomp may block the guard's namespaces |
 
-Run as it is, Mnemorph would fail most tasks on the first install. That would measure the rules,
+Run as it is, Mikata would fail most tasks on the first install. That would measure the rules,
 not the harness.
 
 ## The container profile
@@ -49,7 +49,7 @@ or a container runtime in `/proc/1/cgroup`. Under it:
 | Pushing, pull requests, comments, labels, tags, publishing, deploys, secret stores | refused or the human's | **still refused** |
 | The file tools (`write`, `edit`) | inside the world | inside the world: a body writes `/etc` through `bash` |
 | The kernel guard | required, or `allow_unguarded` | not required: the container is the boundary |
-| Mnemorph's own journals and state, the end gate, the ledger, the receipts | as ever | as ever |
+| Mikata's own journals and state, the end gate, the ledger, the receipts | as ever | as ever |
 
 The first build also let `other` through, and its own test ran a `git push`, so `other` is never
 contained. The cost is real: a task that starts a service is refused. Measure first, then decide
@@ -57,16 +57,16 @@ whether a narrower `service` kind is worth its own rule.
 
 ## The adapter
 
-`mnemorph_agent.py` subclasses `BaseInstalledAgent`:
+`mikata_agent.py` subclasses `BaseInstalledAgent`:
 
-1. **install:** uploads the three binaries (`mnemorph`, `mnemorphd`, `mnemorph-guard`) from
-   `$MNEMORPH_DIST` to `/usr/local/bin`. The task images go back to Debian bullseye (glibc 2.31),
+1. **install:** uploads the three binaries (`mikata`, `mikatad`, `mikata-guard`) from
+   `$MIKATA_DIST` to `/usr/local/bin`. The task images go back to Debian bullseye (glibc 2.31),
    so the binaries are built for it: `cargo zigbuild --release --target
    x86_64-unknown-linux-gnu.2.31`. Once 1.0 is out, `install.sh` replaces the upload.
 2. **run:** writes the global configuration to a private `XDG_CONFIG_HOME` (the provider, the
    model, `disposable`, the steps and limits), snapshots the workspace in git if it is not a
    repository, as Harbor's Aider adapter does, then runs
-   `mnemorph run "<task>" --world . --json`. The events go to `/logs/agent/mnemorph.jsonl`, and
+   `mikata run "<task>" --world . --json`. The events go to `/logs/agent/mikata.jsonl`, and
    the loop's journals, the usage ledger and `log.md` to `/logs/agent/`, every 30 seconds and at
    the end, so a run killed at its timeout still leaves its trace and its spend.
    With `--ak mode=hierarchy`, it first writes a team over the task's folder and adopts it: an Elf,
@@ -75,9 +75,9 @@ whether a narrower `service` kind is worth its own rule.
    `elf-e` as a brief.
    With `--ak mode=reviewed`, a solo pass takes a little over half the clock, then a second, fresh
    solo session reviews its work against the task and fixes what fails. With `--ak mode=planned`,
-   solo first weighs two or three ways under `## Paths` in `.mnemorph/tmp/plan.md`, each with its
+   solo first weighs two or three ways under `## Paths` in `.mikata/tmp/plan.md`, each with its
    risks, chooses one, and tests the risks it named: the Elf's planning, without the handoff.
-   With `--ak mode=checked`, solo first writes `.mnemorph/tmp/check.sh`, which runs the artifact
+   With `--ak mode=checked`, solo first writes `.mikata/tmp/check.sh`, which runs the artifact
    the task asks for the way its user would, sees it fail, and works until it passes.
 3. **populate_context_post_run:** reads the `result` line's `usage` into Harbor's token and cost
    fields.
@@ -85,9 +85,9 @@ whether a narrower `service` kind is worth its own rule.
 ## On a server
 
     harbor run -p <terminal-bench-2.0 dir> -i <task> ... -m openrouter/<model> \
-      --agent-import-path bench.harbor.mnemorph_agent:Mnemorph --ak mode=solo -n 2 --jobs-dir jobs
+      --agent-import-path bench.harbor.mikata_agent:Mikata --ak mode=solo -n 2 --jobs-dir jobs
 
-with `PYTHONPATH` at the repository root, `MNEMORPH_DIST` and `OPENROUTER_API_KEY` set, and Docker.
+with `PYTHONPATH` at the repository root, `MIKATA_DIST` and `OPENROUTER_API_KEY` set, and Docker.
 Each task asks 1 to 4 CPUs and 2 to 8 GB.
 
 ## In CI
@@ -99,7 +99,7 @@ needs one secret, `OPENROUTER_API_KEY`. GitHub's Ubuntu runners have Docker.
 
 ## How it is judged
 
-1. **Same model, two harnesses.** Mnemorph against Harbor's own Terminus 2, on one model, every
+1. **Same model, two harnesses.** Mikata against Harbor's own Terminus 2, on one model, every
    task, the same attempts. This is the first claim worth making: what the harness adds.
 2. **Then the arms that won on the large suite:** solo, then `auto`, then a checked arm, where
    the task's own text becomes the gate's check before the work.

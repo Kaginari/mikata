@@ -99,7 +99,7 @@ for (const theme of ['dark', 'light'] as const) {
       await routeAll(page, { worlds: [], unreadable: 0 });
       await page.goto('/#/');
       await expect(page.locator('main')).toContainText('No worlds yet');
-      await expect(page.locator('main')).toContainText('mnemorphd board add <dir>');
+      await expect(page.locator('main')).toContainText('mikatad board add <dir>');
       expect(await axe(page)).toEqual([]);
       if (info.project.name === 'phone') {
         await page.getByRole('button', { name: 'Menu' }).click();

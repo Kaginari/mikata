@@ -1,0 +1,20 @@
+[package]
+name = "mikata-memory"
+description = "Memory tiers: short, personal and shared; recall; the toolbox manifest."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+mikata-sandbox = { path = "../mikata-sandbox" }
+mikata-ledger = { path = "../mikata-ledger" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+
+[dev-dependencies]
+
+[lints]
+workspace = true

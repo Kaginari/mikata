@@ -1,5 +1,5 @@
 /** Inside a world: its overview, a section, or a session. */
-import type { BoardMissing, BoardOverview, BoardWorld, Sourced } from '@mnemorph/protocol';
+import type { BoardMissing, BoardOverview, BoardWorld, Sourced } from '@mikata/protocol';
 import { useOverview } from '../data/overview.ts';
 import { usePush } from '../data/push.ts';
 import type { WorldSection } from '../router.ts';
@@ -40,13 +40,13 @@ export function MissingWorld({ m, now }: { m: BoardMissing; now: number }) {
           <code className="mono">
             <Safe text={m.path} />
           </code>{' '}
-          is gone, or holds no <code className="mono">.mnemorph/</code>: missing since{' '}
+          is gone, or holds no <code className="mono">.mikata/</code>: missing since{' '}
           {since(m.since, now)}. It is live again once it is back.
         </p>
         <p>
           To forget it:{' '}
           <code className="mono">
-            <Safe text={`mnemorphd board forget ${shellWord(m.path)}`} />
+            <Safe text={`mikatad board forget ${shellWord(m.path)}`} />
           </code>
         </p>
         <p>
@@ -287,8 +287,8 @@ export function WorldView({ w, now }: { w: BoardWorld; now: number }) {
             This world's directory is gone.
           </Mark>{' '}
           It stays listed, never silently dropped, until{' '}
-          <code className="mono">mnemorphd board forget &lt;dir&gt;</code>. What the harness kept
-          for it is still shown.
+          <code className="mono">mikatad board forget &lt;dir&gt;</code>. What the harness kept for
+          it is still shown.
         </p>
       )}
       {o?.updates.value === 'slowed' && (

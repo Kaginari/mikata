@@ -2,7 +2,7 @@
 import type { MeterStatus } from "./MeterStatus.js";
 
 /**
- * One meter, as `mnemorphd meters --json` shows it: no report is no count, never a zero.
+ * One meter, as `mikatad meters --json` shows it: no report is no count, never a zero.
  */
 export type Meter = { 
 /**

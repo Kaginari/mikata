@@ -716,8 +716,8 @@ function NetPage({
       <section className="panel net-about">
         <h2 className="panel-title">The human and the six races</h2>
         <p className="panel-note">
-          Every run of Mnemorph is a small colony: one creature per job, each with its own shelf,
-          its own soil and its own gate. The edges are who commissions whom.
+          Every run of Mikata is a small colony: one creature per job, each with its own shelf, its
+          own soil and its own gate. The edges are who commissions whom.
         </p>
         <ul className="net-races">
           {NODES.filter((n) => n.kind !== 'ascended').map((n) => (

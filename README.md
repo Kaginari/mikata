@@ -1,11 +1,11 @@
-<p align="center"><img src="assets/brand/banner.jpg" alt="Mnemorph — the throne, the races, and the storm dragon over the city" width="100%"></p>
+<p align="center"><img src="assets/brand/banner.jpg" alt="Mikata — the throne, the races, and the storm dragon over the city" width="100%"></p>
 
-# Mnemorph
+# Mikata
 
 <p><img src="assets/portraits/summoner@64.png" width="48" alt="Summoner"> <img src="assets/portraits/elf@64.png" width="48" alt="Elf"> <img src="assets/portraits/orc@64.png" width="48" alt="Orc"> <img src="assets/portraits/slime@64.png" width="48" alt="Slime"> <img src="assets/portraits/kijin@64.png" width="48" alt="Kijin"> <img src="assets/portraits/dark-elf@64.png" width="48" alt="Dark Elf"> <img src="assets/portraits/high-elf@64.png" width="48" alt="High Elf"> <img src="assets/portraits/high-orc@64.png" width="48" alt="High Orc"> <img src="assets/portraits/named-slime@64.png" width="48" alt="Named Slime"> <img src="assets/portraits/oni@64.png" width="48" alt="Oni"> <img src="assets/portraits/arch-dark-elf@64.png" width="48" alt="Arch Dark Elf"></p>
 
 An agent harness grown from [isekai](https://github.com/Kaginari/isekai): the nine natures and
-the wire, rebuilt as a Rust core with a Rust terminal app — `mnemorph` — plus a TypeScript SDK
+the wire, rebuilt as a Rust core with a Rust terminal app — `mikata` — plus a TypeScript SDK
 and a web board. Races are compiled in — what each one may do, whom it answers to, how
 it is scored and how it ascends is code, not configuration.
 
@@ -16,7 +16,7 @@ fixes in a large Python library with the same small open model in every harness
 
 | Harness | Passed | Per pass |
 |---|---|---|
-| **Mnemorph, light-coding** | **9 of 10** | **$0.43** |
+| **Mikata, light-coding** | **9 of 10** | **$0.43** |
 | Maki 0.7.1 | 8 of 10 | $0.97 |
 | OpenCode 1.19.5 | 7 of 10 | $0.67 |
 
@@ -31,7 +31,7 @@ outward acts, the Dark Elf specialities, evolution on trial, the board on loopba
 integrations, and the release path. The version is 1.0.0; its release waits on the macOS
 build fix and the rename. Start with
 [the book](docs/README.md); the plan is the [roadmap](docs/roadmap.md) and its
-[milestones](https://github.com/Kaginari/mnemorph/milestones).
+[milestones](https://github.com/Kaginari/mikata/milestones).
 
 | Read | For |
 |---|---|
@@ -67,18 +67,18 @@ just         # the full check: Rust, TypeScript, the layering, the book, the wor
 just docs-dev  # read the book as a website while writing it
 ```
 
-### Install `mnemorph`
+### Install `mikata`
 
-Mnemorph ships two Rust binaries over the same core — and, on Linux, `mnemorph-guard`, the kernel
-guard every command runs through, found beside `mnemorph`. Install them together.
+Mikata ships two Rust binaries over the same core — and, on Linux, `mikata-guard`, the kernel
+guard every command runs through, found beside `mikata`. Install them together.
 
 | Binary | For | Use it to |
 |---|---|---|
-| `mnemorph` | you, at a terminal, and your scripts | talk to Summoner in the terminal app (`mnemorph`), ask once without it (`mnemorph run "<ask>"`), pick up a run that stopped (`mnemorph resume <run|last>`), check the setup (`mnemorph status`) |
-| `mnemorphd` | other programs, and the world's upkeep | serve the client protocol (JSON-RPC over stdio) to the TypeScript SDK, and the web board on loopback (`mnemorphd board`); run the admin commands: `runs`, `memory`, `onto`, `q`, `incident`, `housekeep`, `relief` |
+| `mikata` | you, at a terminal, and your scripts | talk to Summoner in the terminal app (`mikata`), ask once without it (`mikata run "<ask>"`), pick up a run that stopped (`mikata resume <run|last>`), check the setup (`mikata status`) |
+| `mikatad` | other programs, and the world's upkeep | serve the client protocol (JSON-RPC over stdio) to the TypeScript SDK, and the web board on loopback (`mikatad board`); run the admin commands: `runs`, `memory`, `onto`, `q`, `incident`, `housekeep`, `relief` |
 
-They are two binaries because they answer two kinds of caller. `mnemorph` holds the session in
-its own process, so nothing sits between the screen and the core. `mnemorphd` is the core
+They are two binaries because they answer two kinds of caller. `mikata` holds the session in
+its own process, so nothing sits between the screen and the core. `mikatad` is the core
 **served**: a program that is not Rust — the SDK, an editor plugin — starts it as a child and speaks
 the protocol to it, and the web board (from M12) is served by it, so every client sees the same
 sessions, gate and events. The world's
@@ -88,45 +88,45 @@ without a session. Both share the same crates, so a rule enforced in one is enfo
 **With the installer** (Linux x86_64 and arm64, macOS Apple Silicon and Intel):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Kaginari/mnemorph/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Kaginari/mikata/main/install.sh | sh
 sh install.sh --version 1.0.0 --dir ~/bin    # a given release, somewhere else
 ```
 
 It downloads the release's archive for this machine, refuses it unless it matches the release's
-`SHA256SUMS`, and puts the binaries in `~/.local/bin` (`MNEMORPH_INSTALL_DIR` or `--dir` to
+`SHA256SUMS`, and puts the binaries in `~/.local/bin` (`MIKATA_INSTALL_DIR` or `--dir` to
 choose). It needs no sudo and edits no shell profile: when the directory is not on PATH, it
 prints the line to add.
 
 Once a release carries build provenance ([releasing](docs/releasing.md#provenance-signing)), an
 archive can also be checked against the workflow that built it:
-`gh attestation verify mnemorph-<target>.tar.gz --repo Kaginari/mnemorph`.
+`gh attestation verify mikata-<target>.tar.gz --repo Kaginari/mikata`.
 
-**By hand**, from [the releases](https://github.com/Kaginari/mnemorph/releases): download
-`mnemorph-<target>.tar.gz` and `SHA256SUMS`, check, unpack, and put the binaries side by side on
+**By hand**, from [the releases](https://github.com/Kaginari/mikata/releases): download
+`mikata-<target>.tar.gz` and `SHA256SUMS`, check, unpack, and put the binaries side by side on
 PATH:
 
 ```sh
 sha256sum -c --ignore-missing SHA256SUMS     # macOS: shasum -a 256 -c --ignore-missing SHA256SUMS
-tar -xzf mnemorph-x86_64-unknown-linux-gnu.tar.gz
-cp mnemorph-*/mnemorph mnemorph-*/mnemorphd mnemorph-*/mnemorph-guard ~/.local/bin/   # no guard on macOS
+tar -xzf mikata-x86_64-unknown-linux-gnu.tar.gz
+cp mikata-*/mikata mikata-*/mikatad mikata-*/mikata-guard ~/.local/bin/   # no guard on macOS
 ```
 
 **From source**, in a checkout:
 
 ```sh
-cargo install --path crates/mnemorph-tui      # mnemorph, into ~/.cargo/bin
-cargo install --path crates/mnemorph-sandbox  # mnemorph-guard, beside it (Linux)
-pnpm install --frozen-lockfile && pnpm --filter @mnemorph/board build   # the board, built into…
-cargo install --path crates/mnemorphd         # mnemorphd: the server, the board and the admin commands
+cargo install --path crates/mikata-tui      # mikata, into ~/.cargo/bin
+cargo install --path crates/mikata-sandbox  # mikata-guard, beside it (Linux)
+pnpm install --frozen-lockfile && pnpm --filter @mikata/board build   # the board, built into…
+cargo install --path crates/mikatad         # mikatad: the server, the board and the admin commands
 ```
 
-`mnemorphd` embeds the board as it finds it built in `packages/board/dist` when it is compiled;
-compiled without it, it serves a page saying so, and its API. On Linux, `mnemorph` without
-`mnemorph-guard` beside it runs no command, and `mnemorph status` says so. How a release is cut,
+`mikatad` embeds the board as it finds it built in `packages/board/dist` when it is compiled;
+compiled without it, it serves a page saying so, and its API. On Linux, `mikata` without
+`mikata-guard` beside it runs no command, and `mikata status` says so. How a release is cut,
 tested and published: [releasing](docs/releasing.md); what changed: [the changelog](CHANGELOG.md).
 
-Name a provider and a model once, for every world, in `~/.config/mnemorph/config.toml`
-(`$XDG_CONFIG_HOME/mnemorph/config.toml`). A world's `.mnemorph/config.local.toml` overrides it,
+Name a provider and a model once, for every world, in `~/.config/mikata/config.toml`
+(`$XDG_CONFIG_HOME/mikata/config.toml`). A world's `.mikata/config.local.toml` overrides it,
 except for providers, caps, MCP servers and anything that loosens the gate or the sandbox, which
 only this global file sets ([configuration](docs/05-architecture.md#configuration)):
 
@@ -135,7 +135,7 @@ only this global file sets ([configuration](docs/05-architecture.md#configuratio
 kind = "openai"
 base_url = "https://openrouter.ai/api"
 key_env = "OPENROUTER_API_KEY"     # the variable that holds the key (never write the key here)
-key_file = "~/.config/mnemorph/openrouter.key"  # used when the variable is unset; chmod 600
+key_file = "~/.config/mikata/openrouter.key"  # used when the variable is unset; chmod 600
 
 [models]
 provider = "openrouter"
@@ -149,48 +149,48 @@ yours, mode `600`, and outside every world.
 
 ```sh
 export OPENROUTER_API_KEY=…         # or keep it in the key_file, which every shell and the board read
-mnemorph                            # a session in this world, in the terminal app
-mnemorph --world ~/code/project     # …in another
-mnemorph status                     # the mode and why, the model, the key's origin, the sandbox, the config's holes
-mnemorph --mode light-coding        # choose the mode: light-coding, structured-coding or collective-coding
-mnemorph run "<ask>"                # one ask without the app: the answer on stdout
-echo "<ask>" | mnemorph run --json  # every event as a JSON line, then a result line
-mnemorph resume last                # pick up the newest run that stopped
-mnemorphd runs                      # the runs that may be resumed
-mnemorphd board                     # the board on 127.0.0.1:7878: open the URL it prints
+mikata                            # a session in this world, in the terminal app
+mikata --world ~/code/project     # …in another
+mikata status                     # the mode and why, the model, the key's origin, the sandbox, the config's holes
+mikata --mode light-coding        # choose the mode: light-coding, structured-coding or collective-coding
+mikata run "<ask>"                # one ask without the app: the answer on stdout
+echo "<ask>" | mikata run --json  # every event as a JSON line, then a result line
+mikata resume last                # pick up the newest run that stopped
+mikatad runs                      # the runs that may be resumed
+mikatad board                     # the board on 127.0.0.1:7878: open the URL it prints
 ```
 
-**Three ways to work.** A session opens in one of three modes; `mnemorph status` says which, and
+**Three ways to work.** A session opens in one of three modes; `mikata status` says which, and
 why ([which mode, and how to start it](docs/01-overview.md#which-mode-and-how-to-start-it)):
 
 | Mode | What happens | Start it |
 |---|---|---|
-| **light-coding** (the default) | Summoner does the work itself: it writes down what "done" is, plans, changes the files, checks, answers | `mnemorph`, or `mnemorph --mode light-coding` in a world with creatures |
-| **structured-coding** (experimental) | Summoner may hand a lane's work to its Elf; Orcs code the check first, Slimes write, each in its own zone | `mnemorph` in a world where an adopted Elf reports to Summoner, or `--mode structured-coding` |
-| **collective-coding** (experimental) | Summoner writes the work board, splits the ask by zone and summons its members, which work at once | `mnemorph --mode collective-coding` |
+| **light-coding** (the default) | Summoner does the work itself: it writes down what "done" is, plans, changes the files, checks, answers | `mikata`, or `mikata --mode light-coding` in a world with creatures |
+| **structured-coding** (experimental) | Summoner may hand a lane's work to its Elf; Orcs code the check first, Slimes write, each in its own zone | `mikata` in a world where an adopted Elf reports to Summoner, or `--mode structured-coding` |
+| **collective-coding** (experimental) | Summoner writes the work board, splits the ask by zone and summons its members, which work at once | `mikata --mode collective-coding` |
 
 Start with light-coding: it is the mode the measurements favour ([the bench](docs/bench.md)). In the other two the bodies share the work
-board, `.mnemorph/tmp/board.md`: what each one found, carried in every brief.
+board, `.mikata/tmp/board.md`: what each one found, carried in every brief.
 
-`mnemorphd board` is another thing, the web board: it prints `http://127.0.0.1:7878/#k=<key>`; the key works once, traded by the page
+`mikatad board` is another thing, the web board: it prints `http://127.0.0.1:7878/#k=<key>`; the key works once, traded by the page
 for a session cookie. It listens on loopback only — from another machine, forward the same port:
-`ssh -L 7878:127.0.0.1:7878 <host>`, then open the printed URL. A second `mnemorphd board` prints
+`ssh -L 7878:127.0.0.1:7878 <host>`, then open the printed URL. A second `mikatad board` prints
 the running board's URL, with the key waiting now ([the board server](docs/05-architecture.md#the-board-server)).
 Each link works once, in one browser: a link VS Code's browser opened first is spent for Chrome.
 The board answers at `127.0.0.1`, `[::1]` and `localhost`, and refuses every other host name, to
 block DNS rebinding.
 
-To have `mnemorph` start the board (or reuse the running one), add the world to it and open it in
+To have `mikata` start the board (or reuse the running one), add the world to it and open it in
 your browser as a session opens, launch it with `--web`:
 
 ```sh
-mnemorph --web
+mikata --web
 ```
 
 Without `--web` no board starts with the app. The board's colours are chosen on its Settings page,
 apart from the terminal's `--theme`: the same schemes, each kept on its own.
 
-The board outlives the app; `mnemorphd board stop` stops it.
+The board outlives the app; `mikatad board stop` stops it.
 
 The board is every world on the machine in one page: its worlds, chats in the terminal's grammar,
 the approval card with the terminal's protections, memory, ontology, bodies and metrics, live.
@@ -204,10 +204,10 @@ the approval card with the terminal's protections, memory, ontology, bodies and 
 | Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day by race, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
 | Phone | <img src="docs/img/board/phone-chat-dark.png" width="160" alt="A chat at phone width, dark: the rail behind the menu"> | <img src="docs/img/board/phone-chat-light.png" width="160" alt="A chat at phone width, light"> |
 
-`mnemorph run` goes through the same session and end gate as the app, and exits 0 only when the
+`mikata run` goes through the same session and end gate as the app, and exits 0 only when the
 answer landed; it denies every act that needs your approval unless you pass `--gate-tty`
-([`mnemorph run`](docs/05-architecture.md#mnemorph-run)). From a checkout, `cargo run -p
-mnemorph-tui --` runs the same binary.
+([`mikata run`](docs/05-architecture.md#mikata-run)). From a checkout, `cargo run -p
+mikata-tui --` runs the same binary.
 
 ## Layout
 
@@ -218,5 +218,5 @@ mnemorph-tui --` runs the same binary.
 | `docs/` | the book |
 | `site/` | the book as a website (VitePress) |
 | `assets/` | race portraits and cards |
-| `.mnemorph/` | Mnemorph's own world: law, creatures, journal |
+| `.mikata/` | Mikata's own world: law, creatures, journal |
 | `tools/` | repository checks |

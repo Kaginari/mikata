@@ -16,7 +16,7 @@ import type {
   RaceLaw,
   TimelineEntry,
   TimelineKind,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useMemo, useState } from 'react';
 import {
   type BodiesPage,
@@ -86,7 +86,7 @@ function Trust({ b }: { b: BoardBody }) {
   }
   const adopt = (
     <code className="mono">
-      mnemorphd roster adopt <Safe text={b.name} />
+      mikatad roster adopt <Safe text={b.name} />
     </code>
   );
   if (b.standing === 'mismatched') {
@@ -545,7 +545,7 @@ function ColonyTab({ p }: { p: BodiesPage }) {
       </p>
       {p.bodies.length === 0 ? (
         <Empty glyph="⛬" title="No body here yet">
-          No creature doc under <code className="mono">.mnemorph/&lt;race&gt;/</code>.
+          No creature doc under <code className="mono">.mikata/&lt;race&gt;/</code>.
         </Empty>
       ) : (
         <div className={body ? 'colony-grid colony-grid-open' : 'colony-grid'}>
@@ -766,7 +766,7 @@ function QueueTab({ w }: { w: BoardWorld }) {
         (shown.length === 0 ? (
           <Empty glyph="◇" title="No order here">
             {q?.orders.length === 0
-              ? 'The queue holds nothing. Add one at a terminal: mnemorphd q add <ask> --for <body>.'
+              ? 'The queue holds nothing. Add one at a terminal: mikatad q add <ask> --for <body>.'
               : 'No order matches the filter.'}
           </Empty>
         ) : (
@@ -783,7 +783,7 @@ function QueueTab({ w }: { w: BoardWorld }) {
             p={{
               source: q.source,
               trusted: false,
-              why: 'folded as mnemorphd q list --all folds it',
+              why: 'folded as mikatad q list --all folds it',
             }}
           />
           <Source

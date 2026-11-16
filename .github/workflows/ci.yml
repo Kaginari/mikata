@@ -55,11 +55,11 @@ jobs:
       # The chat end to end runs on the real server and bridge: the example embeds the built board.
       - name: The board, then the server it is embedded in
         run: |
-          pnpm --filter @mnemorph/board build
-          cargo build -p mnemorph-server --example board_e2e
+          pnpm --filter @mikata/board build
+          cargo build -p mikata-server --example board_e2e
       - name: The pinned Playwright version
         id: pw
-        run: echo "version=$(pnpm --filter @mnemorph/board exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm --filter @mikata/board exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: browsers
         with:
@@ -67,12 +67,12 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
       - name: Chromium and its system libraries
         if: steps.browsers.outputs.cache-hit != 'true'
-        run: pnpm --filter @mnemorph/board exec playwright install --with-deps chromium
+        run: pnpm --filter @mikata/board exec playwright install --with-deps chromium
       - name: Chromium's system libraries (the browser is cached)
         if: steps.browsers.outputs.cache-hit == 'true'
-        run: pnpm --filter @mnemorph/board exec playwright install-deps chromium
+        run: pnpm --filter @mikata/board exec playwright install-deps chromium
       - name: Screenshots, contrast, labels, axe, router, drawers, palette, hostile text, chats, approvals, the M12 exit
-        run: pnpm --filter @mnemorph/board e2e
+        run: pnpm --filter @mikata/board e2e
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -98,7 +98,7 @@ jobs:
       - name: No canvas holds a script, a handler, an outside link or HTML
         run: node tools/check-canvas.mjs
       - name: Build the book (fails on a dead link)
-        run: pnpm --filter @mnemorph/site build
+        run: pnpm --filter @mikata/site build
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: book

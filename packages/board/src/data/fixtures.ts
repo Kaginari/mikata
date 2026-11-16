@@ -2,7 +2,7 @@
  * Worlds for development and tests, in the shape `GET /api/worlds` answers: live and missing,
  * with and without a remote, one never opened. The clock they read against is `FIXTURE_NOW`.
  */
-import type { BoardOverview, BoardWorlds } from '@mnemorph/protocol';
+import type { BoardOverview, BoardWorlds } from '@mikata/protocol';
 
 export const FIXTURE_NOW = Date.parse('2026-10-30T12:00:00Z');
 
@@ -21,7 +21,7 @@ export const fixtureWorlds: BoardWorlds = {
       id: 'tempest-try-41f0aa2c9d3e8b77',
       name: 'tempest-try',
       path: '/home/dev/kaginari/tempest-try',
-      remote: 'github.com/Kaginari/mnemorph',
+      remote: 'github.com/Kaginari/mikata',
       last: '2026-10-30T11:58:30Z',
       sessions: 41,
       state: 'present',
@@ -46,15 +46,15 @@ export const fixtureWorlds: BoardWorlds = {
   ],
 };
 
-const MEMORY_SOURCE = '.mnemorph/memory/ (as `mnemorphd memory status` reads it)';
+const MEMORY_SOURCE = '.mikata/memory/ (as `mikatad memory status` reads it)';
 const CHALLENGES_SOURCE = 'the challenge records under the state directory';
 const GATE_SOURCE = "the gate's verdict journal under the state directory";
 const METERS_SOURCE =
   "the roster's creatures (in the world) over the challenge records' folds and the report fold of the usage witness, the gate verdicts and the Kijin posts' witnesses (under the state directory)";
 const METERS_WHY =
   'shown with their count and 95% interval, never judged on; no rise or fall is applied here';
-const USAGE = '.mnemorph/instruments/usage.jsonl';
-const LOCK = '.mnemorph/instruments/loop/<run>.lock';
+const USAGE = '.mikata/instruments/usage.jsonl';
+const LOCK = '.mikata/instruments/loop/<run>.lock';
 const CHATS = "the board's chats";
 const WAITING_WHY = "a terminal session's asks wait in its terminal";
 const PUSHED = { value: 'pushed', source: "the board's watcher", trusted: true, why: null };
@@ -76,7 +76,7 @@ export const fixtureOverviews: Record<string, BoardOverview> = {
     status: { value: 'live', source: CHATS, trusted: true, why: '1 chat(s) open on the board' },
     activity: {
       value: { at: '2026-10-30T11:59:40Z', what: 'log.md written' },
-      source: '.mnemorph/log.md',
+      source: '.mikata/log.md',
       trusted: false,
       why: null,
     },

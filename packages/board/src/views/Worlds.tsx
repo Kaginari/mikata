@@ -3,7 +3,7 @@
  * activity, memory standing, open challenges, gate and spend, and "waiting for you" when one of the
  * board's chats keeps a gate ask.
  */
-import type { BoardMissing, BoardWorld } from '@mnemorph/protocol';
+import type { BoardMissing, BoardWorld } from '@mikata/protocol';
 import { useState } from 'react';
 import { type OverviewLoad, useOverview } from '../data/overview.ts';
 import type { Load } from '../data/worlds.ts';
@@ -142,15 +142,15 @@ function Card({ w, now }: { w: BoardWorld; now: number }) {
 
 /**
  * The worlds whose directory is gone, folded away under the live ones: each one's path, since
- * when, and the command that forgets it. `mnemorphd board prune` forgets them all.
+ * when, and the command that forgets it. `mikatad board prune` forgets them all.
  */
 function MissingList({ missing, now }: { missing: BoardMissing[]; now: number }) {
   return (
     <details className="missing-worlds">
       <summary className="missing-summary">Missing ({missing.length})</summary>
       <p className="hint">
-        Their directory is gone, or holds no <code className="mono">.mnemorph/</code>. A world that
-        comes back is live again; <code className="mono">mnemorphd board prune</code> forgets them
+        Their directory is gone, or holds no <code className="mono">.mikata/</code>. A world that
+        comes back is live again; <code className="mono">mikatad board prune</code> forgets them
         all.
       </p>
       <ul className="missing-list">
@@ -166,7 +166,7 @@ function MissingList({ missing, now }: { missing: BoardMissing[]; now: number })
             </code>
             <span className="missing-since">missing since {since(m.since, now)}</span>
             <code className="mono missing-forget">
-              <Safe text={`mnemorphd board forget ${shellWord(m.path)}`} />
+              <Safe text={`mikatad board forget ${shellWord(m.path)}`} />
             </code>
           </li>
         ))}
@@ -196,7 +196,7 @@ export function WorldsView({ load, now }: { load: Load; now: number }) {
       {adding && (
         <p className="hint">
           A world joins the board when a session opens in it. To add one by hand, run{' '}
-          <code className="mono">mnemorphd board add &lt;dir&gt;</code> in a terminal.
+          <code className="mono">mikatad board add &lt;dir&gt;</code> in a terminal.
         </p>
       )}
       {load.state === 'loading' && (
@@ -215,11 +215,11 @@ export function WorldsView({ load, now }: { load: Load; now: number }) {
       {load.state === 'ready' && load.data.worlds.length === 0 && (
         <Empty glyph="◈" title="No worlds yet">
           <p>
-            Open a session with <code className="mono">mnemorph</code> in a directory and it appears
+            Open a session with <code className="mono">mikata</code> in a directory and it appears
             here — or add one by hand:
           </p>
           <p>
-            <code className="mono">mnemorphd board add &lt;dir&gt;</code>
+            <code className="mono">mikatad board add &lt;dir&gt;</code>
           </p>
         </Empty>
       )}

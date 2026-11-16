@@ -1,11 +1,11 @@
 # Memory
 
-Mnemorph's memory is built on one rule: **a model's words never become shared memory on their
+Mikata's memory is built on one rule: **a model's words never become shared memory on their
 own; something accountable must stand behind them** — a check that ran, the human, or, weaker, a
 commissioner's verdict or a second creature's independent evidence. The design takes its rules
-from Yucong Duan's [DIKWP MNEMORPH-85](https://github.com/YucongDuan/DIKWP-MNEMORPH-85), a
+from Yucong Duan's [DIKWP MIKATA-85](https://github.com/YucongDuan/DIKWP-MNEMORPH-85), a
 reconstructive memory runtime for LLM agents (a small reference implementation, its weights
-untuned), and fits them onto what Mnemorph already has — an append-only journal, a verify beat
+untuned), and fits them onto what Mikata already has — an append-only journal, a verify beat
 and an end gate — and the BM25 recall it has chosen. The rules are ported; no code is.
 
 ## In one picture
@@ -48,7 +48,7 @@ has a hidden flaw: when the model is wrong and its words are saved, the next rec
 mistake back as if it were a fact. Over many sessions the memory drifts towards believing its
 own errors.
 
-Mnemorph splits memory in two. The **archive** is the evidence: the journal, the ledgers, the
+Mikata splits memory in two. The **archive** is the evidence: the journal, the ledgers, the
 commits. It is never rewritten. The **traces** are the memory: short notes, each pointing at the
 evidence it came from, each marked as agreeing, disagreeing or correcting. Traces may change;
 the archive never does, so any belief can be walked back to the bytes behind it.
@@ -83,10 +83,10 @@ Six rules follow:
 
 | Layer | What it is | Where | Changes? |
 |---|---|---|---|
-| Archive | journal entries, ledger rows, commits, gate verdicts | `.mnemorph/log.md`, `.mnemorph/instruments/*.jsonl`, git | never rewritten |
-| Traces, personal | one creature's notes | `.mnemorph/memory/creature/<name>.jsonl` (tracked) | by appended events only |
-| Traces, shared | the world's notes | `.mnemorph/memory/shared/notes.jsonl` (tracked) | by appended events only |
-| Short | one body's semantic cache | `.mnemorph/memory/short/` (machine-local) | freely; dies with the task |
+| Archive | journal entries, ledger rows, commits, gate verdicts | `.mikata/log.md`, `.mikata/instruments/*.jsonl`, git | never rewritten |
+| Traces, personal | one creature's notes | `.mikata/memory/creature/<name>.jsonl` (tracked) | by appended events only |
+| Traces, shared | the world's notes | `.mikata/memory/shared/notes.jsonl` (tracked) | by appended events only |
+| Short | one body's semantic cache | `.mikata/memory/short/` (machine-local) | freely; dies with the task |
 
 A trace is
 
@@ -135,10 +135,10 @@ the rest.
 A fresh session is given what earlier ones learned by the harness itself, never by a file the
 host may or may not load:
 
-- **The law** (`.mnemorph/law.md`, at most 4,000 characters) closes every body's system prompt,
+- **The law** (`.mikata/law.md`, at most 4,000 characters) closes every body's system prompt,
   Summoner's and each commissioned body's. It changes only as the human's diff, so the prompt stays
   the stable, cached prefix ([consumption](06-consumption.md#cache-first-prompt-layout)).
-- **The journal's last entries** (`.mnemorph/log.md`, the last five within 8,000 characters, the
+- **The journal's last entries** (`.mikata/log.md`, the last five within 8,000 characters, the
   oldest dropped first) open the session's first ask, in the changing tail, and are said once. A
   commissioned body gets its commission instead.
 
@@ -167,17 +167,17 @@ query's length, so $c$ starts per query length in content words (1, 2–3, 4 and
 grows with the corpus, so $c$ grows with the $N$ notes weighed:
 $c(q, N) = c_q\,(1 + g\,(\sqrt{N} - 1))$, with $c_q$ = 0.5, 1.0, 1.5 and $g = 1.6$. A lone note
 is judged by $c_q$ alone. Fitted against 101 notes that real bench runs wrote
-(`crates/mnemorph-memory/tests/fixtures/bench-recall.json`, `examples/fit_saturation.rs`): each
+(`crates/mikata-memory/tests/fixtures/bench-recall.json`, `examples/fit_saturation.rs`): each
 task's ask as the query, its own notes as what it should find. With a fixed $c$, a long query's F1
 fell from 0.94 over one note to 0.03 over 101, nearly every note clearing the floor; the best
 $c$ at each size follows $\sqrt{N}$. The cost: a few notes that all share one topic tell each other
 apart by little, so only the strongest clear the floor. One model, small tasks, a note's task as its only label: refit
 when a campaign leaves more.
 
-$\mathrm{rel}(\tau)$ is Mnemorph's own term, the relation lesson made a number: 1.0 for the
+$\mathrm{rel}(\tau)$ is Mikata's own term, the relation lesson made a number: 1.0 for the
 body's own creature, 0.6 for its race, 0.3 for any other shared note, 0.1 for the episodic log.
 
-The starting weights take MNEMORPH-85's where it has them — $w_q = 0.42$, $w_s = 0.10$,
+The starting weights take MIKATA-85's where it has them — $w_q = 0.42$, $w_s = 0.10$,
 $w_\kappa = 0.07$, $w_t = 0.07$, $\beta = 0.10$, $H = 120$ days — and give its context and purpose
 weights ($0.25 + 0.09$) to the relation term: $w_r = 0.34$. The commission's `@ASK` office, not a
 free-text purpose, picks which notes a findings, verdict or draft body is shown first. The
@@ -216,7 +216,7 @@ by exactly one of:
 | **checked** | the end gate passed, ran at least one verify line over a non-empty diff, *and* the claim names a path that diff changed and the check that tests it (`check=<verify line or test>`), which ran in that gate | work that wrote files |
 | **accepted** | the commissioner's verdict names the claim and accepts it (the verdict-current) | research, reads, reviews — work with nothing to test |
 | **corroborated** | a second creature lands a matching claim from different evidence anchors | anything, including failed runs |
-| **confirmed** | the human says so: `mnemorphd memory confirm <claim>` | anything |
+| **confirmed** | the human says so: `mikatad memory confirm <claim>` | anything |
 
 An answer that changed nothing passes the end gate untouched; that pass proves nothing about
 its claims, so it never counts as **checked**. Its `@U` lines wait for **accepted**: the parent
@@ -373,8 +373,8 @@ that `FAIL`: a check that wrote, or one that gave no result, says nothing of wha
   failed by, each line kept by its first line; it links every anchor recalled for that ask (the
   ask's journal row has them), not one note per anchor; each link carries its own weight;
 - the weight is **0.9 towards anchors the ask cited** (its acts' arguments or the body's text
-  name them) and **0.4 towards anchors that were merely recalled** — Mnemorph's own split:
-  MNEMORPH-85 weighs world effects (0.9) and corrections (1.0), with no notion of a recalled
+  name them) and **0.4 towards anchors that were merely recalled** — Mikata's own split:
+  MIKATA-85 weighs world effects (0.9) and corrections (1.0), with no notion of a recalled
   bystander;
 - it never targets a dissenting note: a counter or revise note recalled into a failed turn is
   left as it is, so corrections do not breed corrections;
@@ -422,13 +422,13 @@ evidence retirement weighs failures against. Every third pass since its last gro
 confidence ($\kappa \leftarrow \min(0.95, \kappa + 0.05)$); it never gains salience by repetition
 alone.
 
-`mnemorphd memory status` lists each retired note with its undo; `mnemorphd memory wake <note>` —
+`mikatad memory status` lists each retired note with its undo; `mikatad memory wake <note>` —
 the human's alone, refused to a body — grounds it again in every tier that holds it, and only
 evidence after the waking counts. It undoes only a retirement: a note put to sleep otherwise, or
 never grounded, keeps its standing and its route.
 
 It also lists each creature's proposed claims, newest first, ten at most, each with its vouch:
-`mnemorphd memory confirm <claim>` — the human's alone, refused to a body — grounds the claim by
+`mikatad memory confirm <claim>` — the human's alone, refused to a body — grounds the claim by
 the **confirmed** route, in its creature's tier and in shared memory, citing the human's word.
 The board's memory page lists every note with its route, proof and claim-graph state, and offers
 the same two acts — confirm and wake — through the same functions, behind a dialog that names the
@@ -473,7 +473,7 @@ which one body's failure or counter can cause — mark only the claims resting o
 one body never flags a whole subgraph; a claim already
 under review gets no second event, and the walk goes on past it. The claim that moved is not
 marked by its own move. A review claims no standing, so it resolves as a plain record. A route that
-grounds the claim again — the same four routes, and `mnemorphd memory confirm <claim>` among them —
+grounds the claim again — the same four routes, and `mikatad memory confirm <claim>` among them —
 answers it. Only a landing the gate passed writes a file's review; a file moved by any other hand —
 the human's edit, a failed run — is read live: recall and `memory status` hash each file a claim
 rests on and read a mismatch as needing review, computed, with no event. A passing ask that cites
@@ -517,7 +517,7 @@ The desk's distillation — when a creature's desk is distilled into a rule, a t
 ([evolution](02-races.md#evolution-the-other-way-to-change)) — merges agreeing notes into one
 schema note: $s = 0.8$, confidence the mean of the four most salient merged notes' confidence,
 capped at 0.95, and the two most salient originals stay active beside it, as in
-MNEMORPH-85. **Dissent is exempt:** no counter or
+MIKATA-85. **Dissent is exempt:** no counter or
 revise note is ever merged or put to sleep by a distillation, so a summary can never absorb the
 exception it disagrees with.
 
@@ -533,11 +533,11 @@ tier is that place: git's local exclude, set when a session opens, keeps it off 
 
 ### Pathologies as instruments
 
-`mnemorphd memory status` reports, per creature, three findings read by code:
+`mikatad memory status` reports, per creature, three findings read by code:
 
 | Finding | Read as | The lawful act |
 |---|---|---|
-| **replay loop** | the same recall fingerprint, $\mathrm{SHA256}(\text{query}, \text{selected anchors}, \text{office})$ — MNEMORPH-85 also hashes its synthesised text, which Mnemorph does not produce — at least 3 times in the last 5 recalls with no new outcome and no dissent selected | inject the best dissenting note or escalate one hop, the way the identical-call loop breaker does for tools |
+| **replay loop** | the same recall fingerprint, $\mathrm{SHA256}(\text{query}, \text{selected anchors}, \text{office})$ — MIKATA-85 also hashes its synthesised text, which Mikata does not produce — at least 3 times in the last 5 recalls with no new outcome and no dissent selected | inject the best dissenting note or escalate one hop, the way the identical-call loop breaker does for tools |
 | **lock-in** | a revise note exists, yet every agreeing note recalled is older than it and no dissent was selected | reopen the recall with the newest revision forced in |
 | **unproven write** | a note event whose `by` or proof does not resolve in the fold — a hand edit, a bad merge, an import that skipped its checks | ignore the event in recall, freeze the creature's memory writes and tell the human |
 
@@ -553,7 +553,7 @@ An event resolves by its author and its proof:
 
 A standing is a `grounded` status or a confidence. An unresolved event touching a creature — in
 its personal or short tier, or on a shared note it owns — freezes that creature's proposals,
-groundings, revisions and cache; `mnemorphd memory status` names each event, its file and why, and
+groundings, revisions and cache; `mikatad memory status` names each event, its file and why, and
 exits 1 until the human removes or re-proves it. A run that recalls past one says so in a warning.
 A shared note with no owner freezes no creature; its unresolved events are reported under their
 own row. A schema rests on schemas too, and an heir inherits a schema with every note it links
@@ -567,7 +567,7 @@ The replay loop and lock-in are read at each recall, before the body sees it:
   journal heading of a passing verdict, so failing the same way again is no new outcome. An ask
   the human interrupted leaves no trace; the fingerprint is taken before any act forces a note in. Each ended ask appends its trace — fingerprint, whether a
   dissent sat among the anchors, outcome, the act forced — to the machine-local
-  `.mnemorph/memory/short/recalls/<creature>.jsonl`.
+  `.mikata/memory/short/recalls/<creature>.jsonl`.
 - **The replay loop's act** seats the best dissenting note for the query, the floor set aside;
   with none in memory, the recall ends with an `@M replay:` line telling the body to change its
   approach or say what blocks it.
@@ -599,24 +599,24 @@ Know-how a body may load, in two levels, priced by exactly what each injects:
   never wears one over 2,000 tokens: the body below that needs it wears it and dies with its
   task.
 - **Adopting and retiring a Mind.** A Mind is know-how, never law, and its provenance is kept
-  outside the world: the human adopts it (`mnemorphd mind adopt <name> [--owner <creature>]`),
+  outside the world: the human adopts it (`mikatad mind adopt <name> [--owner <creature>]`),
   which records its doc, the SHA-256 of its bytes and its owner in a chained witness under the
   state directory. It loads while its doc holds those bytes; edited since, it is *changed since
-  adoption* and loads no more until re-adopted. Retired by the human (`mnemorphd mind retire`) —
+  adoption* and loads no more until re-adopted. Retired by the human (`mikatad mind retire`) —
   outworn, or found poisoned — it no longer loads: no manifest offers it and no body may wear it,
   whoever names it; `unretire` takes that back. Its file stays on disk. A Mind never adopted does
   not load: it is shown *unadopted* in `status`, and a world from before the witness adopts its
-  Minds once. A body never writes `.mnemorph/minds/`
+  Minds once. A body never writes `.mikata/minds/`
   ([Mind provenance](02-races.md)).
 - **Every command a prompt or hint names exists in the build.** A test reads every backticked
-  `mnemorph …` or `mnemorphd …` command in the shipped sources against the help of the binary it
-  names — `mnemorph` or `mnemorphd`.
+  `mikata …` or `mikatad …` command in the shipped sources against the help of the binary it
+  names — `mikata` or `mikatad`.
 
 ### Not taken
 
-- **The living-memory vector and its eight states.** Mnemorph keeps two of its pathologies
+- **The living-memory vector and its eight states.** Mikata keeps two of its pathologies
   (replay loop, lock-in) as findings with acts, adds its own (unproven write) in place of
-  MNEMORPH-85's colonisation hold, and leaves out the maturity labels.
-- **Lexical similarity.** MNEMORPH-85 ranks by token overlap; Mnemorph keeps BM25, and
+  MIKATA-85's colonisation hold, and leaves out the maturity labels.
+- **Lexical similarity.** MIKATA-85 ranks by token overlap; Mikata keeps BM25, and
   an embedding model stays the same boundary with a bigger engine.
 - **Synthesis by concatenation.** Recall returns anchors; the body reads them.

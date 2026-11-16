@@ -1,7 +1,7 @@
 /**
  * Text a model or a tool wrote, as a human is shown it: the TypeScript port of the core's
- * `mnemorph_loop::hidden` and `shown`. The two read the same test vectors
- * (`crates/mnemorph-wire/tests/shown-vectors.json`), so they cannot drift apart.
+ * `mikata_loop::hidden` and `shown`. The two read the same test vectors
+ * (`crates/mikata-wire/tests/shown-vectors.json`), so they cannot drift apart.
  */
 
 /**

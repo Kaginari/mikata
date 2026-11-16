@@ -11,10 +11,10 @@ task once per harness, November 2026:
 
 | Harness | Passed | Spent | Per pass |
 |---|---|---|---|
-| **Mnemorph, light-coding** (main 19fa71d, 13 November) | **9 of 10** | $3.87 | **$0.43** |
+| **Mikata, light-coding** (main 19fa71d, 13 November) | **9 of 10** | $3.87 | **$0.43** |
 | Maki 0.7.1 | 8 of 10 | $7.73 | $0.97 |
 | OpenCode 1.19.5 | 7 of 10 | $4.72 | $0.67 |
-| Mnemorph before the "done" list (1ec6f80, 12 November) | 5 of 10 | $3.97 | $0.79 |
+| Mikata before the "done" list (1ec6f80, 12 November) | 5 of 10 | $3.97 | $0.79 |
 
 ## In plain words
 

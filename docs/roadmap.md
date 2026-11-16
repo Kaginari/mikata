@@ -36,7 +36,7 @@ flowchart LR
 ```
 
 Green rungs are built; the amber one is under way. The
-[milestones](https://github.com/Kaginari/mnemorph/milestones) hold each rung's open issues.
+[milestones](https://github.com/Kaginari/mikata/milestones) hold each rung's open issues.
 
 ## In plain words
 
@@ -45,8 +45,8 @@ A rung is finished only when its own tests pass against fakes of the rung below;
 starts by testing the two together for real. So when something breaks, it is always in the newest
 piece.
 
-Consumption comes early on purpose (M2): before Mnemorph makes a single model call, it can already
-count and stop. From M6 Mnemorph is usable in a terminal and, in light-coding, starts working
+Consumption comes early on purpose (M2): before Mikata makes a single model call, it can already
+count and stop. From M6 Mikata is usable in a terminal and, in light-coding, starts working
 on itself; from M7 it runs the full chain, and from M9 it opens its own pull requests.
 
 Every milestone ends the same way:
@@ -72,10 +72,10 @@ Pages 01–06, races, lessons, card prompt (this book). Then:
 
 - your review of [Races](02-races.md): bars, privileges, falls, Kijin posts, Dark Elf duties;
 - the race cards generated from [the prompt](race-cards-prompt.md) and reviewed;
-- the name decided — `mnemorph` is taken on npm and crates.io, so the published crate and npm
+- the name decided — `mikata` is taken on npm and crates.io, so the published crate and npm
   names (and an npm scope) are settled here; then the GitHub repository is created
   (`gh repo create`, your call: public or private);
-- whether Mnemorph has distributions (isekai's agent-one lineage: one engine, a lexicon file plus
+- whether Mikata has distributions (isekai's agent-one lineage: one engine, a lexicon file plus
   defaults) — it shapes the terminal app's wording and the card text;
 - one diagram checked in a GitHub preview: if GitHub ignores the hand-drawn look, the look is set
   in the docs site's config instead and the pages keep plain Mermaid;
@@ -83,7 +83,7 @@ Pages 01–06, races, lessons, card prompt (this book). Then:
   `tools/check-canvas.mjs` refuses any script, handler, outside link or HTML in `docs/canvas/`.
 
 The human said the book is right on 2026-11-05. Open: the higher-resolution card art
-([#23](https://github.com/Kaginari/mnemorph/issues/23)).
+([#23](https://github.com/Kaginari/mikata/issues/23)).
 
 **Exit:** you say the book is right. No code before this.
 
@@ -93,7 +93,7 @@ The human said the book is right on 2026-11-05. Open: the higher-resolution card
 - Cargo workspace with empty crates; pnpm workspace with empty packages; `justfile`
   (`just check` = fmt, clippy `-D warnings`, nextest, Biome, typecheck, vitest).
 - CI on GitHub Actions: Linux and macOS; `cargo-deny` (licences, advisories) from day one.
-- `.mnemorph/` seeded by hand: law, the first creatures for Mnemorph's own crates, `log.md`.
+- `.mikata/` seeded by hand: law, the first creatures for Mikata's own crates, `log.md`.
 - Docs site: VitePress over `docs/` as it stands, Mermaid hand-drawn, a dead link fails the
   build; built by CI as the `book` artifact until the repository can publish Pages.
 
@@ -103,9 +103,9 @@ The human said the book is right on 2026-11-05. Open: the higher-resolution card
 
 Pure crates, no I/O.
 
-- `mnemorph-wire`: every tag of [Communication](04-communication.md), parser + encoder, trimming
+- `mikata-wire`: every tag of [Communication](04-communication.md), parser + encoder, trimming
   order, envelope. Fixtures transcribed from isekai's `wire/` tests. Property test round-trip.
-- `mnemorph-races`: the enum and its methods, shelves, soil, gates, dispatch decision table, score
+- `mikata-races`: the enum and its methods, shelves, soil, gates, dispatch decision table, score
   formulas, ascension and fall predicates, budget shares. Table-driven tests: every cell of the
   dispatch flowchart; every bar at, just under and just over its threshold.
 
@@ -195,17 +195,17 @@ Esc stops a running command within a second.
 
 ### M6 — Protocol, SDK, CLI · L · 🐕 dogfood
 
-- `mnemorph-server`: JSON-RPC over stdio, events with `seq`, reconnect, gate request; `mnemorph
+- `mikata-server`: JSON-RPC over stdio, events with `seq`, reconnect, gate request; `mikata
   status` (version and commit, key origins, the sandbox in force).
-- `@mnemorph/protocol` generated, `@mnemorph/sdk`; the terminal client is `mnemorph`, in Rust with
+- `@mikata/protocol` generated, `@mikata/sdk`; the terminal client is `mikata`, in Rust with
   Ratatui, the session in its own process: streaming text, tool call cards, the gate prompt,
   status line with spend / left / cache / held, themes; Enter queues while a turn runs;
-  `mnemorph run` for scripts.
+  `mikata run` for scripts.
 - The UX bar is Claude Code and OpenCode: input history, multi-line editing, paste, selection and
   copy, resize, interrupt with Esc, no flicker.
 
-**Exit:** you use `mnemorph` for a real session and it feels finished. From here Mnemorph helps
-build Mnemorph in light-coding.
+**Exit:** you use `mikata` for a real session and it feels finished. From here Mikata helps
+build Mikata in light-coding.
 
 ### M7 — The world · L
 
@@ -221,7 +221,7 @@ build Mnemorph in light-coding.
   as a bench read is against its run, so routing is never free of the budget it routes.
 - The send and wake lanes per body (a report wakes its own parent), the shared work queue —
   revisioned snapshots with a witness out of reach, the rank law, relay-hold, the `queue` tool — and
-  its door in the terminal, `mnemorphd q`.
+  its door in the terminal, `mikatad q`.
 - The ontology, following [its page](09-ontology.md), rungs lowest first:
   1. the graph derived from the docs' Territory, Domain, chain and Minds fields, and inference to
      its fixed point, rebuilt on the docs' fingerprint;
@@ -252,7 +252,7 @@ split itself, one body a project at once: 4.5 of 5 on average for $1.72. Structu
 frozen ([experimental modes](experimental-modes.md)).
 
 **Exit:** the full "one order, down and back" sequence runs with scripted bodies and passes its
-gate; every refusal names its lawful route; a creature claiming `.mnemorph` owns none of the seats,
+gate; every refusal names its lawful route; a creature claiming `.mikata` owns none of the seats,
 the queue or scratch; an ontology fixture with an overlap, a loop in the chain, a contested fact
 reports each with its code and severity, and the gate blocks only the critical and high ones —
 and not a landing that removes the finding; two creatures that write different `build=` values for one path,
@@ -278,7 +278,7 @@ point at it, and only a route's proof grounds a note into shared memory. Rungs, 
    writes nothing; a human's correction lands grounded; confidence gained on repeated passes.
 5. **Consolidation and forgetting.** The desk's distillation, dissent exempt; `dormant`,
    `abstract`, and `tombstone` on machine-local tiers only.
-6. **Pathologies.** `mnemorphd memory status`: the replay loop, lock-in and the unproven write
+6. **Pathologies.** `mikatad memory status`: the replay loop, lock-in and the unproven write
    (the fold checks every event's `by` and proof), each with its act.
 7. **Session start, toolbox, drain.** Session start injects the law and the recent log through
    the harness itself; the toolbox's two levels with priced manifests; the compaction drain, whose
@@ -321,9 +321,9 @@ mid-act is probed first — settled if it landed, gated again if not — never r
 only once the human approves it, and its incident closes only on four receipts.
 
 Every post's acts run today: `forge` typed, the others as gated `bash` commands, each held to its
-post. `ci`'s instrument is built (`mnemorphd ci`, read live against this repository).
-`scout`'s mirror is built (`mnemorphd scout`, fetched live from OSV), and audited against
-(`mnemorphd scout audit`, `osv-scanner` offline; run live over this repository's lockfiles). Both run on a schedule (`mnemorphd refresh`).
+post. `ci`'s instrument is built (`mikatad ci`, read live against this repository).
+`scout`'s mirror is built (`mikatad scout`, fetched live from OSV), and audited against
+(`mikatad scout audit`, `osv-scanner` offline; run live over this repository's lockfiles). Both run on a schedule (`mikatad refresh`).
 
 The exit is met live: on 2026-11-05 a branch was pushed and a pull request opened on this repository
 through `kijin-forge`, Claude Sonnet 5.5 through OpenRouter, with one gate prompt (#341, closed
@@ -358,21 +358,21 @@ In order:
 8. loop: independent verification
 9. test: the seeded fixture repository
 10. ledger: findings, upheld and precision folds per creature
-11. the law audit's checks ([#104](https://github.com/Kaginari/mnemorph/issues/104)) and the
-    gold-set hooks ([#106](https://github.com/Kaginari/mnemorph/issues/106))
+11. the law audit's checks ([#104](https://github.com/Kaginari/mikata/issues/104)) and the
+    gold-set hooks ([#106](https://github.com/Kaginari/mikata/issues/106))
 
 Built: every rung, 1 to 11 — the specialities, each one's attack classes compiled with its
 surfaces, `route`, the wire's finding fields, the finding record and the coverage ledger with
-their validators (`mnemorph-proving`), the compiled playbooks, one per class, loaded by speciality
+their validators (`mikata-proving`), the compiled playbooks, one per class, loaded by speciality
 and surface (`for_landing`), the challenge routed from the reserve, and the seeded fixture
 repository ([races](02-races.md#-dark-elf--the-adversary)): 18 planted flaws and 7 negative
 controls over all six hunters, held with no model to routing, the playbook brief, the finding
 and coverage validators and the challenge's block, with a paid evaluation of recall and precision
 (`just seeded-eval`) kept out of CI, the fresh verifier, each speciality's score folded
 from the challenge records, its rise or fall proposed to the human
-(`mnemorphd challenge score`), the law audit's stop-propagation and Mind-provenance checks, each
+(`mikatad challenge score`), the law audit's stop-propagation and Mind-provenance checks, each
 with its witness — a Mind's adoption, owner and retirement kept in a witness outside the world
-(`mnemorphd mind`); stop propagation covers foreground commissions, and the Arch Dark Elf's
+(`mikatad mind`); stop propagation covers foreground commissions, and the Arch Dark Elf's
 campaigns inherit it when built — and the reviewers' calibration on a gold set (`just calibrate`). Toward the
 exit still: seals, the witness rule's coverage of the cited line, the seal lifting on a fix that
 carries the frozen witness, and applying a proposed rise or fall (M11).
@@ -386,25 +386,25 @@ includes the witness.
 - The value ledger and its fold into each race's signals (built: the report fold over the
   harness's trusted journals into the chained report ledger, and every race's meters from it —
   [the report fold](02-races.md#the-report-fold); and rises and falls proposed from it by the
-  compiled law over the 28-day window, through probation, applied only by the human's `mnemorphd
+  compiled law over the 28-day window, through probation, applied only by the human's `mikatad
   roster rise|fall` and replayed exactly from the journals and the witness —
   [applying a rise or a fall](02-races.md#applying-a-rise-or-a-fall)),
   score folds per race, meters, minimum record, evolution — its trigger (stress and a full desk), split / rebirth / mutate staged and
   proven over an overlay, the 10-run cooldown, proposals with `evolution apply | reject`, and
   each swap judged after the freeze — on its post-swap window against do-nothing fixtures, over
   exactly the files it named, its judgement replayed from the chained ledger (built: the
-  human's `mnemorphd evolution swap` swaps in a staged plan that is exactly its named file set,
+  human's `mikatad evolution swap` swaps in a staged plan that is exactly its named file set,
   creating no file over an existing one, and writes the swap row; every ask of its bodies a run
-  row, a task in two splits held out by none; `mnemorphd evolution judge` runs the controls on
+  row, a task in two splits held out by none; `mikatad evolution judge` runs the controls on
   demand and proposes; the trigger, propose only: who is due to evolve — stressed on its trusted
   gate verdicts, its desk full — and by which arm, cooling while a swap's window is open, in
-  `mnemorph status` and `mnemorphd evolution due`; the drafter: a mutate or rebirth drafted by the
+  `mikata status` and `mikatad evolution due`; the drafter: a mutate or rebirth drafted by the
   configured model as traits citing the desk, the doc written by the harness with its header
-  untouched, staged for the human's swap (`mnemorphd evolution draft`); every swap proven first
+  untouched, staged for the human's swap (`mikatad evolution draft`); every swap proven first
   over an overlay — no new finding, the pinned verify lines passing in the sandbox; strain and doom in the
   trigger, from a trusted journal of their own; a split's young from
-  relief around the two parts its trouble clusters in (`mnemorphd relief <name> --around`), the
-  human's to apply; every drawn plan a proposal under the state directory for `mnemorphd evolution list |
+  relief around the two parts its trouble clusters in (`mikatad relief <name> --around`), the
+  human's to apply; every drawn plan a proposal under the state directory for `mikatad evolution list |
   show | apply | reject`, refused when the world moved since it was drawn; and with
   `evolution.mode = "auto"`, evolution on its own after each session: a due creature drafted,
   proven and swapped in on trial, then kept or rolled back by the rule once its 10 runs are
@@ -415,14 +415,14 @@ includes the witness.
   act an envelope admits runs without the human, read again at the moment of use — from the
   human's global file alone, signed for a world or a repository (and a post or body) — its bounds
   (signed, expiring within `oni.envelope_days`, a use cap counted in the ledger's uses under a
-  lock, revocable with `mnemorphd envelope revoke`), `suspended`, and the compiled exclusions —
-  and shown to the human, in the session and in `mnemorphd envelope list`
-  ([#88](https://github.com/Kaginari/mnemorph/issues/88)), and in `mnemorph status`, one line per
+  lock, revocable with `mikatad envelope revoke`), `suspended`, and the compiled exclusions —
+  and shown to the human, in the session and in `mikatad envelope list`
+  ([#88](https://github.com/Kaginari/mikata/issues/88)), and in `mikata status`, one line per
   envelope (built).
 - The guts classes on the act beat, the learned value's first signals (built): every act classed
   `fail`, `red-pin`, `positive`, `repeat`, `echo` or `thrash` by harness code from its structured
   outcome, journaled on its beat and in a chained, build-stamped record outside the world, counted
-  in `mnemorph status` and chipped on the board's timeline; replaying a run journal gives the same
+  in `mikata status` and chipped on the board's timeline; replaying a run journal gives the same
   classes. Signals only: nothing rises or falls on them, and the red pin weighs 0
   ([the loop](03-loop.md#stress-in-four-instruments)). The benches the classes trust are the
   verify lines the human pinned, out of a body's reach.
@@ -439,9 +439,9 @@ includes the witness.
 
 ### M13 — Integrations · M
 
-- `mnemorph mcp serve` (memory and law as MCP tools), a Claude Code hooks adapter (the law inside
+- `mikata mcp serve` (memory and law as MCP tools), a Claude Code hooks adapter (the law inside
   Claude Code: session start, pre-tool gate, stop gate, pre-compact drain), and
-  `mnemorph import <dir>/.isekai` to bring an isekai world over.
+  `mikata import <dir>/.isekai` to bring an isekai world over.
 - Relations between worlds, following [the ontology](09-ontology.md#relations-between-worlds): the
   first milestone where a second world is in reach — relation sightings, the named-twice proposal
   with its synonym check and expiry, and `onto check --dimension`.
@@ -449,7 +449,7 @@ includes the witness.
   followed, slimmed and priced schemas, local argument checks, ranked offers, the ledger's
   learning.
 - The first MCP benchmark, simple and repeatable: the same servers (a large one, such as GitHub,
-  and two small ones) and the same scripted tasks, run through Mnemorph and through maki. Measured:
+  and two small ones) and the same scripted tasks, run through Mikata and through maki. Measured:
   tokens of tool specs shown to the model, tokens loaded on demand, session start time, time to
   the first tool call, calls that picked the wrong tool or failed on arguments, and total
   weighted tokens per task.
@@ -457,7 +457,7 @@ includes the witness.
 **Exit:** this very repository's isekai world imports cleanly; one relation sighted twice by two
 bodies produces exactly one manifest diff proposal and writes nothing, and a fixture with one
 dimension obstruction reports it; the MCP benchmark's table is in the
-book, and Mnemorph matches or beats maki on spec tokens shown and on start time — or the page says
+book, and Mikata matches or beats maki on spec tokens shown and on start time — or the page says
 plainly where it does not.
 
 ### M14 — 1.0 · S
@@ -465,12 +465,12 @@ plainly where it does not.
 - Signed release binaries, npm distribution, installer, changelog, the decks.
 - The release path: the release-candidate smoke test, `install.sh`, the tag-only release
   workflow that drafts and never publishes, `CHANGELOG.md` ([releasing](releasing.md)).
-- `@mnemorph/protocol` and `@mnemorph/sdk` 0.1.0 are on npm, installed and imported from the
+- `@mikata/protocol` and `@mikata/sdk` 0.1.0 are on npm, installed and imported from the
   public registry. Still the human's: turning on signing, cutting 1.0.
-- The deck is one presentation of Mnemorph: `assets/deck/mnemorph.html` and its PDF, made with
+- The deck is one presentation of Mikata: `assets/deck/mikata.html` and its PDF, made with
   `tools/deck.mjs`.
 
-**Exit:** a fresh machine installs and runs Mnemorph in under two minutes.
+**Exit:** a fresh machine installs and runs Mikata in under two minutes.
 
 ## The rules of the road
 
@@ -478,5 +478,5 @@ plainly where it does not.
 - Nothing is ported without its test: read the isekai source, transcribe its tests as fixtures,
   then write the Rust.
 - Every lesson in [lessons](lessons.md) is enforced in the milestone it names.
-- isekai keeps living; Mnemorph never edits it. Lessons flow from it as reading, never as code
+- isekai keeps living; Mikata never edits it. Lessons flow from it as reading, never as code
   copied blind.

@@ -5,37 +5,37 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const ALLOWED = {
-  'mnemorph-wire': [],
-  'mnemorph-races': [],
-  'mnemorph-sandbox': [],
-  'mnemorph-memory': ['mnemorph-ledger', 'mnemorph-sandbox'],
-  'mnemorph-ledger': ['mnemorph-races'],
-  'mnemorph-proving': ['mnemorph-wire', 'mnemorph-races'],
-  'mnemorph-tools': ['mnemorph-races', 'mnemorph-sandbox', 'mnemorph-wire'],
-  'mnemorph-config': ['mnemorph-races', 'mnemorph-tools', 'mnemorph-ledger'],
-  'mnemorph-provider': ['mnemorph-ledger', 'mnemorph-wire'],
-  'mnemorph-world': [
-    'mnemorph-wire',
-    'mnemorph-races',
-    'mnemorph-ledger',
-    'mnemorph-memory',
-    'mnemorph-proving',
-    'mnemorph-sandbox',
+  'mikata-wire': [],
+  'mikata-races': [],
+  'mikata-sandbox': [],
+  'mikata-memory': ['mikata-ledger', 'mikata-sandbox'],
+  'mikata-ledger': ['mikata-races'],
+  'mikata-proving': ['mikata-wire', 'mikata-races'],
+  'mikata-tools': ['mikata-races', 'mikata-sandbox', 'mikata-wire'],
+  'mikata-config': ['mikata-races', 'mikata-tools', 'mikata-ledger'],
+  'mikata-provider': ['mikata-ledger', 'mikata-wire'],
+  'mikata-world': [
+    'mikata-wire',
+    'mikata-races',
+    'mikata-ledger',
+    'mikata-memory',
+    'mikata-proving',
+    'mikata-sandbox',
   ],
-  'mnemorph-loop': [
-    'mnemorph-config',
-    'mnemorph-world',
-    'mnemorph-provider',
-    'mnemorph-tools',
-    'mnemorph-ledger',
-    'mnemorph-memory',
-    'mnemorph-races',
-    'mnemorph-wire',
-    'mnemorph-proving',
+  'mikata-loop': [
+    'mikata-config',
+    'mikata-world',
+    'mikata-provider',
+    'mikata-tools',
+    'mikata-ledger',
+    'mikata-memory',
+    'mikata-races',
+    'mikata-wire',
+    'mikata-proving',
   ],
-  'mnemorph-server': ['mnemorph-loop'],
-  mnemorphd: ['mnemorph-server'],
-  'mnemorph-tui': ['mnemorph-server', 'mnemorph-loop', 'mnemorph-tools', 'mnemorph-races'],
+  'mikata-server': ['mikata-loop'],
+  mikatad: ['mikata-server'],
+  'mikata-tui': ['mikata-server', 'mikata-loop', 'mikata-tools', 'mikata-races'],
 };
 
 const meta = JSON.parse(
@@ -74,11 +74,11 @@ const lints = (toml) => {
   return out;
 };
 const ws = lints(readFileSync('Cargo.toml', 'utf8'));
-const sb = lints(readFileSync('crates/mnemorph-sandbox/Cargo.toml', 'utf8'));
+const sb = lints(readFileSync('crates/mikata-sandbox/Cargo.toml', 'utf8'));
 for (const [key, value] of Object.entries(ws)) {
   const want = key === 'lints.rust.unsafe_code' ? '"deny"' : value;
   if (sb[key] !== want)
-    errors.push(`mnemorph-sandbox: ${key} is ${sb[key] ?? 'missing'}, want ${want}`);
+    errors.push(`mikata-sandbox: ${key} is ${sb[key] ?? 'missing'}, want ${want}`);
 }
 
 if (errors.length) {

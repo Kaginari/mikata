@@ -429,7 +429,7 @@ function ApprovalCard({ live, waiting, more }: { live: Live; waiting: Waiting; m
         {large && (
           <p className="approval-large" role="note">
             <Mark tone="alarm" glyph="✕">
-              Too large to approve from the web; answer in the terminal (mnemorph), or deny it here.
+              Too large to approve from the web; answer in the terminal (mikata), or deny it here.
             </Mark>
           </p>
         )}

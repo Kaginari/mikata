@@ -3,7 +3,7 @@
 [DIKWP-MESH²](https://github.com/YucongDuan/DIKWP-MESH-) (Yucong Duan, Apache-2.0) is a Python
 prototype that treats meaning as a network seen by many observers at once, rather than as one
 definition. This page explains its mathematics, says what its code really computes, and works out
-which of its ideas fit Mnemorph's [ontology](../09-ontology.md) and which do not. Formulas marked
+which of its ideas fit Mikata's [ontology](../09-ontology.md) and which do not. Formulas marked
 **[code]** are read out of `src/dikwp_mesh2/`; **[model]** marks a formula written for this page.
 
 ## In one picture
@@ -30,7 +30,7 @@ flowchart LR
       GL --> K
       GL --> OB
     end
-    subgraph onto["Mnemorph's ontology — one answer where it must"]
+    subgraph onto["Mikata's ontology — one answer where it must"]
       OWN["ownership<br/>exactly one owner"]
       FACT["facts<br/>by · source · support · counter"]
       REL["relations<br/>between worlds"]
@@ -61,7 +61,7 @@ So MESH collects every observer's view, finds where they agree (a *kernel*), whe
 contradiction away. It can also notice when the existing vocabulary keeps failing and propose a
 new dimension, but only behind tests and a way back.
 
-Mnemorph's ontology has the opposite core job: every path has **exactly one** owner, decided by
+Mikata's ontology has the opposite core job: every path has **exactly one** owner, decided by
 code, and the gate enforces it. Plural answers there would be a bug. But the ontology also holds
 things that *are* plural by nature: facts creatures assert about their territory, and relations
 between neighbouring worlds. Those need a conflict model. That is where MESH fits.
@@ -264,7 +264,7 @@ sums them into one score, $\min(1, \sum w / 4)$, with bands at 0.30 and 0.65.
 
 ### 8. The ontology's own mathematics
 
-Mnemorph's ontology inherits isekai's: a set of triples, rules and shapes.
+Mikata's ontology inherits isekai's: a set of triples, rules and shapes.
 
 - **Inference** is forward chaining over Horn rules — subclass and subproperty closure, domain
   and range typing, inverses, transitivity of `above` — to the least fixed point
@@ -279,9 +279,9 @@ Mnemorph's ontology inherits isekai's: a set of triples, rules and shapes.
 - **`above` must be acyclic** — a tree from Slime to the throne. MESH's audit treats a missing
   cycle as a defect; for the chain of command, a cycle *is* the defect.
 
-### 9. What Mnemorph takes
+### 9. What Mikata takes
 
-| MESH idea | Where in MESH | In Mnemorph |
+| MESH idea | Where in MESH | In Mikata |
 |---|---|---|
 | Claims indexed by observer, with stance and source | `SemanticAtom`, $\kappa_a$ | territory facts carry `by` and `source`, and creatures support or counter them ([ontology](../09-ontology.md#facts-who-said-what)) |
 | Contradictions kept as obstructions, decided by the counting rule | `gluing.py` | the `contested-fact` finding, with the 0.35 tolerance measured on the losing side; the projection shows both sides |
@@ -290,7 +290,7 @@ Mnemorph's ontology inherits isekai's: a set of triples, rules and shapes.
 | The install protocol for a new axis | formal model §6 | learning a relation: a sightings ledger, named twice, a no-synonym check, the human's yes, a rollback by expiry |
 | Coded findings with severities | `audit.py` | every `onto check` finding has a code and a severity; the gate blocks on critical and high in the landing's territory |
 
-### 10. What Mnemorph does not take
+### 10. What Mikata does not take
 
 - **Plural ownership.** Gluing never touches `own`.
 - **The aggregate leakage score.** Findings stand alone, as in [memory](../08-memory.md): a clean
@@ -298,4 +298,4 @@ Mnemorph's ontology inherits isekai's: a set of triples, rules and shapes.
 - **DIKWP typing of every node** and the 25 operators. The ontology's classes are races, Minds,
   docs and facts; a simplex membership adds nothing the gate can check.
 - **The router's additive cost.** No ontology question is a cheapest-path question.
-- **The hard-coded escape catalogue.** Mnemorph keeps only the protocol.
+- **The hard-coded escape catalogue.** Mikata keeps only the protocol.

@@ -1,0 +1,91 @@
+//! The loop: one body's six beats — perceive, recall, plan, act, verify, record — until it
+//! answers, or stops honestly at a meter or an instrument.
+
+pub mod auto;
+pub mod beats;
+pub mod budget;
+pub mod challenge;
+pub mod collective;
+pub mod commission;
+pub mod compact;
+pub mod council;
+pub mod coverage_tool;
+pub mod decisions;
+pub mod draft;
+pub mod envelope;
+pub mod evolution;
+pub mod gate;
+pub mod guts;
+pub mod incident;
+pub mod key;
+pub mod lines;
+pub mod mcp_journal;
+pub mod metrics;
+pub mod model;
+pub mod open;
+pub mod prove;
+pub mod queue_tool;
+pub mod resume;
+pub mod returns;
+pub mod route;
+pub mod run;
+pub mod sequence;
+pub mod session;
+pub mod session_metrics;
+pub mod solo;
+pub mod split;
+pub mod stress;
+pub mod summon_tool;
+pub mod verdict_tool;
+pub mod verify_tool;
+pub mod wear_tool;
+pub mod workboard;
+
+pub use beats::{Beat, Facts, conversation};
+pub use budget::{Caps, Left};
+pub use commission::{COMMISSION, CommissionTool, Commissioner};
+pub use coverage_tool::{COVERAGE, CoverageTool};
+pub use decisions::{BENCH_POINT, Decisions, bench_ask, bench_read, decision_usage, decisions};
+pub use gate::{Author, EndGate, GateVerdict, Tree, Verdict, snapshot};
+/// The configuration's layers, origins and holes, for a reader that shows them (the board).
+pub use mikata_config as config;
+/// The configuration, for a client that opens a session from it.
+pub use mikata_config::{Config, Paths};
+pub use mikata_provider::Event as StreamEvent;
+pub use mikata_provider::OPAQUE_PREFIX;
+/// The shipped price table, for a reader that shows what a model costs.
+pub use mikata_provider::anthropic_prices;
+pub use mikata_races::ToolClass;
+/// The plan a gate approval binds to.
+pub use mikata_tools::Fingerprint as GateFingerprint;
+/// The human gate's types, for a client that answers it.
+pub use mikata_tools::gate::{
+    Answer as GateAnswer, Ask as GateAsk, Gate, admitted_line as gate_admitted_line,
+};
+/// A `git` command started without the harness's secrets.
+pub use mikata_tools::git;
+/// Close the harness's `/proc` files (its environment, where provider keys live) to other processes.
+pub use mikata_tools::harden_self;
+/// Whether an environment variable is a secret the harness keeps from its children.
+pub use mikata_tools::is_secret;
+pub use mikata_wire as wire;
+pub use mikata_world as world;
+pub use model::{AnthropicModel, Model, OpenAiModel, ScriptedModel};
+pub use open::{
+    Bound, Mode, Opened, model_of, open, open_law, open_mode, open_with, open_with_law,
+    open_with_mode, resume, resume_mode, resume_with,
+};
+pub use queue_tool::{QUEUE, QueueTool};
+pub use resume::{Stopped, stopped};
+pub use route::{
+    Meter, ROUTE_POINT, Reason, Routed, Stop, Work, band, capped, pick, route, route_ask, tier_of,
+};
+pub use run::{
+    Body, COMPACTION, Ending, FOLD, HIDDEN, Interrupt, Limits, MOVED, OMITTED, Observer, Run, SENT,
+    Seen, Setup, Steer, UPDATE, hidden, kept_in_prose, shown, strip_thinking,
+};
+pub use sequence::validate;
+pub use session::{Queue, Session};
+pub use solo::{Law, SOLO_PROMPT, configure, solo, solo_as};
+pub use stress::{Bench, Read, Reading, Signal, Stress, bench_of, muted};
+pub use verdict_tool::{VERDICT, VerdictTool};

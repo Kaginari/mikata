@@ -1,0 +1,1136 @@
+//! Opening a session from a world's configuration: the model through the human's backend, the
+//! tools, the kernel guard, the journal, the ledger and the decisions — everything a client needs
+//! to talk to one body, built in one place so every client gets the same one.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
+
+use mikata_config::{Config, Paths};
+use mikata_ledger::Journal;
+use mikata_provider::{
+    Anthropic, Caller, HttpTransport, OpenAiCompatible, Policy, anthropic_prices,
+};
+use mikata_races::Race;
+use mikata_tools::gate::Gate;
+use mikata_tools::registry;
+
+use crate::decisions::decisions;
+use crate::model::{AnthropicModel, Model, OpenAiModel};
+use crate::run::{Body, Limits, Observer, Run, Setup};
+use crate::session::Session;
+use crate::solo::{Law, configure, solo_as};
+
+/// The session's run, given what it opens with and answers to: the journal's last entries — a
+/// fresh run's alone; a resumed one was told them when it began — the commissioner over its
+/// lanes, the human's caps and the decider.
+fn equip(
+    mut run: Run,
+    world: &Path,
+    commissioner: Arc<crate::commission::Commissioner>,
+    dispatches: bool,
+    caps: Option<mikata_ledger::Caps>,
+    decided: Option<crate::Decisions>,
+    law: Law,
+) -> Run {
+    // Law off, the journal's opening and the Minds' manifest are not said: they are the world's
+    // own words, as the law is.
+    if law.on() && run.steps() == 0 && run.messages().is_empty() {
+        run = run.with_opening(mikata_world::start::recent(
+            world,
+            OPENING_ENTRIES,
+            OPENING_CAP,
+        ));
+    }
+    let roster = mikata_world::Roster::load(world);
+    if law.on() {
+        run = run.with_manifest(mikata_world::minds::manifest(world, &roster, "summoner"));
+    }
+    run = run.with_law(law);
+    // A manifest the throne reads that names another known world is a sighting.
+    run = run.with_registry(mikata_world::dimension::registry());
+    // The throne sends the Dark Elves a landing's challenge routes, lanes or none.
+    run = run.with_challenger(Arc::clone(&commissioner));
+    if dispatches {
+        run = run.with_commissioner(commissioner);
+    }
+    if let Some(caps) = caps {
+        run = run.with_caps(caps);
+    }
+    if let Some(d) = decided {
+        run = run.with_decisions(d);
+    }
+    run
+}
+
+/// How many of the journal's last entries a fresh session opens with: told what earlier sessions
+/// learned by the harness itself, never by a file the host may or may not load.
+const OPENING_ENTRIES: usize = 5;
+/// The most of them it carries, in characters.
+const OPENING_CAP: usize = 8_000;
+
+/// How a session's bodies work together. The human may ask for one at the command line, with
+/// the `--mode` option; left unasked, the world decides ([`Mode::decide`]).
+///
+/// The human's names are `light-coding`, `structured-coding` and `collective-coding`
+/// ([`Mode::word`]). This crate's modules keep the names the modes were built under: `solo` is
+/// light-coding, the chain that `commission` runs is structured-coding, and `collective` is
+/// collective-coding. The prompts a model reads keep their words too: they are the measured ones.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    /// Light-coding: the Summoner works alone. It reads, plans, writes and checks, under its own
+    /// end gate. No body is commissioned.
+    Light,
+    /// Structured-coding: the Summoner holds the commission tool over its lanes. It may do a
+    /// known fix itself, or hand a lane's work to its Elf, which plans, its Orcs judging and its
+    /// Slimes writing.
+    Structured,
+    /// Collective-coding: the Summoner's members are equals. It writes the board, splits the
+    /// work by zone and summons them, and writes no code itself ([`crate::collective`]).
+    Collective,
+}
+
+impl Mode {
+    /// The word a command line, a status line and a journal say it with.
+    #[must_use]
+    pub fn word(self) -> &'static str {
+        match self {
+            Mode::Light => "light-coding",
+            Mode::Structured => "structured-coding",
+            Mode::Collective => "collective-coding",
+        }
+    }
+
+    /// The mode a word names: one name a mode, with no short form.
+    #[must_use]
+    pub fn parse(word: &str) -> Option<Self> {
+        [Mode::Light, Mode::Structured, Mode::Collective]
+            .into_iter()
+            .find(|m| m.word() == word)
+    }
+
+    /// The mode a session opens in, and why, in words for the human: the one `asked` for when
+    /// the world can give it, else the world's own: collective-coding when the human's global
+    /// file turns it on (`collective_on`) and the Summoner has `members`, structured-coding when
+    /// Elves report to it (`lanes`), else light-coding.
+    ///
+    /// # Errors
+    ///
+    /// The mode asked for needs bodies this world does not have: said with how the human makes
+    /// them, never answered with another mode in silence.
+    pub fn decide(
+        asked: Option<Mode>,
+        collective_on: bool,
+        lanes: &[String],
+        members: &[String],
+    ) -> Result<(Mode, String), String> {
+        const ADOPT: &str = "write its card under .mikata/ and adopt it with `mikatad roster \
+adopt` (`mikatad roster list` shows who is here)";
+        let elves = || {
+            format!(
+                "{} to the Summoner: {}",
+                plural(lanes.len(), "Elf reports", "Elves report"),
+                lanes.join(", ")
+            )
+        };
+        let bodies = || {
+            format!(
+                "{} to the Summoner: {}",
+                plural(members.len(), "body reports", "bodies report"),
+                members.join(", ")
+            )
+        };
+        match asked {
+            Some(Mode::Light) => Ok((
+                Mode::Light,
+                "you asked for it: the Summoner works alone".into(),
+            )),
+            Some(Mode::Structured) if lanes.is_empty() => Err(format!(
+                "--mode structured-coding: no Elf reports to the Summoner in this world — {ADOPT}"
+            )),
+            Some(Mode::Structured) => {
+                Ok((Mode::Structured, format!("you asked for it: {}", elves())))
+            }
+            Some(Mode::Collective) if members.is_empty() => Err(format!(
+                "--mode collective-coding: no creature reports to the Summoner in this world — {ADOPT}"
+            )),
+            Some(Mode::Collective) => {
+                Ok((Mode::Collective, format!("you asked for it: {}", bodies())))
+            }
+            None if collective_on && !members.is_empty() => Ok((
+                Mode::Collective,
+                format!("collective.on in your global file: {}", bodies()),
+            )),
+            None if collective_on => Ok((
+                Mode::Light,
+                "collective.on is set, but no creature reports to the Summoner in this world"
+                    .into(),
+            )),
+            None if !lanes.is_empty() => Ok((Mode::Structured, elves())),
+            None => Ok((
+                Mode::Light,
+                "no Elf reports to the Summoner in this world".into(),
+            )),
+        }
+    }
+}
+
+/// `n` of a thing, in words: `1 Elf reports`, `2 Elves report`.
+fn plural(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
+}
+
+/// `why`, and on a resumed run that opens in another mode than it `stopped_in` with none `asked`
+/// for, that mode and the way back to it.
+fn stop_said(why: String, mode: Mode, asked: Option<Mode>, stopped_in: Option<Mode>) -> String {
+    match stopped_in {
+        Some(was) if asked.is_none() && was != mode => format!(
+            "{why}; the run stopped in {was}: resume it with --mode {was} to go on in it",
+            was = was.word()
+        ),
+        _ => why,
+    }
+}
+
+/// A session, opened, and what a client shows about it.
+pub struct Opened {
+    /// The session.
+    pub session: Session,
+    /// The world it works in.
+    pub world: PathBuf,
+    /// The model, as the configuration names it.
+    pub model: String,
+    /// The provider that serves it.
+    pub provider: String,
+    /// The session's id.
+    pub session_id: String,
+    /// The run's id: its journal is `.mikata/instruments/loop/<run>.jsonl`.
+    pub run_id: String,
+    /// The configuration's holes — keys it did not take, and why — under a cap, the usage
+    /// ledger's lines that cannot be read, each outward act a probe left in `reconcile`, and each open
+    /// incident with the receipts it is missing.
+    pub holes: Vec<String>,
+    /// What the session may spend under the human's caps, when they set any.
+    pub budget: Option<crate::budget::Left>,
+    /// Where the provider's key comes from — the variable and the file that names it, never the
+    /// value; `None` when the provider takes no key.
+    pub key: Option<String>,
+    /// The sandbox actually in force for the session's commands, or `none — <reason>`.
+    pub sandbox: String,
+    /// The MCP servers the session's body may open, one level-0 line each with the price of
+    /// opening it: what `status` shows. Empty when no server may serve its race.
+    pub mcp: Vec<String>,
+    /// From the MCP journal: each server's levels loaded against used and its answers' cost, the
+    /// reranks' cost, then why each tool of the last ask's shortlist was offered — `<creature>
+    /// offered <tool> — bm25 3.1 + used 4× by kijin-forge (+1.61)` — and its rerank; or why the
+    /// journal is not believed.
+    pub mcp_offered: Vec<String>,
+    /// Whether the session's fixed prompt carries the world's law, cards, manifests and opening:
+    /// what the run journals, and `mikata run --json` says on its result line.
+    pub law: Law,
+    /// How the session's bodies work together ([`Mode`]): what `status` and the app's first line
+    /// say, and the run journals.
+    pub mode: Mode,
+    /// Why it opened in that mode, in words for the human.
+    pub mode_why: String,
+}
+
+/// Which run a session opens on.
+enum Start<'a> {
+    /// A new run.
+    Fresh,
+    /// A stopped run, by id or `last`, picked up from its journal.
+    Resume(&'a str),
+    /// A stopped run already found, checked and held.
+    Held(String, crate::resume::Hold),
+}
+
+/// Open a solo session in `world`: its configuration loaded, its model reached through the
+/// backend the human chose, its key read from the environment variable the provider names
+/// (`env`), the human's gate answering every act that asks.
+///
+/// # Errors
+///
+/// The configuration does not load, the model's backend is unknown, its key variable is not set,
+/// or the HTTP stack cannot start.
+pub fn open(
+    world: &Path,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    open_from(world, Start::Fresh, (Law::On, None), gate, observer, env)
+}
+
+/// [`open`] in the mode the human asked for at the command line ([`Mode`]; `None`: the world
+/// decides), the fixed prompt carrying the world's words or not, as [`open_law`]. Like the law,
+/// the mode asked for is the command line's alone: no configuration a world holds sets it.
+///
+/// # Errors
+///
+/// What [`open`] refuses on, and a mode this world cannot give ([`Mode::decide`]).
+pub fn open_mode(
+    world: &Path,
+    mode: Option<Mode>,
+    law: Law,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    open_from(world, Start::Fresh, (law, mode), gate, observer, env)
+}
+
+/// [`open`], the fixed prompt carrying the world's law, cards, manifests and opening or not
+/// ([`Law`]). `law` is the human's, from their command line: no configuration sets it, so no body
+/// can, and the run journals it.
+///
+/// # Errors
+///
+/// What [`open`] refuses on.
+pub fn open_law(
+    world: &Path,
+    law: Law,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    open_from(world, Start::Fresh, (law, None), gate, observer, env)
+}
+
+/// [`open`] on a stopped run — its id, or `last` for the newest that stopped — picked up from its
+/// journal: the same configuration, provider, sandbox, end gate, observer and commissioner as a
+/// fresh session's, only the run rebuilt rather than new. It keeps its model unless the
+/// configuration now names another; then the switch is said to the body as a context update.
+///
+/// # Errors
+///
+/// What [`open`] refuses on, and: no such run, its journal does not read whole, it answered or
+/// failed, or another live session holds it.
+pub fn resume(
+    world: &Path,
+    run: &str,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    resume_mode(world, run, None, gate, observer, env)
+}
+
+/// [`resume`] in the mode the human asked for ([`open_mode`]): a run picked up in another mode
+/// than it stopped in keeps its conversation, and its journal says the new one. With none asked
+/// for the world decides, as for a fresh session: the run's journal is a file in the world, and
+/// no file there chooses the mode. [`Opened::mode_why`] then says the mode the run stopped in
+/// when it is another, and how to go on in it.
+///
+/// # Errors
+///
+/// What [`resume`] refuses on, and a mode this world cannot give.
+pub fn resume_mode(
+    world: &Path,
+    run: &str,
+    mode: Option<Mode>,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    // A resumed run holds the law: the switch is the command line's, never read back from a
+    // journal a body could write.
+    open_from(
+        world,
+        Start::Resume(run),
+        (Law::On, mode),
+        gate,
+        observer,
+        env,
+    )
+}
+
+fn open_from(
+    world: &Path,
+    start: Start<'_>,
+    choice: (Law, Option<Mode>),
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    // A run with nothing to resume is refused before any key is asked for.
+    let start = match start {
+        Start::Resume(which) => {
+            let (run, hold, _) = crate::resume::take(world, which)?;
+            Start::Held(run, hold)
+        }
+        other => other,
+    };
+    let config = Config::load(&Paths::resolve(world))?;
+    // So is a mode this world cannot give: the human is told of the option they typed, not of a
+    // key the session would never have used.
+    mode_of(world, choice.1, config.collective())?;
+    let (model, backend, named, source) = model_of(&config, world, &env)?;
+    let mut opened = build(
+        world,
+        &config,
+        Bound {
+            model,
+            model_id: &backend.model,
+            attic: None,
+        },
+        start,
+        choice,
+        gate,
+        observer,
+        env,
+    )?;
+    // The world, opened, joins the registry of worlds on this machine: the board finds it there,
+    // and its session count is the clock a learned relation's expiry reads.
+    if let Err(e) = mikata_world::dimension::register(world) {
+        eprintln!("mikata: the world registry could not be written: {e}");
+    }
+    opened.key = source.map(|source| {
+        let field = format!(
+            "providers.{}.{}",
+            backend.provider_name,
+            if source.starts_with("file ") {
+                "key_file"
+            } else {
+                "key_env"
+            }
+        );
+        match config.get(&field) {
+            Some(leaf) => format!("{source}, named by {field} in {}", leaf.origin),
+            None => source,
+        }
+    });
+    opened.model = named;
+    opened.provider = backend.provider_name;
+    Ok(opened)
+}
+
+/// A model, its backend, the name the configuration gives it, and where its key was read from.
+pub type ModelOf = (
+    Arc<dyn Model>,
+    mikata_config::Backend,
+    String,
+    Option<String>,
+);
+
+/// The session's model in `world`, reached through the backend the human chose, its key read
+/// from the variable the provider names or else its key file ([`crate::key::resolve`]): the
+/// model, its backend, the name the configuration gives it and the key's source.
+///
+/// # Errors
+///
+/// The model's backend is unknown, neither its key variable nor its key file gives a key, or the
+/// HTTP stack cannot start.
+pub fn model_of(
+    config: &Config,
+    world: &Path,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Result<ModelOf, String> {
+    let named = config.model_for("summoner", Race::Summoner, None);
+    let backend = config.backend(&named)?;
+    let worlds = crate::key::known_worlds(Some(world));
+    let resolved = crate::key::resolve(&backend.provider_name, &backend.provider, env, &worlds)?;
+    let source = resolved.as_ref().map(|r| r.source.clone());
+    let key = resolved.map(|r| r.key.expose());
+    let transport =
+        Arc::new(HttpTransport::new(Duration::from_secs(10)).map_err(|e| format!("HTTP: {e}"))?);
+    let model: Arc<dyn Model> = match backend.provider.kind.as_str() {
+        "anthropic" => Arc::new(AnthropicModel(Anthropic::new(
+            transport,
+            &backend.provider.base_url,
+            key.ok_or_else(|| {
+                format!(
+                    "provider `{}` needs a key: name its variable with key_env, or its file with key_file",
+                    backend.provider_name
+                )
+            })?,
+            Policy::default(),
+        ))),
+        "openai" => Arc::new(OpenAiModel {
+            client: OpenAiCompatible::new(
+                transport,
+                &backend.provider.base_url,
+                key,
+                Policy::default(),
+            )
+            .with_upstreams(backend.provider.upstreams.clone()),
+            name: backend.provider_name.clone(),
+        }),
+        other => {
+            return Err(format!(
+                "provider `{}` is of kind `{other}`, which holds no conversation",
+                backend.provider_name
+            ));
+        }
+    };
+    Ok((model, backend, named, source))
+}
+
+/// What [`open_with`] is given rather than built: the model, and where the attic lives.
+pub struct Bound<'a> {
+    /// The model.
+    pub model: Arc<dyn Model>,
+    /// The id it answers to.
+    pub model_id: &'a str,
+    /// The attic's directory; `None` for the human's state directory.
+    pub attic: Option<&'a Path>,
+}
+
+/// The session's own end gate, as a commissioned body's: the verify lines pinned for its card
+/// ([`crate::gate::EndGate::pinned`]), each given the configuration's `gate.verify_secs`, and no
+/// test deleted or skipped; the whole repository is its soil, so no author is checked.
+fn session_gate(world: &Path, name: &str, config: &Config) -> crate::gate::EndGate {
+    let roster = mikata_world::Roster::load(world);
+    let card = roster.creatures.get(name);
+    let doc = card.map_or_else(
+        || format!(".mikata/{name}/{name}/README.md"),
+        mikata_world::Creature::doc,
+    );
+    let lines = card.map(|c| c.verify.clone()).unwrap_or_default();
+    crate::gate::EndGate::pinned(world, name, &doc, &lines, config.verify_secs(), None)
+}
+
+/// [`open`] with the model given: the configuration still sets the guard, the limits and the
+/// decisions.
+///
+/// # Errors
+///
+/// The decisions' settings are invalid or their classifier's key is not set.
+pub fn open_with(
+    world: &Path,
+    config: &Config,
+    bound: Bound<'_>,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    build(
+        world,
+        config,
+        bound,
+        Start::Fresh,
+        (Law::On, None),
+        gate,
+        observer,
+        env,
+    )
+}
+
+/// [`open_with`] in the mode the human asked for, as [`open_mode`].
+///
+/// # Errors
+///
+/// What [`open_with`] refuses on, and a mode this world cannot give.
+pub fn open_with_mode(
+    world: &Path,
+    config: &Config,
+    bound: Bound<'_>,
+    mode: Option<Mode>,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    build(
+        world,
+        config,
+        bound,
+        Start::Fresh,
+        (Law::On, mode),
+        gate,
+        observer,
+        env,
+    )
+}
+
+/// [`open_with`], the fixed prompt carrying the world's words or not, as [`open_law`].
+///
+/// # Errors
+///
+/// What [`open_with`] refuses on.
+pub fn open_with_law(
+    world: &Path,
+    config: &Config,
+    bound: Bound<'_>,
+    law: Law,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    build(
+        world,
+        config,
+        bound,
+        Start::Fresh,
+        (law, None),
+        gate,
+        observer,
+        env,
+    )
+}
+
+/// [`resume`] with the model given, as [`open_with`] is [`open`].
+///
+/// # Errors
+///
+/// What [`open_with`] and [`resume`] refuse on.
+pub fn resume_with(
+    world: &Path,
+    config: &Config,
+    bound: Bound<'_>,
+    run: &str,
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    build(
+        world,
+        config,
+        bound,
+        Start::Resume(run),
+        (Law::On, None),
+        gate,
+        observer,
+        env,
+    )
+}
+
+/// The one opening every session goes through, fresh or resumed.
+#[allow(
+    clippy::too_many_lines,
+    clippy::too_many_arguments,
+    reason = "one opening, read top to bottom: every piece a session holds is built here"
+)]
+fn build(
+    world: &Path,
+    config: &Config,
+    bound: Bound<'_>,
+    start: Start<'_>,
+    (law, asked): (Law, Option<Mode>),
+    gate: Arc<dyn Gate>,
+    observer: Observer,
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Opened, String> {
+    let Bound {
+        model,
+        model_id,
+        attic,
+    } = bound;
+    let (session_id, fresh_run) = ids();
+    // The mode first: one this world cannot give opens no session and touches nothing.
+    let (mode, mode_why, lanes, members) = mode_of(world, asked, config.collective())?;
+    // A resumed run is found, checked and held before anything is prepared: a refusal leaves the
+    // world as it was.
+    let (run_id, hold, resuming) = held_run(world, start, fresh_run)?;
+    prepare(world);
+    let (mut body, cx) = solo_as(world, model_id, law);
+    let collective = mode == Mode::Collective;
+    if !members.is_empty() {
+        body.system.push_str(&crate::collective::prompt(&members));
+    }
+    if !lanes.is_empty() {
+        body.system.push_str(&dispatch_prompt(&lanes));
+        if law.on() {
+            let roster = mikata_world::Roster::load(world);
+            body.system
+                .push_str(&crate::commission::cards_below(world, &roster, &body.name));
+        }
+    }
+    // In the collective the Summoner writes the board; the code is the members'.
+    let cx = if members.is_empty() {
+        cx
+    } else {
+        crate::collective::summoner_context(cx, mikata_world::Roster::load(world))
+    };
+    let (mut cx, mut limits) = configure(config, cx.with_gate(gate), Limits::for_race(body.race));
+    // The window is the model's own, and the line is held to it. A line the human set above 90%
+    // of a window — this model's, or any model a body below may ride — opens no session:
+    // clipped in silence, a run is measured at a size nobody asked for.
+    let context_lines = config.context_lines()?;
+    // The sampling of every model a body may ride: a value no provider takes opens no session.
+    let sampling = config.samplings()?;
+    (limits.window, limits.stress_tokens) = config.context_line(model_id)?;
+    // The throne works alone until it hands work down, Elves below it or none: the chain's steps.
+    limits.steps = config.solo_steps();
+    if let Some(dir) = attic {
+        cx = cx.with_attic(attic_of(config, dir, world)?);
+    }
+    let instruments = world.join(".mikata/instruments");
+    // The caps against what this world already spent. A cap that cannot be read opens no
+    // session: spend it cannot see would be spend it cannot stop.
+    let usage = usage_ledger(world);
+    let (caps, capped, unread, budget) = read_caps(config, &usage, &session_id)?;
+    let mut tools = registry();
+    tools.push(Box::new(crate::wear_tool::WearTool));
+    if !lanes.is_empty() || !members.is_empty() {
+        tools.push(Box::new(crate::commission::CommissionTool));
+        tools.push(Box::new(crate::queue_tool::QueueTool));
+    }
+    // The MCP servers the human declared: the body's share decided once, before the run is made.
+    let native = model.defers(model_id);
+    let (mcp, mcp_lines, mcp_holes) =
+        mcp_share(config, (body.race, &body.system, native), &cx, &mut tools)?;
+    let mcp_offered =
+        mcp.as_ref()
+            .map_or_else(Vec::new, |m| match crate::mcp_journal::read(m.state()) {
+                Ok(rows) => {
+                    let learned = mikata_tools::mcp::Learned::from_rows(rows);
+                    learned
+                        .spend()
+                        .into_iter()
+                        .chain(learned.last_offers())
+                        .collect()
+                }
+                Err(why) => vec![format!(
+                    "the journal is not believed, so ranking learns nothing: {why}"
+                )],
+            });
+    let prices = anthropic_prices().map_err(|e| format!("prices: {e}"))?;
+    // A dispatching session's envelope is what the human's caps leave: its slices carve from it.
+    if !lanes.is_empty() || !members.is_empty() {
+        limits.budget_wt = budget.map(|b| b.wt);
+        limits.budget_cap = budget.map(|b| b.cap);
+    }
+    // One decider for the session's run and its commissioner's routes.
+    let decided = decisions(config, world, model.clone(), env)?;
+    let commissioner = Arc::new(crate::commission::Commissioner {
+        world: cx.world().to_path_buf(),
+        model: model.clone(),
+        prices: prices.clone(),
+        ledger: Some(usage.clone()),
+        journals: instruments.join("loop"),
+        session: session_id.clone(),
+        caps: capped.then_some(caps),
+        stress_tokens: Some(config.context_stress_tokens()),
+        context_lines,
+        sampling: sampling.clone(),
+        reply_tokens: Some(config.reply_tokens()),
+        verify_secs: Some(config.verify_secs()),
+        weights: Some(crate::solo::recall_weights(config)),
+        steps: crate::commission::RaceSteps::from_config(config),
+        busy: std::sync::Mutex::default(),
+        observer: Some(Arc::clone(&observer)),
+        queue: Some(mikata_world::Queue::of(cx.world())),
+        router: Some(router(config, decided.clone(), model.provider())),
+        slice_floor: crate::commission::SLICE_FLOOR,
+        council: council_keys(config),
+        challenges: None,
+        reviewers: config.challenge_reviewers(),
+        mcp,
+        registry: mikata_world::dimension::registry(),
+        law,
+        guts: mikata_world::guts::journal(world),
+        collective,
+    });
+    let session_mcp = commissioner.mcp.clone();
+    let setup = Setup {
+        model: model.clone(),
+        tools,
+        cx,
+        journal: Journal::new(instruments.join("loop").join(format!("{run_id}.jsonl"))),
+        ledger: Some(usage),
+        prices,
+        caller: Caller {
+            session: session_id.clone(),
+            run: run_id.clone(),
+            body: body.name.clone(),
+            race: body.race.name().to_owned(),
+            commission: None,
+            prefix: 0,
+        },
+    };
+    let gate = session_gate(world, &body.name, config);
+    // The prompt says what checks the work, and only what does.
+    body.system.push_str(&crate::solo::gate_line(&gate));
+    let run = if resuming {
+        resumed(body, limits, setup, model_id)?
+    } else {
+        Run::new(body, limits, setup)
+    }
+    .with_observer(observer)
+    .with_gate(gate)
+    .with_sampling(sampling)
+    .with_mcp(session_mcp)
+    .with_guts(mikata_world::guts::journal(world));
+    let run = equip(
+        run,
+        world,
+        commissioner,
+        !lanes.is_empty() || !members.is_empty(),
+        capped.then_some(caps),
+        decided,
+        law,
+    );
+    // A resumed run opens in the mode the world gives now, as a fresh session does: its journal
+    // is a file in the world, and no file there chooses the mode. Another mode than the one it
+    // stopped in is said, with the way back to it.
+    let mode_why = stop_said(
+        mode_why,
+        mode,
+        asked,
+        run.stopped_in().and_then(Mode::parse),
+    );
+    // The journal says the mode the session opened in, beside the law.
+    let run = run.with_mode(mode.word());
+    Ok(Opened {
+        session: hold.into_iter().fold(Session::new(run), Session::holding),
+        world: world.to_path_buf(),
+        model: model_id.to_owned(),
+        provider: model.provider().to_owned(),
+        session_id,
+        run_id,
+        holes: holes(config, unread, world)
+            .into_iter()
+            .chain(mcp_holes)
+            .collect(),
+        budget,
+        key: None,
+        // The network is opened only for an approved outward act, so the standing state is off.
+        sandbox: mikata_tools::Sandbox::detect().status(false),
+        mcp: mcp_lines,
+        mcp_offered,
+        law,
+        mode,
+        mode_why,
+    })
+}
+
+/// The mode a session in `world` would open in and why, or why the mode `asked` for is not
+/// available: what `mikata status` says where no session opens. It reads the configuration and
+/// the roster, and needs no key.
+///
+/// # Errors
+///
+/// The configuration does not load, or the world cannot give the mode asked for.
+pub fn mode_in(world: &Path, asked: Option<Mode>) -> Result<(Mode, String), String> {
+    let config = Config::load(&Paths::resolve(world))?;
+    mode_of(world, asked, config.collective()).map(|(mode, why, ..)| (mode, why))
+}
+
+/// The mode a session in `world` opens in and why ([`Mode::decide`]), with the bodies it may
+/// commission there: the lanes of structured-coding, or the members of collective-coding; none in
+/// light-coding.
+#[allow(clippy::type_complexity)]
+fn mode_of(
+    world: &Path,
+    asked: Option<Mode>,
+    collective_on: bool,
+) -> Result<
+    (
+        Mode,
+        String,
+        Vec<(String, Vec<String>)>,
+        Vec<(String, Race, Vec<String>)>,
+    ),
+    String,
+> {
+    let roster = mikata_world::Roster::load(world);
+    let lanes = lanes(&roster);
+    let members = crate::collective::members(&roster);
+    let elves: Vec<String> = lanes.iter().map(|(elf, _)| elf.clone()).collect();
+    let bodies: Vec<String> = members.iter().map(|(name, ..)| name.clone()).collect();
+    // A card in the world looks like a creature and gives no mode until the human adopts it:
+    // where the world gave no bodies, the cards that wait are said.
+    let strangers = roster
+        .creatures
+        .keys()
+        .filter(|name| roster.stranger(name))
+        .count();
+    let waits = |said: String| match strangers {
+        0 => said,
+        n => format!(
+            "{said}; {} not adopted yet (`mikatad roster adopt`)",
+            plural(n, "card here is", "cards here are")
+        ),
+    };
+    let (mode, why) = match Mode::decide(asked, collective_on, &elves, &bodies) {
+        Ok((Mode::Light, why)) if asked.is_none() => (Mode::Light, waits(why)),
+        Ok(decided) => decided,
+        Err(why) => return Err(waits(why)),
+    };
+    Ok(match mode {
+        Mode::Light => (mode, why, Vec::new(), Vec::new()),
+        Mode::Structured => (mode, why, lanes, Vec::new()),
+        Mode::Collective => (mode, why, Vec::new(), members),
+    })
+}
+
+/// The session's MCP servers, when the human declared any, and their doors put on the body's
+/// shelf when any may serve its race: the level-0 lines for `status`, and what was refused. The
+/// session starts here, so each creature's habitual tools are chosen now, from the journal as it
+/// holds now, and stay chosen while the session lives; the body's own are framed with its doors —
+/// and, on a provider with native deferred tools, the rest of its scope deferred. No server
+/// starts.
+#[allow(clippy::type_complexity)]
+fn mcp_share(
+    config: &Config,
+    (race, system, native): (mikata_races::Race, &str, bool),
+    cx: &mikata_tools::Context,
+    tools: &mut Vec<Box<dyn mikata_tools::Tool>>,
+) -> Result<
+    (
+        Option<Arc<mikata_tools::mcp::Mcp>>,
+        Vec<String>,
+        Vec<String>,
+    ),
+    String,
+> {
+    let settings = config.mcp()?;
+    if settings.servers.is_empty() {
+        return Ok((None, Vec::new(), Vec::new()));
+    }
+    let mcp = mikata_tools::mcp::Mcp::new(settings, mikata_tools::mcp::state_dir(cx.world()));
+    mcp.freeze_habits(crate::mcp_journal::read(mcp.state()));
+    let frame = crate::mcp_journal::frame(&mcp, race, cx, system, tools, native);
+    let offer = mcp.offer_framed(race, cx, frame);
+    let lines = offer.lines.into_iter().chain(offer.said).collect();
+    let holes = offer.holes;
+    tools.extend(offer.tools);
+    Ok((Some(mcp), lines, holes))
+}
+
+/// The session's attic at `dir`, kept within the configuration's limits.
+fn attic_of(config: &Config, dir: &Path, world: &Path) -> Result<mikata_tools::Attic, String> {
+    let (keep_days, max_mb) = config.attic_limits();
+    let kept = mikata_tools::Attic::at(dir, world)
+        .ok_or_else(|| format!("{}: the attic needs git", dir.display()))?;
+    Ok(kept.with_limits(keep_days, max_mb))
+}
+
+/// What the session opens saying it cannot do or still waits on: the configuration's holes, the
+/// caps it could not read, the outward acts waiting for the human, the open incidents, the
+/// unadopted Minds.
+fn holes(config: &Config, unread: Vec<String>, world: &Path) -> Vec<String> {
+    config
+        .holes()
+        .iter()
+        .map(|h| format!("{} ({}): {}", h.key, h.origin, h.why))
+        .chain(unread)
+        // An outward act whose effect a probe did not see waits for the human.
+        .chain(mikata_config::reconciling(world))
+        // An incident stays open until its four receipts are recorded.
+        .chain(mikata_config::incidents(world))
+        // A Mind the witness never adopted does not load until the human adopts it.
+        .chain(mikata_world::minds::unadopted(world))
+        .collect()
+}
+
+/// The world made ready for a session: the report folder a check writes into, ignored locally —
+/// a check never writes the tree — and git merging note files by union, so two machines that
+/// both appended notes never conflict.
+fn prepare(world: &Path) {
+    if let Err(e) = mikata_world::report::prepare(world) {
+        eprintln!("mikata: the report folder could not be prepared: {e}");
+    }
+    if let Err(e) = mikata_memory::union_merge(world) {
+        eprintln!("mikata: the notes' union merge could not be set: {e}");
+    }
+}
+
+/// The session's run id, its hold on it, and whether it is resumed: a fresh run's own, held, or
+/// the stopped run `start` names, found, checked and held.
+fn held_run(
+    world: &Path,
+    start: Start<'_>,
+    fresh: String,
+) -> Result<(String, Option<crate::resume::Hold>, bool), String> {
+    match start {
+        Start::Fresh => {
+            // A run no lock holds would be resumable while it lives: no session opens on it.
+            let hold = crate::resume::hold(world, &fresh).map_err(|e| {
+                format!("the session's run cannot be held, so no session opens: {e}")
+            })?;
+            Ok((fresh, Some(hold), false))
+        }
+        Start::Resume(which) => {
+            let (run, hold, _) = crate::resume::take(world, which)?;
+            Ok((run, Some(hold), true))
+        }
+        Start::Held(run, hold) => Ok((run, Some(hold), true)),
+    }
+}
+
+/// A stopped run rebuilt from its journal, on the model it rode — or on `model_id`, when the
+/// configuration names another now, said to the body as a context update.
+fn resumed(body: Body, limits: Limits, setup: Setup, model_id: &str) -> Result<Run, String> {
+    let run_id = setup.caller.run.clone();
+    let mut run = Run::resume(body, limits, setup)
+        .map_err(|e| format!("run `{run_id}`: its journal cannot be read: {e}"))?;
+    run.switch_model(model_id, "the configuration names it now");
+    Ok(run)
+}
+
+/// What the human is told of ledger lines that cannot be read: their spend is counted high, as
+/// `unseen` weighted tokens against every cap, until they are repaired or removed.
+pub(crate) fn unreadable_lines(path: &Path, lines: &[usize], unseen: u64) -> String {
+    format!(
+        "the usage ledger {} has {} unreadable line(s) ({lines:?}): the caps count them as {unseen} \
+         wt, each as large as the largest call, against each cap at most its hidden {}% — repair \
+         or remove them to count them true",
+        path.display(),
+        lines.len(),
+        mikata_ledger::UNSEEN_RESERVE_PCT
+    )
+}
+
+/// The Elves that report to a living throne, with their lanes: whom Summoner may commission.
+fn lanes(roster: &mikata_world::Roster) -> Vec<(String, Vec<String>)> {
+    if !roster.living().any(|c| c.name == "summoner") {
+        return Vec::new();
+    }
+    roster
+        .living()
+        .filter(|c| c.race.base() == Race::Elf && c.reports_to.as_deref() == Some("summoner"))
+        .map(|c| (c.name.clone(), c.lane.clone()))
+        .collect()
+}
+
+/// What Summoner is told of the lanes it may hand work to.
+fn dispatch_prompt(lanes: &[(String, Vec<String>)]) -> String {
+    let list: Vec<String> = lanes
+        .iter()
+        .map(|(elf, lane)| {
+            if lane.is_empty() {
+                format!("- {elf}")
+            } else {
+                format!("- {elf}: {}", lane.join(", "))
+            }
+        })
+        .collect();
+    format!(
+        "\n\nYou are not alone here: this world has creatures. Work that belongs to a lane goes to its \
+Elf with the commission \
+tool: it plans, its Orcs judge, its Slimes write, each under its own gate, and the report comes back \
+as the tool's result. Hand it a brief you write, never the human's words pasted whole: the goal, the \
+limits, what counts as done, and what you know that it needs; name in its `lines` field the lines \
+of your `## Done when` list this lane must make true; name in its `verified` field the \
+spans you checked yourself (`path:start-end`): the harness attaches those lines, so it builds on \
+them instead of reading them again. The bodies below you share the work board, \
+`.mikata/tmp/board.md`: every brief carries it, and what each body finds is posted back to it. \
+Before you hand work down, write on it with the write tool what every body needs and you already \
+know, under `## Map`: for each part, the files and line spans that matter and the traps you saw. \
+Route by what you know: when what you read already names the files, the lines \
+and the change, the fix is known, so do it yourself; a handoff would only read it all again. Hand \
+work down when it is unclear, large, or spans parts that each need a plan of their own. When a report carries `@? triage #<new> …`, \
+an Elf's new fact resembles older ones: label it in your answer, on a line of its own — \
+`@V #<new> support|counter|refines #<id>`, or `@V #<new> distinct`. The lanes:\n{}",
+        list.join("\n")
+    )
+}
+
+/// The council's keys, from the configuration's `stress.*`, else their defaults.
+fn council_keys(config: &Config) -> crate::council::Thresholds {
+    let d = crate::council::Thresholds::default();
+    crate::council::Thresholds {
+        escalate_at: config.stress("escalate_at").unwrap_or(d.escalate_at),
+        relieve_at: config.stress("relieve_at").unwrap_or(d.relieve_at),
+        max_consults: config.stress("max_consults").unwrap_or(d.max_consults),
+    }
+}
+
+/// What chooses each court's model: the configuration, Metis's decider when routing is on, and
+/// the session's provider, as its client names it.
+fn router(
+    config: &Config,
+    decisions: Option<crate::decisions::Decisions>,
+    provider: &str,
+) -> crate::commission::Router {
+    crate::commission::Router {
+        config: Arc::new(config.clone()),
+        decisions,
+        provider: provider.to_owned(),
+    }
+}
+
+/// The world's usage ledger, chained — every row names the digest of the one before, so an edit
+/// of the spend is found — and witnessed under the human's state directory, so the tripwire puts
+/// it back with a parallel run's rows kept.
+pub(crate) fn usage_ledger(world: &Path) -> Journal<mikata_ledger::UsageRow> {
+    let usage = Journal::chained(world.join(".mikata/instruments/usage.jsonl"));
+    match mikata_tools::usage_witness(world) {
+        Some(witness) => usage.witnessed_at(witness),
+        None => usage,
+    }
+}
+
+/// The human's caps, and what this world already spent against them: whether any is set, the
+/// ledger lines that could not be read, and what the session may spend. A ledger that cannot be
+/// read opens no capped session.
+pub(crate) fn read_caps(
+    config: &Config,
+    usage: &Journal<mikata_ledger::UsageRow>,
+    session_id: &str,
+) -> Result<
+    (
+        crate::budget::Caps,
+        bool,
+        Vec<String>,
+        Option<crate::budget::Left>,
+    ),
+    String,
+> {
+    let caps = crate::budget::Caps {
+        session: config.budget_wt("session"),
+        day: config.budget_wt("day"),
+        month: config.budget_wt("month"),
+    };
+    let capped = caps != crate::budget::Caps::default();
+    let mut unread = Vec::new();
+    let (spent, unseen) = if capped {
+        let back = usage
+            .read()
+            .map_err(|e| format!("the usage ledger: {e}; the budget caps cannot be read"))?;
+        let unseen = mikata_ledger::unseen_wt(&back.rows, back.skipped.len());
+        if !back.skipped.is_empty() {
+            unread.push(unreadable_lines(usage.path(), &back.skipped, unseen));
+        }
+        (back.rows, unseen)
+    } else {
+        (Vec::new(), 0)
+    };
+    let budget = crate::budget::left(
+        caps,
+        &spent,
+        session_id,
+        mikata_ledger::Timestamp::now(),
+        unseen,
+    );
+    Ok((caps, capped, unread, budget))
+}
+
+/// A new session's id and its first run's: the clock in milliseconds and the process.
+fn ids() -> (String, String) {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis());
+    let pid = std::process::id();
+    (format!("s{stamp}-{pid}"), format!("r{stamp}-{pid}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_resumed_run_in_another_mode_says_the_one_it_stopped_in() {
+        let why = || "1 Elf reports to the Summoner: elf-e".to_owned();
+        // The world gives structured-coding, the run stopped in light-coding, and none was asked
+        // for.
+        assert_eq!(
+            stop_said(why(), Mode::Structured, None, Some(Mode::Light)),
+            "1 Elf reports to the Summoner: elf-e; the run stopped in light-coding: resume it \
+with --mode light-coding to go on in it"
+        );
+        // The same mode, a mode the human asked for, a fresh run or an older journal: no more.
+        for (asked, stopped_in) in [
+            (None, Some(Mode::Structured)),
+            (Some(Mode::Structured), Some(Mode::Light)),
+            (None, None),
+        ] {
+            assert_eq!(
+                stop_said(why(), Mode::Structured, asked, stopped_in),
+                why(),
+                "{asked:?} {stopped_in:?}"
+            );
+        }
+    }
+}

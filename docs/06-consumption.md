@@ -76,7 +76,7 @@ the price.
 
 ### The usage row
 
-One JSON line per model call in `.mnemorph/instruments/usage.jsonl` — decisions included: a
+One JSON line per model call in `.mikata/instruments/usage.jsonl` — decisions included: a
 System One read writes its own row under its provider, with `usd` null for a model the price
 tables do not know, so its `wt` still reaches the meters and the budget:
 
@@ -88,7 +88,7 @@ tables do not know, so its `wt` still reaches the meters and the budget:
 ```
 
 When the provider reports what it charged for the call — OpenRouter's `usage.cost`, a number of
-dollars, `0` on a free model — the row keeps it as `reportedCost`, beside `usd`, Mnemorph's own
+dollars, `0` on a free model — the row keeps it as `reportedCost`, beside `usd`, Mikata's own
 estimate from its price tables; neither replaces the other. A provider that reports none leaves
 the field out. A server that reports no usage at all (Ollama when `stream_options` is not sent) leaves
 the call's tokens unknown: the client estimates them at their worst from the bytes sent and
@@ -109,12 +109,12 @@ ledgered at its worst case; a body's turn carries none.
 creature card, manifests): the cost every turn carries before it does any work, folded on its own
 line (`prefixShare`) so a growing law shows up as a number, not a feeling. What the law buys is
 measured against what it costs by the bench's law arm: the same tasks run again with
-`mnemorph run --no-law`, which says none of the world's own words ([the bench](https://github.com/Kaginari/mnemorph/blob/main/bench/README.md)). The journal is
+`mikata run --no-law`, which says none of the world's own words ([the bench](https://github.com/Kaginari/mikata/blob/main/bench/README.md)). The journal is
 append-only: one row per line, appended and synced before the call returns (a new journal's
 directory is synced too). A torn last line is closed before the next row is written, and is
 skipped and reported when the journal is read back, never fatal; a byte-order mark is ignored.
 
-**The chain.** The usage ledger is a chained journal (`mnemorph_ledger::chain`), so an edit of
+**The chain.** The usage ledger is a chained journal (`mikata_ledger::chain`), so an edit of
 past spend is found, not believed. Each row carries the chain's fields around its own, in a
 fixed order:
 
@@ -137,26 +137,26 @@ fixed order:
   tampering: the next row closes it, links to the last whole row, and records it as
   `"torn":<line>`. Only a partial line is ever torn: a line that is whole JSON breaks the chain at
   once, whatever comes after it.
-- **The head is anchored outside the file**: by `mnemorphd housekeep --verify`, in `log.md` and
-  in a copy under the human's state directory (`$XDG_STATE_HOME/mnemorph/anchors/<world>-<fnv64a>.jsonl`),
+- **The head is anchored outside the file**: by `mikatad housekeep --verify`, in `log.md` and
+  in a copy under the human's state directory (`$XDG_STATE_HOME/mikata/anchors/<world>-<fnv64a>.jsonl`),
   out of every command's reach; in the handoff when light-coding escalates (and the run's journal beside
   it); and in an ascension, probation or fall entry when one is written. Dropping the last rows,
   or stripping the chain's fields and rooting it again, leaves a chain whose links hold; the walk
   is held to the newest kept head (the state directory's, else `log.md`'s), which must still be a
   row at its line or later, or the chain breaks at the anchor. A walk that does not hold anchors no
   new head.
-- **`mnemorphd housekeep --verify`** walks each chained journal once and says, escaped: OK with
+- **`mikatad housekeep --verify`** walks each chained journal once and says, escaped: OK with
   the head, a truncation with the head the chain holds to, or the first broken link with its line
   and why (an edited row, a removed or inserted one, a line no row recorded torn, a lost genesis,
   a kept head the chain no longer holds), and whether `log.md`'s newest anchor and the state
   directory's disagree. The Dark Elf's law audit calls the same walk
-  (`mnemorph_world::chains::verify`).
+  (`mikata_world::chains::verify`).
 - **The tripwire** puts the usage ledger back after each command from what it held plus what its
-  witness (`$XDG_STATE_HOME/mnemorph/usage/<world>-<fnv64a>.jsonl`, every byte the harness
+  witness (`$XDG_STATE_HOME/mikata/usage/<world>-<fnv64a>.jsonl`, every byte the harness
   appended, written there first) gained meanwhile: a command's edit is undone, and a parallel
   run's rows are kept.
 
-Every trust journal is chained, walked and anchored (`mnemorph_world::chains::journals`): the
+Every trust journal is chained, walked and anchored (`mikata_world::chains::journals`): the
 usage ledger, the Dark Elf's value ledger (its challenge records, seal proposals among them), the
 evolution ledger, the end gate's verdicts, the acts' guts classes, the Minds' witness, the verify
 pins, the Oni envelopes' uses and revocations, and each Kijin post's witness. Where each lives is
@@ -172,14 +172,14 @@ Prices are `[models."<id>"]` tables in TOML — `input`, `output`, `cache-read` 
 all four required, in dollars per million tokens — layered model by model from the binary's table
 and config (a config row replaces the whole row). The cache prices are never derived from the
 input price: the read multiple differs by model, a tenth on some and a twentieth or less on the
-newest. Mnemorph marks only 5-minute cache breakpoints; a reply that reports 1-hour cache writes
+newest. Mikata marks only 5-minute cache breakpoints; a reply that reports 1-hour cache writes
 (priced at 2× input) carries a warning on its response, since the ledger prices every write at the
 5-minute rate. A missing or misspelt key or a negative price refuses the table. A model with no
 price records `usd: null` and the meter says *unpriced*, never zero; its weighted tokens still
 count, with an output ratio of 5.
 
 The binary ships one table per provider, from the provider's published prices — never guessed.
-Anthropic's (`crates/mnemorph-provider/prices/anthropic.toml`) prices Claude Opus 5.5, Claude
+Anthropic's (`crates/mikata-provider/prices/anthropic.toml`) prices Claude Opus 5.5, Claude
 Sonnet 5.5 and Claude Fable 5.1; a model whose four prices are not all published, such as Claude
 Haiku 5.5's cache prices, stays unpriced until they are.
 
@@ -187,7 +187,7 @@ Haiku 5.5's cache prices, stays unpriced until they are.
 
 Every row the value ledger folds — a Dark Elf finding found, ruled or decided — carries the build
 that wrote it, as `build: { version, commit }`: the crate version and the commit `status` prints,
-from one source (`mnemorph_ledger::Build::this`, stamped at build time; a tree with uncommitted
+from one source (`mikata_ledger::Build::this`, stamped at build time; a tree with uncommitted
 changes to tracked files stamps its commit `-dirty`, and a build without git `unknown`). The
 evolution ledger's swap and run rows carry it the same way, and M11's ascension rows will. A row written before rows were stamped reads as `unknown`.
 The row is written whole, in one write, stamp included. A fold groups or filters by build, so a
@@ -243,7 +243,7 @@ Currency caps convert through the same table; a model with no known price is sti
   never exceed what the parent holds.
 - **Who gives.** Every slice comes out of the giver's own envelope: what a parent gives a child it
   can no longer spend itself, and what the child spends counts as the parent's. Work no body owns
-  — an order the wake runs, one the human added with `mnemorphd q` — draws from the session's
+  — an order the wake runs, one the human added with `mikatad q` — draws from the session's
   shared pool, the envelope itself, under the same clamps.
 - **The grant is the giver's judgment, inside the harness's bounds.** The parent proposes its
   child's slice (`budget_wt`, default half of what it has left, within the ceiling); the harness
@@ -271,7 +271,7 @@ Currency caps convert through the same table; a model with no known price is sti
   on the card:** a budget checkpoint ends the run before its body answers, and only an answer reaches
   the end gate, which alone writes the verdicts a card is read from. Counting it would let a thinly
   funded body fail for want of budget, lose worth, get a thinner slice and fail again; in
-  [the research's simulation](https://github.com/Kaginari/mnemorph-research/blob/main/experience-value.md)
+  [the research's simulation](https://github.com/Kaginari/mikata-research/blob/main/experience-value.md)
   that loop cost 2 to 10 landing points. A test holds the rule. A child's record counts in its parent's card, so a
   parent that funds failing children reads worse to the body above it. The learned value model
   ([M11](roadmap.md)) replaces this score; the card and the clamp stay.
@@ -388,7 +388,7 @@ conversation, not its prompt, so one breakpoint always rides the conversation's 
   | The same, with the note appended to the last tool result | 29,033 | 98% |
 
   The loop still sends its notes as user messages: where a note is put changes what the model
-  is told, and is a decision of its own. `mnemorphd runs --session` counts what it costs today
+  is told, and is a decision of its own. `mikatad runs --session` counts what it costs today
   ([The loop](03-loop.md)).
 
 - The toolbox's level-1 manifest is **text** in the changing tail, never tool definitions — so
@@ -409,7 +409,7 @@ carries four fixed doors, and MCP reaches a body in three levels, each priced be
 ([MCP](07-mcp.md#three-levels-priced)):
 
 - level 0 — one line per server, with the weighted tokens of opening it — rides the first ask's
-  uncached tail, and `mnemorph status` shows the same lines;
+  uncached tail, and `mikata status` shows the same lines;
 - level 1 — a server's tools, each with the price of its schema — and level 2 — one schema — are
   tool results, loaded only when the body asks, at the price the level above showed: the bytes of
   exactly that text at four a token;
@@ -435,7 +435,7 @@ is read, then again at the cache-read price on every later turn until a fold tak
 body reads a skeleton first and then only the lines it needs ([the tools](05-architecture.md)):
 `index` gives each symbol's line range, and `read` takes a range or `path#symbol`. A file over
 `tools.read.range_over` lines (400) read without a range answers with its skeleton, not its
-text. On this repository's `crates/mnemorph-tools/src/files.rs` (1,293 lines), a whole read is
+text. On this repository's `crates/mikata-tools/src/files.rs` (1,293 lines), a whole read is
 about 56 KB of numbered lines; its skeleton is under 3 KB, and the one function then read is
 a few more. An `index` call is journaled and priced as any read: its result is input like a
 read's, and the files it outlines count as what the ask read.
@@ -448,21 +448,21 @@ read's, and the files it outlines count as what the ask read.
 | left | envelope left for the active body and the session | status line |
 | cache | cache read ÷ input, rolling | status line, board |
 | burn | tokens per minute over the last 5 minutes | board |
-| per race | spend, tokens and cache hit by race over 7 or 28 days, or all | board, `mnemorphd usage` |
+| per race | spend, tokens and cache hit by race over 7 or 28 days, or all | board, `mikatad usage` |
 
-`mnemorphd usage [--window 7d|28d|all] [--json]` prints the same folds in the terminal — by race,
+`mikatad usage [--window 7d|28d|all] [--json]` prints the same folds in the terminal — by race,
 model, body, day and session — and the board's metrics are that fold ([the board's
 metrics](05-architecture.md#metrics-and-integrations)). A group with no priced call reads
 `unpriced`, never $0. A group with calls that carried a provider's own cost also reads
 `provider-reported $… (n calls)`, summed over those calls only (`reportedUsd` and `reported` in
 `--json`).
 
-### Building Mnemorph within your plan
+### Building Mikata within your plan
 
 The roadmap is cut into rungs small enough to finish in one or two focused sessions each. On a
 subscription plan what binds is not money but the usage windows (the 5-hour and weekly limits),
 so after every rung the session's **tokens per model** and the **share of the usage window** it
 took are read with `npx ccusage` (`daily` and `blocks`, from Claude Code's local logs) and
 written to the rung's entry in `log.md`. The dollar figure ccusage prints is the API-equivalent
-price, not what the plan costs: it is recorded only as a comparison. From M6 Mnemorph runs part of
+price, not what the plan costs: it is recorded only as a comparison. From M6 Mikata runs part of
 its own work in light-coding, and its own ledger becomes the second instrument.

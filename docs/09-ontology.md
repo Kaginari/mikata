@@ -74,11 +74,11 @@ landing only on the serious ones, in the territory it touches. There is no overa
 
 | Class | What | Read from |
 |---|---|---|
-| a race (`Slime`, `Orc`, `Elf`, `Kijin`, `DarkElf`, the throne and the ascended) | a creature | its doc under `.mnemorph/<race>/<name>/` |
-| `Mind` | worn know-how | `.mnemorph/minds/` — each entry a Mind named for it, a directory with a `README.md` or a `<name>.md` file, whose header may carry `- **Shared:** yes` — and a doc's Minds field; its adoption, digest, owner and retirement are the human's, kept in the Minds' witness under the state directory (`mnemorphd mind`) |
+| a race (`Slime`, `Orc`, `Elf`, `Kijin`, `DarkElf`, the throne and the ascended) | a creature | its doc under `.mikata/<race>/<name>/` |
+| `Mind` | worn know-how | `.mikata/minds/` — each entry a Mind named for it, a directory with a `README.md` or a `<name>.md` file, whose header may carry `- **Shared:** yes` — and a doc's Minds field; its adoption, digest, owner and retirement are the human's, kept in the Minds' witness under the state directory (`mikatad mind`) |
 | `Doc` | a creature's document | the file itself |
 | `Fact` (`Territory`) | something learned about a path | `@U territory` lines, as events |
-| `World` | this world and its neighbours | the relations under the state directory (copy: `.mnemorph/dimension.toml`) |
+| `World` | this world and its neighbours | the relations under the state directory (copy: `.mikata/dimension.toml`) |
 
 | Bond | From → to | Properties |
 |---|---|---|
@@ -101,9 +101,9 @@ It is rebuilt when the docs' fingerprint moves, before a dispatch, never on a mo
 direct report is typed by its two ends: a Slime to its Orc is `truth`, an Orc to its Elf is
 `verdict`, anyone to the throne is `reports`; every one of them is `above`.
 
-**Claims.** A creature's doc is `.mnemorph/<race>/<name>/README.md`: a `# name` heading, then
+**Claims.** A creature's doc is `.mikata/<race>/<name>/README.md`: a `# name` heading, then
 fields as list items, read before the first `##` heading of any depth and nowhere else. The
-throne has a doc too, `.mnemorph/summoner/<name>/README.md`: what reads the world reads it as it
+throne has a doc too, `.mikata/summoner/<name>/README.md`: what reads the world reads it as it
 reads every creature.
 
 | Field | Who | Means |
@@ -135,19 +135,19 @@ of its ontology; a field cannot be misread.
 
 $\mathrm{own} : \text{Path} \to \text{Creature} \cup \lbrace \bot\rbrace $ reads a path relative to the
 world segment by segment — `.` dropped, `..` taking the segment before it, a directory ending in
-`/` — so `crates/a/../../.mnemorph/law.md` is the law; a path that is absolute or climbs out of
+`/` — so `crates/a/../../.mikata/law.md` is the law; a path that is absolute or climbs out of
 the world is $\bot$. Then it takes the first rule that matches:
 
-1. **Harness soil** — `.mnemorph/shared/`, `instruments/`, `memory/`, `ontology/`, `index/`,
+1. **Harness soil** — `.mikata/shared/`, `instruments/`, `memory/`, `ontology/`, `index/`,
    evolution's staging `tmp/evolution/` and the journal `log.md`: no body; only the harness writes
-   them. The law, `.mnemorph/law.md`, and the world's configuration, `config.toml` and
+   them. The law, `.mikata/law.md`, and the world's configuration, `config.toml` and
    `config.local.toml`, are the human's: they change only as a diff the human applies.
-2. **Scratch** — `.mnemorph/tmp/<body>/`: the body that owns the nest.
-3. **A seat** — a living creature's directory under `.mnemorph/<race>/<name>/`: that creature,
+2. **Scratch** — `.mikata/tmp/<body>/`: the body that owns the nest.
+3. **A seat** — a living creature's directory under `.mikata/<race>/<name>/`: that creature,
    even inside a broader claim; the deepest seat wins.
 4. **The compiled soils** of [the races](02-races.md#soil--who-may-write-what): the plan
-   (`.mnemorph/plan.md`) and the dimension manifest, the throne's; the proving ground
-   `.mnemorph/dark-elf/`, one ground with one keeper, the first living Dark Elf by name; the
+   (`.mikata/plan.md`) and the dimension manifest, the throne's; the proving ground
+   `.mikata/dark-elf/`, one ground with one keeper, the first living Dark Elf by name; the
    longest claim of a Kijin's post; the workspace — every root file, and `tools/`.
 5. **The longest territory claim** among living authoring creatures (the Slimes' zones).
 6. **The longest domain claim** among living gate-holders: an Orc's doc names its domain, and a
@@ -166,9 +166,9 @@ seats and claims are skipped. When two creatures tie on the same claim — itsel
 finding — the tie breaks by creature name, so the answer stays deterministic while the finding
 blocks.
 
-The order is the rule: a creature that claims `.mnemorph` itself does not swallow every seat, the
+The order is the rule: a creature that claims `.mikata` itself does not swallow every seat, the
 queue and scratch, because rules 1–3 are asked first. The gate's *right author*, the dispatch card
-and `mnemorphd onto owner <path>` call this one function. The tool policy cannot: it sits below the
+and `mikatad onto owner <path>` call this one function. The tool policy cannot: it sits below the
 world in the crate graph and checks soil as prefixes. The loop hands each body the soil `own`
 yields for it when it dispatches, as prefixes with exclusions (its territory minus the seats, queue and scratch the
 earlier rules give away), so the policy and the gate never disagree: the longest claim that
@@ -184,8 +184,8 @@ holds — owns its seat and scratch and nothing else, the workspace's root files
 even under the workspace's name. So a body that commits a wider `Territory` to its own card, or a
 cloned repository's cards, own nothing they were not given.
 
-`mnemorphd onto owner <path>...` prints, for each path, its owner, the rule that gave it and the
-claim that matched — `crates/mnemorph-wire/src/lib.rs  slime-wire  zone crates/mnemorph-wire/`.
+`mikatad onto owner <path>...` prints, for each path, its owner, the rule that gave it and the
+claim that matched — `crates/mikata-wire/src/lib.rs  slime-wire  zone crates/mikata-wire/`.
 A path is the human's: relative to where they stand, or absolute; one outside the world is
 nobody's. It reads the docs alone, so it needs no key and opens no session; a doc that does not
 read is said on stderr.
@@ -230,7 +230,7 @@ supporters and $q$ counters — and read its status in order:
 
 The rows partition every case. A **countered** fact is shown as countered and recalled to no one
 as true; the projection carries it only with its counters beside it. The 0.35 tolerance is
-Mnemorph's own choice, untuned, measured on the losing side so more counters move a fact towards
+Mikata's own choice, untuned, measured on the losing side so more counters move a fact towards
 *countered*, never back towards agreement. DIKWP-MESH uses the same number as a default for its
 gluing check, without a derivation; it is not evidence. With the few voices a fact usually has,
 the rule reads as counts: two to one is agreed, one to one contested, one to two countered.
@@ -239,7 +239,7 @@ the rule reads as counts: two to one is agreed, one to one contested, one to two
 
 Agents do not volunteer disagreement: a body that believes the opposite of an old fact usually
 just writes its own. DIKWP-MESH could count stances because its data had them filled in by hand.
-Mnemorph derives counters three ways, cheapest first, and only the last costs a model any tokens.
+Mikata derives counters three ways, cheapest first, and only the last costs a model any tokens.
 
 **1. Keyed facts, compared by code.** A compiled vocabulary of keys, each with one value per path:
 
@@ -310,7 +310,7 @@ fixture grows with each miss found in a real world.
 proof: the Orc's verdict naming it (`@V settle #<id>` in its report), on its own line's ground and only
 on a passing end-gate verdict in the trusted gate journal — one that checked something, on a line
 the human pinned, of a landing on the fact's path — since the roster that names a body an Orc is
-the world's; without one the fact stays as it stood; or the human (`mnemorphd onto settle <id>`, or **Settle** on the board's ontology page, which asks
+the world's; without one the fact stays as it stood; or the human (`mikatad onto settle <id>`, or **Settle** on the board's ontology page, which asks
 for a proof: a passing end-gate verdict that landed on the fact's path, or the human's own
 statement — see [the board](05-architecture.md#the-memory-and-ontology-pages)); a landing by the
 path's owner that passed its gate and cites the fact is a third route, deferred: not built, and no settle rests on it. A
@@ -337,15 +337,15 @@ and `untriaged-fact` beside the shape findings, and
 
 **Where a fact's trust comes from.** Nothing read from inside a world grants trust: a body's
 commit of an edited file stays in git and comes back on the next checkout, and a cloned
-repository's `.mnemorph/` is a stranger's from the start. So the events that count live under
-the human's state directory, at `$XDG_STATE_HOME/mnemorph/facts/<world>-<fnv64a>.jsonl` (else
+repository's `.mikata/` is a stranger's from the start. So the events that count live under
+the human's state directory, at `$XDG_STATE_HOME/mikata/facts/<world>-<fnv64a>.jsonl` (else
 `~/.local/state/…`; the world named by its real path), hash-chained and anchored as `facts` with
 the world's other chained journals ([the chain](06-consumption.md#the-usage-row)). Their writers
 are the harness — a body's `@U territory` facts, filed by the loop in the body's name; a parent's
 labels; an Orc's `@V settle` — and the human's settle, `onto settle` and the board's. A body's
 command writes none: the sandbox grants no command the state directory, every write is refused
-besides when `MNEMORPH_BODY` is set, and `onto settle` is refused under any of the harness's
-processes. A state directory inside the world is refused, and the facts read unavailable. `.mnemorph/ontology/facts.jsonl`, harness soil, is
+besides when `MIKATA_BODY` is set, and `onto settle` is refused under any of the harness's
+processes. A state directory inside the world is refused, and the facts read unavailable. `.mikata/ontology/facts.jsonl`, harness soil, is
 a copy of that journal written whole after each event, through no link, for readers; it is never
 read for trust. The projection, `onto check`, `onto settle` and the board's ontology page all
 read the trusted journal. What the copy says otherwise — a fact whose status there differs from the
@@ -364,7 +364,7 @@ a body says it again — and no counter, label or settle, since none of their au
 proven. An `import` event closes the import, naming each fact the copy read settled; each such
 fact raises an `unproven-settle` finding until it is settled again, and the import is journaled
 in `log.md` with the same list, telling the human to settle what matters again with
-`mnemorphd onto settle <id>`. The copy is then written again from the trusted journal. A reader
+`mikatad onto settle <id>`. The copy is then written again from the trusted journal. A reader
 that cannot write the state directory reads the import as it would be written, and writes
 nothing.
 
@@ -391,7 +391,7 @@ states and $R_B$ the set B states, each read from A's side through inverses:
 | only one end states anything | partial: lawful, shown as one-sided |
 | both ends state relations and $R_A \cap R_B = \emptyset$ | a `dimension-obstruction` finding, reported to Summoner |
 
-`mnemorphd onto check --dimension` reads the neighbours' relations as the state directory keeps
+`mikatad onto check --dimension` reads the neighbours' relations as the state directory keeps
 them (on this machine, inward) and never edits them; a fix goes to the other world through its own throne, one hop at a time.
 
 **Learning a relation.** The harness records a sighting
@@ -421,31 +421,31 @@ known world with that remote (`depends-on`); a submodule's URL, `vendors`. The a
 manifest's `file:line`, the body the one that read it, and the session this world's count of
 openings in the registry. The other world is named by its id, never its path. One body's read of
 one anchor is one sighting per session. Sightings live beside the registry, under
-`$XDG_STATE_HOME/mnemorph/dimension/<world-id>/sightings.jsonl`, the harness's alone: no body
+`$XDG_STATE_HOME/mikata/dimension/<world-id>/sightings.jsonl`, the harness's alone: no body
 reads or writes them, and a cloned world brings none. A remote is a world's own to write in its
 git config, so it is only a hint for matching, bounded and stripped of credentials. A file
 outside the world, or a link from inside it to one outside, is never opened for a sighting, and a
 known neighbour is no wider sandbox: its files stay outside every tool's reach.
 
 **The relations and their copy.** The relations a world states are kept under the human's
-state directory, beside its sightings, at `$XDG_STATE_HOME/mnemorph/dimension/<world-id>/relations.jsonl`
+state directory, beside its sightings, at `$XDG_STATE_HOME/mikata/dimension/<world-id>/relations.jsonl`
 (the world named by its real path): hash-chained, anchored as `relations`, one row per act — a
 relation stated (`world`, the other world's canonical path on this machine; `type`, read from
 this world's side; `remote`, its normalised remote, how it is known elsewhere), one revoked, or a
 type's inverse declared or taken back. A type is lowercase words joined by `-`. Their only
-writers are the human's `mnemorphd onto relate <world> <type>`, `onto unrelate <world> <type>`
+writers are the human's `mikatad onto relate <world> <type>`, `onto unrelate <world> <type>`
 and `onto inverse <type> <inverse>|-`, each showing what it writes and asking for `y` at the
 terminal (`/dev/tty`; piped input is refused), or taking `--yes` from a script the human runs;
 each is refused inside a body's command and under any of the harness's processes, whatever the
 environment says, and the sandbox grants no command the state directory, so a body that unsets
-`MNEMORPH_BODY` still writes nothing there. A state directory inside the world is refused: the
+`MIKATA_BODY` still writes nothing there. A state directory inside the world is refused: the
 relations are then neither read nor written. Relations that do not walk
-whole do not read, and `onto check` fails on them. `.mnemorph/dimension.toml`, Summoner's soil, is
+whole do not read, and `onto check` fails on them. `.mikata/dimension.toml`, Summoner's soil, is
 their copy, written after each act through no link: `[[relation]]` entries and an `[inverse]`
 table. It is never read as a relation: what it states beyond the trusted relations — a hand
 edit, a commit, a clone's — is a proposal, an `untrusted-relation` finding naming the
 `onto relate` (or `onto inverse`) that would state it; a copy with an unknown type, or that is no
-regular file or is over 64 KiB, proposes nothing. `mnemorphd onto relations` prints what is
+regular file or is over 64 KiB, proposes nothing. `mikatad onto relations` prints what is
 stated, what the copy states beyond it, and each proposal as a diff, each world id turned back
 into its path, and writes nothing. Where other worlds live is the human's to see: `relations`,
 `relate`, `unrelate`, `inverse` and `check --dimension` are refused inside a body's command. A relation the human stated with no sighting
@@ -482,7 +482,7 @@ creature, so what a stranger wrote there holds no one's landing. Both still fail
 | `untrusted-fact` | high | the facts' in-world copy reads a fact's status otherwise than the trusted journal, or holds one it does not — ignored, one per fact |
 | `roster-mismatch` | high | a creature's card says a field — `Race`, `Reports to`, a ground field, `Retired` — otherwise than its row in the creatures' witness: it runs at the lower of the two, one finding per field, blocking the creature's own landings until the human adopts the card or puts it back |
 | `unowned-soil` | medium | a tracked path where `own` returns $\bot$ — no claim, or a compiled soil whose keeper does not live |
-| `orphan-mind` | medium | a Mind under `.mnemorph/minds/` that no living creature's Minds field names, and whose doc is not marked `- **Shared:** yes` or `- **Retired:** yes` |
+| `orphan-mind` | medium | a Mind under `.mikata/minds/` that no living creature's Minds field names, and whose doc is not marked `- **Shared:** yes` or `- **Retired:** yes` |
 | `contested-fact` | medium | a territory fact with supporters and counters past the threshold |
 | `doc-provenance` | medium | a date (`YYYY-MM-DD`) or a change note (`added on`, `updated on`, `edited on`, `as of`, `at the request of`, `per the human`, each as words of its own) in the law or a creature's doc, code in fences or backticks aside — provenance lives only in `log.md` |
 | `untrusted-relation` | medium | the in-world `dimension.toml` states a relation or an inverse the trusted relations do not — a proposal |
@@ -493,7 +493,7 @@ creature, so what a stranger wrote there holds no one's landing. Both still fail
 | `stale-fact` | low | a fact whose anchor's digest no longer matches |
 | `untriaged-fact` | low | a free fact landed beside similar ones without the parent's label |
 
-`mnemorphd onto check` prints `@S PASS|FAIL <n> findings`, then one line per finding — severity,
+`mikatad onto check` prints `@S PASS|FAIL <n> findings`, then one line per finding — severity,
 code, `file:line` (the doc's field the finding stands on) and what it says — most severe first;
 evolution's overlay must add none. It fails on a critical or high finding, and on a doc that
 does not read, which is said on stderr. `unowned-soil` reads the tracked files from git and is

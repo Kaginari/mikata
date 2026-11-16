@@ -1,5 +1,5 @@
 /**
- * The Mnemorph theme for TypeScript: the CLI (Ink takes hex colours) and anything that cannot
+ * The Mikata theme for TypeScript: the CLI (Ink takes hex colours) and anything that cannot
  * read CSS. The same values live in tokens.css; the test keeps them equal.
  */
 
@@ -228,7 +228,7 @@ export const spiceLight: SchemePalette = {
   player: '#694913',
 };
 
-/** Every scheme's palettes; `hud` is Mnemorph's own, with the races' player colour. */
+/** Every scheme's palettes; `hud` is Mikata's own, with the races' player colour. */
 export const schemes: Record<SchemeName, { dark: SchemePalette; light: SchemePalette }> = {
   neon: { dark: neonDark, light: neonLight },
   ember: { dark: emberDark, light: emberLight },

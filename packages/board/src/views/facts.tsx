@@ -3,7 +3,7 @@
  * unknown reads "unknown" with its reason, never a zero; a spend with no price is never $0; every
  * model- or world-written word goes through `<Safe>`.
  */
-import type { BoardOverview, Gate, Spend } from '@mnemorph/protocol';
+import type { BoardOverview, Gate, Spend } from '@mikata/protocol';
 import { Safe } from '../safe/Safe.tsx';
 import { ago } from '../time.ts';
 import { Mark, type Tone, WORLD_STATUS } from '../ui/Mark.tsx';
@@ -76,7 +76,7 @@ export function tokens(wt: number): string {
 }
 
 /**
- * A rate with its count and 95% interval, as `mnemorphd meters` says it; "unavailable — why" when
+ * A rate with its count and 95% interval, as `mikatad meters` says it; "unavailable — why" when
  * a journal it folds from does not hold; else, with none, "silent — no report yet".
  */
 export function rate(m: {

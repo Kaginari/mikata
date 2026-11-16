@@ -1,14 +1,14 @@
 {
-  "name": "@mnemorph/protocol",
+  "name": "@mikata/protocol",
   "version": "0.1.0",
-  "description": "The protocol between mnemorphd and its clients: types generated from the Rust crates.",
+  "description": "The protocol between mikatad and its clients: types generated from the Rust crates.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kaginari/mnemorph.git",
+    "url": "git+https://github.com/Kaginari/mikata.git",
     "directory": "packages/protocol"
   },
-  "homepage": "https://github.com/Kaginari/mnemorph#readme",
+  "homepage": "https://github.com/Kaginari/mikata#readme",
   "files": [
     "dist"
   ],

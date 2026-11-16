@@ -10,8 +10,8 @@
 # it has one, with the commands this prints.
 set -eu
 world=${1:-.}
-dir="$world/.mnemorph"
-[ -d "$dir" ] || { echo "no .mnemorph in $world" >&2; exit 1; }
+dir="$world/.mikata"
+[ -d "$dir" ] || { echo "no .mikata in $world" >&2; exit 1; }
 if [ -d "$dir/rimuru/rimuru" ]; then
   [ -e "$dir/summoner/summoner" ] && { echo "$dir/summoner/summoner exists already" >&2; exit 1; }
   mkdir -p "$dir/summoner"
@@ -23,7 +23,7 @@ for card in "$dir"/*/*/README.md; do
   perl -pi -e 's/\brimuru\b/summoner/g; s/\bRimuru\b/Summoner/g; s/\bveldora\b/player/g; s/\bVeldora\b/Player/g' "$card"
 done
 echo "Moved. Now, as the human:"
-echo "  mnemorphd roster adopt --world $world --yes"
+echo "  mikatad roster adopt --world $world --yes"
 if grep -q '\*\*Verify:\*\*' "$dir/summoner/summoner/README.md" 2>/dev/null; then
-  echo "  mnemorphd verify pin summoner --world $world --yes"
+  echo "  mikatad verify pin summoner --world $world --yes"
 fi

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Package one target's release binaries as the archive install.sh downloads:
-# `mnemorph-<target>.tar.gz`, holding `mnemorph-<version>-<target>/` with the binaries (the guard
+# `mikata-<target>.tar.gz`, holding `mikata-<version>-<target>/` with the binaries (the guard
 # too, on Linux), the licence, the third-party notices, the README and the changelog.
 #
 #   tools/package-release.sh <bin-dir> <target> <version> <out-dir>
@@ -12,11 +12,11 @@ set -euo pipefail
 bin=$1 target=$2 version=${3#v} out=$4
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
-bins=(mnemorph mnemorphd)
-case $target in *-linux-*) bins+=(mnemorph-guard) ;; esac
+bins=(mikata mikatad)
+case $target in *-linux-*) bins+=(mikata-guard) ;; esac
 
-name=mnemorph-$version-$target
-stage=$(mktemp -d "${TMPDIR:-/tmp}/mnemorph-package.XXXXXX")
+name=mikata-$version-$target
+stage=$(mktemp -d "${TMPDIR:-/tmp}/mikata-package.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 mkdir "$stage/$name"
 for b in "${bins[@]}"; do
@@ -28,6 +28,6 @@ for f in LICENSE THIRD-PARTY-NOTICES.md README.md CHANGELOG.md; do
 done
 
 mkdir -p "$out"
-archive=$(cd "$out" && pwd)/mnemorph-$target.tar.gz
+archive=$(cd "$out" && pwd)/mikata-$target.tar.gz
 tar -czf "$archive" -C "$stage" "$name"
 echo "$archive"

@@ -1,14 +1,14 @@
 /**
  * The board's push channel, `WS /ws/board`: the server tells `world/changed {id}` when a world's
  * files moved and `worlds/changed` when the list did; the page refetches what it shows. One
- * socket per page, opened with the subprotocol `mnemorph.board.v1` and the CSRF entry, and opened
+ * socket per page, opened with the subprotocol `mikata.board.v1` and the CSRF entry, and opened
  * again after a drop — each reopening tells every listener that everything may have moved, since
  * what was told while it was down is lost.
  */
 import { useEffect, useState } from 'react';
 import { csrf } from './session.ts';
 
-export const SUBPROTOCOL = 'mnemorph.board.v1';
+export const SUBPROTOCOL = 'mikata.board.v1';
 
 export type Change = { kind: 'world'; id: string } | { kind: 'worlds' };
 
@@ -60,7 +60,7 @@ function open() {
     .then((token) => {
       if (typeof window === 'undefined') return;
       const url = `ws://${window.location.host}/ws/board`;
-      const ws = make(url, [SUBPROTOCOL, `mnemorph.csrf.${token}`]);
+      const ws = make(url, [SUBPROTOCOL, `mikata.csrf.${token}`]);
       ws.addEventListener('open', () => {
         // A reopening: what was told while the socket was down is lost.
         const again = backoff > 1000;

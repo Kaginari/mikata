@@ -1,0 +1,121 @@
+//! The `verify` tool: an Orc codes the verify line of a Slime that reports to it — the test
+//! before the change, which the dispatch law asks before the Orc commissions it. The loop runs the
+//! call through the world; this body only describes it.
+
+use mikata_races::ToolClass;
+use mikata_tools::{Context, Outcome, Tool};
+use serde::Deserialize;
+use serde_json::{Value, json};
+
+/// The tool's name.
+pub const VERIFY: &str = "verify";
+
+/// The `verify` tool as the model sees it.
+pub struct VerifyTool;
+
+impl Tool for VerifyTool {
+    fn name(&self) -> &'static str {
+        VERIFY
+    }
+
+    fn description(&self) -> &'static str {
+        "Code the verify line of a Slime that reports to you: one shell command that passes once the work is done (the test before the change). The dispatch law asks it before you commission that Slime; its end gate runs it on every landing. One coded line a `Done when` name: coding a line again for a name replaces the line coded for it before."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "to": {"type": "string", "description": "The Slime, by name (`slime-wire`)."},
+                "command": {"type": "string", "description": "One command, one line, no backticks: e.g. `python3 -m unittest -q`."},
+                "line": {"type": "string", "description": "The lines of your brief's `Done when` list this command proves, by name: `D4`, or `D4, D5`. Code one verify line for each line of your part, and only for those: a name your brief does not carry is refused. The report's mark for a line comes from the line that names it."}
+            },
+            "required": ["to", "command"],
+            "additionalProperties": false
+        })
+    }
+
+    fn class(&self) -> ToolClass {
+        ToolClass::Dispatch
+    }
+
+    fn example(&self) -> Value {
+        json!({"to": "slime-wire", "command": "cargo test -p wire"})
+    }
+
+    fn run(&self, _: Value, _: &mut Context) -> Outcome {
+        Outcome::error("no world runs under this body to code a verify line in")
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Args {
+    to: String,
+    command: String,
+    #[serde(default)]
+    line: Option<String>,
+}
+
+/// Run one `verify` call for `body`, in `world`; `carried` is the `Done when` list its order
+/// carried down. A line named for a name not on the body's list is refused: a check coded for
+/// another part's line proves that part in this part's tree, and reported it done.
+pub(crate) fn run(
+    world: &std::path::Path,
+    body: &str,
+    carried: &[crate::lines::Line],
+    input: &str,
+) -> Outcome {
+    let a: Args = match serde_json::from_str(input) {
+        Ok(a) => a,
+        Err(e) => return Outcome::error(format!("verify: {e}")),
+    };
+    if let Some(line) = a.line.as_deref() {
+        let roster = mikata_world::Roster::load(world);
+        let list = crate::lines::of_dispatcher(world, &roster, body, carried);
+        // A body that carries no list has nothing to hold a name against.
+        if let Some(stray) = (!list.is_empty())
+            .then(|| {
+                line.split([',', ' '])
+                    .map(str::trim)
+                    .filter(|n| crate::lines::is_name(n))
+                    .find(|n| !list.iter().any(|(name, _)| name == n))
+            })
+            .flatten()
+        {
+            let yours: Vec<&str> = list.iter().map(|(n, _)| n.as_str()).collect();
+            return Outcome::error(format!(
+                "refused: {stray} is not on your brief's `Done when` list ({}): code checks for \
+your part's lines only; another part's line is its own Orc's to check",
+                yours.join(", ")
+            ));
+        }
+    }
+    // The names ride after the command, `# D4`: the pin keeps them with the line it pins.
+    let command = match a
+        .line
+        .as_deref()
+        .map(|l| crate::lines::tagged(&a.command, l))
+    {
+        None => a.command,
+        Some(Ok(tagged)) => tagged,
+        Some(Err(why)) => return Outcome::error(format!("refused: {why}")),
+    };
+    match mikata_world::verify::code(world, body, &a.to, &command) {
+        Ok(coded) if coded.replaced.is_empty() => Outcome::ok(
+            format!("{}'s doc now reads {}", a.to, coded.line),
+            ToolClass::Dispatch,
+        ),
+        // Said, so the Orc knows the line it coded before no longer holds its Slime's landings.
+        Ok(coded) => Outcome::ok(
+            format!(
+                "{}'s doc now reads {}, in place of {}",
+                a.to,
+                coded.line,
+                mikata_world::verify::quoted(&coded.replaced)
+            ),
+            ToolClass::Dispatch,
+        ),
+        Err(why) => Outcome::error(format!("refused: {why}")),
+    }
+}

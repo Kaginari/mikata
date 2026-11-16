@@ -13,7 +13,7 @@ config:
 flowchart LR
     H["your global config"] -->|"servers, races,<br/>classes, network"| C
     S[("MCP server<br/>in the sandbox")] <-->|"listed on first open,<br/>cached on disk"| C["MCP client<br/>class · scope · rank · price"]
-    subgraph mnemorph["Mnemorph"]
+    subgraph mikata["Mikata"]
       C -->|"level 0 and the ranked tools<br/>in the ask's tail"| A["a body<br/>four fixed doors"]
       A -->|"open · schema · call<br/>anything but read asks you"| C
       L[("MCP journal, chained<br/>loads · calls · offers")] -->|"relation and idle penalty"| C
@@ -29,12 +29,12 @@ flowchart LR
     class F outside
     classDef throne fill:#dbeefe,stroke:#3FA9F5,stroke-width:2px,color:#0b2540
     class A throne
-    style mnemorph fill:#f0f9ff,stroke:#3FA9F5
+    style mikata fill:#f0f9ff,stroke:#3FA9F5
 ```
 
 ## In plain words
 
-An MCP server is a program that offers tools. Mnemorph starts only the servers you declare in your
+An MCP server is a program that offers tools. Mikata starts only the servers you declare in your
 global configuration, inside the sandbox, and shows each body only the tools of the servers you
 named for its race that its shelf can use.
 
@@ -42,7 +42,7 @@ Every tool has a class — read, write, outward or destructive — that you decl
 its server; a tool nobody declared is outward — unless the sandbox proves it a read — so it reaches
 only Kijin and Oni and asks you before each call. Most MCP traffic leaves the machine, so most of it is Kijin ground.
 
-A server always sends every one of its tool definitions, so Mnemorph shows them in three levels,
+A server always sends every one of its tool definitions, so Mikata shows them in three levels,
 each priced before it loads:
 
 - **level 0**, with the body's first ask: one line per server — its name, what it is for, how many
@@ -69,7 +69,7 @@ model.
 ### Declaring a server
 
 Servers live under `mcp.servers.<name>` in your global file. Neither the tracked file (shared by
-everyone who clones the repository) nor the local one (`.mnemorph/config.local.toml`, inside the
+everyone who clones the repository) nor the local one (`.mikata/config.local.toml`, inside the
 world, where a body's command or a repository's script may write it) can declare one: each of
 their `mcp.*` keys is a hole `status` shows, since a server is a program started with its own
 reach. The same holds for `sandbox.allow_unguarded` and every key that loosens the gate
@@ -119,13 +119,13 @@ the two disagree, and that is an error too.
 
 ### The client
 
-`mnemorph-tools`' `mcp` module speaks JSON-RPC over the server's standard input and output, one
+`mikata-tools`' `mcp` module speaks JSON-RPC over the server's standard input and output, one
 message a line: `initialize`, `notifications/initialized`, `tools/list` (the cursor followed, at
 most 32 pages) and `tools/call`. Nothing else is answered; a server's own requests and
 notifications are passed over.
 
 - **State outside the world.** Everything MCP keeps lives under
-  `$XDG_STATE_HOME/mnemorph/mcp/<world>-<fnv64a>/` (else `~/.local/state`): the cached catalogs,
+  `$XDG_STATE_HOME/mikata/mcp/<world>-<fnv64a>/` (else `~/.local/state`): the cached catalogs,
   the MCP journal (its witness beside the directory) and each server's scratch. Nothing a body or a script writes in the world
   reaches it.
 - **Never through the world.** The program is found on the harness's `PATH`, its relative and
@@ -187,7 +187,7 @@ Each listed tool becomes a spec once:
   CI), run unguarded, or with `network = true`, the hint is ignored and the tool stays outward.
   A refused tool's name is shown escaped in every hole.
 
-Every refusal is a hole, said at level 1 and in `mnemorph status` once the catalog is known; so is
+Every refusal is a hole, said at level 1 and in `mikata status` once the catalog is known; so is
 a class your configuration declares for a tool the server does not list.
 
 ### Scoped by race and class
@@ -277,7 +277,7 @@ its definition is sent, but the API keeps it out of the context — and out of t
 until a tool result references it. `mcp_schema` on such a tool answers with a `tool_reference`
 to it alone, and the API expands the definition inline; the body then calls the tool by its own
 name. The tools block keeps its one cache breakpoint on the last tool loaded up front, since a
-deferred tool may not carry one. The search stays Mnemorph's own (`mcp_search` and the ranking):
+deferred tool may not carry one. The search stays Mikata's own (`mcp_search` and the ranking):
 no server-side search tool is sent.
 
 Every other provider, and every other model, runs the same three levels client-side: no tool is
@@ -342,7 +342,7 @@ goes to the fast tier (`models.tier.fast`) in one call, before the ask is sent:
 
 ### Learned
 
-The MCP journal (`journal.jsonl` in the world's MCP state, under `$XDG_STATE_HOME/mnemorph/mcp/`)
+The MCP journal (`journal.jsonl` in the world's MCP state, under `$XDG_STATE_HOME/mikata/mcp/`)
 keeps one row per level-1 load, level-2 load, call, offer and rerank, and one more as each ask
 ends, whatever it did with MCP — what habits are counted over: the tool and server, the
 creature and race, the ask's id, its words (sorted, at most 32) and their fingerprint, the
@@ -377,14 +377,14 @@ From the newest 4,096 rows, model-free, bounded and deterministic:
 
 ### Shown
 
-`mnemorph status` shows one `mcp` line per server the session body may open — its level-0 line,
+`mikata status` shows one `mcp` line per server the session body may open — its level-0 line,
 with the price of opening it once its catalog is known — then which tools joined its stable
 prefix and why any habitual one did not. What was refused is a `hole`. From the
 journal, `mcp-why` lines give each server's schema loaded against what of it was then used, in
 weighted tokens, and what its answers and the reranks cost; then why each tool of the last ask was
 offered — `slime-scout offered docs__lookup — bm25 3.1 + used 4× by slime-scout (+1.61)`, with
 `− loaded idle 2× (−0.71)` for a penalty, `· reranked by <model>` and `· called` when they apply —
-or why the journal is not believed. `mnemorphd usage` says the same per server under `mcp schema,
+or why the journal is not believed. `mikatad usage` says the same per server under `mcp schema,
 by server`, and `usage --json` carries it as `mcp.servers.<name>` — `schemaLoadedWt`,
 `schemaUsedWt`, `answersWt` — with `mcp.reranks` and `mcp.trusted` (false, with `why`, for a
 journal not believed). The board's
@@ -392,7 +392,7 @@ integrations page shows each server's scope, its declared class and each tool's.
 
 ### Designed, not built
 
-These parts of [#48](https://github.com/Kaginari/mnemorph/issues/48) wait for M13
+These parts of [#48](https://github.com/Kaginari/mikata/issues/48) wait for M13
 ([roadmap](roadmap.md)):
 
 - **agent-mcp**, a duty at `kijin-scout`'s post: curating the roster, proposing each tool's
@@ -400,7 +400,7 @@ These parts of [#48](https://github.com/Kaginari/mnemorph/issues/48) wait for M1
   fast tier.
 - **`list_changed`** and server versions as refresh triggers; argument validation against the
   schema before a call.
-- **`mnemorph mcp serve --toolbox`**: the same selection served to Claude Code, OpenCode or any MCP
+- **`mikata mcp serve --toolbox`**: the same selection served to Claude Code, OpenCode or any MCP
   client, for their own servers.
 - **The M13 benchmark** against maki: spec tokens shown, tokens loaded on demand, session start
   time, time to the first call, wrong-tool and bad-argument calls, weighted tokens per task, and

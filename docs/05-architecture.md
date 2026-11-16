@@ -5,7 +5,7 @@
 <a href="./canvas/architecture-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./canvas/architecture-dark.svg">
-  <img src="./canvas/architecture-light.svg" alt="The architecture: the TypeScript packages board, sdk and protocol; the Rust crates from tui and mnemorphd through server and loop down to world, tools, provider, memory, ledger, proving, wire, sandbox and races; the sdk speaks JSON-RPC to the server">
+  <img src="./canvas/architecture-light.svg" alt="The architecture: the TypeScript packages board, sdk and protocol; the Rust crates from tui and mikatad through server and loop down to world, tools, provider, memory, ledger, proving, wire, sandbox and races; the sdk speaks JSON-RPC to the server">
 </picture>
 </a>
 
@@ -29,8 +29,8 @@ flowchart TB
       SDK --> PROTO
     end
     subgraph rs["Rust — crates/"]
-      TUI["tui — the mnemorph command<br/>Ratatui app · run · the session in-process"]
-      D["mnemorphd<br/>the server · admin commands"]
+      TUI["tui — the mikata command<br/>Ratatui app · run · the session in-process"]
+      D["mikatad<br/>the server · admin commands"]
       SERVER["server<br/>JSON-RPC · stdio · WebSocket"]
       LOOP["loop<br/>six beats"]
       WORLD["world<br/>creatures · territory · dispatch · gate"]
@@ -87,8 +87,8 @@ flowchart TB
 ## In plain words
 
 All the decisions live in Rust, in small crates that each do one thing and can be tested alone.
-The clients only show things and ask you questions: `mnemorph`, the Rust terminal app, hosts the
-core in its own process, and the web board speaks to `mnemorphd` over the protocol through the
+The clients only show things and ask you questions: `mikata`, the Rust terminal app, hosts the
+core in its own process, and the web board speaks to `mikatad` over the protocol through the
 TypeScript SDK — two windows onto the same core. The arrows only point downward — `races` knows nothing about
 networks, `wire` knows nothing about models — so each piece can be proven before the next is
 built on it. `tools/check-layers.mjs` holds the same graph and fails on any edge it does not
@@ -99,31 +99,31 @@ draw.
 ### The repository
 
 ```
-mnemorph/
+mikata/
 ├─ crates/
-│  ├─ mnemorph-wire       envelope types, parser, encoder            (no I/O)
-│  ├─ mnemorph-races      Race enum, shelves, dispatch, scores, falls (no I/O)
-│  ├─ mnemorph-ledger     usage + value ledgers, budgets, prices      (files)
-│  ├─ mnemorph-proving    Dark Elf finding records, coverage ledgers  (reads the tree)
-│  ├─ mnemorph-provider   streaming clients, retry ladder, caching,   (network)
+│  ├─ mikata-wire       envelope types, parser, encoder            (no I/O)
+│  ├─ mikata-races      Race enum, shelves, dispatch, scores, falls (no I/O)
+│  ├─ mikata-ledger     usage + value ledgers, budgets, prices      (files)
+│  ├─ mikata-proving    Dark Elf finding records, coverage ledgers  (reads the tree)
+│  ├─ mikata-provider   streaming clients, retry ladder, caching,   (network)
 │  │                      System One decisions with an LLM fallback
-│  ├─ mnemorph-sandbox    landlock + seccomp, Seatbelt, net policy    (OS)
-│  ├─ mnemorph-tools      tool impls, classifier, secret injection    (OS)
-│  ├─ mnemorph-config     TOML layers, origins, the gate's loosening  (files)
-│  ├─ mnemorph-memory     tiers, BM25 recall, the write rule          (files)
-│  ├─ mnemorph-world      creatures, onto, dispatch, gate, Minds      (files)
-│  ├─ mnemorph-loop       the six beats, journal, resume              (all above)
-│  ├─ mnemorph-server     JSON-RPC, WebSocket, board assets           (network: loopback)
-│  ├─ mnemorph-tui        `mnemorph`: the terminal app and `run`,     (terminal)
+│  ├─ mikata-sandbox    landlock + seccomp, Seatbelt, net policy    (OS)
+│  ├─ mikata-tools      tool impls, classifier, secret injection    (OS)
+│  ├─ mikata-config     TOML layers, origins, the gate's loosening  (files)
+│  ├─ mikata-memory     tiers, BM25 recall, the write rule          (files)
+│  ├─ mikata-world      creatures, onto, dispatch, gate, Minds      (files)
+│  ├─ mikata-loop       the six beats, journal, resume              (all above)
+│  ├─ mikata-server     JSON-RPC, WebSocket, board assets           (network: loopback)
+│  ├─ mikata-tui        `mikata`: the terminal app and `run`,     (terminal)
 │  │                      the session in-process
-│  └─ mnemorphd           the server binary and the admin commands
+│  └─ mikatad           the server binary and the admin commands
 ├─ packages/
 │  ├─ protocol           generated from crates via ts-rs; checked in
 │  ├─ sdk                transport (stdio | ws), reconnect by seq
 │  ├─ theme              the palette the board shares with the terminal app
-│  └─ board              Vite + React; built into mnemorphd
+│  └─ board              Vite + React; built into mikatad
 ├─ docs/                 this book
-├─ .mnemorph/             Mnemorph builds itself as a world
+├─ .mikata/             Mikata builds itself as a world
 └─ justfile              one entry point for every task
 ```
 
@@ -133,98 +133,98 @@ mnemorph/
 |---|---|---|
 | async runtime | tokio | the ecosystem default; cancellation through the run's own `Interrupt`, which reaches a running command |
 | HTTP | reqwest + rustls | no OpenSSL; private CA bundles loadable |
-| server | JSON-RPC over stdio, three threads (writer, reader, driver); axum for the board (`mnemorphd board`) | the board's WebSocket + static assets + JSON-RPC in one router |
+| server | JSON-RPC over stdio, three threads (writer, reader, driver); axum for the board (`mikatad board`) | the board's WebSocket + static assets + JSON-RPC in one router |
 | types → TS | ts-rs | one source of truth for the protocol |
 | config | TOML via `toml_edit` | edits preserve comments; isekai's YAML-append bug cannot exist |
-| recall | BM25 in `mnemorph-memory`, no index engine | local, model-free by default (Nature 7) |
+| recall | BM25 in `mikata-memory`, no index engine | local, model-free by default (Nature 7) |
 | errors | typed error enums where a caller branches on the failure, a plain reason elsewhere | typed failures cross crate borders |
-| logs | the run's journal, JSONL under `.mnemorph/instruments/loop/` | the journal is an instrument |
+| logs | the run's journal, JSONL under `.mikata/instruments/loop/` | the journal is an instrument |
 | tests | nextest, proptest; Ratatui's test backend; vitest; Playwright for the board (M12) | every rung testable alone |
 | TS tooling | Node 22, pnpm workspaces, Biome | Node is already the platform Claude Code runs on |
-| distribution | GitHub release archives per target — `mnemorph`, `mnemorphd` and, on Linux, `mnemorph-guard` — with `SHA256SUMS`; `install.sh`, which refuses an archive that does not match; `cargo install --path` from a checkout ([releasing](releasing.md)) | one plain binary for people and for servers. The name `mnemorph` on crates.io is taken: the published names are settled in phase D |
+| distribution | GitHub release archives per target — `mikata`, `mikatad` and, on Linux, `mikata-guard` — with `SHA256SUMS`; `install.sh`, which refuses an archive that does not match; `cargo install --path` from a checkout ([releasing](releasing.md)) | one plain binary for people and for servers. The name `mikata` on crates.io is taken: the published names are settled in phase D |
 
 ### The terminal UI
 
-`mnemorph` is the command you run: a terminal app in Rust, drawn with
-[Ratatui](https://ratatui.rs), in the crate `mnemorph-tui`. It hosts the session in its own
-process: `mnemorph_loop::open` gives it the session, an observer turns what the run does into the
-same events the server sends (`mnemorph_server::events`), and the model's stream arrives as text
+`mikata` is the command you run: a terminal app in Rust, drawn with
+[Ratatui](https://ratatui.rs), in the crate `mikata-tui`. It hosts the session in its own
+process: `mikata_loop::open` gives it the session, an observer turns what the run does into the
+same events the server sends (`mikata_server::events`), and the model's stream arrives as text
 deltas. No protocol sits between the screen and the core. It lives in the terminal crate rather
 than a crate of its own: `run` needs nothing the app does not already depend on, so the layering
 keeps the edges it had.
 
 ```sh
-mnemorph                          # a session in this world (also: mnemorph chat)
-mnemorph --world <dir>            # a session in that world
-mnemorph --mode light-coding      # the mode: auto (default), light-coding, structured-coding, collective-coding
-mnemorph resume last              # pick up the newest run that stopped (or --resume <run>)
-mnemorph --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, auto
-mnemorph --probe                  # what the terminal draws, then exit
-mnemorph status                   # the mode and why, the model, the key's origin, the sandbox, the budget, holes, meters, envelopes, evolutions due
-mnemorph run "<ask>"              # one ask without the app
+mikata                          # a session in this world (also: mikata chat)
+mikata --world <dir>            # a session in that world
+mikata --mode light-coding      # the mode: auto (default), light-coding, structured-coding, collective-coding
+mikata resume last              # pick up the newest run that stopped (or --resume <run>)
+mikata --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, auto
+mikata --probe                  # what the terminal draws, then exit
+mikata status                   # the mode and why, the model, the key's origin, the sandbox, the budget, holes, meters, envelopes, evolutions due
+mikata run "<ask>"              # one ask without the app
 ```
 
-`mnemorphd` is the same core as a server — the client protocol for the TypeScript SDK and the
+`mikatad` is the same core as a server — the client protocol for the TypeScript SDK and the
 board — and holds the world's admin commands: `runs`, `onto`, `memory`, `q`, `incident`,
 `envelope`, `challenge`, `meters`, `usage`, `evolution`, `housekeep` (`--verify` walks the chained
 journals) and `relief`, and the board's: `board`, `board add`, `board forget`, `board prune`,
-`board stop` (`mnemorphd --help`).
+`board stop` (`mikatad --help`).
 
-**Why two binaries.** They answer two kinds of caller over one core. `mnemorph` is for a person at
+**Why two binaries.** They answer two kinds of caller over one core. `mikata` is for a person at
 a terminal, and for scripts: it hosts the session in its own process, with no protocol between the
-screen and the loop. `mnemorphd` is for programs that are not Rust: the SDK and an editor plugin start it as a
-child and speak JSON-RPC to it, and the board is served by it (`mnemorphd board`); every such client sees the
+screen and the loop. `mikatad` is for programs that are not Rust: the SDK and an editor plugin start it as a
+child and speak JSON-RPC to it, and the board is served by it (`mikatad board`); every such client sees the
 same sessions, gate and events. The upkeep commands sit with it because they work on the world's
-records directly, without a session. Both link the same crates (`mnemorph-loop`, `-world`,
+records directly, without a session. Both link the same crates (`mikata-loop`, `-world`,
 `-races`, `-tools`, `-sandbox`), so a law, a gate or a sandbox rule holds the same in either.
 
 | You want to | Run |
 |---|---|
-| talk to Summoner | `mnemorph` |
-| see which mode a session here opens in, and why | `mnemorph status` |
-| have Summoner work alone, in a world with creatures | `mnemorph --mode light-coding` |
-| let Summoner hand work to its Elves | `mnemorph --mode structured-coding` (the default where an Elf reports to it) |
-| work as a collective of equals around the work board | `mnemorph --mode collective-coding` |
-| ask once from a script or CI | `mnemorph run "<ask>"` |
-| pick up a run that stopped | `mnemorph resume last` |
-| list resumable runs, read memory, check the ontology, the queue, incidents | `mnemorphd runs`, `mnemorphd memory status`, `mnemorphd onto check`, `mnemorphd q list`, `mnemorphd incident list` |
-| read the forge's CI runs into the instruments | `mnemorphd ci` |
-| refresh the advisory mirror, audit the lockfiles against it | `mnemorphd scout`, `mnemorphd scout audit` |
-| run the standing reads that are due | `mnemorphd refresh` |
-| read every creature's meters, see who is due to evolve, draft its evolution, review the proposals, swap one in, judge it, keep or roll it back, run a tick of evolution on its own | `mnemorphd meters`, `mnemorphd evolution due`, `mnemorphd evolution draft <creature>`, `mnemorphd evolution list \| show <id> \| apply <id> \| reject <id>`, `mnemorphd evolution swap <id>`, `mnemorphd evolution judge <id>`, `mnemorphd evolution keep \| rollback <id>`, `mnemorphd evolution auto` |
-| connect the SDK | the SDK starts `mnemorphd` itself |
-| open the board | `mnemorphd board`, then the URL it prints |
+| talk to Summoner | `mikata` |
+| see which mode a session here opens in, and why | `mikata status` |
+| have Summoner work alone, in a world with creatures | `mikata --mode light-coding` |
+| let Summoner hand work to its Elves | `mikata --mode structured-coding` (the default where an Elf reports to it) |
+| work as a collective of equals around the work board | `mikata --mode collective-coding` |
+| ask once from a script or CI | `mikata run "<ask>"` |
+| pick up a run that stopped | `mikata resume last` |
+| list resumable runs, read memory, check the ontology, the queue, incidents | `mikatad runs`, `mikatad memory status`, `mikatad onto check`, `mikatad q list`, `mikatad incident list` |
+| read the forge's CI runs into the instruments | `mikatad ci` |
+| refresh the advisory mirror, audit the lockfiles against it | `mikatad scout`, `mikatad scout audit` |
+| run the standing reads that are due | `mikatad refresh` |
+| read every creature's meters, see who is due to evolve, draft its evolution, review the proposals, swap one in, judge it, keep or roll it back, run a tick of evolution on its own | `mikatad meters`, `mikatad evolution due`, `mikatad evolution draft <creature>`, `mikatad evolution list \| show <id> \| apply <id> \| reject <id>`, `mikatad evolution swap <id>`, `mikatad evolution judge <id>`, `mikatad evolution keep \| rollback <id>`, `mikatad evolution auto` |
+| connect the SDK | the SDK starts `mikatad` itself |
+| open the board | `mikatad board`, then the URL it prints |
 
 `resume <run|last>` opens the session on a run that stopped instead of a new one, through the
 same opening and the same end gate ([Resume](03-loop.md#budgets-are-readings)); a run with nothing
-to resume is refused in plain text, before the terminal is taken. `mnemorphd runs` lists them.
+to resume is refused in plain text, before the terminal is taken. `mikatad runs` lists them.
 
 **The mode.** `--mode auto|light-coding|structured-coding|collective-coding` goes with the app, `resume`, `run` and
-`status`, and with `mnemorphd` for a program ([the three modes](02-races.md#the-three-modes);
+`status`, and with `mikatad` for a program ([the three modes](02-races.md#the-three-modes);
 [which one, and when](01-overview.md#which-mode-and-how-to-start-it)). It is the command line's
 alone, as `--no-law` is: no configuration a world holds asks for a mode, and neither does a
 journal: a resumed run's mode is decided again, as a fresh session's is, and when that is not the
 mode it stopped in, the reason says so and names the option that goes on in the old one. The
 session says what it opened in wherever it is shown:
 
-- `mnemorph status`: `mode     structured-coding — 1 Elf reports to the Summoner: elf-engine`,
+- `mikata status`: `mode     structured-coding — 1 Elf reports to the Summoner: elf-engine`,
   with no
   key needed; where the mode asked for is not available, `mode     not available — …` and why.
 - the app: its second line, with the option that asks for another.
-- `mnemorph run --json`: `"mode"` on the result line.
+- `mikata run --json`: `"mode"` on the result line.
 - the protocol: `mode` and `modeWhy` in the `initialize` answer; the web board shows it in a
   chat's side pane.
 - the journal: `"mode"` on the session's `law` beat, so a report reads the mode from the run.
 
 #### The board server
 
-`mnemorphd board [--port 7878] [--bind 127.0.0.1|::1] [--open] [--background]` is one daemon for
-every world on the machine: an axum router in `mnemorph-server` (`src/board/`) on `127.0.0.1` and
+`mikatad board [--port 7878] [--bind 127.0.0.1|::1] [--open] [--background]` is one daemon for
+every world on the machine: an axum router in `mikata-server` (`src/board/`) on `127.0.0.1` and
 `[::1]`. Any other address is refused — remote use is an SSH port-forward of the same port
 (`ssh -L 7878:127.0.0.1:7878 <host>`), the explicit opt-in. One board runs per machine:
-`$XDG_STATE_HOME/mnemorph/board.lock` is held for its life, and `board.url` beside it (`0600`)
+`$XDG_STATE_HOME/mikata/board.lock` is held for its life, and `board.url` beside it (`0600`)
 holds the URL with the key waiting now, which a second launch prints before it exits. A body never
-runs `board`, `board add`, `board forget`, `board prune` or `board stop` (`MNEMORPH_BODY` is
+runs `board`, `board add`, `board forget`, `board prune` or `board stop` (`MIKATA_BODY` is
 refused).
 
 **The control socket.** The board that holds the lock also answers `board.sock` beside it, a Unix
@@ -236,12 +236,12 @@ connect to a pathname socket, so the uid is not the guard: the board compares th
 constant time and answers `refused` to any line without it, and a body's sandbox reads no state
 directory, so it never has it. An asker speaks only to a socket and a nonce file its own uid owns;
 the board replaces only a socket left in its place, and refuses anything else there. No key
-crosses the socket. `mnemorphd board stop` stops this user's board under this state directory and
+crosses the socket. `mikatad board stop` stops this user's board under this state directory and
 nothing else. A second
-`mnemorphd board --open` asks the running board to open the browser this way. `--background`
+`mikatad board --open` asks the running board to open the browser this way. `--background`
 prints no URL: the board started with the terminal app runs so, and its log holds no key.
 
-**Started with the terminal app.** Launched with `--web`, `mnemorph` makes sure a board runs as
+**Started with the terminal app.** Launched with `--web`, `mikata` makes sure a board runs as
 its session opens, off the UI thread, and opens it in the browser; without it no board starts.
 `board.autostart` and `board.open` are no longer read by the app (they still load); the port is
 still the human's:
@@ -252,39 +252,39 @@ port = 7777        # the port a board started with --web listens on; 7878 unless
 ```
 
 A running board is reused, never a second: the control socket answers, or the lock refuses a
-second claim. With none running, the app starts `mnemorphd board --background` — the `mnemorphd`
-beside the running `mnemorph`, never one found on `PATH` or in the world — in its own process
+second claim. With none running, the app starts `mikatad board --background` — the `mikatad`
+beside the running `mikata`, never one found on `PATH` or in the world — in its own process
 group, with the app's environment (the human's own shell, as when they start it by hand; each of
-its chats' children still gets only the bridge's allowlist), its output to `$XDG_STATE_HOME/mnemorph/board.log` (`0600`, begun again past 1 MiB). The
+its chats' children still gets only the bridge's allowlist), its output to `$XDG_STATE_HOME/mikata/board.log` (`0600`, begun again past 1 MiB). The
 world is put on the board if it is not there yet. The board opens the browser
 on a fresh one-time link, never a printed one. The app shows one line, `board:
-http://127.0.0.1:7777 (opened in your browser)`, or the same with *(run `mnemorphd board` for a
+http://127.0.0.1:7777 (opened in your browser)`, or the same with *(run `mikatad board` for a
 sign-in link)*; a port in use, a missing binary or a board slow to answer is that line too, never a crash
 or a hang. No key reaches the app's screen or the log. The board outlives the app: quitting
-`mnemorph` leaves it serving, and a Ctrl-C at that terminal never reaches it.
-`mnemorphd board stop` stops it — its socket and nonce go, its chats end, its lock is let go —
+`mikata` leaves it serving, and a Ctrl-C at that terminal never reaches it.
+`mikatad board stop` stops it — its socket and nonce go, its chats end, its lock is let go —
 and returns only once the lock is free: it waits as long as a chat that ignores its shutdown may
 take to be killed, and fails if the board still runs past that, or if its lock cannot be read.
 Every `board.*` key is the global file's alone: from a world's file it is a hole, since starting a
 server that serves every world, and opening a browser on it, are the human's call.
 
 **The worlds** are the registry's — every world a session opened in — and the human's hand,
-`$XDG_STATE_HOME/mnemorph/board/worlds.jsonl`: `board add <dir>` lists a world no session opened in
-yet (a directory holding `.mnemorph/`); `board forget <dir>` stops listing one until it is added
+`$XDG_STATE_HOME/mikata/board/worlds.jsonl`: `board add <dir>` lists a world no session opened in
+yet (a directory holding `.mikata/`); `board forget <dir>` stops listing one until it is added
 again or a session opens in it. Nothing inside a world is read to list it but whether its
-`.mnemorph/` is there, and nothing read from inside a world grants trust.
+`.mikata/` is there, and nothing read from inside a world grants trust.
 
 **Missing worlds.** A listed world is *missing* when its directory is gone, is not a directory, or
-holds no `.mnemorph/` of its own (a link to the directory is followed, so a link whose target is
-gone is missing; a `.mnemorph` that is a link out is not the world's own). When the board first
-sees one missing it keeps the time in `$XDG_STATE_HOME/mnemorph/board/missing.json`, the human's
+holds no `.mikata/` of its own (a link to the directory is followed, so a link whose target is
+gone is missing; a `.mikata` that is a link out is not the world's own). When the board first
+sees one missing it keeps the time in `$XDG_STATE_HOME/mikata/board/missing.json`, the human's
 state; a world that comes back is live again and its record is dropped. `/api/worlds`, the
 worlds page, the rail, the palette and the metrics of `all` show only the live worlds; the
 missing ones wait folded under them, *Missing (N)*, each with its path, *missing since …* and the
-`board forget` that drops it. `mnemorphd board prune [--dry-run]` forgets every missing world —
+`board forget` that drops it. `mikatad board prune [--dry-run]` forgets every missing world —
 a `forget` row in the board's list each, and nothing else: no directory, journal or state is
 touched; `--dry-run` only names them. The same prune runs as a routine at a board's start and at
-`mnemorphd housekeep --heal` (plain `housekeep` names what it would forget) for the worlds missing
+`mikatad housekeep --heal` (plain `housekeep` names what it would forget) for the worlds missing
 longer than `board.prune_after_days` (14; 0 never; the global file's alone), so a drive unmounted
 for a day is not forgotten.
 
@@ -292,10 +292,10 @@ for a day is not forgotten.
 bytes in hex in the fragment, which a browser never sends or logs. The page reads it, drops it from
 the address bar, and posts it once: `POST /session` with `{"key": "<key>"}` as `application/json`.
 The key dies on that use — reused, it is refused — and a fresh one waits in `board.url`. The answer
-sets the cookie `mnemorph_board` (`HttpOnly; SameSite=Strict; Path=/`) and carries
+sets the cookie `mikata_board` (`HttpOnly; SameSite=Strict; Path=/`) and carries
 `{"csrf": "<token>"}`, the token bound to that session; a reloaded page gets it again from
-`GET /api/session`. Every mutation sends the token in `x-mnemorph-csrf`; a WebSocket handshake,
-which cannot set a header, sends it as a `Sec-WebSocket-Protocol` entry `mnemorph.csrf.<token>`.
+`GET /api/session`. Every mutation sends the token in `x-mikata-csrf`; a WebSocket handshake,
+which cannot set a header, sends it as a `Sec-WebSocket-Protocol` entry `mikata.csrf.<token>`.
 `POST /api/session/end` ends the session and clears its cookie.
 
 Every secret is short-lived. A printed key not traded within 10 minutes is replaced, and the new
@@ -308,7 +308,7 @@ the opener (`xdg-open`, `open`) that file's path. The page is created exclusivel
 a link, in a `0700` directory of the human's own. The file is removed once its key is spent, or
 dies (checked every 30 seconds), or the board stops; a board's start sweeps any an earlier board
 left (regular files the human owns, named `open-<16 hex>.html`, never through a link) from the
-state directory and every snap's `~/snap/<snap>/common/mnemorph/`. Chromium follows the refresh from `file://`
+state directory and every snap's `~/snap/<snap>/common/mikata/`. Chromium follows the refresh from `file://`
 to loopback; a browser that does not shows the link.
 
 **Snap browsers.** A snap's confinement keeps a snap browser (Ubuntu's Chromium and Firefox) out of
@@ -317,18 +317,18 @@ own. The board reads the default browser's desktop file (`xdg-settings get defau
 else `xdg-mime`'s handler of `x-scheme-handler/http`; a second each, so detection and the
 opener's 1.5 s watch fit in the control socket's 5 s wait): when it is `<snap>_<app>.desktop` and its
 `Exec` runs `/snap/bin/<snap>`, or its `Exec` resolves under `/snap/bin/`, the browser is that
-snap, and the launcher goes to the snap's own `~/snap/<snap>/common/mnemorph/` (`0700`), which a
+snap, and the launcher goes to the snap's own `~/snap/<snap>/common/mikata/` (`0700`), which a
 snap may read as `$SNAP_USER_COMMON`. `~/snap`, `~/snap/<snap>` and its `common` must already be
 real directories the human owns, never links. Anything less certain is not a snap, and the page
 stays in the state directory. A body's sandbox reads neither place.
 
 **When the browser does not open** — the opener cannot start or fails at once, or a snap browser
 has no directory of its own to read the page from — nothing fails silently: the app's status line,
-or `mnemorphd board --open` on its terminal, says *couldn't open your browser automatically: run
-`mnemorphd board` and paste the link it prints*, never a key. `mnemorphd board`, run in the human's
+or `mikatad board --open` on its terminal, says *couldn't open your browser automatically: run
+`mikatad board` and paste the link it prints*, never a key. `mikatad board`, run in the human's
 own terminal, prints the link, and the board serves on.
 
-**The state directory** (`$XDG_STATE_HOME/mnemorph`) is made `0700`. One the human owns with
+**The state directory** (`$XDG_STATE_HOME/mikata`) is made `0700`. One the human owns with
 group or other bits set is tightened to `0700` by the board's start or the app's, and that is said
 once (on the board's output, or on the app's status line); a link or another user's is refused. An
 asker trusts the nonce only in a directory its uid owns that no one else may write in. `--open` is refused when no board is built
@@ -360,7 +360,7 @@ it answers at; a tab without a session asking for a guarded path gets *This tab 
 They hold no script, and are styled by `/refused.css`, a fixed public stylesheet — the one path
 answered before the guard, to every `Host`, so a page refused for its `Host` reads too. A
 script's fetch is refused in plain text as before. The page itself shows the same: an `/api/`
-read answered 401 turns the tab to *This tab isn't signed in. Run `mnemorphd board` and open the
+read answered 401 turns the tab to *This tab isn't signed in. Run `mikatad board` and open the
 link it prints, in this browser. Each link works once.*, and a key the exchange refuses — spent
 already, perhaps by another browser such as VS Code's — to *This link was already used*, unless
 the tab's cookie still names a session. Each link is one browser's: opened in two, the second is
@@ -368,7 +368,7 @@ signed out.
 
 | Foreign host name | No session | Spent link |
 |---|---|---|
-| <img src="./img/board/signin-host.png" width="260" alt="The server's page for a foreign host name: open the board at http://127.0.0.1, the addresses it answers at"> | <img src="./img/board/signin-signed-out.png" width="260" alt="The board's signed-out page: run mnemorphd board and open the link it prints, in this browser"> | <img src="./img/board/signin-link-used.png" width="260" alt="The board's spent-link page: this link was already used, perhaps by VS Code's browser"> |
+| <img src="./img/board/signin-host.png" width="260" alt="The server's page for a foreign host name: open the board at http://127.0.0.1, the addresses it answers at"> | <img src="./img/board/signin-signed-out.png" width="260" alt="The board's signed-out page: run mikatad board and open the link it prints, in this browser"> | <img src="./img/board/signin-link-used.png" width="260" alt="The board's spent-link page: this link was already used, perhaps by VS Code's browser"> |
 
 **Every response**, a refusal included, carries `Content-Security-Policy: default-src 'none';
 script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src
@@ -377,14 +377,14 @@ frame-ancestors 'none'; require-trusted-types-for 'script'`, `X-Content-Type-Opt
 no-referrer`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy:
 same-origin` and `Cache-Control: no-store`.
 
-**The assets** are `packages/board/dist`, embedded when `mnemorphd` is compiled by a fixed name
+**The assets** are `packages/board/dist`, embedded when `mikatad` is compiled by a fixed name
 map: each file's path under `dist/` (`/index.html`, `/assets/index-<hash>.js`) is one entry, `/` is
 `/index.html`, and any other path is 404 — a request path is never joined, decoded or normalised.
 Source maps are left out.
-Build the board first (`pnpm --filter @mnemorph/board build`); compiled without it, `mnemorphd`
+Build the board first (`pnpm --filter @mikata/board build`); compiled without it, `mikatad`
 embeds a placeholder page saying so, and serves the API all the same.
 
-**The API** so far, all JSON, its types generated into `@mnemorph/protocol`:
+**The API** so far, all JSON, its types generated into `@mikata/protocol`:
 
 | Route | Answers |
 |---|---|
@@ -393,43 +393,43 @@ embeds a placeholder page saying so, and serves the API all the same.
 | `GET /api/worlds` | `BoardWorlds`: `{"worlds": [{"id", "name", "path", "remote", "last", "sessions", "state"}], "missing": [{"id", "name", "path", "since"}]}` — `worlds` the live ones, `id` is `<name>-<fnv64a>`, `remote` the normalised `origin` or `null`, `last` the latest session's RFC 3339 time or `null` for a world only added, `state` `present`; the latest session first. `missing` the missing ones (above), the longest missing first, `since` when the board first saw it so. Paths and names are the world's own text: the page renders them as text, never markup |
 | `GET /api/w/<id>` | `BoardOverview` of a listed world, 404 for an id no listed world has — see *The world overview* below |
 | `GET /api/w/<id>/memory` | `BoardMemory`: the standing, each creature's row and a page of notes — `?creature=`, `?scope=personal\|shared`, `?standing=proposed\|grounded\|retired\|dormant\|tombstoned`, `?review=yes\|no`, `?offset=`, `?limit=` (100, at most 500) — see *The memory and ontology pages* below |
-| `POST /api/w/<id>/memory/<note>/confirm` | `{"seen"}`: the **confirmed** route, as `mnemorphd memory confirm`; `BoardDone {done}` |
-| `POST /api/w/<id>/memory/<note>/wake` | `{"seen"}`: a note the gate retired, woken as `mnemorphd memory wake`; `BoardDone {done}` |
+| `POST /api/w/<id>/memory/<note>/confirm` | `{"seen"}`: the **confirmed** route, as `mikatad memory confirm`; `BoardDone {done}` |
+| `POST /api/w/<id>/memory/<note>/wake` | `{"seen"}`: a note the gate retired, woken as `mikatad memory wake`; `BoardDone {done}` |
 | `GET /api/w/<id>/facts` | `BoardFacts`: the counts of each status, a page of facts — `?status=settled\|agreed\|single\|contested\|countered`, `?offset=`, `?limit=` — `onto check`'s findings, the paths' owners and the verdicts a settle may cite |
 | `POST /api/w/<id>/facts/<fact>/settle` | `{"seen", "verdict": <n>}` or `{"seen", "statement": "…"}`: the fact settled on that proof, `by: human (board)`; no proof, or both, is refused (400); `BoardDone {done}` |
 | `GET /api/w/<id>/bodies` | `BoardBodies`: every creature its docs describe — race, lane, `Reports to`, post or speciality, ground, live state, the Minds it wears with their standing, its latest acts — the roster's problems and loops, the throne's state, and every race of the compiled law with its card's art; each part with its source — see *The bodies, queue and journal pages* below |
-| `GET /api/w/<id>/queue` | `BoardQueue`: the shared queue folded as `mnemorphd q list --all` folds it — the open orders (held, claimed) by rank then arrival, then the closed (done, dropped) — each marked witnessed or not, with the counts |
+| `GET /api/w/<id>/queue` | `BoardQueue`: the shared queue folded as `mikatad q list --all` folds it — the open orders (held, claimed) by rank then arrival, then the closed (done, dropped) — each marked witnessed or not, with the counts |
 | `GET /api/w/<id>/timeline` | `BoardTimeline`: commissions (the bodies' run journals) and the gate's verdicts, newest first — `?kind=commission\|verdict`, `?body=`, `?offset=`, `?limit=` (50, at most 500) |
 | `GET /api/w/<id>/journal` | `BoardJournal`: `log.md`'s entries, newest first, with a table of contents — `?q=` (at most 200 characters, any case), `?offset=`, `?limit=` (20, at most 100) |
 | `GET /art/cards/<race>.webp` | a race's card, embedded by its exact name like the page's other assets (no session needed), whether or not the page was built |
 | `GET /api/metrics` | `BoardMetrics` for `?world=<id>` or `all` (the default) over `?window=7d\|28d\|all` (`7d` by default; another word is 400): the usage ledgers' fold, the meters, the Dark Elf's scores and the bench — see *Metrics and integrations* below |
 | `GET /api/integrations` | `BoardIntegrations`, read-only and redacted: the global file alone, or `?world=<id>`'s files layered over it — see *Metrics and integrations* below |
-| `WS /ws/board` | the push channel, subprotocol `mnemorph.board.v1` beside the CSRF entry; the server alone speaks — see *The watcher* below |
-| `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mnemorph resume`'s opening; `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
+| `WS /ws/board` | the push channel, subprotocol `mikata.board.v1` beside the CSRF entry; the server alone speaks — see *The watcher* below |
+| `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mikata resume`'s opening; `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
 | `GET /api/sessions` | `BoardSessions`: `{"sessions": [{"id", "world", "session", "run", "controlled", "tabs", "asks"}]}`, the live chats |
-| `WS /ws/session/<id>` | a tab on a live chat (below), subprotocol `mnemorph.v1` |
+| `WS /ws/session/<id>` | a tab on a live chat (below), subprotocol `mikata.v1` |
 | `GET /api/w/<id>/runs` | `BoardRuns`: `{"runs": [{"id", "when", "state", "why", "ask", "turns"}], "more"}` — a listed, present world's session runs from its journals, newest first, at most 100 (`more` counts the rest); `state` is `live` (a session holds its lock now), `stopped` (a checkpoint, an interrupt, a turn cut short: it may be resumed), `ended` (answered or failed) or `unknown` with `why` (too large, a line that does not read, not a regular file). See *The board's chat* below |
 | `GET /api/w/<id>/runs/<run>` | `BoardTranscript`: `{"run", "state", "events", "dropped", "skipped"}` — a run's journal as the protocol's events (`{jsonrpc, method, params}`, `seq` from 1), the newest 10,000; `400` for a name that is no session run's id, `404` for no such run, `422` for a journal past 32 MiB or not a regular file |
 
 #### The chat bridge
 
-**A child per chat.** Each live chat is a child `mnemorphd --world <dir>` (with `--resume <run>`
+**A child per chat.** Each live chat is a child `mikatad --world <dir>` (with `--resume <run>`
 for a past run) speaking the unchanged protocol on its stdio; the board bridges it line for line
 to the tabs on `WS /ws/session/<id>`. It runs in the world's directory, in its own process group,
 its stderr's last 8 KiB kept: a child that leaves on its own says why, escaped, in
 `board/ended`. Its environment is an allowlist of the board's: `PATH`, `HOME`, `USER`, `LOGNAME`,
 `SHELL`, `LANG`, `LC_*`, `TERM`, `TMPDIR`, `TZ`, `XDG_*`, `SSL_CERT_FILE`, `SSL_CERT_DIR`, the
-proxies (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, either case) and `MNEMORPH_*` but
-`MNEMORPH_BODY` — each dropped still if the sandbox's test reads it as a secret (a proxy URL with
+proxies (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, either case) and `MIKATA_*` but
+`MIKATA_BODY` — each dropped still if the sandbox's test reads it as a secret (a proxy URL with
 credentials) — so `AWS_PROFILE`, `SSH_AUTH_SOCK`, `KUBECONFIG` or `DOCKER_HOST` never reach it;
 the only secrets put in are the provider keys named by `key_env` in the built-in defaults and the
 human's global file. A key kept in a `key_file` is never passed: the child reads it itself, from
 the file the global file names, so a board started from a shell without the variable still opens
-chats. `MNEMORPH_BOARD_PID` names the board: on Linux the child sets its
+chats. `MIKATA_BOARD_PID` names the board: on Linux the child sets its
 parent-death signal (SIGTERM), then checks its parent is still the board, so a board killed
 outright takes its chats with it. A provider defined only inside a world gets no key from the board: as
 anywhere, nothing read from inside a world grants trust. The child makes itself non-dumpable
-before it reads a key, as every `mnemorphd` does. The bridge opens the session itself
+before it reads a key, as every `mikatad` does. The bridge opens the session itself
 (`initialize`) and keeps the hello; a tab's `initialize` is answered with it.
 
 **Ending.** A chat ends when its controller sends `shutdown`, when the child leaves, when the grace
@@ -452,10 +452,10 @@ seen, so every event arrives once, in order.
 **Asks.** `gate/ask` is a request, not an event, so the bridge keeps each waiting ask and sends it
 to every tab — again to each tab that connects — with `leftMs`, the time it has before the core's
 10-minute wait denies it. Every field the child sent (body, race, class, act, reasons, paths
-outside, plan) reaches the tabs already passed through `mnemorph_loop::shown`, `⟨` escaped too, and
+outside, plan) reaches the tabs already passed through `mikata_loop::shown`, `⟨` escaped too, and
 each run of 16 plain spaces or more shown as `⟨… 9,800 spaces⟩` — a marker no text can forge —
 with `digest`: the
-SHA-256 of that text in a fixed framing — a version line `mnemorph.ask.v1`, then the ask's id and
+SHA-256 of that text in a fixed framing — a version line `mikata.ask.v1`, then the ask's id and
 each field as its UTF-8 length, a colon, the text and a newline, each list first its count, the
 plan `-` when absent or `+` before it (`Shown::digest`, mirrored by the page). An ask leaves the
 list, and the tabs are sent `board/askGone {id, why}`, when it is answered (`answered`), when the
@@ -486,7 +486,7 @@ cookie, acts as the human there and is outside this model, as malware on the mac
 terminal.
 
 **The answers journal.** Each answer, taken or refused (the first eight refusals of an ask), is a
-row of `$XDG_STATE_HOME/mnemorph/answers/<world>-<fnv64a>.jsonl`, beside the gate's verdicts: the
+row of `$XDG_STATE_HOME/mikata/answers/<world>-<fnv64a>.jsonl`, beside the gate's verdicts: the
 chat, the ask, the tab's connection (a number the bridge gives each tab), the body, the class, the
 act as shown (its first 4 KiB), `shown_digest` and the `named_digest` the answer carried, `allow`,
 `outcome` (`answered` or `refused: <why>`), `asked_ms` and `seen_ms` (since the ask, and since this
@@ -519,8 +519,8 @@ pinged every 5 seconds: two pings unanswered drop it. An ended chat frees what i
 Closes 4001, 4401, 4404 (no such chat) and 4429 are final for the SDK; others are
 retried, the pause doubling from 250 ms to 5 s, 20 times.
 
-**The browser's transport.** `@mnemorph/sdk/browser` is the client without Node: `ws({url, csrf})`
-offers `mnemorph.v1` and `mnemorph.csrf.<token>`, the token asked for at each connection and kept
+**The browser's transport.** `@mikata/sdk/browser` is the client without Node: `ws({url, csrf})`
+offers `mikata.v1` and `mikata.csrf.<token>`, the token asked for at each connection and kept
 in memory only. On each reconnection the `Client` takes control back if it had it, then replays;
 a request in flight when the socket drops fails rather than hangs.
 
@@ -535,20 +535,20 @@ it — is shown and grants nothing.
 
 | Field | Value | Source | Trusted |
 |---|---|---|---|
-| `status` | `live` (a chat the board runs is open in it), `tui-live` (a session's run lock under `.mnemorph/instruments/loop/` is held by a live process now — a terminal's), `idle`, or `missing` (its directory is gone: shown, never dropped) | the board's chats; the run locks, probed as `mnemorphd runs` probes them (only a regular file is opened); the directory | the chats and the directory yes, the locks no |
+| `status` | `live` (a chat the board runs is open in it), `tui-live` (a session's run lock under `.mikata/instruments/loop/` is held by a live process now — a terminal's), `idle`, or `missing` (its directory is gone: shown, never dropped) | the board's chats; the run locks, probed as `mikatad runs` probes them (only a regular file is opened); the directory | the chats and the directory yes, the locks no |
 | `activity` | `{at, what}`: the latest of a session opening, the gate's last verdict, `log.md` written, a run journal written, a call booked | the registry, the gate's journal, the files' write times | per source |
-| `memory` | `shared`, `grounded`, `proposed`, `retired`, `unproven`, counted as `mnemorphd memory status` counts them | `.mnemorph/memory/` | no |
-| `challenges` | the open challenges `pending`, `blocked`, `verifying`; those with an `unstaffed` speciality; their `findings`; `unreadable` record lines — as `mnemorphd challenge list` reads them | the challenge records under the state directory | yes |
+| `memory` | `shared`, `grounded`, `proposed`, `retired`, `unproven`, counted as `mikatad memory status` counts them | `.mikata/memory/` | no |
+| `challenges` | the open challenges `pending`, `blocked`, `verifying`; those with an `unstaffed` speciality; their `findings`; `unreadable` record lines — as `mikatad challenge list` reads them | the challenge records under the state directory | yes |
 | `gate` | how many verdicts, and the last: `{at, body, verdict, changed}` or `null` before the first | the gate's verdict journal under the state directory | yes |
-| `meters` | each living creature's meters with their `status` (`counted`, `noReports`, `unavailable` with `why`), `successes`, `n`, the point estimate and the 95% Wilson interval `lo`–`hi`, or `null`s for no report — as `mnemorphd meters --json` (which also gives each creature its pending `proposal` and `probation`, and the `unknown` input its law reads that no trusted journal carries) | the roster in the world over the challenge records' folds and the report fold of the trusted journals under the state directory ([the report fold](02-races.md#the-report-fold)) | no |
-| `spend` | the latest session in the usage ledger: `calls`, `usd` (`null` when none was priced), `unpriced`, weighted tokens | `.mnemorph/instruments/usage.jsonl` | no |
+| `meters` | each living creature's meters with their `status` (`counted`, `noReports`, `unavailable` with `why`), `successes`, `n`, the point estimate and the 95% Wilson interval `lo`–`hi`, or `null`s for no report — as `mikatad meters --json` (which also gives each creature its pending `proposal` and `probation`, and the `unknown` input its law reads that no trusted journal carries) | the roster in the world over the challenge records' folds and the report fold of the trusted journals under the state directory ([the report fold](02-races.md#the-report-fold)) | no |
+| `spend` | the latest session in the usage ledger: `calls`, `usd` (`null` when none was priced), `unpriced`, weighted tokens | `.mikata/instruments/usage.jsonl` | no |
 | `waiting` | the gate asks the board's chats keep for the human; a terminal session's asks wait in its terminal | the board's chats | yes |
 | `updates` | `pushed`, or `slowed` when the world is past the watcher's budget (below) | the board's watcher | yes |
 
 **Reading inside a world.** A path there may be a link to `/dev/zero`, a pipe that never answers,
 a device or a file of any size. Only a regular file is read: opened without following a link
 (`O_NOFOLLOW`) and without blocking (`O_NONBLOCK`), checked again on the handle, and read to a cap
-(`mnemorph_world::regular`). The memory tiers and the creature docs are first copied into a private
+(`mikata_world::regular`). The memory tiers and the creature docs are first copied into a private
 scratch directory — 8 MiB a file, 32 MiB and 2,000 entries in all — and the CLI's functions read
 the copy, so a file swapped after the check reaches nothing; past a cap, or anything but a regular
 file, the field is unknown and says which file and why. The usage ledger's last 8 MiB are read;
@@ -559,8 +559,8 @@ when older bytes are left, `spend` says so. A run lock is probed only as a regul
 Both read a world's knowledge in-process with the CLI's own functions, over a copy taken as the
 overview takes one (regular files only, capped): memory and facts live inside the world, so they
 are shown and grant nothing. Their counts are the CLI's: `GET /api/w/<id>/memory` equals
-`mnemorphd memory status --json` row for row, and `GET /api/w/<id>/facts` lists what `mnemorphd
-onto check` reports, finding for finding (`mnemorph_world::onto_check` is the one list both read).
+`mikatad memory status --json` row for row, and `GET /api/w/<id>/facts` lists what `mikatad
+onto check` reports, finding for finding (`mikata_world::onto_check` is the one list both read).
 
 **Memory.** Each note is listed once per tier that holds it (`personal` or `shared`) with its
 creature, its standing (`proposed`, `grounded`, `retired` — dormant by the gate's hand —,
@@ -578,8 +578,8 @@ standing and review.
 the anchor it gave and whether what it points at moved since, and its counters, each with its
 reason; a settled fact says who settled it and on what proof. Beside them, `onto check`'s findings
 (at most 500 listed, all counted) with its PASS or FAIL, the roster's problems, and the owner of each
-path a fact is about, as `mnemorphd onto owner` says it. Running `onto check` reads the world's
-tracked files with the harness's git (`mnemorph_sandbox::git`, every harness call's): its
+path a fact is about, as `mikatad onto owner` says it. Running `onto check` reads the world's
+tracked files with the harness's git (`mikata_sandbox::git`, every harness call's): its
 environment scrubbed of secrets, the system config unread (`GIT_CONFIG_NOSYSTEM`), no filesystem
 monitor (`core.fsmonitor` empty) and no hooks (`core.hooksPath=/dev/null`), since a world's
 `.git/config` is a body's to write; the check's other reads inside the
@@ -591,7 +591,7 @@ under review, grounded and shared), wake (a note the gate retired, grounded agai
 fact settled on a proof) are the CLI's own functions — `memory::vouch`, `memory::wake_by`,
 `Facts::settle` — behind the guard and the CSRF token, each confirmed in the page by a dialog that
 names the exact note or fact, its id and its text, focus on Cancel. The server then checks again:
-a board started inside a body's command (`MNEMORPH_BODY`) refuses every act; the id is plain
+a board started inside a body's command (`MIKATA_BODY`) refuses every act; the id is plain
 (letters, digits, `.`, `_`, `:`, `-`); the world is listed and present; a fresh copy still holds the
 note or fact, the act still applies (409 if not), and its text is the one the human read — the
 request names the SHA-256 of its id and text (`seen`), and a note or fact rewritten since is
@@ -610,7 +610,7 @@ elsewhere, or does not exist is refused (422).
 
 #### The roster's trust
 
-A creature's card (`.mnemorph/<race>/<name>/README.md`) lives in the world, and nothing read from
+A creature's card (`.mikata/<race>/<name>/README.md`) lives in the world, and nothing read from
 inside a world grants trust: a body's commit, a merge or a pull writes a card past every tool
 guard, and a cloned repository brings every card from a stranger. So the roster's source of truth
 is the creatures' witness under the state directory; the cards are display-only. `Roster::load`
@@ -630,7 +630,7 @@ the gate's findings. `Roster::cards` is the cards as they stand, for what only s
   with no ground, no outward act, no MCP door, no settle and no dispatch — and no workspace root
   file, whatever name it bears.
 - **A witness that does not walk whole**, or no home to keep one, trusts no row: every creature
-  but the throne is a stranger until the human looks (`mnemorphd housekeep --verify`).
+  but the throne is a stranger until the human looks (`mikatad housekeep --verify`).
 
 The throne, `summoner`, is implicit: the session's own seat, never a row. No tool writes a card —
 the world's records are protected — so a card arrives by the human's hand, by the harness, or by
@@ -639,31 +639,31 @@ relief, for the parent it retires, the young at the parent's base race and the c
 on; and an evolution swap the human said yes to — a yes to bytes, so a card a row holds is held to
 it as the trusted view holds it (the lower race, the row's chain, the ground and Minds both name:
 a swap never raises, re-parents or widens), a new name stays a stranger until adopted, and a
-card it removed is retired. Before that yes, `mnemorphd evolution swap` shows each card the plan
+card it removed is retired. Before that yes, `mikatad evolution swap` shows each card the plan
 writes — race, post, ground, chain and Minds — against its row. The row holds the creature's
 Minds too: a card that names a Mind its row does not hold wears none of it.
-Rises, falls and adoptions are the human's alone: `mnemorphd roster adopt`, `set-race` and
+Rises, falls and adoptions are the human's alone: `mikatad roster adopt`, `set-race` and
 `retire`, each asked at the terminal (`/dev/tty`; piped input is refused) or under `--yes` for a
 script the human runs, and `roster rise` and `fall`, which apply the move the compiled law
 proposes at the terminal alone ([applying a rise or a fall](02-races.md#applying-a-rise-or-a-fall)),
-each refused inside a body's command, under any `mnemorph`, `mnemorphd` or
-`mnemorph-guard` ancestor, and with a state directory inside the world. The ancestry is read
+each refused inside a body's command, under any `mikata`, `mikatad` or
+`mikata-guard` ancestor, and with a state directory inside the world. The ancestry is read
 from the process tree, so a command that leaves it — `setsid`, or a daemon re-parented to init —
 is caught only where the sandbox refuses that, as its seccomp filter refuses `setsid` under the
 kernel guard; with no guard, the body's command is the human's to trust. A fresh world — its
 throne alone — asks nothing. A card the human writes by hand, a cloned world, or one from before
 the witness opens in the terminal app on one list of its strangers — each card's race, post,
 ground and chain — and adopts them all only on the typed word `adopt`; anything else adopts
-nothing, and they stay strangers until `mnemorphd roster adopt`. A witness that does not walk
-whole is said there and on `mnemorph status`'s `roster` line, which also counts the trusted, the
+nothing, and they stay strangers until `mikatad roster adopt`. A witness that does not walk
+whole is said there and on `mikata status`'s `roster` line, which also counts the trusted, the
 mismatched and the strangers. A card that differs from its row
-is never adopted there: it is shown with the way on, `mnemorphd roster adopt <creature>`.
+is never adopted there: it is shown with the way on, `mikatad roster adopt <creature>`.
 
 #### The bodies, queue and journal pages
 
 All four read a world in-process with the CLI's own functions, and say where each part was read.
 The roster's cards come from the creature docs, copied first as the overview copies (regular files
-only, capped) with the Minds under `.mnemorph/minds/`: a body can write its doc, so a card is
+only, capped) with the Minds under `.mikata/minds/`: a body can write its doc, so a card is
 shown and grants nothing. What each creature runs as is the creatures' witness's under the state
 directory, read for the world's own path ([the roster's trust](#the-rosters-trust)): each body
 says whether it is the throne, trusted, mismatched — the fields its card says otherwise, and the
@@ -694,12 +694,12 @@ card art, the body's facts, the law of its race, its Minds and its acts.
 
 **Race cards** show every race of the law, born in the world or not: whom it reports to and
 commands, its shelf, soil and gate, its steps, budget share and model tier, its headline meter's
-bars, an ascended form's rise, probation and fall bars (`mnemorph_races::law_bars`), and a Kijin's
+bars, an ascended form's rise, probation and fall bars (`mikata_races::law_bars`), and a Kijin's
 posts or a Dark Elf's specialities. The art is the cards of `assets/cards/` cut to WebP
 (`tools/board-art.sh`, 1200 × 1680, about 110 KB a card), embedded by exact name; the page loads only an `art`
 of the plain form `/art/cards/<race>.webp`.
 
-**The queue** is `.mnemorph/shared/queue.jsonl`, copied as a regular file under the cap and folded
+**The queue** is `.mikata/shared/queue.jsonl`, copied as a regular file under the cap and folded
 by the queue's own fold; an order the witness under the state directory holds exactly so is
 *witnessed*, one it does not — a line no harness or human wrote — is marked *not witnessed*.
 
@@ -727,22 +727,22 @@ board's inert Markdown subset: raw HTML stays text, links are allowlisted, image
 #### Metrics and integrations
 
 **Metrics** are the CLI's folds, in-process. The usage ledgers — each world's witness under the
-state directory (`$XDG_STATE_HOME/mnemorph/usage/<world>-<fnv64a>.jsonl`, every byte the harness
+state directory (`$XDG_STATE_HOME/mikata/usage/<world>-<fnv64a>.jsonl`, every byte the harness
 appended), its chain walked and trusted while it holds; for a world with no witness yet, its own
-`.mnemorph/instruments/usage.jsonl`, marked untrusted; the newest 64 MiB at most, a regular file
+`.mikata/instruments/usage.jsonl`, marked untrusted; the newest 64 MiB at most, a regular file
 only — go through
-`mnemorph_world::spend::fold` — the fold `mnemorphd usage [--window 7d|28d|all] [--json]` prints, so
+`mikata_world::spend::fold` — the fold `mikatad usage [--window 7d|28d|all] [--json]` prints, so
 the board's totals are the CLI's on the same ledger. A window holds its last 7 or 28 days, or
 everything; it folds calls, weighted tokens, the four token classes and dollars in total and by
 session (the latest first, with the world that booked it), UTC day (and each day by race), body,
 race and model, with the cache hit rate (`cacheRead` over all input; none with no input). The burn
 is weighted tokens per five minutes over the last twelve hours, the last slot ending now, whatever
 the window. Dollars cover the priced calls only: a group with no priced call carries `usd: null`
-and its count of unpriced calls, and the page says `unpriced (n)`, never $0. The meters are `mnemorphd meters --json`'s, each with its count
+and its count of unpriced calls, and the page says `unpriced (n)`, never $0. The meters are `mikatad meters --json`'s, each with its count
 and 95% Wilson interval; a meter with no report has no count, and the page says it is *silent
 since* the creature's first call the ledger holds (or that it has booked none); one whose
 journal's chain does not hold reads *unavailable*, with why, never a number. The Dark Elf's
-scores are `mnemorphd challenge score`'s fold of the challenge records under the state directory:
+scores are `mikatad challenge score`'s fold of the challenge records under the state directory:
 findings, upheld, refuted, cannot-verify, held, precision over all and over the last ten, and the
 rise or probation it proposes — which only the human applies.
 
@@ -758,7 +758,7 @@ invalid row is counted apart, and dollars sum the priced rows.
 **Integrations** load the configuration as a session would — the global file alone, or a world's
 tracked and local files over it — and show an allowlist of its fields: each provider's kind, base
 URL and key *source* (`env OPENROUTER_API_KEY: set` — whether the variable is set, never its value)
-and its key file, if one is named (`file ~/.config/mnemorph/openrouter.key: readable (0600)`, or
+and its key file, if one is named (`file ~/.config/mikata/openrouter.key: readable (0600)`, or
 why it is refused, hidden like any string that looks like a key — the file is judged by
 `fstat` alone, as a session judges it before reading, and nothing in it is read);
 each model a `models.*` key names, the provider its requests go to and its price from the shipped
@@ -785,7 +785,7 @@ The watcher looks only while a board socket is open: every 250 ms while a sessio
 world (a board chat, or a run lock held), else every 2 s. Each look takes every world's signature
 — the size and write time of `log.md`, the usage ledger, each run journal and lock, the memory
 tiers (one level deep), the shared queue, the facts journal, the creature docs
-(`.mnemorph/<race>/<name>/README.md`), and the challenge records, gate verdicts and queue witness
+(`.mikata/<race>/<name>/README.md`), and the challenge records, gate verdicts and queue witness
 under the state directory — within a budget of 2,000 entries a world (files stat'ed, directory entries read, locks probed).
 A world past its budget is *slowed*: looked at every 10 s, and its overview's `updates` says
 "too many entries: updates slowed". Looking fast, a world whose signature moved is told once it
@@ -799,8 +799,8 @@ when the list moved. Polling needs no platform's notification API and a world ca
 watch table by making directories.
 
 `WS /ws/board` passes the guard like any upgrade — the loopback Host, the Origin, the cookie, and
-the CSRF token as the subprotocol entry `mnemorph.csrf.<token>` — and must offer
-`mnemorph.board.v1`, which it answers. At most 16 are open; a tab sends nothing (anything but a
+the CSRF token as the subprotocol entry `mikata.csrf.<token>` — and must offer
+`mikata.board.v1`, which it answers. At most 16 are open; a tab sends nothing (anything but a
 ping, a pong or a close ends it, and a message is capped at 1 KiB). A tab that stops reading is
 dropped, never waited on: a send that takes over the chats' send limit (30 s) ends it, and it is
 pinged at the chats' pace (5 s), two pings unanswered ending it. A socket that falls behind is
@@ -816,7 +816,7 @@ chat* posts `/api/w/<id>/sessions`; a stopped past run offers *Resume*, which po
 on opening, when the push channel says the world changed (at most every 2 s), every 10 s, and when
 a chat ends.
 
-**Past runs** are read through the world's shared reader (`mnemorph_world::regular`: a link never
+**Past runs** are read through the world's shared reader (`mikata_world::regular`: a link never
 followed, a pipe never waited on, the handle checked), by a session run's id only, from a journals
 directory none of whose parts under the world is a link. A listing reads at most the newest 100
 journals, 4 MiB each and 64 MiB in all; a transcript at most 32 MiB. The journal's beats become the
@@ -827,7 +827,7 @@ alone (recall, the guts, the prefix, the model ridden, a compaction, the reasoni
 A line that does not read is counted, never guessed. Nothing read there grants anything: the text
 is shown inert, like the model's.
 
-**The transcript** follows the terminal's grammar (`crates/mnemorph-tui`): the human's line on a
+**The transcript** follows the terminal's grammar (`crates/mikata-tui`): the human's line on a
 gold spine; the answer on a holo spine under `✦ <body>`, a paragraph at a time as it streams; each
 tool call a card coloured by its class — a look in Summoner's blue, a write in the Dark Elf's violet,
 a destructive act in the alarm, a command uncoloured, as the protocol carries no classifier's word —
@@ -897,7 +897,7 @@ queue: one card at a time, answered one at a time.
 The card computes the SHA-256 of what it renders and checks it against the board's; a card whose
 act does not match cannot approve. An act too large for the web (over 32 KiB or 400 rows) shows its
 first 400 rows and offers only *No*: "too large to approve from the web; answer in the terminal
-(`mnemorph`)". A reconnect is a new connection to the board, holding no acknowledgement: the card
+(`mikata`)". A reconnect is a new connection to the board, holding no acknowledgement: the card
 sends it again and arms afresh, as it does when the board says the card was not seen. An allow names that digest. An observer's card offers only
 *Take over*, which re-arms it under the new controller. An ask that leaves without this tab's
 answer says so ("answered elsewhere", or why it was withdrawn).
@@ -918,29 +918,29 @@ each row is measured once drawn. Scrolled to its end it follows what arrives; sc
 with a *Latest* button back. A 2,000-message transcript keeps under 120 rows in the DOM and scrolls
 without a stalled frame (the board's Playwright suite measures it).
 
-**Tested end to end** on the real server and bridge: `mnemorph-server`'s `board_e2e` example serves
+**Tested end to end** on the real server and bridge: `mikata-server`'s `board_e2e` example serves
 the built board over a fresh world whose chats' children are real cores — the loop, the tools, the
 end gate — answering from a scripted model; the suite opens a chat, sends two turns, reloads, ends
 it and reads it back as a past run.
 
-#### `mnemorph run`
+#### `mikata run`
 
-`mnemorph run "<ask>"` asks once, without the app, through the same session: the same opening,
+`mikata run "<ask>"` asks once, without the app, through the same session: the same opening,
 loop and end gate. With no ask, or `-`, it reads the ask from stdin. Progress — the streamed text,
 each call, a failed result, warnings, the end gate's verdict — goes to stderr, escaped as the app
 escapes it; the answer alone goes to stdout, escaped the same way when stdout is a terminal and as
 the model wrote it when piped. Any ending but an answer is said on stderr's last line
-as `mnemorph: <ending>` (`checkpoint: …`, `escalate: …`, `failed: …`, `interrupted`).
+as `mikata: <ending>` (`checkpoint: …`, `escalate: …`, `failed: …`, `interrupted`).
 
 | Exit | When |
 |---|---|
 | 0 | answered, the end gate passed |
 | 1 | failed — a failed end gate included — escalated, or interrupted (Ctrl+C) |
 | 2 | the command line did not read, or the session could not open |
-| 3 | stopped at a checkpoint: `mnemorph resume <run>` goes on |
+| 3 | stopped at a checkpoint: `mikata resume <run>` goes on |
 
 No one is there to approve a gated act, so `run` denies every one and says so on stderr
-(`mnemorph: denied <class> act …`); with `--gate-tty` it puts each to you on the terminal
+(`mikata: denied <class> act …`); with `--gate-tty` it puts each to you on the terminal
 (`/dev/tty`) instead. That card shows the whole act, with every part a model chose escaped by the
 core's rule, so no carriage return or escape code can redraw what is approved; keys typed before
 the card reached the screen are thrown away; only `y` or `yes` typed after it approves, and
@@ -950,13 +950,13 @@ Ctrl+C stops the run as Esc stops the app's turn: the interrupt fires, a running
 everything it started are killed, a question on the terminal is denied, the turn ends
 `interrupted` in the journal, and `run` exits 1.
 
-`--no-law` opens the session without the world's own words: no law (`.mnemorph/law.md`), no
+`--no-law` opens the session without the world's own words: no law (`.mikata/law.md`), no
 creature card or doc, no Minds' manifest and no journal opening, in the session's prompt or any
 commissioned body's. The harness's own instructions, the tools, the lanes, the gates and the
 sandbox stay. It is the with/without-law bench arm, so it is a command-line flag and nothing
 else: no configuration key sets it, global or world-local, so no body can turn the law off or
 on. Every run journals which it was (a `law` beat, `{"on": false}`, before its first request),
-stderr opens with `mnemorph: law off — …`, and `--json`'s result line says `"law": false`. A run
+stderr opens with `mikata: law off — …`, and `--json`'s result line says `"law": false`. A run
 resumed later always holds the law: the switch is never read back from a journal. Its resume
 journals a second beat, `{"on": true, "resumed": true}`; the last `law` beat holds from there, and
 a run whose beats disagree mixed arms.
@@ -986,11 +986,11 @@ envelope, gate or sandbox refusal a breach. A shelf refusal it only shows: in li
 the shelf refuses is the designed escalation to the Kijin. `--core <path>` is read and ignored:
 the session runs in this process.
 
-`--theme` names a scheme, a variant or both (`neon-light`). Unnamed, the variant is read from `MNEMORPH_THEME`, else the terminal's
-background as `COLORFGBG` reports it, else dark; the scheme from `MNEMORPH_THEME`, else neon.
+`--theme` names a scheme, a variant or both (`neon-light`). Unnamed, the variant is read from `MIKATA_THEME`, else the terminal's
+background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`, else neon.
 
 ```
-╭─ ◈ MNEMORPH · summoner · deepseek-v4-flash ───────────────────────────────────────────────── ● thinking 0s ╮
+╭─ ◈ MIKATA · summoner · deepseek-v4-flash ───────────────────────────────────────────────── ● thinking 0s ╮
 │ ᴄᴏɴᴠᴇʀꜱᴀᴛɪᴏɴ ─────────────────────────────────────────────────────────── │ ꜱᴇꜱꜱɪᴏɴ ───────────────────── │
 │ ▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▘ │ ▾ vitals ──────────────────── │
 │                                                                          │ ᴄᴛx  ━━━━────── 41% / 150.0k  │
@@ -1016,12 +1016,12 @@ background as `COLORFGBG` reports it, else dark; the scheme from `MNEMORPH_THEME
 
 | Part | What it shows |
 |---|---|
-| header | Mnemorph's mark (the name drawn across the water races' blues), the session's body and its model on the left; the session's id and its state on the right — `○ idle`, `● running bash 3s`, `◆ waiting for you` |
+| header | Mikata's mark (the name drawn across the water races' blues), the session's body and its model on the left; the session's id and its state on the right — `○ idle`, `● running bash 3s`, `◆ waiting for you` |
 | panes | labelled in small capitals on their edges: ᴄᴏɴᴠᴇʀꜱᴀᴛɪᴏɴ, ꜱᴇꜱꜱɪᴏɴ (the sidebar), ᴀꜱᴋ (the input) |
-| welcome | the card the conversation opens on: on first run it sits at the top of the conversation, like a header, and scrolls away with the transcript as messages come — a short transcript fills from the top, the room it leaves below it, above the input. The MNEMORPH wordmark in five rows of block letters, then the tagline; what Mnemorph does in four lines (the races and their soils, the end gate, memory with provenance, the ontology's voices); the races as chips; the world, the model, the session, **memory** (the grounded and shared counts, read by the sidebar's survey) and **verify** (the session card's verify line, or "none — memory can't be grounded" and the line to add, the test command the project's manifest names) in small capitals; the first keys |
+| welcome | the card the conversation opens on: on first run it sits at the top of the conversation, like a header, and scrolls away with the transcript as messages come — a short transcript fills from the top, the room it leaves below it, above the input. The MIKATA wordmark in five rows of block letters, then the tagline; what Mikata does in four lines (the races and their soils, the end gate, memory with provenance, the ontology's voices); the races as chips; the world, the model, the session, **memory** (the grounded and shared counts, read by the sidebar's survey) and **verify** (the session card's verify line, or "none — memory can't be grounded" and the line to add, the test command the project's manifest names) in small capitals; the first keys |
 | transcript | each message and call a raised panel — a spine in its colour, a lit top edge, a shadow one cell right and half a row down: the human's lines in gold; the body's Markdown (headings, emphasis, code highlighted, lists, quotes, links, tables) in cyan with `✦`, one panel however many pieces it streamed in; tool calls as cards in their class's colour (a look blue, a write violet, an outward act orange, a destructive one red) — `● bash  pytest -q  read`, then `⎿ running…`, then `⎿ ok · 2.0s · 3 lines` or `⎿ failed · 800ms`; output folded to three lines, a numbered diff for `edit`, `multiedit` and `patch`, a new file's head for `write`, each expanded whole by a click or a key; consecutive reads, indexes, greps and globs as one card (`read 4 files · grep 3 patterns`, its calls ok, failed or stopped counted); the reasoning as one quiet line; the end gate's verdict as one line with its counts |
 | activity strip | above the input from the frame an ask is sent until its turn ends: a spinner, the phase as a verb in a moving shimmer, the time the turn has run, its tokens; under it the body and the phase in words, and the context when it nears its stress line |
-| sidebar | at its head, on a column 36 rows tall or more, the portrait of Player — the human — while no body works, and of the body working now during a turn (Summoner for the session, a commissioned body's race while it acts), over its state; **vitals**: the context as a gauge against the stress line, the tokens, the spend; **memory**: the notes recall gave this ask, the grounded and shared counts and the claim grounded last, as `mnemorphd memory status` reads them; **files**: the paths the session's acts changed, marked `A`, `M` or `D`, as a tree of their directories; **bodies**: the session's body and the bodies it commissioned, nested as they commissioned each other, each in its race's colour with what it is doing. A click on a section's title folds it (`▸`) or opens it (`▾`) |
+| sidebar | at its head, on a column 36 rows tall or more, the portrait of Player — the human — while no body works, and of the body working now during a turn (Summoner for the session, a commissioned body's race while it acts), over its state; **vitals**: the context as a gauge against the stress line, the tokens, the spend; **memory**: the notes recall gave this ask, the grounded and shared counts and the claim grounded last, as `mikatad memory status` reads them; **files**: the paths the session's acts changed, marked `A`, `M` or `D`, as a tree of their directories; **bodies**: the session's body and the bodies it commissioned, nested as they commissioned each other, each in its race's colour with what it is doing. A click on a section's title folds it (`▸`) or opens it (`▾`) |
 | input | multi-line; a line sent while a turn runs waits its turn, shown above the input |
 | approval | a modal over the dimmed view: a strip naming the gate with its countdown, the act's class in its colour, the act, the plan its approval binds to, its reasons and the paths it opens outside the world, the answers numbered; the input's edge reads "answer the card first" |
 | toast | the end gate's verdict, `◆ end gate pass`, floating in at the top right and fading out on the spring; never drawn over an open approval |
@@ -1071,7 +1071,7 @@ repository is private, so CI could not fetch it as a dependency. Without real pi
 decoded once into glyph cells, 32 columns by 16 rows, each cell the best two-colour split of its
 sub-pixels: octants (2 × 4 a cell) where the terminal draws them itself whatever the font (Kitty,
 Ghostty), sextants (2 × 3) in WezTerm and foot, quadrants (2 × 2, block elements every font has)
-elsewhere, half blocks on the Linux console; `MNEMORPH_TUI_GLYPHS=half|quadrants|sextants|octants`
+elsewhere, half blocks on the Linux console; `MIKATA_TUI_GLYPHS=half|quadrants|sextants|octants`
 overrides it. The idle loops decode on a blocking thread at start, an ascension on a thread of its
 own the first time it plays — a frame only reads the cache and never decodes, so a clip not yet
 ready is simply not drawn; a malformed file is an error, never a panic. A clip plays at its own
@@ -1106,8 +1106,8 @@ Control is never a reply: Ctrl+C and Esc always reach the UI, so they stop, quit
 3. **Sixel** when DA1 lists 4;
 4. **glyphs** otherwise — and whenever a cell's size in pixels is unknown, or inside tmux.
 
-`MNEMORPH_TUI_IMAGES` overrides it: `auto` (the default), `kitty`, `iterm`, `sixel`, `blocks`, or
-`off` — glyphs, nothing asked of the terminal. `mnemorph --probe` prints what was found,
+`MIKATA_TUI_IMAGES` overrides it: `auto` (the default), `kitty`, `iterm`, `sixel`, `blocks`, or
+`off` — glyphs, nothing asked of the terminal. `mikata --probe` prints what was found,
 the replies as they came, and the choice.
 
 The portrait's box is 32 columns, and as many rows as make it square — or, when its columns hold
@@ -1148,14 +1148,14 @@ move or remove theirs. A box that moved is erased and its picture held
 back until the box has stayed put for 150 ms, so a moving box never sends a picture once a frame. At rest Player is still and asks no ticks; a new working body starts its clip from its first
 frame. Pictures are the sidebar's alone.
 
-**The wordmark.** The welcome card opens on MNEMORPH in block letters, five rows tall, from a
+**The wordmark.** The welcome card opens on MIKATA in block letters, five rows tall, from a
 small font in `welcome.rs`: full and half blocks (`█ ▀ ▄`) and spaces only, each cell one
 foreground colour on the card's face, so it is as crisp as the terminal's font everywhere and
 scrolls with the transcript with nothing to withdraw. Its columns run the races' gradient —
 Summoner's blue, the elves' green, the orcs' amber, the slimes' teal — made readable on the light
 page as every race hue is. The wordmark is 62 cells and the card's frame takes 6, so it shows on a
 card 68 cells wide or more — a terminal of 72 columns or more with the sidebar folded, 108 or more
-with it open; on a narrower card one line, `◈ MNEMORPH`, in the same gradient, stands in.
+with it open; on a narrower card one line, `◈ MIKATA`, in the same gradient, stands in.
 
 A terminal that gives no cell size gives its text area in pixels (`CSI 14 t`) more often than
 not; the cell is that area over the window's cells, in either order (VTE answers width first):
@@ -1164,8 +1164,8 @@ tall as wide. VTE lists Sixel in its device attributes when its Sixel is on; a V
 draws glyphs, and `--probe` names its version (`VTE_VERSION`) and what would give images.
 
 To see the pictures in VS Code's terminal, turn on `terminal.integrated.enableImages` in the
-settings and reload the window: xterm.js then lists Sixel in DA1, and Mnemorph draws iTerm2's
-inline images. `mnemorph --probe` says `drawing iterm` when it took.
+settings and reload the window: xterm.js then lists Sixel in DA1, and Mikata draws iTerm2's
+inline images. `mikata --probe` says `drawing iterm` when it took.
 
 The sidebar takes 36 columns on the right from a 100-column terminal up, and folds away below it.
 It shows only what the run or the world gives. The observer sends the chain of bodies each
@@ -1174,16 +1174,16 @@ each `write`'s path; it never touches the disk on the session's task. The UI loo
 path exists on a runtime thread, so a hung mount holds that thread, never the session. The look
 may race the write: "not there" proves the write created the file and marks it `A`, whenever the
 answer arrives; anything else leaves it `M`. An act's paths count once its result lands without
-error. The memory's standing (`mnemorph_memory::standing`, the same reading `memory status`
+error. The memory's standing (`mikata_memory::standing`, the same reading `memory status`
 prints) and the roster's races are read on a runtime thread at start and after each line
 finishes, each reading numbered so a late one never overwrites a newer one. The bodies' tree is
 indexed as events fold in, so a frame walks only the rows it shows. The UI takes the mouse for the wheel and clicks, and for selecting: a drag over the conversation highlights its text alone — never the sidebar or the panels' edges — and copies it on release, through OSC 52 and the desktop's clipboard tool where one is found; Shift and a drag is still the terminal's own selection.
 
 **Nothing a model or a tool writes reaches the terminal raw.** The transcript drops the colour
 sequences a program prints and escapes every other control, format, separator and
-default-ignorable character as `\u{…}` (`mnemorph_loop::hidden`, the rule the board's section
+default-ignorable character as `\u{…}` (`mikata_loop::hidden`, the rule the board's section
 below spells out), but keeps U+FE0F in prose so an emoji draws as one; code spans and blocks, and
-the sidebar's every claim, path and body name, keep nothing hidden. The approval card shows each field through `mnemorph_loop::shown`, the core's own rule
+the sidebar's every claim, path and body name, keep nothing hidden. The approval card shows each field through `mikata_loop::shown`, the core's own rule
 for what a human approves, and takes an answer only from a key: a pick (`1` or `y`, `2` or `n`,
 `3`, or ↑ ↓ while the whole act shows), then a pause, then Enter. Every pick passes the same
 rules. Keys are ignored for 300 ms after the card is first drawn — a key that came before
@@ -1217,7 +1217,7 @@ layout caches once, keep a cold-start margin (under 250 ms).
 The UI is built in the Elm architecture, on a kit that rebuilds the good parts of Charm's
 ecosystem:
 
-| Charm | `mnemorph` | What it gives |
+| Charm | `mikata` | What it gives |
 |---|---|---|
 | Bubble Tea | `app` | one model, a message enum, a pure `update` returning commands the runtime runs off the UI thread, a `view` |
 | Lip Gloss | `kit::style`, `kit::text` | a chainable box style — padding, borders with titles set in, width, alignment, margins — blocks joined across and down, all measured in terminal cells |
@@ -1225,7 +1225,7 @@ ecosystem:
 | Harmonica | `kit::spring`, `kit::toast` | a critically damped spring: the transcript scrolls smoothly, a toast fades |
 | Glamour | `kit::markdown`, `kit::highlight` | Markdown drawn from a stylesheet the theme derives; code highlighted by syntect's grammars, in colours taken from the palette |
 | Isekai's depth | `kit::slab`, `kit::shimmer` | raised panels — a spine, a lit top edge, a shaded bevel, a cast shadow, every tone stepped from the palette — and a crest of light sweeping a busy word |
-| mnemorph-animations | `kit::mnanim`, `kit::glyphs`, `kit::pixels` | the races' animations, drawn natively at 256 px: sent as real pixels — Kitty, iTerm2 or Sixel — one frame pixel a screen pixel, or decoded once into glyph cells, octants down to half blocks |
+| mikata-animations | `kit::mnanim`, `kit::glyphs`, `kit::pixels` | the races' animations, drawn natively at 256 px: sent as real pixels — Kitty, iTerm2 or Sixel — one frame pixel a screen pixel, or decoded once into glyph cells, octants down to half blocks |
 
 The colours are `packages/theme`'s, ported to `theme.rs`; a test reads the TypeScript file and
 fails when the two differ. That palette is the `hud` scheme. The app wears `neon` unless asked
@@ -1236,9 +1236,9 @@ WCAG contrast: text 4.5:1 on its page and panels, the accent, alarm and the huma
 
 ### The board
 
-The board is the web cockpit `mnemorphd` serves on loopback — the human's page, and another thing
+The board is the web cockpit `mikatad` serves on loopback — the human's page, and another thing
 than the work board the bodies of a session share
-([`.mnemorph/tmp/board.md`](02-races.md#the-three-modes)): `packages/board`, React 19 built by
+([`.mikata/tmp/board.md`](02-races.md#the-three-modes)): `packages/board`, React 19 built by
 Vite into static files, with no router, state or chart library. It looks like the terminal app
 and reads like claude.ai: a **rail** on the left, the **centre**, and a foldable **pane** on the
 right.
@@ -1247,7 +1247,7 @@ right.
 
 <img src="../assets/board/desktop-dark-world.png" width="640" alt="A world's page, dark: its status, last activity, memory, challenges, end gate, spend and meters, each with its source">
 
-**The rail.** At its head the `◈ MNEMORPH` wordmark, its letters running the races' colours as
+**The rail.** At its head the `◈ MIKATA` wordmark, its letters running the races' colours as
 the terminal's welcome does, then search, the **worlds** (each with its state in words: *present*
 with the age of its latest session or *never opened*, or *missing*, never dropped) and the board's
 own pages:
@@ -1279,7 +1279,7 @@ state, never a blank pane.
 
 | Page | Shows | Empty, loading, silent |
 |---|---|---|
-| Worlds `#/` | each world's row: status, latest session, memory standing, challenges, gate, spend | *No worlds yet*, with the command that adds one (`mnemorphd board add <dir>`); *Loading worlds…* |
+| Worlds `#/` | each world's row: status, latest session, memory standing, challenges, gate, spend | *No worlds yet*, with the command that adds one (`mikatad board add <dir>`); *Loading worlds…* |
 | A world `#/w/<world>` | its overview in panels, each with its source | *unknown* with its reason; a missing world keeps its page |
 | A chat `#/w/<world>/s/<session>`, a past run `…/r/<run>` | the transcript in the terminal's grammar, the composer, the approval card | *A new chat*; *Connecting…*; *This chat is not live* |
 | Bodies `#/w/<world>/bodies` | the colony net, race cards, the queue, the timeline | *No body here yet*; *No order here*; *Nothing on the timeline* |
@@ -1334,7 +1334,7 @@ appear only as their source.
 (`7d`, `28d`, `all`) and opens on the totals line — `$3.12 (2 unpriced) · 1.9M wt · 40 calls ·
 in 570.0k · out 95.0k · cache read 1.1M · write 0` — then spend per day stacked by race, the
 cache hit rate per day, the burn per five minutes; the window's runs, folded from their journals
-as `mnemorphd runs --metrics` folds them (`board/health.rs`, read from inside the world, every
+as `mikatad runs --metrics` folds them (`board/health.rs`, read from inside the world, every
 journal bounded as the run listing's): how many tested after their last code write, the last
 gate verdicts and the endings counted, and the newest thirty runs one row each — turns and calls,
 time in the model and in tools, the re-read share, results cut short, lines written, whether a
@@ -1363,7 +1363,7 @@ a world wrote reach a chart only as escaped text in `<title>` nodes.
 before anything renders, the key leaves the address bar and the history, and is posted once to
 `POST /session`; a malformed one is dropped unsent. The worlds then come from `GET /api/worlds`,
 the server's `BoardWorlds` of `BoardWorld` rows (`packages/protocol`, generated from
-`mnemorph-server`): id, name, path, remote or `null`, the latest session or `null`, the session
+`mikata-server`): id, name, path, remote or `null`, the latest session or `null`, the session
 count, and `present` or `missing`. The page checks every row field by field; a row that does not
 hold together is left out and counted on the page, never guessed at. Worlds sort by their latest
 session, a world never opened last.
@@ -1385,9 +1385,9 @@ byte for byte as the server's handler writes it.
 
 **Text a model or a tool wrote is inert.** It is rendered by `<Safe text=…/>` as React text nodes,
 never as HTML; no file in the board writes HTML from a string. `src/safe/shown.ts` is the
-TypeScript port of the core's `hidden` and `shown` (`mnemorph_wire`, re-exported by
-`mnemorph_loop`), the one rule for what a human could not see for what it is: the card, the
-terminal app, `mnemorphd`'s printouts, the wire's prose trimming and the proving records' refusals
+TypeScript port of the core's `hidden` and `shown` (`mikata_wire`, re-exported by
+`mikata_loop`), the one rule for what a human could not see for what it is: the card, the
+terminal app, `mikatad`'s printouts, the wire's prose trimming and the proving records' refusals
 all read it. It escapes as `\u{…}` every control character (Unicode Cc),
 every format character (Cf: the bidi marks, embeddings, overrides and isolates, U+061C ARABIC
 LETTER MARK, U+180E MONGOLIAN VOWEL SEPARATOR, the zero-width characters, the soft hyphen, the
@@ -1404,7 +1404,7 @@ of the rule's reach: it escapes what cannot be seen, not what looks like somethi
 JavaScript string a lone surrogate is escaped too. The page sets each escape apart in the alarm
 colour; prose may keep its newlines, its spaces, its marks and U+FE0F (`kept_in_prose`), never
 a name, a path or an act.
-The rule has one source: `crates/mnemorph-wire/tests/shown-vectors.json` lists its ranges, each
+The rule has one source: `crates/mikata-wire/tests/shown-vectors.json` lists its ranges, each
 with its reason, the spaces and the marks, with the vectors; the Rust and the TypeScript tests check every code point
 against those ranges and read the same vectors, so the two rules cannot drift. The TypeScript
 tests also check that every Cf, Zl, Zp and default-ignorable character of the engine's own
@@ -1413,7 +1413,7 @@ followed only to an absolute `http`, `https` or `mailto` URL without credentials
 with `rel="noopener noreferrer"`; any other is shown as text. An image from model text never
 loads (a load is a request the model chose); its description is shown instead.
 
-**Theme.** Colours are `@mnemorph/theme`'s tokens (`tokens.css`, the `--mn-*` variables, the
+**Theme.** Colours are `@mikata/theme`'s tokens (`tokens.css`, the `--mn-*` variables, the
 races' among them) and nothing else: dark by default, light under `data-theme="light"` on
 `<html>`. The choice is auto, light or dark; auto follows the system preference and moves when it
 does, and the resolved theme is set before the first paint. Every coloured mark carries its
@@ -1455,52 +1455,52 @@ the memory, ontology and bodies pages watch, each shown live. The screenshots ar
 
 | What | Where | Tracked in git |
 |---|---|---|
-| law, creature docs, Minds | `.mnemorph/law.md`, `.mnemorph/<race>/<name>/README.md`, `.mnemorph/minds/` | yes |
-| journal | `.mnemorph/log.md` — append-only writer | yes |
-| shared notes | `.mnemorph/memory/shared/notes.jsonl` — append-only note events ([memory](08-memory.md)) | yes |
-| personal notes | `.mnemorph/memory/creature/<name>.jsonl` — one creature's note events | yes |
-| semantic cache | `.mnemorph/memory/short/` — one body's recent recalls | no — machine-local |
-| shared work queue | `.mnemorph/shared/queue.jsonl` — append-only snapshots; its witness under `$XDG_STATE_HOME/mnemorph/queue/` | no — machine-local |
-| Kijin post journals | `.mnemorph/kijin/<post>/post.jsonl` — each outward act's receipt, one row per state, stamped `build: { version, commit }`; an untyped command only by its program and digest; every row witnessed under `$XDG_STATE_HOME/mnemorph/kijin/<world>-<fnv64a>/<post>.jsonl`, which the tripwire rebuilds it from and the count reads — the witness hash-chained, its head anchored with the other chained journals as `kijin-<post>`, and the journal holding its bytes; beside the witness, `<post>.intents.jsonl` (each act's key, typed request and whole pin), `<post>.incidents.jsonl` (each rolled-back or corrected act's incident and its receipts) and `<post>.lock` (one act of a post at a time) — the folder `0700`, its files `0600` | yes (the witness, intents, incidents and lock: no — machine-local) |
-| Dark Elf proving ground | `.mnemorph/dark-elf/` | yes (frozen witnesses are evidence) |
-| Dark Elf challenges | `$XDG_STATE_HOME/mnemorph/challenges/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each landing as it was routed with its tree hash and author, how each routed speciality is staffed (commissioned with its spend, queued, unstaffed), each speciality's coverage ledger, its findings of medium or higher with each verifier's staffing, verdict (the verifier, its speciality, the evidence hashes) and seal proposal (its witness frozen by hash), and the human's waiver, append-only and hash-chained ([the chain](06-consumption.md#the-usage-row)) — each row that settles a finding (found, ruled, decided) stamped `build: { version, commit }`, the build `status` prints, a row from before reading `unknown`; a line that does not parse holds its challenge pending, never skipped — outside the world and out of every command's reach | no — machine-local |
-| evolution ledger | `$XDG_STATE_HOME/mnemorph/evolution/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each swap with its exact file set hashed before and after, the soil diff the harness saw and the tasks its plan was proven on (the record that keeps a held-out task to one use and out of two splits), each run of a swapped body or of its do-nothing control stamped with the swap's id, the build and the named files' state before and after the run, and each swap's settling — kept or rolled back, by the harness's rule or the human; written by the harness alone, append-only and hash-chained, its head anchored with the other chained journals; outside the world and out of every command's reach | no — machine-local |
-| evolution proposals | `$XDG_STATE_HOME/mnemorph/proposals/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each plan drawn for the human: its id, creature, arm and file set, every file's digest as the world held it when drawn and as staged, and its closing (`applied` or `rejected`); written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
-| strain journal | `$XDG_STATE_HOME/mnemorph/strain/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each body's strain, warrants, clears and doom checkpoints, for evolution's trigger; written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
-| gate verdicts | `$XDG_STATE_HOME/mnemorph/gate/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each verdict the end gate journals in `log.md`, again: the body and the run whose landing it judged (a row from before runs were named carries none), the verdict, the paths changed, the failures and unverified checks, the `log.md` heading, and `build: { version, commit }` (a row from before reading `unknown`; `mnemorph_world::verdicts::by_build` keeps one build's); written by the harness alone, append-only and hash-chained, anchored as `gate`; outside the world | no — machine-local |
-| guts classes | `$XDG_STATE_HOME/mnemorph/guts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — one row per act the loop classed: the run, the body, the tool call and tool, its [guts classes](03-loop.md#stress-in-four-instruments), and `build: { version, commit }`; written by the harness alone, append-only and hash-chained, anchored as `guts`; read by `status` and the board's timeline only while the chain holds; outside the world | no — machine-local |
-| report ledger | `$XDG_STATE_HOME/mnemorph/reports/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — every race's reports but the Dark Elf's, folded from the usage witness, the gate verdicts, the challenge records and the Kijin posts' witnesses alone, each walked and held to its anchor — a journal gone while its anchor stays stops the fold ([the report fold](02-races.md#the-report-fold)): one row per report, with `ts`, the trusted time it began — `run` (gate word, first try, holes, verify lines green, dispatches landed and re-asked, passes and those overturned), `ask` (a throne landing done or reopened) or `act` (an outward act clean or rolled back) — each with the `build` of the journal row that settled it (`unstamped` where that row carries none), chained from its genesis; a pass counts as verified only on a line the human pinned. Derived: `mnemorphd meters` rebuilds it whole and puts it in place by a rename when its bytes change, never edited in place, so a replay of the same journals reproduces it byte for byte; a fold whose journal does not hold keeps no new ledger | no — machine-local |
-| board answers | `$XDG_STATE_HOME/mnemorph/answers/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each answer to the gate given on the board, taken or refused: the chat, the ask, the tab's connection, the act as shown, the digest shown and the one named, the timing since the ask and the render acknowledgement; written by the board alone, append-only and hash-chained, anchored as `answers` with the other chained journals | no — machine-local |
-| verify pins | `$XDG_STATE_HOME/mnemorph/verify/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's pinned verify lines: a `pin` row (the whole set, by the human or by relief), a `code` row (one line an Orc coded through the harness) or a `withdraw` row (the lines an Orc coded before for a `Done when` name it codes again; a line the human pinned stays), with `by` and `build` — each line keeps its author, so an Orc's line is no bench and its pass is the Orc's; append-only and hash-chained, anchored as `verify`; the end gate runs only these lines, and only while the card says the same ([the verify pins](03-loop.md#the-verify-pins)) | no — machine-local |
-| creatures' witness | `$XDG_STATE_HOME/mnemorph/roster/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's whole standing as of the row: its name, race (rank included), `reports_to`, post or speciality, ground with its `ground_sha256`, whether retired, the act (`relief`, `evolution`, `adopt`, `set-race`, `retire`, `rise`, `fall`), `by` and `build`, and on a `rise` or `fall` the `proposal` it applied, its `inputs_sha256` and the `as_of` it was read at, which `mnemorphd roster replay` recomputes from the journals; append-only and hash-chained, anchored as `roster` from the state directory alone. It is the roster's source of truth: every privilege reads a card only as held to its row, and the cards in the world are display-only ([the roster's trust](#the-rosters-trust)) | no — machine-local |
-| Minds' witness | `$XDG_STATE_HOME/mnemorph/minds/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each Mind the human adopted, retired or unretired: its doc, the SHA-256 of its bytes then, its owner (on adoption) and `build`; written only by `mnemorphd mind` at the terminal, append-only and hash-chained, anchored as `minds`; a Mind loads only while its doc holds the adopted bytes | no — machine-local |
-| envelope uses and revocations | `$XDG_STATE_HOME/mnemorph/oni/uses.jsonl` and `revoked.jsonl` (else `~/.local/state/…`), one pair for every world — each act an Oni envelope admitted, counted under `uses.lock`, and each revocation; append-only and hash-chained, anchored as `uses` and `revocations` with each world's chained journals | no — machine-local |
-| chain anchors | `$XDG_STATE_HOME/mnemorph/anchors/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each chained journal's newest head that held, written with its `log.md` entry by `mnemorphd housekeep --verify`; every walk is held to it | no — machine-local |
-| plan | `.mnemorph/plan.md` — the throne's | yes |
-| dimension manifest | `.mnemorph/dimension.toml` — the copy of the relations this world states, for readers; what it states beyond them is a proposal, never a relation ([ontology](09-ontology.md#relations-between-worlds)) | yes |
-| ontology facts | `.mnemorph/ontology/facts.jsonl` — the copy of the trusted facts, for readers; never read for trust ([ontology](09-ontology.md#facts-who-said-what)) | yes |
-| trusted facts | `$XDG_STATE_HOME/mnemorph/facts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — territory facts, counters, labels, settles and the one import, as events; written by the harness and the human's settle alone, append-only and hash-chained, anchored as `facts`; outside the world | no — machine-local |
-| relations | `$XDG_STATE_HOME/mnemorph/dimension/<world>-<fnv64a>/relations.jsonl` (else `~/.local/state/…`) — each relation the human stated or revoked, and each inverse declared, with `build`; written only by `mnemorphd onto relate`, `unrelate` and `inverse`, append-only and hash-chained, anchored as `relations`; outside the world | no — machine-local |
-| relation sightings | `$XDG_STATE_HOME/mnemorph/dimension/<world>-<fnv64a>/sightings.jsonl` (else `~/.local/state/…`) — cross-world references the harness saw a body read in a committed manifest, the other world named by id; the ledger relations are learned from, the harness's alone | no — machine-local |
-| board's list and lock | `$XDG_STATE_HOME/mnemorph/board/worlds.jsonl` (else `~/.local/state/…`) — each world the human added to the board or forgot, written only by `mnemorphd board add` and `board forget`; `board.lock`, held while a board runs, and `board.url` (`0600`), its URL with the key waiting now | no — machine-local |
-| world registry | `$XDG_STATE_HOME/mnemorph/worlds.jsonl` (else `~/.local/state/…`), one for every world — a row each time a session opens: the world's canonical path, its id `<world>-<fnv64a>`, its `origin` remote normalised (`host/owner/repo`, never a credential) and when; the board finds worlds there, and a world's row count is the session clock a learned relation's expiry reads | no — machine-local |
-| advisory mirror | `.mnemorph/intel/osv-scalibr/` — refreshed by `mnemorphd scout`, audited against by `mnemorphd scout audit` | no — hundreds of MB |
-| attic | `$XDG_STATE_HOME/mnemorph/attic/<world>/` (else `~/.local/state/…`) — outside the world, out of every command's reach: a git object store of working-tree snapshots, hard links to `.git`'s objects, copies of its refs | no |
-| usage + value ledgers | `.mnemorph/instruments/*.jsonl` — the usage ledger hash-chained, its every byte witnessed under `$XDG_STATE_HOME/mnemorph/usage/` for the tripwire, its head anchored in `log.md` and kept under `$XDG_STATE_HOME/mnemorph/anchors/` ([the chain](06-consumption.md#the-usage-row)) | no — machine-local |
+| law, creature docs, Minds | `.mikata/law.md`, `.mikata/<race>/<name>/README.md`, `.mikata/minds/` | yes |
+| journal | `.mikata/log.md` — append-only writer | yes |
+| shared notes | `.mikata/memory/shared/notes.jsonl` — append-only note events ([memory](08-memory.md)) | yes |
+| personal notes | `.mikata/memory/creature/<name>.jsonl` — one creature's note events | yes |
+| semantic cache | `.mikata/memory/short/` — one body's recent recalls | no — machine-local |
+| shared work queue | `.mikata/shared/queue.jsonl` — append-only snapshots; its witness under `$XDG_STATE_HOME/mikata/queue/` | no — machine-local |
+| Kijin post journals | `.mikata/kijin/<post>/post.jsonl` — each outward act's receipt, one row per state, stamped `build: { version, commit }`; an untyped command only by its program and digest; every row witnessed under `$XDG_STATE_HOME/mikata/kijin/<world>-<fnv64a>/<post>.jsonl`, which the tripwire rebuilds it from and the count reads — the witness hash-chained, its head anchored with the other chained journals as `kijin-<post>`, and the journal holding its bytes; beside the witness, `<post>.intents.jsonl` (each act's key, typed request and whole pin), `<post>.incidents.jsonl` (each rolled-back or corrected act's incident and its receipts) and `<post>.lock` (one act of a post at a time) — the folder `0700`, its files `0600` | yes (the witness, intents, incidents and lock: no — machine-local) |
+| Dark Elf proving ground | `.mikata/dark-elf/` | yes (frozen witnesses are evidence) |
+| Dark Elf challenges | `$XDG_STATE_HOME/mikata/challenges/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each landing as it was routed with its tree hash and author, how each routed speciality is staffed (commissioned with its spend, queued, unstaffed), each speciality's coverage ledger, its findings of medium or higher with each verifier's staffing, verdict (the verifier, its speciality, the evidence hashes) and seal proposal (its witness frozen by hash), and the human's waiver, append-only and hash-chained ([the chain](06-consumption.md#the-usage-row)) — each row that settles a finding (found, ruled, decided) stamped `build: { version, commit }`, the build `status` prints, a row from before reading `unknown`; a line that does not parse holds its challenge pending, never skipped — outside the world and out of every command's reach | no — machine-local |
+| evolution ledger | `$XDG_STATE_HOME/mikata/evolution/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each swap with its exact file set hashed before and after, the soil diff the harness saw and the tasks its plan was proven on (the record that keeps a held-out task to one use and out of two splits), each run of a swapped body or of its do-nothing control stamped with the swap's id, the build and the named files' state before and after the run, and each swap's settling — kept or rolled back, by the harness's rule or the human; written by the harness alone, append-only and hash-chained, its head anchored with the other chained journals; outside the world and out of every command's reach | no — machine-local |
+| evolution proposals | `$XDG_STATE_HOME/mikata/proposals/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each plan drawn for the human: its id, creature, arm and file set, every file's digest as the world held it when drawn and as staged, and its closing (`applied` or `rejected`); written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
+| strain journal | `$XDG_STATE_HOME/mikata/strain/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each body's strain, warrants, clears and doom checkpoints, for evolution's trigger; written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
+| gate verdicts | `$XDG_STATE_HOME/mikata/gate/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each verdict the end gate journals in `log.md`, again: the body and the run whose landing it judged (a row from before runs were named carries none), the verdict, the paths changed, the failures and unverified checks, the `log.md` heading, and `build: { version, commit }` (a row from before reading `unknown`; `mikata_world::verdicts::by_build` keeps one build's); written by the harness alone, append-only and hash-chained, anchored as `gate`; outside the world | no — machine-local |
+| guts classes | `$XDG_STATE_HOME/mikata/guts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — one row per act the loop classed: the run, the body, the tool call and tool, its [guts classes](03-loop.md#stress-in-four-instruments), and `build: { version, commit }`; written by the harness alone, append-only and hash-chained, anchored as `guts`; read by `status` and the board's timeline only while the chain holds; outside the world | no — machine-local |
+| report ledger | `$XDG_STATE_HOME/mikata/reports/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — every race's reports but the Dark Elf's, folded from the usage witness, the gate verdicts, the challenge records and the Kijin posts' witnesses alone, each walked and held to its anchor — a journal gone while its anchor stays stops the fold ([the report fold](02-races.md#the-report-fold)): one row per report, with `ts`, the trusted time it began — `run` (gate word, first try, holes, verify lines green, dispatches landed and re-asked, passes and those overturned), `ask` (a throne landing done or reopened) or `act` (an outward act clean or rolled back) — each with the `build` of the journal row that settled it (`unstamped` where that row carries none), chained from its genesis; a pass counts as verified only on a line the human pinned. Derived: `mikatad meters` rebuilds it whole and puts it in place by a rename when its bytes change, never edited in place, so a replay of the same journals reproduces it byte for byte; a fold whose journal does not hold keeps no new ledger | no — machine-local |
+| board answers | `$XDG_STATE_HOME/mikata/answers/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each answer to the gate given on the board, taken or refused: the chat, the ask, the tab's connection, the act as shown, the digest shown and the one named, the timing since the ask and the render acknowledgement; written by the board alone, append-only and hash-chained, anchored as `answers` with the other chained journals | no — machine-local |
+| verify pins | `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's pinned verify lines: a `pin` row (the whole set, by the human or by relief), a `code` row (one line an Orc coded through the harness) or a `withdraw` row (the lines an Orc coded before for a `Done when` name it codes again; a line the human pinned stays), with `by` and `build` — each line keeps its author, so an Orc's line is no bench and its pass is the Orc's; append-only and hash-chained, anchored as `verify`; the end gate runs only these lines, and only while the card says the same ([the verify pins](03-loop.md#the-verify-pins)) | no — machine-local |
+| creatures' witness | `$XDG_STATE_HOME/mikata/roster/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's whole standing as of the row: its name, race (rank included), `reports_to`, post or speciality, ground with its `ground_sha256`, whether retired, the act (`relief`, `evolution`, `adopt`, `set-race`, `retire`, `rise`, `fall`), `by` and `build`, and on a `rise` or `fall` the `proposal` it applied, its `inputs_sha256` and the `as_of` it was read at, which `mikatad roster replay` recomputes from the journals; append-only and hash-chained, anchored as `roster` from the state directory alone. It is the roster's source of truth: every privilege reads a card only as held to its row, and the cards in the world are display-only ([the roster's trust](#the-rosters-trust)) | no — machine-local |
+| Minds' witness | `$XDG_STATE_HOME/mikata/minds/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each Mind the human adopted, retired or unretired: its doc, the SHA-256 of its bytes then, its owner (on adoption) and `build`; written only by `mikatad mind` at the terminal, append-only and hash-chained, anchored as `minds`; a Mind loads only while its doc holds the adopted bytes | no — machine-local |
+| envelope uses and revocations | `$XDG_STATE_HOME/mikata/oni/uses.jsonl` and `revoked.jsonl` (else `~/.local/state/…`), one pair for every world — each act an Oni envelope admitted, counted under `uses.lock`, and each revocation; append-only and hash-chained, anchored as `uses` and `revocations` with each world's chained journals | no — machine-local |
+| chain anchors | `$XDG_STATE_HOME/mikata/anchors/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each chained journal's newest head that held, written with its `log.md` entry by `mikatad housekeep --verify`; every walk is held to it | no — machine-local |
+| plan | `.mikata/plan.md` — the throne's | yes |
+| dimension manifest | `.mikata/dimension.toml` — the copy of the relations this world states, for readers; what it states beyond them is a proposal, never a relation ([ontology](09-ontology.md#relations-between-worlds)) | yes |
+| ontology facts | `.mikata/ontology/facts.jsonl` — the copy of the trusted facts, for readers; never read for trust ([ontology](09-ontology.md#facts-who-said-what)) | yes |
+| trusted facts | `$XDG_STATE_HOME/mikata/facts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — territory facts, counters, labels, settles and the one import, as events; written by the harness and the human's settle alone, append-only and hash-chained, anchored as `facts`; outside the world | no — machine-local |
+| relations | `$XDG_STATE_HOME/mikata/dimension/<world>-<fnv64a>/relations.jsonl` (else `~/.local/state/…`) — each relation the human stated or revoked, and each inverse declared, with `build`; written only by `mikatad onto relate`, `unrelate` and `inverse`, append-only and hash-chained, anchored as `relations`; outside the world | no — machine-local |
+| relation sightings | `$XDG_STATE_HOME/mikata/dimension/<world>-<fnv64a>/sightings.jsonl` (else `~/.local/state/…`) — cross-world references the harness saw a body read in a committed manifest, the other world named by id; the ledger relations are learned from, the harness's alone | no — machine-local |
+| board's list and lock | `$XDG_STATE_HOME/mikata/board/worlds.jsonl` (else `~/.local/state/…`) — each world the human added to the board or forgot, written only by `mikatad board add` and `board forget`; `board.lock`, held while a board runs, and `board.url` (`0600`), its URL with the key waiting now | no — machine-local |
+| world registry | `$XDG_STATE_HOME/mikata/worlds.jsonl` (else `~/.local/state/…`), one for every world — a row each time a session opens: the world's canonical path, its id `<world>-<fnv64a>`, its `origin` remote normalised (`host/owner/repo`, never a credential) and when; the board finds worlds there, and a world's row count is the session clock a learned relation's expiry reads | no — machine-local |
+| advisory mirror | `.mikata/intel/osv-scalibr/` — refreshed by `mikatad scout`, audited against by `mikatad scout audit` | no — hundreds of MB |
+| attic | `$XDG_STATE_HOME/mikata/attic/<world>/` (else `~/.local/state/…`) — outside the world, out of every command's reach: a git object store of working-tree snapshots, hard links to `.git`'s objects, copies of its refs | no |
+| usage + value ledgers | `.mikata/instruments/*.jsonl` — the usage ledger hash-chained, its every byte witnessed under `$XDG_STATE_HOME/mikata/usage/` for the tripwire, its head anchored in `log.md` and kept under `$XDG_STATE_HOME/mikata/anchors/` ([the chain](06-consumption.md#the-usage-row)) | no — machine-local |
 | derived indexes | none on disk: recall builds its BM25 index in memory | — |
-| run journals | `.mnemorph/instruments/loop/` | no |
-| CI runs | `.mnemorph/instruments/ci.jsonl` — each forge run as `mnemorphd ci` read it; body-writable, said as last read | no |
+| run journals | `.mikata/instruments/loop/` | no |
+| CI runs | `.mikata/instruments/ci.jsonl` — each forge run as `mikatad ci` read it; body-writable, said as last read | no |
 
 Every index is derived and can be deleted, and is rebuilt from what it derives from; a stale index
 is rebuilt, never routed around.
 
 The chained journals ([the chain](06-consumption.md#the-usage-row)), each a name in
-`mnemorphd housekeep --verify` and in its `log.md` anchors:
+`mikatad housekeep --verify` and in its `log.md` anchors:
 
 | Name | The journal | Writers |
 |---|---|---|
-| `usage` | the usage ledger, in the world; its witness under `mnemorph/usage/` | every model call of every process |
-| `usage-witness` | the usage ledger's witness under `mnemorph/usage/`: the copy the report fold trusts | every model call of every process, before the ledger |
+| `usage` | the usage ledger, in the world; its witness under `mikata/usage/` | every model call of every process |
+| `usage-witness` | the usage ledger's witness under `mikata/usage/`: the copy the report fold trusts | every model call of every process, before the ledger |
 | `value` | the Dark Elf's challenge records: findings, verdicts, seal proposals, waivers | the harness, under the records' lock |
 | `evolution` | the evolution ledger | the harness |
 | `proposals` | the evolution plans drawn for the human | the harness |
@@ -1508,12 +1508,12 @@ The chained journals ([the chain](06-consumption.md#the-usage-row)), each a name
 | `gate` | the end gate's verdicts | every session and commission that lands |
 | `guts` | each act's guts classes | every session and commission, after each act |
 | `answers` | the human's answers to the gate given on the board, with their connection, digests and timing | the board's bridge |
-| `minds` | the Minds' witness: adoptions, owners, retirements | the human's `mnemorphd mind` (adopt, retire, unretire) |
-| `verify` | the verify pins: the lines each creature's end gate may run | the human's `mnemorphd verify pin` and the terminal app's first-run prompt; the harness, for an Orc's `verify` tool and for relief |
-| `facts` | the trusted territory facts | the harness (a body's `@U territory`, a parent's labels, an Orc's settle, the one import); the human's `mnemorphd onto settle` and the board's settle |
-| `relations` | the relations this world states, and its inverses | the human's `mnemorphd onto relate`, `unrelate`, `inverse` |
-| `roster` | the creatures' witness: each creature's race and rank, chain, post or speciality, and ground | the harness, for relief and an evolution swap the human said yes to; the human's `mnemorphd roster adopt`, `set-race`, `rise`, `fall`, `retire` and the terminal app's first-run prompt |
-| `uses`, `revocations` | the Oni envelopes' uses and revocations, shared by every world | the act runner, under `uses.lock`; `mnemorphd envelope revoke` |
+| `minds` | the Minds' witness: adoptions, owners, retirements | the human's `mikatad mind` (adopt, retire, unretire) |
+| `verify` | the verify pins: the lines each creature's end gate may run | the human's `mikatad verify pin` and the terminal app's first-run prompt; the harness, for an Orc's `verify` tool and for relief |
+| `facts` | the trusted territory facts | the harness (a body's `@U territory`, a parent's labels, an Orc's settle, the one import); the human's `mikatad onto settle` and the board's settle |
+| `relations` | the relations this world states, and its inverses | the human's `mikatad onto relate`, `unrelate`, `inverse` |
+| `roster` | the creatures' witness: each creature's race and rank, chain, post or speciality, and ground | the harness, for relief and an evolution swap the human said yes to; the human's `mikatad roster adopt`, `set-race`, `rise`, `fall`, `retire` and the terminal app's first-run prompt |
+| `uses`, `revocations` | the Oni envelopes' uses and revocations, shared by every world | the act runner, under `uses.lock`; `mikatad envelope revoke` |
 | `kijin-<post>` | the post's witness; walked once kept, and for good once anchored | the act runner, under the witness's lock |
 
 A journal written by several processes takes its file's lock from the head's read to the row's
@@ -1564,7 +1564,7 @@ flowchart LR
   view, users and network. The guard does not: the command runs as the human, in the real
   files, with the real tools. It only has the kernel enforce a permission list on that one
   process — which folders it may read, that it may write only the world, whether it may open a
-  socket. On Linux every command starts through `mnemorph-guard`: the helper sets the list on
+  socket. On Linux every command starts through `mikata-guard`: the helper sets the list on
   its own process and then *becomes* the command (`exec`), so it never stays in between and
   everything the command starts inherits the list. It runs once per command because the
   kernel's restrictions are one-way — a process can tighten, never loosen — so each command,
@@ -1607,7 +1607,7 @@ flowchart LR
     seat, the queue, another's scratch) is granted part by part around that spot, existing
     entries each on its own. A claim reached through a link is no claim. Build output is granted
     besides the soil: what git ignores where `own` names the creature or nobody — never another's
-    ignored files, the records (`.mnemorph/`) or git's own files, and never through a link. The
+    ignored files, the records (`.mikata/`) or git's own files, and never through a link. The
     guard resolves every rule to the file it names, so every grant is resolved first and kept
     only if it still resolves inside the world to the creature's own. Past a few hundred rules
     they reach the guard in an owner-only file it reads and removes before restricting itself.
@@ -1644,7 +1644,7 @@ flowchart LR
     with its line range, indented by nesting, then its imports and its line count:
 
     ```
-    crates/mnemorph-tools/src/files.rs — rust, 1293 lines
+    crates/mikata-tools/src/files.rs — rust, 1293 lines
     imports 4–17 (12): use std::collections::hash_map::DefaultHasher · use std::fmt::Write as _ · …
     26–30 fn hash
     51–52 struct Read
@@ -1674,10 +1674,10 @@ flowchart LR
     not judged. **What a body reads of other processes:** `/proc` is readable, but landlock
     keeps a sandboxed process out of the `environ`, `mem` and `maps` of every process outside
     its domain, so the harness's environment — where the provider keys live — is closed to its
-    commands. On Linux `mnemorph` and `mnemorphd` also make themselves non-dumpable as they
+    commands. On Linux `mikata` and `mikatad` also make themselves non-dumpable as they
     start, so their `/proc` files are root's and closed to every other process of the user, an
     unguarded command's included (no core dump is written, and a debugger attaches only as
-    root); `mnemorphd` refuses to serve if the kernel refuses this, and `mnemorph` warns in the
+    root); `mikatad` refuses to serve if the kernel refuses this, and `mikata` warns in the
     session. Every process the harness starts — commands, its own `git` calls, the guard's probe
     — gets the harness's environment without its secrets, since a running child's `environ` is
     open to the user's other processes. Git's config given in the environment
@@ -1706,7 +1706,7 @@ flowchart LR
     not opened.
   - **An approval is bound to a plan.** The human may answer minutes after the ask while other
     courts keep working, so what they approve is the world they were shown: a fingerprint
-    (`mnemorph_tools::Fingerprint`) of the command and five parts. **head** — the commit HEAD
+    (`mikata_tools::Fingerprint`) of the command and five parts. **head** — the commit HEAD
     names. **diff** — the index as listed, every tracked file's bytes and mode bit, each
     submodule's own HEAD and working tree, every untracked file git does not ignore, and, by
     name whatever the ignore rules say, the files that steer a publish or carry its secrets
@@ -1764,22 +1764,22 @@ flowchart LR
     spawn, so what is pinned is where the act went, and a URL that begins with `-` or holds a
     space or control character is not pinned, and without a pin no receipt is committed. After
     the act, the harness runs a read-only probe on that pin
-    (`mnemorph_config::PostJournal::observe`): a fixed argv, no shell, no input, its working
+    (`mikata_config::PostJournal::observe`): a fixed argv, no shell, no input, its working
     directory an empty scratch directory outside every repository, git and `gh` variables
     cleared and prompts off, git limited to the `https`, `http`, `ssh`, `git` and `file`
     transports, a 30 s deadline that kills its process group. Inside the guard it may reach the
     network and read the credentials a read needs (`.ssh`, `.netrc`, `.git-credentials`, git's
     credential store, `.config/gh`), and write nothing but its scratch directory. Only a probe
     that shows the planned effect makes the act `observed`; anything else is `reconcile`
-    ([races](02-races.md)). The Kijin's act runner (`mnemorph_config::Runner`, its `outward`
-    tool) spawns through the bash tool's own path (`mnemorph_tools::shell::spawn_approved`):
+    ([races](02-races.md)). The Kijin's act runner (`mikata_config::Runner`, its `outward`
+    tool) spawns through the bash tool's own path (`mikata_tools::shell::spawn_approved`):
     the sandbox, the tripwire's and the attic's snapshots, the plan rechecked at the spawn, and
     any text the act sends (a pull request's description) on the command's standard input from
     the approved bytes, never a file in the world —
     with the act's intent journaled between that recheck and the spawn, so an act whose world
     moved journals nothing and is asked again. An undo (`Runner::undo`) takes the same path, the
     human always asked, and is done only when a probe sees the effect gone; its incident
-    (`mnemorph_config::closure`) stays open, suspending the envelopes that read the act and
+    (`mikata_config::closure`) stays open, suspending the envelopes that read the act and
     refusing new acts on its target, until its four receipts — undone, journal corrected,
     downstream told, lesson — are each found in the witness ([races](02-races.md)).
   - **Limits** — no core dumps, files up to 4 GiB, at most 8192 processes for the user; and no
@@ -1788,7 +1788,7 @@ flowchart LR
 - **The tripwire** covers what landlock cannot: landlock only adds access, so no read-only corner
   can be carved out of the writable world. Git's executable configuration (`.git/config` —
   `core.fsmonitor`, `core.sshCommand`, filter drivers — `.git/hooks`, `.git/info`, a `.git` file)
-  would run code outside any sandbox the next time the human runs git, and `.mnemorph/` holds the
+  would run code outside any sandbox the next time the human runs git, and `.mikata/` holds the
   world's records. Each command runs between two snapshots of them; once its process group is dead,
   every change is put back and the body is told. The Kijin post journals and the usage ledger
   are put back as the work queue is: what each held, plus the rows its witness gained while the command ran. The file tools refuse those paths outright, but
@@ -1803,10 +1803,10 @@ flowchart LR
   (Python's `start_new_session`, Go's `Setsid`, a pty) fails there with `EPERM`, and coreutils
   `timeout` signals the whole command when it fires. Seatbelt has no such rule on macOS. The shared
   work queue is rebuilt from what it held and what its witness gained since — the witness, under the
-  human's state directory, keeps every line the harness and the human's `mnemorphd q` wrote — so
+  human's state directory, keeps every line the harness and the human's `mikatad q` wrote — so
   nothing the command did to the file counts, a link in its place included, and the human's
-  concurrent moves are kept. A body's own `mnemorphd q` refuses (every command carries
-  `MNEMORPH_BODY`, a courtesy; the tripwire is the border). `tmp/`, `intel/` and `report/` (where a check writes what it leaves) stay writable; a
+  concurrent moves are kept. A body's own `mikatad q` refuses (every command carries
+  `MIKATA_BODY`, a courtesy; the tripwire is the border). `tmp/`, `intel/` and `report/` (where a check writes what it leaves) stay writable; a
   repository the command itself creates is its own. The snapshot keeps up to 16 MiB of content; a
   change to a protected file beyond that is reported, not undone.
 - **The attic** keeps what a command or a write takes away, outside the world where the guard
@@ -1814,7 +1814,7 @@ flowchart LR
   snapshotted into the attic's own git object store — only changed files are hashed again.
   What the world ignores is left out, and so, by the attic's own rules whatever the world
   ignores, are build output and dependencies (`target`, `node_modules`, `.venv`, `dist`,
-  `build`, …), the command's `.mnemorph/tmp` and the machine-local records (`instruments`,
+  `build`, …), the command's `.mikata/tmp` and the machine-local records (`instruments`,
   `index`, `intel`); a file that becomes ignored leaves the next snapshot. A file over 8 MiB is
   not kept, and the command's result names it. A command that deleted files is told how many
   and which snapshot holds them, so `rm -rf src` and a script that wipes a folder are both
@@ -1875,7 +1875,7 @@ flowchart LR
   `not-literal`, `remote-code`, `unreadable`, …). The human's configuration may turn a rule into
   a question — the command then waits on the gate with the class it would have had — except
   the floor, which stays a refusal whatever any file says: `root-path`, `device`,
-  `machine-tool`, `fork-bomb`, `mind` (writing or removing a Mind under `.mnemorph/minds/`). A floor refusal displaces any askable one found earlier in the
+  `machine-tool`, `fork-bomb`, `mind` (writing or removing a Mind under `.mikata/minds/`). A floor refusal displaces any askable one found earlier in the
   same command, so no co-occurring rule can turn it into a question. The sandbox still holds under an approved rule: approving
   `credential` does not open a credential path.
 - Landlock's power depends on the kernel's ABI: v1 (5.13–5.18, this machine's 5.15) refuses
@@ -1901,9 +1901,9 @@ an empty list or table never overrides a lower layer:
 | Layer | File | Who writes it |
 |---|---|---|
 | default | compiled in | the release |
-| global | `$XDG_CONFIG_HOME/mnemorph/config.toml` (else `~/.config/…`, home from the platform) | the human |
-| tracked | `<world>/.mnemorph/config.toml` | the project, for everyone who clones it |
-| local | `<world>/.mnemorph/config.local.toml` | the human, on this machine |
+| global | `$XDG_CONFIG_HOME/mikata/config.toml` (else `~/.config/…`, home from the platform) | the human |
+| tracked | `<world>/.mikata/config.toml` | the project, for everyone who clones it |
+| local | `<world>/.mikata/config.local.toml` | the human, on this machine |
 
 - **Every leaf keeps its origin** — layer and exact file — so `config explain` is right for a
   scalar, a list and each leaf of a merged table.
@@ -1920,7 +1920,7 @@ an empty list or table never overrides a lower layer:
   and `board.open` still load, and are no longer read); `board.prune_after_days`, how long a missing world stays
   listed (14; 0 never; at most 3650): the board serves every world on the machine, so what it
   reads, whether it starts and what it opens and forgets are the human's.
-- **The local file widens nothing.** `.mnemorph/config.local.toml` lives inside the world, where
+- **The local file widens nothing.** `.mikata/config.local.toml` lives inside the world, where
   a body's command or a repository's script (a `make test` the gate runs) may write it. Every key
   above, every `budget.*` cap, every `providers.*`, every `mcp.*` and every `board.*` from it is a hole: the
   global file alone loosens the gate, opens the sandbox, starts an MCP server or says where a
@@ -1931,7 +1931,7 @@ an empty list or table never overrides a lower layer:
   once (3; 1 to 7), is the human's alone: fewer reviewers delay a review.
   `collective.on`, which opens every session in collective-coding where a creature reports to
   Summoner, is the human's alone: collective-coding lifts `slime-truth` and lets Summoner summon
-  any member directly. For one session, `mnemorph --mode collective-coding` does the same from the command
+  any member directly. For one session, `mikata --mode collective-coding` does the same from the command
   line, which is the human's too; no world's file can ask for a mode.
   `evolution.mode`, `auto` (the default: evolution drafts, proves and swaps in a due creature on
   trial, then keeps or rolls it back by the rule) or `propose` (every plan and every judgement
@@ -1956,18 +1956,18 @@ an empty list or table never overrides a lower layer:
   limit lowered after it was signed does not judge it; a live one past the new limit is an error
   that says to sign it again, revoke it or delete its record. Days are UTC calendar days. The gate
   reads envelopes from the global file alone: a local file's are ignored, and
-  `mnemorphd envelope list` says so. Each names the `world` (absolute) or the `repo`
+  `mikatad envelope list` says so. Each names the `world` (absolute) or the `repo`
   (`owner/name`) it is signed for, or both — one naming neither admits nothing — and may name a
   `post` and a `body`. `uses` caps the acts an envelope covers in
   all, at least one; no two envelopes share a name. `Envelope::admits(today,
   used)` is the check the gate makes at the moment of use ([races](02-races.md#ascension--earned-granted-revocable)),
   with the count of acts the envelope already admitted, kept in the uses ledger
-  (`mnemorph_ledger::Uses`, `$XDG_STATE_HOME/mnemorph/oni/uses.jsonl`, outside every world and
+  (`mikata_ledger::Uses`, `$XDG_STATE_HOME/mikata/oni/uses.jsonl`, outside every world and
   counted under its lock); it names the lapse that stops one: revoked, not yet in force, expired,
   or spent. The gate reads the envelopes afresh at each use, and only from a global file that is
   the human's own: one git tracks in the world, a link, another user's, or one that it or its
   folder lets others write is not honoured.
-  Revoking (`mnemorphd envelope revoke <name>`) writes `revoked = <day>` into the
+  Revoking (`mikatad envelope revoke <name>`) writes `revoked = <day>` into the
   human's file that holds the envelope, through `toml_edit` like any write, and only once: the
   envelope stays on record and covers nothing again; the revocation is journaled beside the
   uses (`revoked.jsonl`). Both journals are hash-chained and anchored with each world's chained
@@ -1994,7 +1994,7 @@ an empty list or table never overrides a lower layer:
   provider, a commissioned body's included, is built from it. **Providers** name the environment
   variable holding their key (`key_env`), never the key, and may name a file holding it
   (`key_file`), read when the variable is not set or empty. The error when neither gives a key
-  names both: `OPENROUTER_API_KEY is not set and ~/.config/mnemorph/openrouter.key is unreadable:
+  names both: `OPENROUTER_API_KEY is not set and ~/.config/mikata/openrouter.key is unreadable:
   …`. Only the global file names a key file: from a world's file, tracked or local, `key_file` is
   a hole, since a world must not choose which file's contents are sent to a provider. A leading
   `~` is the home; the path must then be absolute. The file is opened without following a
@@ -2002,9 +2002,9 @@ an empty list or table never overrides a lower layer:
   other permission bit (mode `0600` or `0400`; otherwise the refusal says `chmod 600 <path>`), at
   most 4 KiB, and outside every world this machine knows (the registry's and the board's list).
   Its contents are trimmed; an empty file, or one of more than a line, is a hole. The key is held
-  as `mnemorph_loop::key::ApiKey`, whose `Debug` and `Display` print `[key]`: no log, hole, error,
-  answer or journal carries its bytes. `mnemorph status` and the session's `key` say which source
-  was read (`file ~/.config/mnemorph/openrouter.key, named by providers.openrouter.key_file in
+  as `mikata_loop::key::ApiKey`, whose `Debug` and `Display` print `[key]`: no log, hole, error,
+  answer or journal carries its bytes. `mikata status` and the session's `key` say which source
+  was read (`file ~/.config/mikata/openrouter.key, named by providers.openrouter.key_file in
   global …`). A provider's `kind` is `anthropic`,
   `openai` (any OpenAI-compatible server) or `systemone` (a classifier: TypeSafe's Jev, or a
   jeff server on your own machine).
@@ -2026,7 +2026,7 @@ an empty list or table never overrides a lower layer:
   providers, pick the model that answers, nor lower the bar (see *System One decisions* below).
 
 ```toml
-# ~/.config/mnemorph/config.toml
+# ~/.config/mikata/config.toml
 [gate]
 ask_rules = ["in-place-edit"]      # sed -i asks instead of refusing
 
@@ -2052,7 +2052,7 @@ day_usd = 5
 kind = "openai"
 base_url = "https://openrouter.ai/api"
 key_env = "OPENROUTER_API_KEY"
-key_file = "~/.config/mnemorph/openrouter.key"  # when the variable is not set; chmod 600
+key_file = "~/.config/mikata/openrouter.key"  # when the variable is not set; chmod 600
 upstreams = ["venice"]              # optional: the only hosts the router may send calls to
 
 [providers.vllm]                    # or your own vLLM gateway
@@ -2102,7 +2102,7 @@ uses = 50                          # optional: at most 50 acts in all
 ### Provider cassettes
 
 The providers are tested against real responses, recorded once and replayed on every run with no
-key and no network: `crates/mnemorph-provider/tests/cassettes/`, read by `tests/cassettes.rs`
+key and no network: `crates/mikata-provider/tests/cassettes/`, read by `tests/cassettes.rs`
 through `Scripted`. CI never records and holds no key. Each cassette is a response body as the
 server sent it (the raw SSE, or an error's JSON), never a header: the key travels in a request
 header and the response headers carry request ids. Before a body is written the recorder scrubs
@@ -2131,13 +2131,13 @@ output, about four bytes a token), charged to the envelope and the budget, and l
 To record again, by hand:
 
 ```sh
-MNEMORPH_LIVE=1 MNEMORPH_RECORD=$PWD/crates/mnemorph-provider/tests/cassettes \
-  OPENROUTER_API_KEY=… [MNEMORPH_LIVE_OR_MODEL=<id>:free] \
-  cargo nextest run -p mnemorph-provider --run-ignored only --no-capture live_openrouter
+MIKATA_LIVE=1 MIKATA_RECORD=$PWD/crates/mikata-provider/tests/cassettes \
+  OPENROUTER_API_KEY=… [MIKATA_LIVE_OR_MODEL=<id>:free] \
+  cargo nextest run -p mikata-provider --run-ignored only --no-capture live_openrouter
 git add -A && git grep -nE 'sk-or-v1-[0-9a-f]+'   # must print nothing before a commit
-MNEMORPH_LIVE_OLLAMA=1 MNEMORPH_RECORD=$PWD/crates/mnemorph-provider/tests/cassettes \
-  [MNEMORPH_OLLAMA_URL=http://127.0.0.1:11434] [MNEMORPH_OLLAMA_MODEL=qwen2.5:0.5b] \
-  cargo nextest run -p mnemorph-provider --run-ignored only --no-capture live_ollama
+MIKATA_LIVE_OLLAMA=1 MIKATA_RECORD=$PWD/crates/mikata-provider/tests/cassettes \
+  [MIKATA_OLLAMA_URL=http://127.0.0.1:11434] [MIKATA_OLLAMA_MODEL=qwen2.5:0.5b] \
+  cargo nextest run -p mikata-provider --run-ignored only --no-capture live_ollama
 ```
 
 The hand-written streams in `tests/openai.rs` and `tests/review.rs` cover what no recording
@@ -2159,16 +2159,16 @@ files forks its parent state on disk for every move. The walks live in each crat
 
 | Lifecycle | Driven through | Bound | Invariants in every state |
 |---|---|---|---|
-| Ascension, probation, fall (`mnemorph-races`) | `rises`, `falls`, `recovers`, per ascended form | fixpoint | the form changes only on the human's word; a reading at the rise bars never reads as falling; recovery needs five reports; no rise proposed in a declined candidate's cooldown; an Oni never reaches probation |
-| A receipt (`mnemorph-config`) | `PostJournal::commit`, `ran`, `observe` | fixpoint | `observed` only with a probe run and seen; a command rests `unobserved`; a refused move writes nothing |
-| An Oni's act, its envelope, its incident (`mnemorph-config`) | `Runner::act`, `undo`, `settle`, `open_incident`, `lesson`, `EnvelopeGate::revoke`, stub forge | depth 5 | each act moves only along the receipt's edges; a correction names an undo seen landed; a closed incident holds its four receipts, read again from the witness; no use past the cap, after a revocation or while suspended; no act on an open incident's target; nothing runs that neither the human nor an envelope let run |
+| Ascension, probation, fall (`mikata-races`) | `rises`, `falls`, `recovers`, per ascended form | fixpoint | the form changes only on the human's word; a reading at the rise bars never reads as falling; recovery needs five reports; no rise proposed in a declined candidate's cooldown; an Oni never reaches probation |
+| A receipt (`mikata-config`) | `PostJournal::commit`, `ran`, `observe` | fixpoint | `observed` only with a probe run and seen; a command rests `unobserved`; a refused move writes nothing |
+| An Oni's act, its envelope, its incident (`mikata-config`) | `Runner::act`, `undo`, `settle`, `open_incident`, `lesson`, `EnvelopeGate::revoke`, stub forge | depth 5 | each act moves only along the receipt's edges; a correction names an undo seen landed; a closed incident holds its four receipts, read again from the witness; no use past the cap, after a revocation or while suspended; no act on an open incident's target; nothing runs that neither the human nor an envelope let run |
 | An envelope's time and count | `Envelope::admits` | fixpoint | never past its cap; revoked, expired or spent never comes back into force |
-| A Dark Elf challenge and its finding (`mnemorph-world`) | `Challenges` and its verification | fixpoint | cleared only with every routed ledger, no torn line, every finding ruled and none blocking; a critical is blocked until the human waives it; a waiver is final; a verdict only from the assigned verifier, once; a seal only on a confirmation at high or more; the value ledger's fold agrees |
-| A session's run (`mnemorph-loop`) | `open_with`, `resume_with`, `ask` | depth 4 | every answer passed the end gate; a resume is refused exactly when the run answered, failed or is held; a run is listed to resume exactly when it stopped and no live session holds it |
+| A Dark Elf challenge and its finding (`mikata-world`) | `Challenges` and its verification | fixpoint | cleared only with every routed ledger, no torn line, every finding ruled and none blocking; a critical is blocked until the human waives it; a waiver is final; a verdict only from the assigned verifier, once; a seal only on a confirmation at high or more; the value ledger's fold agrees |
+| A session's run (`mikata-loop`) | `open_with`, `resume_with`, `ask` | depth 4 | every answer passed the end gate; a resume is refused exactly when the run answered, failed or is held; a run is listed to resume exactly when it stopped and no live session holds it |
 
 ### System One decisions
 
-Some of Mnemorph's questions are decisions, not conversations: did this piped test run pass, which
+Some of Mikata's questions are decisions, not conversations: did this piped test run pass, which
 body suits this commission, is this finding worth a reviewer's time, how big is this task. Each
 has a fixed set of answers, and each is worth acting on only when the answer is sure. A System
 One model answers exactly that shape: one call, a probability for every option, in milliseconds.
@@ -2252,7 +2252,7 @@ flowchart LR
   unless `decide.bench = false`; when no System One answers, the fallback asks `decide.llm`
   through the run's own provider. What leaves for the decider is the command and the last 12 000
   bytes of its output; test output can print anything, so a provider outside the machine sees
-  what the tests print. It is honoured once a binary builds runs from the configuration (`mnemorph`,
+  what the tests print. It is honoured once a binary builds runs from the configuration (`mikata`,
   M6). **`model.route` is Metis** (`decide.route = true`, off by default, the human's files
   only): `route(config, decisions, caller, work, stop, meter)` returns the model a body rides
   and why, moving it within its office's band on a sure answer (*Metis routes within a band*,
@@ -2266,10 +2266,10 @@ flowchart LR
 
 ### Where each piece comes from in isekai
 
-Mnemorph is a port of proven behaviour, not a blank page. Each crate's first rung starts by reading
+Mikata is a port of proven behaviour, not a blank page. Each crate's first rung starts by reading
 these isekai sources and turning their tests into fixtures.
 
-| Mnemorph crate | isekai sources (Go, `~/kaginari/isekai`) | Size (src lines) |
+| Mikata crate | isekai sources (Go, `~/kaginari/isekai`) | Size (src lines) |
 |---|---|---|
 | wire | `wire/` | 433 |
 | races | `world/rank.go`, `config/ranks.go`, `rank/`, `value/` formulas | ~1,700 |

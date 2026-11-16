@@ -104,27 +104,27 @@ test('a closed connection fails what waits and refuses what follows', async () =
   const core = new Fake();
   const c = new Client(core);
   const waiting = c.prompt('hi');
-  core.end('mnemorphd exited with 1');
+  core.end('mikatad exited with 1');
   await expect(waiting).rejects.toThrow('exited with 1');
   await expect(c.prompt('again')).rejects.toThrow('exited with 1');
-  expect(c.closed).toBe('mnemorphd exited with 1');
+  expect(c.closed).toBe('mikatad exited with 1');
 });
 
 // The real core, when it is built: a world whose backend needs no key opens, and shuts down.
-const daemon = resolve(__dirname, '../../../target/debug/mnemorphd');
+const daemon = resolve(__dirname, '../../../target/debug/mikatad');
 let dir: string | undefined;
 afterEach(() => {
   if (dir) rmSync(dir, { recursive: true, force: true });
   dir = undefined;
 });
 
-test.runIf(existsSync(daemon))('speaks to the real mnemorphd over stdio', async () => {
-  dir = mkdtempSync(join(tmpdir(), 'mnemorph-sdk-'));
-  mkdirSync(join(dir, '.mnemorph'));
+test.runIf(existsSync(daemon))('speaks to the real mikatad over stdio', async () => {
+  dir = mkdtempSync(join(tmpdir(), 'mikata-sdk-'));
+  mkdirSync(join(dir, '.mikata'));
   // A provider says where a key goes: only the human's global file names one.
-  mkdirSync(join(dir, 'mnemorph'));
+  mkdirSync(join(dir, 'mikata'));
   writeFileSync(
-    join(dir, 'mnemorph/config.toml'),
+    join(dir, 'mikata/config.toml'),
     '[providers.local]\nkind = "openai"\nbase_url = "http://127.0.0.1:9"\n[models]\nprovider = "local"\ndefault = "m"\n',
   );
   const c = new Client(
@@ -145,7 +145,7 @@ test.runIf(existsSync(daemon))('speaks to the real mnemorphd over stdio', async 
 
 /** A stand-in core: a shell script given as the command. */
 function core(name: string, script: string): string {
-  dir ??= mkdtempSync(join(tmpdir(), 'mnemorph-sdk-'));
+  dir ??= mkdtempSync(join(tmpdir(), 'mikata-sdk-'));
   const path = join(dir, name);
   writeFileSync(path, `#!/bin/sh\n${script}\n`);
   chmodSync(path, 0o755);

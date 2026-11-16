@@ -56,7 +56,7 @@ jobs:
           path: notes.md
 
   board:
-    # The board is embedded in mnemorphd when it is compiled: built once, used by every target.
+    # The board is embedded in mikatad when it is compiled: built once, used by every target.
     needs: prepare
     runs-on: ubuntu-latest
     steps:
@@ -69,7 +69,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mnemorph/board build
+      - run: pnpm --filter @mikata/board build
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: board-dist
@@ -110,19 +110,19 @@ jobs:
           name: board-dist
           path: packages/board/dist
       - name: Build the release binaries
-        run: cargo build --release --locked --target "$TARGET" -p mnemorph-tui -p mnemorphd -p mnemorph-sandbox --bins
+        run: cargo build --release --locked --target "$TARGET" -p mikata-tui -p mikatad -p mikata-sandbox --bins
       - name: Package
         run: tools/package-release.sh "target/$TARGET/release" "$TARGET" "$VERSION" dist
       - name: The release-candidate smoke test, on the built archive in a fresh HOME
         if: matrix.smoke
-        run: tools/rc-smoke.sh "dist/mnemorph-$TARGET.tar.gz" "$VERSION"
+        run: tools/rc-smoke.sh "dist/mikata-$TARGET.tar.gz" "$VERSION"
       - name: The installer, on the built archive, offline and timed
         if: matrix.smoke
-        run: tools/test-install.sh "dist/mnemorph-$TARGET.tar.gz"
+        run: tools/test-install.sh "dist/mikata-$TARGET.tar.gz"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: archive-${{ matrix.target }}
-          path: dist/mnemorph-${{ matrix.target }}.tar.gz
+          path: dist/mikata-${{ matrix.target }}.tar.gz
           if-no-files-found: error
 
   checksums:
@@ -137,8 +137,8 @@ jobs:
       - name: SHA256SUMS
         run: |
           cd dist
-          [ "$(find . -maxdepth 1 -name 'mnemorph-*.tar.gz' | wc -l)" -eq 4 ] || { ls -l; echo "::error::wanted four archives"; exit 1; }
-          sha256sum mnemorph-*.tar.gz > SHA256SUMS
+          [ "$(find . -maxdepth 1 -name 'mikata-*.tar.gz' | wc -l)" -eq 4 ] || { ls -l; echo "::error::wanted four archives"; exit 1; }
+          sha256sum mikata-*.tar.gz > SHA256SUMS
           cat SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -148,12 +148,12 @@ jobs:
   # ---- SIGNING: build provenance, OFF until a maintainer turns it on ---------------------------
   # Keyless (Sigstore through GitHub's OIDC): no key and no secret. It needs this job's
   # `id-token: write` and `attestations: write`, granted here alone. To turn it on, set the
-  # repository variable MNEMORPH_ATTEST to `true` (Settings → Secrets and variables → Actions →
+  # repository variable MIKATA_ATTEST to `true` (Settings → Secrets and variables → Actions →
   # Variables). Users then verify an archive with
-  # `gh attestation verify mnemorph-<target>.tar.gz --repo Kaginari/mnemorph`.
+  # `gh attestation verify mikata-<target>.tar.gz --repo Kaginari/mikata`.
   attest:
     needs: checksums
-    if: vars.MNEMORPH_ATTEST == 'true'
+    if: vars.MIKATA_ATTEST == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -167,7 +167,7 @@ jobs:
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: |
-            dist/mnemorph-*.tar.gz
+            dist/mikata-*.tar.gz
             dist/SHA256SUMS
 
   draft:
@@ -198,5 +198,5 @@ jobs:
           prerelease=()
           case $VERSION in *-*) prerelease=(--prerelease) ;; esac
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag "${prerelease[@]}" \
-            --title "Mnemorph $VERSION" --notes-file notes.md \
-            dist/mnemorph-*.tar.gz dist/SHA256SUMS
+            --title "Mikata $VERSION" --notes-file notes.md \
+            dist/mikata-*.tar.gz dist/SHA256SUMS

@@ -1,4 +1,4 @@
-import type { BoardBody } from '@mnemorph/protocol';
+import type { BoardBody } from '@mikata/protocol';
 import { describe, expect, it } from 'vitest';
 import { parseBodies } from './bodies.ts';
 import { fixtureBodies, fixtureRaces } from './bodiesFixtures.ts';

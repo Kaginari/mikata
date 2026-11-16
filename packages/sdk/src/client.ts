@@ -11,8 +11,8 @@ import type {
   Hello,
   PromptResult,
   Role,
-} from '@mnemorph/protocol';
-import { eventType, PROTOCOL } from '@mnemorph/protocol';
+} from '@mikata/protocol';
+import { eventType, PROTOCOL } from '@mikata/protocol';
 
 /** A line-oriented connection to the core. */
 export interface Transport {
@@ -103,7 +103,7 @@ export class Client {
     }
     if (hello.protocol !== PROTOCOL) {
       throw new Error(
-        `mnemorphd speaks protocol ${hello.protocol}; this client speaks ${PROTOCOL}: update one of them`,
+        `mikatad speaks protocol ${hello.protocol}; this client speaks ${PROTOCOL}: update one of them`,
       );
     }
     return hello;

@@ -13,20 +13,20 @@ median weighted tokens. The report says so, or says which part failed. Older row
 read them with `--modes solo,hierarchy`.
 
 Each mode may run under two **law arms**: law on, as every session runs, and law off —
-`mnemorph run --no-law`, whose prompts carry none of the world's own words (its law, the creature
+`mikata run --no-law`, whose prompts carry none of the world's own words (its law, the creature
 cards and docs, the Minds' manifests, the journal's opening). That measures what the fixed
 per-session prompt buys against what it costs ([consumption](../docs/06-consumption.md)). Both arms
 of a case share its trial key (`<task>/<mode>`) and run in a fresh world each. The switch is the
 bench's command line alone: no configuration a world holds sets it, so no body can.
 
 Every world is fresh: the task's starter (`tasks/NN-name/world/`), the bench's creatures
-(`world/.mnemorph/`), a configuration naming the model through OpenRouter, and a git history. A
+(`world/.mikata/`), a configuration naming the model through OpenRouter, and a git history. A
 task passes when its `verify.py` — kept outside the world, so no body can edit it — exits 0.
 
 ## Running it
 
 ```sh
-cargo build -p mnemorph-tui      # builds target/debug/mnemorph, which runs each ask
+cargo build -p mikata-tui      # builds target/debug/mikata, which runs each ask
 python3 bench/run.py --check    # every task fails untouched: no model, no key
 python3 bench/run.py            # all 60 runs on the default free model
 python3 bench/run.py --tasks 01,02 --modes solo --limit 2
@@ -37,9 +37,9 @@ python3 bench/run.py --modes solo --law on,off  # the law arm: solo with and wit
 `--keep` leaves each run's world on disk and names it in the result, to read its journals;
 `--out` writes the results elsewhere than the model's tracked file.
 
-The key is `OPENROUTER_API_KEY` from the environment, else `~/.config/mnemorph/openrouter.key`
+The key is `OPENROUTER_API_KEY` from the environment, else `~/.config/mikata/openrouter.key`
 (mode 600 — a key file others can read is refused). It is handed only to each run's own process,
-never written and never printed; a run's saved stderr is scrubbed of it before it is cut. `--model` (or `MNEMORPH_BENCH_MODEL`) picks the model; the default is
+never written and never printed; a run's saved stderr is scrubbed of it before it is cut. `--model` (or `MIKATA_BENCH_MODEL`) picks the model; the default is
 a free one.
 
 Each run is one line in `results/<model>.jsonl`, tracked as the measurement's record: its case
@@ -52,7 +52,7 @@ A rerun skips what is there. A rate limit or a daily cap — seen on stderr, or 
 on stdout — stops the run with exit 3, unrecorded, and the next run resumes from it; a free
 model's daily cap may take the sixty runs over a few days. A run past its timeout (65 minutes, beyond the core's one-hour clock) is
 killed with every process it started; the report reads it as a hang, to rerun. `just check` also builds
-`target/debug/mnemorph-guard`, the sandbox's helper: without it every shell act is refused.
+`target/debug/mikata-guard`, the sandbox's helper: without it every shell act is refused.
 
 ## Reading it
 
@@ -71,7 +71,7 @@ label. `--partial` reports a run still in progress and
 names what is missing, but an extra, doubled or mislabelled run is an error even then. A task
 succeeds only when its verify passed, the run ended answered, no rule refused any of its acts, and
 a hierarchy run ran below the throne. Every other run is told by why it ended — its `ending`, recorded by `run.py`, or for an
-older row the `mnemorph: <ending>` line `mnemorph run` writes to stderr:
+older row the `mikata: <ending>` line `mikata run` writes to stderr:
 
 | Cause | Ending | Counts |
 |---|---|---|

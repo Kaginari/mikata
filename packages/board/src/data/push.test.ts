@@ -43,7 +43,7 @@ it('offers its subprotocol and the CSRF entry, tells changes, and after a drop s
   await vi.waitFor(() => expect(made).toHaveLength(1));
   const [first] = made;
   expect(first?.url).toBe(`ws://${window.location.host}/ws/board`);
-  expect(first?.protocols).toEqual(['mnemorph.board.v1', `mnemorph.csrf.${'cd'.repeat(32)}`]);
+  expect(first?.protocols).toEqual(['mikata.board.v1', `mikata.csrf.${'cd'.repeat(32)}`]);
   // A listener, through the module's own set: the hook adds the same way.
   const heard: Change[] = [];
   await listen((c) => heard.push(c));

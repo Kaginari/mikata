@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { BoardWorld } from '@mnemorph/protocol';
+import type { BoardWorld } from '@mikata/protocol';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -123,7 +123,7 @@ test('a card says how it stands against the witness: trusted, mismatched, or a s
   expect(lexer).toContain('mismatched');
   expect(lexer).toContain('runs as slime');
   expect(lexer).toContain('differs from its row on Race');
-  expect(lexer).toContain('mnemorphd roster adopt slime-lexer');
+  expect(lexer).toContain('mikatad roster adopt slime-lexer');
   const evil = await open('slime-‮evil');
   expect(evil).toContain('stranger');
   expect(evil).toContain('its own seat alone');
@@ -144,7 +144,7 @@ test('a card shows the rise or fall the law proposes, and the command that appli
   expect(parser?.textContent).toContain('nothing changes until the human applies it');
   expect(parser?.textContent).toContain('landRate 0.95 (19/20, 95% 0.76–0.99)');
   expect(parser?.querySelector('.body-ascension code')?.textContent).toBe(
-    "mnemorphd roster rise slime-parser --world '/home/me/my world'",
+    "mikatad roster rise slime-parser --world '/home/me/my world'",
   );
   const lexer = await open('slime-lexer');
   expect(lexer?.textContent).toContain('probation');

@@ -1,0 +1,1333 @@
+//! The bash tool: classified, shelved, gated, contained in a process group.
+
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use mikata_races::{Race, ToolClass};
+use mikata_sandbox::Sandbox;
+use mikata_tools::gate::Scripted;
+use mikata_tools::{Answer, Context, Outcome, Rule, call, registry};
+
+struct World {
+    root: PathBuf,
+}
+
+impl World {
+    fn new(name: &str) -> Self {
+        let root = std::env::temp_dir().join(format!("mikata-shell-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("world/src")).unwrap();
+        fs::create_dir_all(root.join("outside")).unwrap();
+        Self { root }
+    }
+
+    fn world(&self) -> PathBuf {
+        self.root.join("world")
+    }
+
+    fn outside(&self) -> PathBuf {
+        self.root.join("outside")
+    }
+
+    /// A body of `race`; a Kijin here is the deploy post, whose acts include writing outside,
+    /// under the deploy root it was given.
+    fn cx(&self, race: Race, gate: Arc<Scripted>) -> Context {
+        Context::new(race, self.world(), &["src"])
+            .with_body("kijin-deploy")
+            .with_deploy_roots(&[self.outside()])
+            .with_gate(gate)
+            .with_home("/h")
+            .with_sandbox(Sandbox::None(
+                "these tests check the gate and the process group".into(),
+            ))
+            .with_unguarded(true)
+    }
+}
+
+impl Drop for World {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
+fn bash(cx: &mut Context, command: &str) -> Outcome {
+    let args = serde_json::json!({ "command": command }).to_string();
+    call(&registry(), "bash", &args, cx)
+}
+
+#[test]
+fn a_read_runs_without_asking() {
+    let w = World::new("read");
+    fs::write(w.world().join("src/a.txt"), "hello\n").unwrap();
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(&mut w.cx(Race::Slime, gate.clone()), "cat src/a.txt");
+    assert_eq!(o.content, "hello\n");
+    assert_eq!(o.meta.class, Some(ToolClass::Read));
+    assert_eq!(o.meta.exit, Some(0));
+    assert_eq!(gate.asked(), [] as [mikata_tools::Ask; 0]);
+}
+
+#[test]
+fn a_refused_command_never_runs() {
+    let w = World::new("refuse");
+    let marker = w.world().join("src/ran");
+    let gate = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(
+        &mut w.cx(Race::Kijin, gate.clone()),
+        &format!("touch {} && sed -i s/a/b/ x", marker.display()),
+    );
+    assert!(
+        o.is_error
+            && o.content.contains("refused by guard rule `in-place-edit`")
+            && o.content.contains("may let rule"),
+        "{o:?}"
+    );
+    assert!(!marker.exists());
+    assert!(gate.asked().is_empty(), "a refusal comes before any gate");
+}
+
+#[test]
+fn a_class_off_the_shelf_is_refused_with_its_route() {
+    let w = World::new("shelf");
+    let gate = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(&mut w.cx(Race::Slime, gate.clone()), "git push origin main");
+    assert!(
+        o.is_error
+            && o.content.contains("outward is not on the slime shelf")
+            && o.content.contains("route to a kijin post"),
+        "{o:?}"
+    );
+    assert_eq!(gate.asked(), [] as [mikata_tools::Ask; 0]);
+}
+
+/// A machine made to be thrown away is its own boundary: there an install, a fetch or a write
+/// outside the world runs with no shelf and no gate, so a task in a container can set itself up.
+#[test]
+fn a_disposable_machine_runs_what_stays_on_it() {
+    let w = World::new("disposable");
+    let gate = Arc::new(Scripted::new([]));
+    let mut cx = w.cx(Race::Slime, gate.clone()).with_disposable(true);
+    for command in [
+        "pacman -S --noconfirm mikata-no-such-package",
+        "curl -sS --max-time 2 http://127.0.0.1:9/",
+    ] {
+        let o = bash(&mut cx, command);
+        assert!(
+            !o.content.contains("shelf") && !o.meta.denied,
+            "{command}: {o:?}"
+        );
+    }
+    assert!(
+        gate.asked().is_empty(),
+        "no gate is asked: {:?}",
+        gate.asked()
+    );
+}
+
+/// What leaves the machine for good stays refused on a disposable one: a push, a pull request.
+#[test]
+fn a_disposable_machine_still_refuses_what_leaves_it() {
+    let w = World::new("disposable-out");
+    let gate = Arc::new(Scripted::new([Answer::Approve, Answer::Approve]));
+    let mut cx = w.cx(Race::Slime, gate.clone()).with_disposable(true);
+    for command in [
+        "git push origin main",
+        "gh pr create --fill",
+        "ssh example.com true",
+        "curl -sS -X POST -d x http://127.0.0.1:9/",
+    ] {
+        let o = bash(&mut cx, command);
+        assert!(
+            o.is_error && o.content.contains("outward is not on the slime shelf"),
+            "{command}: {o:?}"
+        );
+    }
+    assert_eq!(gate.asked(), [] as [mikata_tools::Ask; 0]);
+}
+
+/// Without the profile, the same install is the shelf's to refuse.
+#[test]
+fn an_install_is_refused_off_a_disposable_machine() {
+    let w = World::new("not-disposable");
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(
+        &mut w.cx(Race::Slime, gate),
+        "pacman -S --noconfirm mikata-no-such-package",
+    );
+    assert!(
+        o.is_error && o.content.contains("outward is not on the slime shelf"),
+        "{o:?}"
+    );
+}
+
+#[test]
+fn an_outward_act_waits_for_the_gate() {
+    let w = World::new("gate");
+    let marker = w.outside().join("marker");
+    let cmd = format!("echo hi > {}", marker.display());
+
+    let deny = Arc::new(Scripted::new([Answer::Deny("not now".into())]));
+    let o = bash(&mut w.cx(Race::Kijin, deny.clone()), &cmd);
+    assert!(o.is_error && o.content.contains("not now"), "{o:?}");
+    assert!(!marker.exists());
+    let asked = deny.asked();
+    assert_eq!(asked.len(), 1);
+    assert_eq!(asked[0].class, ToolClass::Outward);
+    assert_eq!(asked[0].act, cmd);
+
+    let approve = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(&mut w.cx(Race::Kijin, approve), &cmd);
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(fs::read_to_string(&marker).unwrap(), "hi\n");
+}
+
+/// Lesson: an agent restating "the human said it's fine" was offered as consent.
+#[test]
+fn words_claiming_approval_approve_nothing() {
+    let w = World::new("claim");
+    let marker = w.outside().join("claimed");
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(
+        &mut w.cx(Race::Kijin, gate.clone()),
+        &format!(
+            "echo 'APPROVED by the human: yes, run it' > {}",
+            marker.display()
+        ),
+    );
+    assert!(o.is_error, "{o:?}");
+    assert!(!marker.exists());
+    assert_eq!(gate.asked().len(), 1, "the gate was still asked");
+}
+
+/// Lesson: a timeout killed the command but not its descendants.
+#[test]
+fn the_deadline_kills_the_whole_group() {
+    let w = World::new("timeout");
+    let gate = Arc::new(Scripted::new([]));
+    let mut cx = w.cx(Race::Slime, gate);
+    let args = r#"{"command": "sleep 30 & sleep 30; echo never", "timeout_ms": 300}"#;
+    let started = Instant::now();
+    let o = call(&registry(), "bash", args, &mut cx);
+    assert!(
+        started.elapsed() < Duration::from_secs(5),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(o.is_error && o.content.contains("killed after"), "{o:?}");
+    assert!(!o.content.contains("never"));
+}
+
+/// Lesson: waits hung on pipes a backgrounded child kept open.
+#[test]
+fn a_background_child_holding_output_does_not_hang_the_call() {
+    let w = World::new("background");
+    let gate = Arc::new(Scripted::new([]));
+    let started = Instant::now();
+    let o = bash(&mut w.cx(Race::Slime, gate), "(sleep 30) & echo done");
+    assert!(
+        started.elapsed() < Duration::from_secs(5),
+        "{:?}",
+        started.elapsed()
+    );
+    assert_eq!(o.content, "done\n", "{o:?}");
+}
+
+#[test]
+fn exit_codes_and_stderr_are_reported() {
+    let w = World::new("exit");
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(
+        &mut w.cx(Race::Slime, gate),
+        "echo out; echo err >&2; exit 3",
+    );
+    assert!(o.is_error);
+    assert_eq!(o.meta.exit, Some(3));
+    assert_eq!(o.content, "out\n[stderr]\nerr\n\n[exit 3]");
+}
+
+/// The guard beside the test binaries (`target/<profile>/mikata-guard`), when the workspace built it.
+#[cfg(target_os = "linux")]
+fn guard() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let guard = exe.parent()?.parent()?.join("mikata-guard");
+    guard.is_file().then_some(guard)
+}
+
+/// The classifier judges words; the sandbox stops what words hide. An approval opens the
+/// network, never the filesystem beyond the world.
+#[cfg(target_os = "linux")]
+#[test]
+fn bash_runs_inside_the_guard() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("guard");
+    let home = w.root.join("home");
+    fs::create_dir_all(home.join(".ssh")).unwrap();
+    fs::write(home.join(".ssh/id_ed25519"), "PRIVATE KEY\n").unwrap();
+    fs::write(
+        w.world().join("src/peek.sh"),
+        "cat \"$1\"/.ssh/id_ed25519\n",
+    )
+    .unwrap();
+    // A write the classifier cannot see: a script's own redirect, to the path it is handed.
+    fs::write(w.world().join("src/sneak.sh"), "echo sneaky > \"$1\"\n").unwrap();
+    let cx = |race, gate| {
+        Context::new(race, w.world(), &["src"])
+            .with_body("kijin-deploy")
+            .with_deploy_roots(&[w.outside()])
+            .with_gate(gate)
+            .with_home(&home)
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+
+    let o = bash(
+        &mut cx(Race::Slime, Arc::new(Scripted::new([]))),
+        "echo built > src/out.txt && cat src/out.txt",
+    );
+    assert_eq!(o.content, "built\n", "{o:?}");
+
+    let o = bash(
+        &mut cx(Race::Slime, Arc::new(Scripted::new([]))),
+        &format!("bash src/peek.sh {}", home.display()),
+    );
+    assert!(o.is_error && !o.content.contains("PRIVATE KEY"), "{o:?}");
+
+    // Approved, an act may write exactly the outside paths it named, and the card showed them.
+    let marker = w.outside().join("approved");
+    let gate = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(
+        &mut cx(Race::Kijin, gate.clone()),
+        &format!("echo hi > {}", marker.display()),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(fs::read_to_string(&marker).unwrap(), "hi\n");
+    assert_eq!(gate.asked()[0].outside, vec![marker.clone()]);
+
+    // A new file opens alone — never its folder: a sibling written in the same command stays shut.
+    let fresh = w.outside().join("fresh.txt");
+    let sibling = w.outside().join("sibling.txt");
+    let o = bash(
+        &mut cx(Race::Kijin, Arc::new(Scripted::new([Answer::Approve]))),
+        &format!(
+            "echo new > {}; bash src/sneak.sh {}",
+            fresh.display(),
+            sibling.display()
+        ),
+    );
+    assert!(o.content.contains("Permission denied"), "{o:?}");
+    assert_eq!(fs::read_to_string(&fresh).unwrap(), "new\n");
+    assert!(!sibling.exists(), "approving a new file opened its folder");
+
+    // A failed command leaves no empty file behind.
+    let ghost = w.outside().join("ghost.txt");
+    let o = bash(
+        &mut cx(Race::Kijin, Arc::new(Scripted::new([Answer::Approve]))),
+        &format!("false > {}", ghost.display()),
+    );
+    assert!(o.is_error);
+    assert!(!ghost.exists());
+
+    // Approval opens what was named, nothing beside it: a path the words hide stays shut.
+    let hidden = w.outside().join("hidden");
+    let o = bash(
+        &mut cx(Race::Kijin, Arc::new(Scripted::new([Answer::Approve]))),
+        &format!(
+            "echo hi > {}; bash src/sneak.sh {}",
+            marker.display(),
+            w.root.join("elsewhere").display()
+        ),
+    );
+    assert!(o.content.contains("Permission denied"), "{o:?}");
+    assert!(!w.root.join("elsewhere").exists() && !hidden.exists());
+}
+
+#[test]
+fn every_rule_has_a_name_and_the_floor_is_five() {
+    for rule in Rule::ALL {
+        assert_eq!(Rule::from_name(rule.name()), Some(rule));
+    }
+    let floor: Vec<&str> = Rule::ALL
+        .iter()
+        .filter(|r| r.floor())
+        .map(|r| r.name())
+        .collect();
+    assert_eq!(
+        floor,
+        ["device", "machine-tool", "root-path", "fork-bomb", "mind"]
+    );
+}
+
+/// A rule the human configured asks instead of refusing; the answer decides.
+#[test]
+fn a_configured_rule_asks_the_human() {
+    let w = World::new("asked");
+    fs::write(w.world().join("src/f.txt"), "a\n").unwrap();
+    let cx = |gate: Arc<Scripted>| {
+        w.cx(Race::Slime, gate)
+            .with_asked_rules([Rule::InPlaceEdit])
+    };
+
+    let deny = Arc::new(Scripted::new([Answer::Deny("no".into())]));
+    let o = bash(&mut cx(deny.clone()), "sed -i.bak s/a/b/ src/f.txt");
+    assert!(o.is_error, "{o:?}");
+    assert!(
+        deny.asked()[0].why[0].contains("guard rule `in-place-edit` asks"),
+        "{:?}",
+        deny.asked()
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("src/f.txt")).unwrap(),
+        "a\n"
+    );
+
+    let approve = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(&mut cx(approve), "sed -i.bak s/a/b/ src/f.txt");
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(
+        o.meta.class,
+        Some(ToolClass::Write),
+        "an in-place edit writes"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("src/f.txt")).unwrap(),
+        "b\n"
+    );
+}
+
+/// The floor stays refused whatever the configuration lists, and no gate is asked.
+#[test]
+fn the_floor_never_asks() {
+    let w = World::new("floor");
+    let gate = Arc::new(Scripted::new([Answer::Approve, Answer::Approve]));
+    let mut cx = w.cx(Race::Kijin, gate.clone()).with_asked_rules(Rule::ALL);
+    for cmd in ["rm -rf /", ":(){ :|:& };:"] {
+        let o = bash(&mut cx, cmd);
+        assert!(
+            o.is_error
+                && o.content.starts_with("refused by guard rule")
+                && !o.content.contains("may let"),
+            "{cmd}: {o:?}"
+        );
+    }
+    assert_eq!(gate.asked(), [] as [mikata_tools::Ask; 0]);
+}
+
+fn git(world: &std::path::Path, args: &[&str]) {
+    let ok = std::process::Command::new("git")
+        .args([
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "-c",
+            "init.defaultBranch=main",
+        ])
+        .args(args)
+        .current_dir(world)
+        .output()
+        .unwrap()
+        .status
+        .success();
+    assert!(ok, "git {args:?}");
+}
+
+/// Git's executable configuration runs outside any sandbox the next time the human runs git:
+/// a command that plants it finds it put back.
+#[test]
+fn the_tripwire_restores_git_config_and_hooks() {
+    let w = World::new("tripwire-git");
+    git(&w.world(), &["init", "-q"]);
+    let config = fs::read_to_string(w.world().join(".git/config")).unwrap();
+    // Written directly, the classifier asks first; the tripwire is for what it cannot see.
+    fs::write(
+        w.world().join("plant.sh"),
+        "printf '[core]\\n\\tfsmonitor = touch /tmp/pwned\\n' >> .git/config; printf '#!/bin/sh\\necho pwned\\n' > .git/hooks/pre-commit; chmod +x .git/hooks/pre-commit; echo done\n",
+    )
+    .unwrap();
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(&mut w.cx(Race::Slime, gate.clone()), "bash plant.sh");
+    assert!(
+        o.is_error && o.content.contains("changed protected files"),
+        "{o:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join(".git/config")).unwrap(),
+        config
+    );
+    assert!(!w.world().join(".git/hooks/pre-commit").exists());
+
+    fs::write(
+        w.world().join("swap.sh"),
+        "rm -rf .git/hooks && ln -s /tmp .git/hooks\n",
+    )
+    .unwrap();
+    let o = bash(&mut w.cx(Race::Slime, gate.clone()), "bash swap.sh");
+    assert!(o.is_error, "{o:?}");
+    assert!(
+        w.world().join(".git/hooks").is_dir()
+            && !fs::symlink_metadata(w.world().join(".git/hooks"))
+                .unwrap()
+                .file_type()
+                .is_symlink()
+    );
+
+    // Ordinary work does not trip it.
+    fs::write(w.world().join("src/a.rs"), "fn a() {}\n").unwrap();
+    let o = bash(
+        &mut w.cx(Race::Slime, gate),
+        "git add -A && git -c user.email=t@t -c user.name=t commit -qm a && git log --oneline | wc -l",
+    );
+    assert!(!o.is_error && o.content.trim().ends_with('1'), "{o:?}");
+}
+
+#[test]
+fn the_tripwire_keeps_the_worlds_records_and_spares_tmp() {
+    let w = World::new("tripwire-records");
+    fs::create_dir_all(w.world().join(".mikata")).unwrap();
+    fs::write(w.world().join(".mikata/log.md"), "the truth\n").unwrap();
+    fs::write(
+        w.world().join("forge.sh"),
+        "echo forged > .mikata/log.md; touch .mikata/new.toml; echo scratch > .mikata/tmp/x\n",
+    )
+    .unwrap();
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(&mut w.cx(Race::Slime, gate.clone()), "bash forge.sh");
+    assert!(o.is_error, "{o:?}");
+    assert_eq!(
+        fs::read_to_string(w.world().join(".mikata/log.md")).unwrap(),
+        "the truth\n"
+    );
+    assert!(!w.world().join(".mikata/new.toml").exists());
+    assert!(
+        w.world().join(".mikata/tmp/x").exists(),
+        "tmp is the command's own"
+    );
+
+    let o = bash(
+        &mut w.cx(Race::Slime, gate),
+        "echo scratch > .mikata/tmp/y && mkdir -p .mikata/shared && echo '{}' >> .mikata/shared/queue.jsonl",
+    );
+    // The shared work queue moves only through the harness: a command that writes it touches the
+    // world's records, so it is refused before it runs.
+    assert!(o.is_error, "{o:?}");
+    assert!(!w.world().join(".mikata/shared/queue.jsonl").exists());
+}
+
+#[test]
+fn a_repository_the_command_creates_is_its_own() {
+    let w = World::new("tripwire-init");
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(
+        &mut w.cx(Race::Slime, gate),
+        "git init -q && git status --short | wc -l",
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert!(w.world().join(".git/config").exists());
+}
+
+/// With no kernel guard in force nothing runs — unless the human allowed it.
+#[test]
+fn no_guard_no_command() {
+    let w = World::new("unguarded");
+    let marker = w.world().join("src/ran");
+    let mut cx = Context::new(Race::Slime, w.world(), &["src"])
+        .with_sandbox(Sandbox::None("the guard helper is missing".into()));
+    let o = bash(&mut cx, &format!("touch {}", marker.display()));
+    assert!(
+        o.is_error
+            && o.content
+                .contains("no kernel guard is in force (the guard helper is missing)"),
+        "{o:?}"
+    );
+    assert!(o.content.contains("sandbox.allow_unguarded"));
+    assert!(!marker.exists());
+    let mut cx = cx.with_unguarded(true);
+    let o = bash(&mut cx, &format!("touch {}", marker.display()));
+    assert!(!o.is_error, "{o:?}");
+    assert!(marker.exists());
+}
+
+/// Esc reaches a running command: the whole group stops within a second, and what it printed is
+/// kept.
+#[test]
+fn esc_stops_a_running_command_and_keeps_its_output() {
+    let w = World::new("cancel");
+    let flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let mut cx = w
+        .cx(Race::Slime, Arc::new(Scripted::new([])))
+        .with_cancel(Arc::clone(&flag));
+    let firing = Arc::clone(&flag);
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(300));
+        firing.store(true, std::sync::atomic::Ordering::SeqCst);
+    });
+    let started = Instant::now();
+    let o = bash(
+        &mut cx,
+        "echo started; sleep 30 & echo $! > src/pid; sleep 30; echo never",
+    );
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(
+        o.is_error
+            && o.content.starts_with("started\n")
+            && o.content.contains("interrupted by the human"),
+        "{o:?}"
+    );
+    assert!(!o.content.contains("never"), "{o:?}");
+    let pid = fs::read_to_string(w.world().join("src/pid")).unwrap();
+    let alive = std::process::Command::new("kill")
+        .args(["-0", pid.trim()])
+        .status()
+        .unwrap()
+        .success();
+    assert!(!alive, "the backgrounded child died with its group");
+}
+
+/// The run's clock reaches a running command, whatever the call's own limit.
+#[test]
+fn the_run_clock_stops_a_running_command() {
+    let w = World::new("deadline");
+    let mut cx = w.cx(Race::Slime, Arc::new(Scripted::new([])));
+    cx.set_deadline(Some(Instant::now() + Duration::from_millis(300)));
+    let started = Instant::now();
+    let o = bash(&mut cx, "sleep 30");
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(
+        o.is_error && o.content.contains("killed after 0."),
+        "it says when it was really killed: {o:?}"
+    );
+}
+
+/// A commissioned creature's commands are granted exactly its soil: the guard cannot except a spot
+/// inside an allowed folder, so the claim is granted part by part around another's spot, and the
+/// kernel refuses a write there. The write tool refuses it by name.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_creatures_commands_are_granted_around_anothers_spot() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("grants");
+    fs::create_dir_all(w.world().join("src/other")).unwrap();
+    fs::create_dir_all(w.world().join("src/deep")).unwrap();
+    fs::write(w.world().join("src/mine.rs"), "mine\n").unwrap();
+    fs::write(w.world().join("src/deep/a.rs"), "a\n").unwrap();
+    fs::write(w.world().join("src/other/theirs.rs"), "theirs\n").unwrap();
+    fs::write(w.world().join("README.md"), "root\n").unwrap();
+    let cx = || {
+        Context::new(Race::Slime, w.world(), &["."])
+            .with_soil(&["src/"], &["src/other/"], false)
+            .with_build(&["target", ".mikata/instruments"])
+            .with_gate(Arc::new(Scripted::new([])))
+            .with_home(w.root.join("home"))
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+    // What git ignores is build output, granted — but never the records, even when ignored.
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .arg("-C")
+            .arg(w.world())
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    git(&["init", "-q"]);
+    fs::write(
+        w.world().join(".gitignore"),
+        "target/\n.mikata/instruments/\nsrc/other/\n",
+    )
+    .unwrap();
+    fs::create_dir_all(w.world().join("target")).unwrap();
+    fs::create_dir_all(w.world().join(".mikata/instruments")).unwrap();
+    fs::write(w.world().join(".mikata/instruments/usage.jsonl"), "{}\n").unwrap();
+    let grants = cx().grants();
+    let world = w.world().canonicalize().unwrap();
+    assert!(grants.contains(&world.join("src/mine.rs")), "{grants:?}");
+    assert!(grants.contains(&world.join("src/deep")), "{grants:?}");
+    assert!(
+        grants
+            .iter()
+            .all(|g| !g.starts_with(world.join("src/other"))),
+        "{grants:?}"
+    );
+    assert!(!grants.contains(&world), "{grants:?}");
+    assert!(grants.contains(&world.join("target")), "{grants:?}");
+    assert!(
+        grants.iter().all(|g| !g.starts_with(world.join(".mikata"))),
+        "{grants:?}"
+    );
+
+    let o = bash(
+        &mut cx(),
+        "echo changed > src/mine.rs && echo new > src/deep/b.rs && cat README.md",
+    );
+    assert!(
+        !o.is_error,
+        "its own soil is its own, and the world is still read: {o:?}"
+    );
+    let o = bash(&mut cx(), "echo stolen > src/other/theirs.rs");
+    assert!(o.is_error, "{o:?}");
+    let o = bash(&mut cx(), "echo stolen > README.md");
+    assert!(o.is_error, "{o:?}");
+    let o = bash(&mut cx(), "echo built > target/out");
+    assert!(!o.is_error, "build output is writable: {o:?}");
+    let o = bash(&mut cx(), "echo forged >> .mikata/instruments/usage.jsonl");
+    assert!(o.is_error, "{o:?}");
+    assert_eq!(
+        fs::read_to_string(w.world().join("target/out")).unwrap(),
+        "built\n"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join(".mikata/instruments/usage.jsonl")).unwrap(),
+        "{}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("src/other/theirs.rs")).unwrap(),
+        "theirs\n"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("README.md")).unwrap(),
+        "root\n"
+    );
+
+    let o = call(
+        &registry(),
+        "write",
+        r#"{"path": "src/other/theirs.rs", "content": "stolen"}"#,
+        &mut cx(),
+    );
+    assert!(
+        o.is_error && o.content.contains("outside your soil"),
+        "{o:?}"
+    );
+}
+
+/// The guard resolves every rule to what it names, so a link in a creature's soil must never
+/// grant its target: not another's spot, not another's zone, not a file outside the world.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_link_in_the_soil_grants_nothing_beyond_it() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("links");
+    fs::create_dir_all(w.world().join("src/other")).unwrap();
+    fs::create_dir_all(w.world().join("lib")).unwrap();
+    fs::write(w.world().join("src/other/theirs.rs"), "theirs\n").unwrap();
+    fs::write(w.world().join("lib/zone.rs"), "zone\n").unwrap();
+    fs::write(w.outside().join("secret"), "outside\n").unwrap();
+    let link = |target: PathBuf, name: &str| {
+        std::os::unix::fs::symlink(target, w.world().join(name)).unwrap();
+    };
+    link(w.world().join("src/other/theirs.rs"), "src/to-theirs");
+    link(w.world().join("lib"), "src/to-lib");
+    link(w.outside().join("secret"), "src/to-outside");
+    let cx = || {
+        Context::new(Race::Slime, w.world(), &["."])
+            .with_soil(&["src/"], &["src/other/"], false)
+            .with_gate(Arc::new(Scripted::new([])))
+            .with_home(w.root.join("home"))
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+    let grants = cx().grants();
+    let world = w.world().canonicalize().unwrap();
+    for never in [
+        world.join("src/other/theirs.rs"),
+        world.join("lib"),
+        w.outside().join("secret").canonicalize().unwrap(),
+    ] {
+        assert!(
+            !grants.contains(&never),
+            "{never:?} granted through a link: {grants:?}"
+        );
+    }
+    for (through, file) in [
+        ("src/to-theirs", w.world().join("src/other/theirs.rs")),
+        ("src/to-lib/zone.rs", w.world().join("lib/zone.rs")),
+        ("src/to-outside", w.outside().join("secret")),
+    ] {
+        let before = fs::read_to_string(&file).unwrap();
+        let o = bash(&mut cx(), &format!("echo stolen > {through}"));
+        assert!(o.is_error, "{through}: {o:?}");
+        assert_eq!(fs::read_to_string(&file).unwrap(), before, "{through}");
+    }
+}
+
+/// What the review of the grants found, each held: a link handed as build output grants
+/// nothing; a scratch nest that is a link is never used, and each creature's fallback scratch is
+/// its own; hundreds of grants still start; `truncate` by path is refused where landlock cannot.
+#[cfg(target_os = "linux")]
+#[test]
+fn build_links_scratch_many_grants_and_truncate() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("review");
+    fs::create_dir_all(w.world().join("lib")).unwrap();
+    fs::create_dir_all(w.world().join("src/other")).unwrap();
+    fs::create_dir_all(w.world().join(".mikata/tmp/slime-b")).unwrap();
+    fs::write(w.world().join("lib/zone.rs"), "zone\n").unwrap();
+    std::os::unix::fs::symlink(w.world().join("lib"), w.world().join("src/x.log")).unwrap();
+    std::os::unix::fs::symlink(
+        w.world().join(".mikata/tmp/slime-b"),
+        w.world().join(".mikata/tmp/slime-a"),
+    )
+    .unwrap();
+    for i in 0..600 {
+        fs::write(w.world().join(format!("src/f{i}.rs")), "x\n").unwrap();
+    }
+    let cx = || {
+        Context::new(Race::Slime, w.world(), &["."])
+            .with_soil(&["src/", ".mikata/tmp/slime-a/"], &["src/other/"], false)
+            .with_build(&["src/x.log"])
+            .with_gate(Arc::new(Scripted::new([])))
+            .with_home(w.root.join("home"))
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+    let world = w.world().canonicalize().unwrap();
+    let grants = cx().grants();
+    assert!(grants.len() >= 600, "{}", grants.len());
+    assert!(
+        grants.iter().all(|g| !g.starts_with(world.join("lib"))),
+        "a build link granted its target"
+    );
+    assert!(
+        grants
+            .iter()
+            .all(|g| !g.starts_with(world.join(".mikata/tmp/slime-b")))
+    );
+    let (one, two) = (cx().scratch(), cx().scratch());
+    assert!(!one.starts_with(&world) && one != two, "{one:?} {two:?}");
+    // Hundreds of grants go through a rules file; the command starts and writes its own soil.
+    let o = bash(&mut cx(), "echo y > src/f1.rs && cat src/f1.rs");
+    assert_eq!(o.content, "y\n", "{o:?}");
+    for cmd in [
+        "echo stolen > src/x.log/zone.rs",
+        "python3 -c \"import os; os.truncate('lib/zone.rs', 0)\"",
+    ] {
+        let o = bash(&mut cx(), cmd);
+        assert!(o.is_error, "{cmd}: {o:?}");
+    }
+    assert_eq!(
+        fs::read_to_string(w.world().join("lib/zone.rs")).unwrap(),
+        "zone\n"
+    );
+}
+
+/// Each post does its own outward acts and no other: what it does not hold is refused before
+/// the gate is asked, naming the post, the act and the post that holds it.
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "one table per verdict: refused, asked, refused for its words"
+)]
+fn a_kijin_does_only_its_posts_acts() {
+    let w = World::new("posts");
+    // A repository whose `origin` pushes where it fetches from: a push's target resolves.
+    for args in [
+        &["init", "-q"][..],
+        &["remote", "add", "origin", "https://example.com/o/r.git"],
+    ] {
+        let ok = std::process::Command::new("git")
+            .args(args)
+            .current_dir(w.world())
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "git {args:?}");
+    }
+    let as_post = |body: &str, gate: Arc<Scripted>| w.cx(Race::Kijin, gate).with_body(body);
+    // Refused, never asked: a forge's deploy, a deploy's push, a scout's push.
+    for (body, command, act, route) in [
+        (
+            "kijin-forge",
+            "kubectl apply -f deploy.yaml",
+            "deploy",
+            "kijin-deploy",
+        ),
+        (
+            "kijin-deploy",
+            "git push origin refs/heads/feat/x",
+            "push-branch",
+            "kijin-forge",
+        ),
+        (
+            "kijin-scout",
+            "git push origin refs/heads/feat/x",
+            "push-branch",
+            "kijin-forge",
+        ),
+        (
+            "kijin-ci",
+            "gh pr comment 7 --body hi",
+            "comment",
+            "kijin-forge",
+        ),
+        (
+            "kijin-forge",
+            "gh release create v1.0.0",
+            "publish",
+            "kijin-release",
+        ),
+    ] {
+        let gate = Arc::new(Scripted::new([Answer::Approve]));
+        let o = bash(&mut as_post(body, gate.clone()), command);
+        assert!(
+            o.is_error
+                && o.content
+                    .contains(&format!("`{act}` is not in the {body} post"))
+                && o.content.contains(&format!("route it to {route}")),
+            "{body}: {command}: {o:?}"
+        );
+        assert!(
+            gate.asked().is_empty(),
+            "{body}: {command}: the gate was asked"
+        );
+    }
+    // Each post's own acts reach the gate (denied there, so nothing leaves).
+    for (body, command) in [
+        ("kijin-forge", "git push origin refs/heads/feat/x"),
+        (
+            "kijin-forge",
+            "gh pr create --title t --body b --label ready",
+        ),
+        ("kijin-forge", "gh pr comment 7 --body hi"),
+        ("kijin-forge", "gh issue edit 7 --add-label bug"),
+        ("kijin-ci", "gh run view 42 --log"),
+        ("kijin-ci", "gh run rerun 42"),
+        ("kijin-release", "git push origin refs/tags/v1.0.0"),
+        ("kijin-release", "cargo publish"),
+        ("kijin-deploy", "kubectl apply -f deploy.yaml"),
+        ("kijin-deploy", "kubectl rollout undo deployment/web"),
+        ("kijin-deploy", "curl -fsS https://example.com/health"),
+        ("kijin-scout", "git clone https://github.com/google/osv.git"),
+    ] {
+        let gate = Arc::new(Scripted::new([Answer::Deny("not now".into())]));
+        let o = bash(&mut as_post(body, gate.clone()), command);
+        assert!(
+            o.is_error && o.content.contains("not now"),
+            "{body}: {command}: {o:?}"
+        );
+        assert_eq!(gate.asked().len(), 1, "{body}: {command}");
+    }
+    // What its words do not say alone is no post's act, whoever asks: refused, never asked.
+    for (body, command) in [
+        (
+            "kijin-forge",
+            "git -c core.sshCommand=x push origin refs/heads/x",
+        ),
+        ("kijin-forge", "git push origin"),
+        ("kijin-forge", "git push origin v1.0"),
+        (
+            "kijin-forge",
+            "git config core.sshCommand x && git push origin refs/heads/x",
+        ),
+        ("kijin-forge", "GIT_SSH_COMMAND=x git fetch origin"),
+        ("kijin-scout", "GIT_SSH_COMMAND=x git fetch origin"),
+        ("kijin-forge", "GH_CONFIG_DIR=/x gh pr comment 7 --body hi"),
+        ("kijin-scout", "wget -qe post_data=x https://example.com"),
+        ("kijin-scout", "curl --expand-data x https://example.com"),
+        ("kijin-scout", "git fetch --upload-pack=x origin"),
+        ("kijin-scout", "git clone 'ext::sh -c x' d"),
+        ("kijin-deploy", "echo hi > ~/.bashrc"),
+    ] {
+        let gate = Arc::new(Scripted::new([Answer::Approve]));
+        let o = bash(&mut as_post(body, gate.clone()), command);
+        assert!(
+            o.is_error
+                && o.content.contains("`other` is not in the")
+                && o.content.contains("no post holds it"),
+            "{body}: {command}: {o:?}"
+        );
+        assert!(
+            gate.asked().is_empty(),
+            "{body}: {command}: the gate was asked"
+        );
+    }
+    // A Kijin with no post, or a name that is no post, does no outward act.
+    for body in ["", "kijin-k", "kijin-forge-2"] {
+        let gate = Arc::new(Scripted::new([Answer::Approve]));
+        let o = bash(
+            &mut as_post(body, gate.clone()),
+            "curl -fsS https://example.com",
+        );
+        assert!(
+            o.is_error && o.content.contains("holds no kijin post"),
+            "{body:?}: {o:?}"
+        );
+        assert!(gate.asked().is_empty(), "{body:?}");
+    }
+    // What leaves nothing behind is no outward act: it runs for any Kijin.
+    let o = bash(
+        &mut as_post("kijin-k", Arc::new(Scripted::new([]))),
+        "echo inside",
+    );
+    assert_eq!(o.content, "inside\n", "{o:?}");
+}
+
+#[test]
+fn an_approved_spawn_reads_the_harnesss_bytes_on_its_input_and_nothing_else() {
+    use mikata_tools::Fingerprint;
+    use mikata_tools::shell::{Spawned, spawn_approved};
+    let w = World::new("stdin");
+    let cx = w.cx(Race::Kijin, Arc::new(Scripted::new([])));
+    let run = |stdin: Option<&[u8]>| {
+        let command = "cat";
+        let plan = Fingerprint::of(command, &w.world()).unwrap();
+        match spawn_approved(
+            command,
+            &cx,
+            Duration::from_secs(10),
+            ToolClass::Outward,
+            plan,
+            &mut || Ok(()),
+            stdin,
+        ) {
+            Spawned::Ran(out) => out,
+            other => panic!("{other:?}"),
+        }
+    };
+    let body = "Adds the undo.\n\n- it closes, never deletes\n";
+    let out = run(Some(body.as_bytes()));
+    assert_eq!(out.meta.exit, Some(0));
+    assert!(
+        out.content.contains("it closes, never deletes"),
+        "{}",
+        out.content
+    );
+    // Without bytes, the input is empty: `cat` reads nothing and ends.
+    let out = run(None);
+    assert_eq!(out.meta.exit, Some(0));
+    assert!(out.content.starts_with("[no output]"), "{}", out.content);
+}
+
+/// Every shell route to a creature's verify line, tried by a body inside the guard: a card
+/// rewritten, a new card written, another branch checked out over the cards — each put back by
+/// the tripwire once the command is dead — and the verify pins under the human's state directory,
+/// which the sandbox never lets a command write.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_guarded_body_neither_keeps_a_card_edit_nor_reaches_the_pins() {
+    let Some(guard) = guard() else {
+        // In CI the guard is built: a skip there would hide the trust root's only real test.
+        assert!(
+            std::env::var_os("CI").is_none(),
+            "the guard is not built: target/<profile>/mikata-guard"
+        );
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("pin-routes");
+    let world = w.world();
+    let card = world.join(".mikata/summoner/summoner/README.md");
+    fs::create_dir_all(card.parent().unwrap()).unwrap();
+    let pinned = "# summoner\n\n- **Race:** summoner\n- **Verify:** `pytest -q`\n";
+    fs::write(&card, pinned).unwrap();
+    git(&world, &["init", "-q"]);
+    git(&world, &["add", "-A"]);
+    git(&world, &["commit", "-qm", "cards"]);
+    git(&world, &["checkout", "-qb", "hostile"]);
+    fs::write(
+        &card,
+        "# summoner\n\n- **Race:** summoner\n- **Verify:** `true`\n",
+    )
+    .unwrap();
+    git(&world, &["commit", "-qam", "hostile"]);
+    git(&world, &["checkout", "-q", "-"]);
+    let pins = w.root.join("state/mikata/verify/world.jsonl");
+    fs::create_dir_all(pins.parent().unwrap()).unwrap();
+    fs::write(&pins, "{\"pinned\":\"pytest -q\"}\n").unwrap();
+    fs::write(
+        world.join("src/rewrite.sh"),
+        "printf -- '- **Verify:** `true`\\n' > .mikata/summoner/summoner/README.md\n",
+    )
+    .unwrap();
+    fs::write(
+        world.join("src/born.sh"),
+        "mkdir -p .mikata/orc/x && printf -- '# orc-x\\n\\n- **Race:** orc\\n- **Verify:** `true`\\n' > .mikata/orc/x/README.md\n",
+    )
+    .unwrap();
+    fs::write(
+        world.join("src/branch.sh"),
+        "HOME=\"$PWD/.mikata/tmp\" git checkout -q hostile\n",
+    )
+    .unwrap();
+    fs::write(world.join("src/pin.sh"), "echo forged >> \"$1\"\n").unwrap();
+    // A commit: the working tree is put back, but git's object store is the world's to write.
+    fs::write(
+        world.join("src/commit.sh"),
+        "printf -- '- **Verify:** `true`\\n' > .mikata/summoner/summoner/README.md && HOME=\"$PWD/.mikata/tmp\" git -c user.name=b -c user.email=b@b commit -qam hostile\n",
+    )
+    .unwrap();
+    let home = w.root.join("home");
+    fs::create_dir_all(&home).unwrap();
+    let mut cx = Context::new(Race::Summoner, world.clone(), &["."])
+        .with_body("summoner")
+        .with_gate(Arc::new(Scripted::new([])))
+        .with_home(&home)
+        .with_sandbox(Sandbox::Guard(guard));
+    for script in ["rewrite", "born", "branch", "commit"] {
+        let o = bash(&mut cx, &format!("bash src/{script}.sh"));
+        assert_eq!(
+            fs::read_to_string(&card).unwrap(),
+            pinned,
+            "{script}: {o:?}"
+        );
+        assert!(
+            o.content.contains("changed protected files"),
+            "{script}: {o:?}"
+        );
+    }
+    assert!(!world.join(".mikata/orc/x").exists());
+    // The commit stands: the next checkout or clone brings the hostile card, so the gate must not
+    // trust a card at all — it runs only pinned lines (`mikata_world::pins`).
+    let head = std::process::Command::new("git")
+        .args(["show", "HEAD:.mikata/summoner/summoner/README.md"])
+        .current_dir(&world)
+        .output()
+        .unwrap();
+    assert!(
+        String::from_utf8_lossy(&head.stdout).contains("`true`"),
+        "{head:?}"
+    );
+    let o = bash(&mut cx, &format!("bash src/pin.sh {}", pins.display()));
+    assert!(o.is_error, "{o:?}");
+    assert_eq!(
+        fs::read_to_string(&pins).unwrap(),
+        "{\"pinned\":\"pytest -q\"}\n",
+        "{o:?}"
+    );
+}
+
+/// A typed act the human approved is the harness's own rendered command, and it must reach the
+/// forge: it reads the login a read-only probe reads. A `git push` that could not was the first
+/// thing a live run found. An approved `bash` command is the model's text, and reads no credential;
+/// and nothing that runs ever stops to ask for a username.
+#[cfg(target_os = "linux")]
+#[test]
+fn an_approved_typed_act_reads_the_forges_login_and_bash_never_does() {
+    use mikata_tools::Fingerprint;
+    use mikata_tools::shell::{Spawned, spawn_approved};
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("forge-login");
+    let home = w.root.join("home");
+    fs::create_dir_all(home.join(".config/gh")).unwrap();
+    fs::write(home.join(".config/gh/hosts.yml"), "oauth_token: LOGIN\n").unwrap();
+    fs::create_dir_all(home.join(".aws")).unwrap();
+    fs::write(home.join(".aws/credentials"), "AWS KEY\n").unwrap();
+    let cx = |gate| {
+        Context::new(Race::Kijin, w.world(), &["src"])
+            .with_body("kijin-forge")
+            .with_gate(gate)
+            .with_home(&home)
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+    let typed = |command: &str| {
+        let plan = Fingerprint::of(command, w.world().as_path()).unwrap();
+        match spawn_approved(
+            command,
+            &cx(Arc::new(Scripted::new([]))),
+            Duration::from_secs(20),
+            ToolClass::Outward,
+            plan,
+            &mut || Ok(()),
+            None,
+        ) {
+            Spawned::Ran(out) => out,
+            other => panic!("{other:?}"),
+        }
+    };
+    let login = format!("cat {}/.config/gh/hosts.yml", home.display());
+    let o = typed(&login);
+    assert!(o.content.contains("LOGIN"), "{o:?}");
+    let o = typed("printf '%s %s' \"$GIT_TERMINAL_PROMPT\" \"$GH_PROMPT_DISABLED\"");
+    assert!(o.content.contains("0 1"), "{o:?}");
+    // Only the forge's login: no other credential comes with it.
+    let o = typed(&format!("cat {}/.aws/credentials", home.display()));
+    assert!(!o.content.contains("AWS KEY"), "{o:?}");
+    // Bash, approved or not, is the model's text.
+    let gate = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(&mut cx(gate), &login);
+    assert!(!o.content.contains("LOGIN"), "{o:?}");
+}
+
+/// A push leaves git to note where the remote stands: its own `refs/remotes`, which a Kijin's soil
+/// never holds. A typed act may write that and nothing else of `.git`; `bash` may not.
+#[cfg(target_os = "linux")]
+#[test]
+fn an_approved_typed_act_notes_the_remotes_ref_and_nothing_else_of_git() {
+    use mikata_tools::Fingerprint;
+    use mikata_tools::shell::{Spawned, spawn_approved};
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("tracking-ref");
+    let home = w.root.join("home");
+    fs::create_dir_all(&home).unwrap();
+    fs::create_dir_all(w.world().join(".git/refs/heads")).unwrap();
+    let cx = |gate| {
+        Context::new(Race::Kijin, w.world(), &["src"])
+            .with_body("kijin-forge")
+            .with_gate(gate)
+            .with_home(&home)
+            .with_soil(&["src"], &[] as &[&str], false)
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+    let typed = |command: &str| {
+        let plan = Fingerprint::of(command, w.world().as_path()).unwrap();
+        match spawn_approved(
+            command,
+            &cx(Arc::new(Scripted::new([]))),
+            Duration::from_secs(20),
+            ToolClass::Outward,
+            plan,
+            &mut || Ok(()),
+            None,
+        ) {
+            Spawned::Ran(out) => out,
+            other => panic!("{other:?}"),
+        }
+    };
+    let o = typed("mkdir -p .git/refs/remotes/origin && echo abc > .git/refs/remotes/origin/x");
+    assert!(!o.is_error, "{o:?}");
+    assert!(w.world().join(".git/refs/remotes/origin/x").exists());
+    // Only that: a branch of the world's own, or its config, stays out of reach.
+    let o = typed("echo abc > .git/refs/heads/planted");
+    assert!(o.is_error, "{o:?}");
+    assert!(!w.world().join(".git/refs/heads/planted").exists());
+    // Bash, approved, is the model's text.
+    let gate = Arc::new(Scripted::new([Answer::Approve]));
+    let o = bash(&mut cx(gate), "echo abc > .git/refs/remotes/origin/y");
+    assert!(
+        !w.world().join(".git/refs/remotes/origin/y").exists(),
+        "{o:?}"
+    );
+}
+
+/// Output cut for length keeps its head and its tail, and says how much went between them: a
+/// test log's verdict is at its end, and the first error near its start. Output that fits is
+/// untouched.
+#[test]
+fn cut_output_keeps_its_head_and_its_tail() {
+    let w = World::new("head-tail");
+    let gate = Arc::new(Scripted::new([]));
+    let mut cx = w.cx(Race::Slime, gate);
+    // 100 000 bytes of filler between a first line and a last.
+    let o = bash(
+        &mut cx,
+        "echo FIRST-LINE; head -c 100000 /dev/zero | tr '\\0' x; echo; echo LAST-LINE",
+    );
+    assert!(!o.is_error, "{}", &o.content[..200.min(o.content.len())]);
+    assert!(o.content.starts_with("FIRST-LINE\n"), "the head is kept");
+    assert!(
+        o.content.trim_end().ends_with("LAST-LINE"),
+        "the tail is kept"
+    );
+    // Between them, one line says how many bytes went: all but the 30 000 kept.
+    let total = "FIRST-LINE\n".len() + 100_000 + 1 + "LAST-LINE\n".len();
+    let said = format!("… {} bytes of output dropped here …", total - 30_000);
+    assert!(o.content.contains(&said), "wanted `{said}`");
+    assert!(o.content.len() < 30_200, "{}", o.content.len());
+    assert!(o.meta.truncated);
+    // The same on stderr, under its own mark.
+    let e = bash(
+        &mut cx,
+        "(echo E-FIRST; head -c 50000 /dev/zero | tr '\\0' y; echo; echo E-LAST) >&2",
+    );
+    let err = e.content.split("[stderr]\n").nth(1).unwrap_or_default();
+    assert!(
+        err.starts_with("E-FIRST\n") && err.trim_end().ends_with("E-LAST"),
+        "stderr"
+    );
+    assert!(err.contains("bytes of stderr dropped here …"));
+    // Output that fits is as it was.
+    let small = bash(&mut cx, "echo one; echo two");
+    assert_eq!(small.content, "one\ntwo\n");
+    assert!(!small.meta.truncated);
+}
+
+/// A model made to fill `timeout_ms` invents a short one: 5 to 30 seconds on every call of a
+/// screen, never the 120-second default. A model's timeout under the default is read as the
+/// default; one above it stands, and so does the harness's own short limit, which never passes
+/// through here.
+#[test]
+fn a_models_timeout_under_the_default_is_read_as_the_default() {
+    use mikata_tools::model_call;
+    let ms = |input: &str| {
+        serde_json::from_str::<serde_json::Value>(&model_call("bash", input)).unwrap()["timeout_ms"]
+            .clone()
+    };
+    assert_eq!(ms(r#"{"command": "pytest", "timeout_ms": 5000}"#), 120_000);
+    assert_eq!(ms(r#"{"command": "pytest", "timeout_ms": 30000}"#), 120_000);
+    assert_eq!(
+        ms(r#"{"command": "cargo test", "timeout_ms": 300000}"#),
+        300_000
+    );
+    assert!(ms(r#"{"command": "ls", "timeout_ms": null}"#).is_null());
+    assert!(ms(r#"{"command": "ls"}"#).is_null());
+    // The command is untouched, and no other tool's arguments are read.
+    let kept = model_call("bash", r#"{"command": "echo 'a  b'", "timeout_ms": 5000}"#);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&kept).unwrap()["command"],
+        "echo 'a  b'"
+    );
+    let other = r#"{"path": "a", "timeout_ms": 5}"#;
+    assert_eq!(model_call("read", other), other);
+    let garbled = "not json";
+    assert_eq!(model_call("bash", garbled), garbled);
+}
+
+/// A pipeline's first stage's exit status reaches the outcome, from the shell's `PIPESTATUS`: a
+/// check piped into a filter, `python3 -c '…' 2>&1 | grep -v noise`, hid its failures behind the
+/// filter's success, and eight such runs stopped a body that was still making progress. The
+/// command's own exit is unchanged, and so is its output.
+#[test]
+fn a_pipelines_stages_exit_statuses_are_reported() {
+    let w = World::new("pipestatus");
+    let gate = Arc::new(Scripted::new([]));
+    let mut cx = w.cx(Race::Slime, gate);
+    let o = bash(&mut cx, "echo out; false | cat");
+    assert_eq!(o.meta.pipe, Some(1), "{o:?}");
+    assert_eq!(
+        o.meta.exit,
+        Some(0),
+        "the command's own exit, as bash gives it"
+    );
+    assert_eq!(o.content, "out\n", "{o:?}");
+    let o = bash(&mut cx, "set -o pipefail; false | cat");
+    assert_eq!(o.meta.pipe, Some(1));
+    assert_eq!(o.meta.exit, Some(1), "pipefail's exit kept");
+    let o = bash(&mut cx, "true | cat  # a comment at the end");
+    assert_eq!(o.meta.pipe, Some(0));
+    let o = bash(&mut cx, "false | cat; exit 3");
+    assert_eq!(
+        o.meta.pipe, None,
+        "a command that exits itself leaves no reading"
+    );
+    assert_eq!(o.meta.exit, Some(3));
+    // A command with no pipe, or one a line after it could change, runs exactly as written.
+    let o = bash(&mut cx, "exit 4");
+    assert_eq!((o.meta.pipe, o.meta.exit), (None, Some(4)));
+    let o = bash(&mut cx, "cat <<EOF | cat\nhi\nEOF");
+    assert_eq!(o.meta.pipe, None, "a heredoc's command runs as written");
+    assert_eq!(o.content, "hi\n", "{o:?}");
+}

@@ -1,0 +1,885 @@
+//! The `bash` tool: classify, check the shelf, ask the gate, then run in a process group.
+//!
+//! Every command runs in a process group of its own, started at the world's root with no input.
+//! At the deadline the whole group is killed, descendants included, and when the shell exits
+//! whatever it left in the background is killed too, so a child holding the output open cannot
+//! hang the call. The environment reaches the command with its secrets removed.
+
+use std::fmt::Write as _;
+use std::fs;
+use std::os::unix::process::CommandExt as _;
+use std::path::{Path, PathBuf};
+use std::process::{Child, Stdio};
+use std::sync::mpsc;
+use std::thread;
+use std::time::{Duration, Instant};
+
+use mikata_races::{OutwardKind, Race, ToolClass, check_class, check_post};
+use mikata_sandbox::Policy;
+/// The process's environment without its secrets, as every child of the harness gets it.
+pub use mikata_sandbox::scrubbed_env;
+use rustix::process::{Pid, Signal, kill_process_group};
+use serde::Deserialize;
+use serde_json::{Value, json};
+
+use crate::classify::{Place, Verdict, classify_reach};
+use crate::fingerprint::Fingerprint;
+use crate::gate::{Answer, Ask};
+use crate::tool::{Context, Outcome, Tool, args};
+use crate::tripwire::Snapshot;
+
+/// How long a command may run when the call names no timeout.
+const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
+/// The longest timeout a call may ask for.
+pub const MAX_TIMEOUT: Duration = Duration::from_secs(600);
+/// How long output pipes get to drain once the group is dead.
+const DRAIN: Duration = Duration::from_millis(500);
+/// Bytes kept from each of stdout and stderr: the first half and the last half when there are
+/// more, since a log's first error is near its start and its verdict at its end.
+const MAX_OUTPUT: usize = 30_000;
+/// Bytes kept from the start of an output that is cut.
+const HEAD_OUTPUT: usize = MAX_OUTPUT / 2;
+
+/// A model's arguments to `tool`, as the tool is to read them: a `bash` call's `timeout_ms`
+/// under the default is read as the default. A provider that must be made to fill every
+/// parameter gets an invented one — 5 to 30 seconds on every call of a screen, never the default
+/// — and a test suite killed at 5 seconds reads as a failure. A limit above the default stands,
+/// and so does the harness's own short limit on a verify line, which never passes through here.
+#[must_use]
+pub fn model_call<'a>(tool: &str, input: &'a str) -> std::borrow::Cow<'a, str> {
+    if tool != "bash" {
+        return input.into();
+    }
+    let Ok(mut args) = serde_json::from_str::<Value>(input) else {
+        return input.into();
+    };
+    let default = u64::try_from(DEFAULT_TIMEOUT.as_millis()).unwrap_or(u64::MAX);
+    match args.get("timeout_ms").and_then(Value::as_u64) {
+        Some(asked) if asked < default => {
+            args["timeout_ms"] = json!(default);
+            args.to_string().into()
+        }
+        _ => input.into(),
+    }
+}
+
+/// Run a shell command inside the world.
+pub struct Bash;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BashArgs {
+    command: String,
+    #[serde(default)]
+    timeout_ms: Option<u64>,
+}
+
+impl Tool for Bash {
+    fn name(&self) -> &'static str {
+        "bash"
+    }
+
+    fn description(&self) -> &'static str {
+        "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "The command line."},
+                "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 600_000, "description": "Kill the command after this many milliseconds (default 120000)."}
+            },
+            "required": ["command"],
+            "additionalProperties": false
+        })
+    }
+
+    fn class(&self) -> ToolClass {
+        ToolClass::Read
+    }
+
+    fn example(&self) -> Value {
+        json!({"command": "cargo test", "timeout_ms": 300_000})
+    }
+
+    fn run(&self, raw: Value, cx: &mut Context) -> Outcome {
+        let a: BashArgs = match args(self.name(), raw) {
+            Ok(a) => a,
+            Err(o) => return o,
+        };
+        // Containment is never claimed, and never silently skipped: with no kernel guard in
+        // force nothing runs, unless the human chose otherwise in their own configuration.
+        if let mikata_sandbox::Sandbox::None(reason) = cx.sandbox()
+            && !cx.allows_unguarded()
+        {
+            return Outcome::error(format!(
+                "no kernel guard is in force ({reason}), so the command did not run; to run commands unguarded, set `sandbox.allow_unguarded = true` in your global config"
+            ));
+        }
+        let timeout = a
+            .timeout_ms
+            .map_or(DEFAULT_TIMEOUT, Duration::from_millis)
+            .min(MAX_TIMEOUT);
+        // Every approval is bound to the world it was given in: a world that changed before the
+        // spawn runs nothing and is asked again, a bounded number of times.
+        let mut changed: Vec<String> = Vec::new();
+        let mut notes: Vec<String> = Vec::new();
+        for _ in 0..=MAX_REASKS {
+            let admitted = match admit(&a.command, cx, &changed) {
+                Ok(admitted) => admitted,
+                Err(mut refused) => {
+                    for note in &notes {
+                        let _ = write!(refused.content, "\n[{note}]");
+                    }
+                    return refused;
+                }
+            };
+            match attempt(&a.command, cx, timeout, admitted, None, None, false) {
+                Spawned::Ran(mut out) => {
+                    for note in &notes {
+                        let _ = write!(out.content, "\n[{note}]");
+                    }
+                    return out;
+                }
+                Spawned::Changed { approved, now } => {
+                    changed = approved.changes(&now);
+                    notes.push(format!(
+                        "the world changed since approval of plan {}, so the command did not run and the gate asked again: {}",
+                        approved.id(),
+                        changed.join("; ")
+                    ));
+                }
+                Spawned::Failed(out) => return out,
+            }
+        }
+        let mut out = Outcome::error(format!(
+            "the world changed between each approval and the spawn, {} times: the command did not run",
+            MAX_REASKS + 1
+        ));
+        for note in &notes {
+            let _ = write!(out.content, "\n[{note}]");
+        }
+        out
+    }
+}
+
+/// How many times an approval whose world changed before the spawn is asked again.
+const MAX_REASKS: usize = 3;
+
+/// What the classifier and the gate let through.
+struct Admitted {
+    class: ToolClass,
+    /// The outside paths the command named, opened only when the act was approved.
+    outside: Vec<PathBuf>,
+    /// The plan the human approved, when the gate was asked.
+    plan: Option<Fingerprint>,
+}
+
+/// One try at running an approved command.
+#[derive(Debug)]
+pub enum Spawned {
+    /// It ran: the result to give the body.
+    Ran(Outcome),
+    /// The world no longer matched the approved plan at the spawn: nothing ran.
+    Changed {
+        /// The plan the human approved.
+        approved: Fingerprint,
+        /// The world as it is now.
+        now: Fingerprint,
+    },
+    /// It could not be prepared or started, or the step before the spawn refused: nothing ran.
+    Failed(Outcome),
+}
+
+/// The last step before an approved command is spawned, taken after the plan is rechecked:
+/// an `Err` stops the spawn, with its reason.
+pub type BeforeSpawn<'a> = &'a mut dyn FnMut() -> Result<(), String>;
+
+/// Run `command`, already approved by the human against `plan`, as the bash tool runs what its
+/// gate admitted: in the context's sandbox with the network open, between the tripwire's
+/// snapshots and after the attic's, and only if the world still matches `plan` at the spawn.
+/// `before` runs between that recheck and the spawn — the Kijin's act runner journals its intent
+/// there — and its refusal stops the spawn. `stdin`, when given, is what the command reads on
+/// its standard input — bytes the harness holds, never a file in the world another command could
+/// swap; without it the input is empty. The kernel guard is the caller's to require.
+pub fn spawn_approved(
+    command: &str,
+    cx: &Context,
+    timeout: Duration,
+    class: ToolClass,
+    plan: Fingerprint,
+    before: BeforeSpawn<'_>,
+    stdin: Option<&[u8]>,
+) -> Spawned {
+    let admitted = Admitted {
+        class,
+        outside: Vec::new(),
+        plan: Some(plan),
+    };
+    attempt(
+        command,
+        cx,
+        timeout.min(MAX_TIMEOUT),
+        admitted,
+        Some(before),
+        stdin,
+        true,
+    )
+}
+
+/// `typed`: the harness rendered the command, so it reads the forge's login; a `bash` command is
+/// the model's text, and never does.
+fn attempt(
+    command: &str,
+    cx: &Context,
+    timeout: Duration,
+    admitted: Admitted,
+    before_spawn: Option<BeforeSpawn<'_>>,
+    stdin: Option<&[u8]>,
+    typed: bool,
+) -> Spawned {
+    let Admitted {
+        class,
+        outside,
+        plan,
+    } = admitted;
+    let network = matches!(class, ToolClass::Outward | ToolClass::Destructive);
+    // An approved act may write the outside paths it named; an unapproved one never has any.
+    let opened = if network { outside } else { Vec::new() };
+    // The shared shelf exists before the snapshot, so a queue the human starts while the
+    // command runs is not taken for a directory the command made.
+    let _ = std::fs::create_dir_all(cx.world().join(".mikata/shared"));
+    if let Err(e) = std::fs::create_dir_all(cx.world().join(".mikata/tmp")) {
+        return Spawned::Failed(Outcome::error(format!(
+            "could not prepare the command's temporary directory: {e}"
+        )));
+    }
+    let made = match make_approved(&opened) {
+        Ok(m) => m,
+        Err(e) => return Spawned::Failed(Outcome::error(e)),
+    };
+    let mut before = Snapshot::take(cx.world());
+    // What the command may take away is kept first; a failed snapshot is said, not fatal: the
+    // attic is recovery, the guard is containment.
+    let line: String = command.chars().take(200).collect();
+    let kept = cx
+        .attic()
+        .map(|attic| attic.snapshot(&format!("before bash: {line}")));
+    let bound = plan.as_ref().map(|plan| (plan, made.as_slice()));
+    let ran = match run(
+        command,
+        cx,
+        timeout,
+        network,
+        typed,
+        &opened,
+        bound,
+        before_spawn,
+        stdin,
+    ) {
+        Ok(r) => r,
+        Err(stale @ (Spawn::Changed(_) | Spawn::Unreadable(_) | Spawn::Held(_))) => {
+            // Nothing ran: the files made for it go, and nothing is restored over the world.
+            for path in &made {
+                if fs::metadata(path).is_ok_and(|m| m.len() == 0) {
+                    let _ = fs::remove_file(path);
+                }
+            }
+            return match (stale, plan) {
+                (Spawn::Changed(now), Some(approved)) => Spawned::Changed { approved, now },
+                (Spawn::Unreadable(e), _) => Spawned::Failed(Outcome::error(format!(
+                    "the world could not be read again before the spawn, so the approved command did not run: {e}"
+                ))),
+                (Spawn::Held(e), _) => Spawned::Failed(Outcome::error(format!(
+                    "the step before the spawn refused, so the approved command did not run: {e}"
+                ))),
+                _ => Spawned::Failed(Outcome::error("the command did not run")),
+            };
+        }
+        Err(Spawn::Io(e)) => {
+            return Spawned::Failed(Outcome::error(format!("could not start bash: {e}")));
+        }
+    };
+    // A command that failed leaves no empty file behind it.
+    if ran.timed_out || ran.interrupted || ran.code != Some(0) {
+        for path in &made {
+            if fs::metadata(path).is_ok_and(|m| m.len() == 0) {
+                let _ = fs::remove_file(path);
+            }
+        }
+    }
+    // The command's whole process group is dead: nothing can race the restore.
+    if class == ToolClass::Destructive {
+        before.release_deleted_repository();
+    }
+    let tripped = before.restore();
+    let attic_note = attic_note(cx, kept.as_ref(), class);
+    let mut out = Outcome::ok(ran.render(), class);
+    out.is_error = ran.timed_out || ran.interrupted || ran.code != Some(0);
+    out.meta.exit = ran.code;
+    out.meta.pipe = ran.pipe;
+    out.meta.timed_out = ran.timed_out;
+    out.meta.truncated = ran.stdout.dropped > 0 || ran.stderr.dropped > 0;
+    // The journal keeps, with the act, the plan the human approved it against.
+    if let Some(plan) = &plan {
+        let _ = write!(
+            out.content,
+            "\n[approved by the human against {}, unchanged at the spawn]",
+            plan.short()
+        );
+    }
+    if let Some(note) = attic_note {
+        let _ = write!(out.content, "\n[{note}]");
+    }
+    if !tripped.is_empty() {
+        out.is_error = true;
+        out.content.push_str("\n[the command changed protected files — git's executable configuration or the world's records; ");
+        out.content.push_str(&tripped.join("; "));
+        out.content.push(']');
+    }
+    Spawned::Ran(out)
+}
+
+/// Whether the command may run, and at what class: classified, shelved, asked when it must be.
+/// Returns the class, the outside paths it named and the plan an approval was bound to, or the
+/// refusal to give the body. `changed` is what made an earlier approval of the same command stale.
+/// A verdict as admission reads it: its class, its reasons, the paths outside the world it
+/// reaches, and whether a rule asks instead of refusing; or the refusal.
+fn ruled(
+    verdict: Verdict,
+    cx: &Context,
+) -> Result<(ToolClass, Vec<String>, Vec<PathBuf>, bool), Outcome> {
+    match verdict {
+        Verdict::Refuse {
+            rule,
+            reason,
+            class,
+        } if cx.asks(rule) => {
+            let why = vec![format!(
+                "guard rule `{}` asks instead of refusing: {reason}",
+                rule.name()
+            )];
+            Ok((class, why, Vec::new(), true))
+        }
+        Verdict::Refuse { rule, reason, .. } => {
+            let hint = if rule.floor() {
+                String::new()
+            } else {
+                format!(" (the human may let rule `{}` ask instead)", rule.name())
+            };
+            let mut refused = Outcome::error(format!(
+                "refused by guard rule `{}`: {reason}{hint}",
+                rule.name()
+            ));
+            refused.meta.guarded = true;
+            Err(refused)
+        }
+        Verdict::Run {
+            class,
+            why,
+            outside,
+        } => Ok((class, why, outside, false)),
+    }
+}
+
+/// Whether every outward act of a command stays on this machine: on a disposable one, that is
+/// no outward act, for the machine is the boundary. `Other` never does: it is a socket, a remote
+/// shell, a service, or a push the classifier could not resolve.
+fn stays_on_the_machine(acts: &[OutwardKind]) -> bool {
+    acts.iter().all(|k| {
+        matches!(
+            k,
+            OutwardKind::Fetch | OutwardKind::Install | OutwardKind::WriteOutside
+        )
+    })
+}
+
+fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Outcome> {
+    let place = Place {
+        world: cx.world().to_path_buf(),
+        home: cx.home().to_path_buf(),
+        cwd: cx.world().to_path_buf(),
+        roots: cx.deploy_roots().to_vec(),
+    };
+    let (verdict, acts, pushes) = classify_reach(command, &place);
+    let (class, why, outside, asked) = ruled(verdict, cx)?;
+    let contained = cx.disposable() && pushes.is_empty() && stays_on_the_machine(&acts);
+    if !contained {
+        check_class(cx.race(), class).map_err(Outcome::unheld)?;
+    }
+    // A Kijin does only its post's outward acts: anything else is refused before the gate.
+    if cx.race().base() == Race::Kijin {
+        check_post(cx.body(), &acts).map_err(|e| Outcome::error(e.to_string()))?;
+    }
+    if contained || !(asked || matches!(class, ToolClass::Outward | ToolClass::Destructive)) {
+        return Ok(Admitted {
+            class,
+            outside,
+            plan: None,
+        });
+    }
+    let mut why = why;
+    // A push goes where its remote's configuration says: resolved now, shown on the card, and
+    // no post's act unless it pushes exactly where it fetches from.
+    for push in &pushes {
+        let url = crate::fingerprint::push_url(&push.dir, &push.remote).map_err(|e| {
+            let refused = check_post(cx.body(), &[OutwardKind::Other])
+                .err()
+                .map_or_else(String::new, |r| format!("{r}: "));
+            Outcome::error(format!("{refused}{e}"))
+        })?;
+        why.push(format!(
+            "pushes to {} (remote `{}`)",
+            crate::fingerprint::shown_url(&url),
+            push.remote
+        ));
+    }
+    if !changed.is_empty() {
+        why.insert(
+            0,
+            format!(
+                "the world changed since approval — {}; approving again binds to the world as it is now",
+                changed.join("; ")
+            ),
+        );
+    }
+    // The plan is taken before the human is asked: what they approve is the world they were shown.
+    // A plan that cannot be read is no plan: nothing is put to the human, and nothing runs.
+    let plan = Fingerprint::of(command, cx.world()).map_err(|e| {
+        Outcome::error(format!(
+            "the plan this {class} command would be approved against could not be read, so the gate was not asked and the command did not run: {e}"
+        ))
+    })?;
+    let ask = Ask {
+        body: cx.body().to_owned(),
+        race: cx.race(),
+        class,
+        act: command.to_owned(),
+        why,
+        outside: outside.clone(),
+        fingerprint: Some(plan.clone()),
+    };
+    if let Answer::Deny(reason) = cx.gate().ask(&ask) {
+        let mut denied = Outcome::error(format!(
+            "the human gate did not approve this {class} command ({}): {reason}",
+            plan.short()
+        ));
+        denied.meta.denied = true;
+        return Err(denied);
+    }
+    Ok(Admitted {
+        class,
+        outside,
+        plan: Some(plan),
+    })
+}
+
+/// What the attic says after a command: the files it deleted and where they are kept, a
+/// repository put back — or that no snapshot could be kept.
+fn attic_note(
+    cx: &Context,
+    kept: Option<&Result<crate::attic::Snapshot, String>>,
+    class: ToolClass,
+) -> Option<String> {
+    let attic = cx.attic()?;
+    match kept? {
+        Ok(snap) => {
+            let mut notes = Vec::new();
+            let lost = attic.lost_since(snap);
+            if !lost.is_empty() {
+                notes.push(format!(
+                    "deleted {} nested repositor{} — NOT kept in the attic, which holds only their commit's name: {}",
+                    lost.len(),
+                    if lost.len() == 1 { "y" } else { "ies" },
+                    lost.join(", ")
+                ));
+            }
+            let gone = attic.deleted_since(snap);
+            if !gone.is_empty() {
+                let first: Vec<&str> = gone.iter().take(5).map(String::as_str).collect();
+                notes.push(format!(
+                    "deleted {} file(s) — kept in the attic, snapshot {}: {}{}",
+                    gone.len(),
+                    &snap.tree[..12.min(snap.tree.len())],
+                    first.join(", "),
+                    if gone.len() > 5 { ", …" } else { "" }
+                ));
+            }
+            if !snap.skipped.is_empty() {
+                notes.push(format!(
+                    "{} file(s) over {} MiB were not kept in the attic: {}",
+                    snap.skipped.len(),
+                    crate::attic::MAX_FILE_BYTES / (1024 * 1024),
+                    snap.skipped
+                        .iter()
+                        .take(3)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+            // A destructive act the human approved is the human's: the attic keeps it, and does
+            // not undo it.
+            if class != ToolClass::Destructive {
+                notes.extend(attic.repair_git());
+            }
+            (!notes.is_empty()).then(|| notes.join("; "))
+        }
+        Err(e) => Some(format!(
+            "the attic could not keep a snapshot before this command: {e}"
+        )),
+    }
+}
+
+/// The sandbox can only name what exists, and opening a new file's folder would open everything
+/// beside it: an approved file that does not exist yet is made here, empty, so that file alone
+/// is opened. Returns the files it made.
+fn make_approved(opened: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
+    let mut made = Vec::new();
+    for path in opened {
+        if fs::symlink_metadata(path).is_err() {
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)
+                .map_err(|e| {
+                    format!(
+                        "could not prepare the approved path `{}`: {e}; nothing ran",
+                        path.display()
+                    )
+                })?;
+            made.push(path.clone());
+        }
+    }
+    Ok(made)
+}
+
+struct Ran {
+    stdout: Captured,
+    stderr: Captured,
+    code: Option<i32>,
+    /// The first stage's exit status in the command's last pipeline ([`with_pipe_status`]).
+    pipe: Option<u8>,
+    timed_out: bool,
+    interrupted: bool,
+    waited: Duration,
+}
+
+#[derive(Default)]
+struct Captured {
+    /// The output whole when it fits, else its first [`HEAD_OUTPUT`] bytes.
+    bytes: Vec<u8>,
+    /// The last bytes of an output that was cut, up to what is left of [`MAX_OUTPUT`].
+    tail: std::collections::VecDeque<u8>,
+    /// Bytes that went between the head and the tail.
+    dropped: usize,
+}
+
+impl Captured {
+    /// One more piece of the output: appended while it fits, else kept as the tail, the oldest
+    /// tail bytes giving way.
+    fn take(&mut self, piece: &[u8]) {
+        if self.dropped == 0 && self.tail.is_empty() {
+            let room = MAX_OUTPUT - self.bytes.len();
+            if piece.len() <= room {
+                self.bytes.extend_from_slice(piece);
+                return;
+            }
+            // It no longer fits: what is past the head becomes the start of the tail.
+            self.bytes.extend_from_slice(piece);
+            let rest = self.bytes.split_off(HEAD_OUTPUT.min(self.bytes.len()));
+            self.keep_tail(&rest);
+            return;
+        }
+        self.keep_tail(piece);
+    }
+
+    fn keep_tail(&mut self, piece: &[u8]) {
+        self.tail.extend(piece);
+        let most = MAX_OUTPUT - HEAD_OUTPUT;
+        if self.tail.len() > most {
+            let over = self.tail.len() - most;
+            self.tail.drain(..over);
+            self.dropped += over;
+        }
+    }
+
+    /// The output as text: whole, or its head, a line saying how many bytes of `what` went, and
+    /// its tail.
+    fn text(&self, what: &str) -> String {
+        let mut s = String::from_utf8_lossy(&self.bytes).into_owned();
+        if self.dropped > 0 {
+            if !s.ends_with('\n') {
+                s.push('\n');
+            }
+            let _ = writeln!(s, "… {} bytes of {what} dropped here …", self.dropped);
+        }
+        let tail: Vec<u8> = self.tail.iter().copied().collect();
+        s.push_str(&String::from_utf8_lossy(&tail));
+        s
+    }
+}
+
+impl Ran {
+    fn render(&self) -> String {
+        let mut s = self.stdout.text("output");
+        if !self.stderr.bytes.is_empty() {
+            if !s.is_empty() && !s.ends_with('\n') {
+                s.push('\n');
+            }
+            s.push_str("[stderr]\n");
+            s.push_str(&self.stderr.text("stderr"));
+        }
+        if self.interrupted {
+            s.push_str(
+                "\n[interrupted by the human: the command and everything it started were stopped]",
+            );
+        } else if self.timed_out {
+            let _ = write!(
+                s,
+                "\n[killed after {:.1}s: the command and everything it started]",
+                self.waited.as_secs_f32()
+            );
+        } else {
+            match self.code {
+                Some(0) => {}
+                Some(c) => {
+                    let _ = write!(s, "\n[exit {c}]");
+                }
+                None => s.push_str("\n[ended by a signal]"),
+            }
+        }
+        if s.trim().is_empty() {
+            s = "[no output]".into();
+        }
+        s
+    }
+}
+
+/// Why a command did not start.
+enum Spawn {
+    /// The world no longer matched the approved plan: this is what it is now.
+    Changed(Fingerprint),
+    /// The world could not be read again: no plan to compare, so nothing runs.
+    Unreadable(String),
+    /// The step before the spawn refused: nothing runs.
+    Held(String),
+    /// The process could not be started.
+    Io(std::io::Error),
+}
+
+impl From<std::io::Error> for Spawn {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
+}
+
+/// Run `command` in the context's sandbox: the world writable, a private temporary directory
+/// inside it, the network open only for an approved outward or destructive act. An approved
+/// command runs only if the world still matches the approved plan at the moment of the spawn,
+/// the files the harness made for it read as the absence they were when it was approved.
+#[allow(clippy::too_many_arguments)]
+fn run(
+    command: &str,
+    cx: &Context,
+    timeout: Duration,
+    network: bool,
+    typed: bool,
+    opened: &[PathBuf],
+    approved: Option<(&Fingerprint, &[PathBuf])>,
+    before_spawn: Option<BeforeSpawn<'_>>,
+    stdin: Option<&[u8]>,
+) -> Result<Ran, Spawn> {
+    let tmp = cx.scratch();
+    std::fs::create_dir_all(&tmp)?;
+    let mut policy = Policy::new(cx.world(), cx.home(), &tmp, network);
+    // A commissioned creature writes what its soil admits; the rest of the world it only reads.
+    let grants = cx.grants();
+    if grants != [cx.world().to_path_buf()] {
+        policy.write.retain(|p| p != cx.world());
+        policy.write.extend(grants);
+        policy.read.push(cx.world().to_path_buf());
+    }
+    // Each approved path exists by now and opens alone: never its folder.
+    policy.write.extend(opened.iter().cloned());
+    // A typed act reaches the forge as the probe that reads it back does: its login, read-only.
+    if typed {
+        let logins: Vec<PathBuf> = mikata_sandbox::FORGE_LOGINS
+            .iter()
+            .map(|c| cx.home().join(c))
+            .collect();
+        policy.hidden.retain(|h| !logins.contains(h));
+        policy.read.extend(logins);
+        // And notes where the remote now stands: git's own record, the one part of `.git` it
+        // writes. Made here: a rule can name only what exists.
+        let remotes = cx.world().join(".git/refs/remotes");
+        if std::fs::create_dir_all(&remotes).is_ok() {
+            policy.write.push(remotes);
+        }
+    }
+    // The command as approved, and after it a line that keeps its last pipeline's statuses.
+    let (wrapped, status_file) = with_status_line(command, &tmp);
+    let mut cmd = cx
+        .sandbox()
+        .command(&policy, "bash", &["--noprofile", "--norc", "-c", &wrapped]);
+    cmd.current_dir(cx.world())
+        .stdin(if stdin.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .process_group(0)
+        .env_clear()
+        .envs(scrubbed_env())
+        // Who runs it: a body's own `mikatad q` refuses rather than act as the human.
+        .env(
+            "MIKATA_BODY",
+            if cx.body().is_empty() {
+                "a body"
+            } else {
+                cx.body()
+            },
+        )
+        .env("TMPDIR", &tmp)
+        // No terminal is the command's: a push with no login fails at once, never asks a username.
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GH_PROMPT_DISABLED", "1");
+    // The recheck is the last thing before the spawn: everything else is already prepared, so
+    // the window in which the world can change unseen is the recheck's own reading of it.
+    if let Some((approved, made)) = approved {
+        let now = Fingerprint::of_except(command, cx.world(), made).map_err(Spawn::Unreadable)?;
+        if now != *approved {
+            return Err(Spawn::Changed(now));
+        }
+    }
+    if let Some(before) = before_spawn {
+        before().map_err(Spawn::Held)?;
+    }
+    let mut child = cmd.spawn()?;
+    // The input is written on its own thread and then closed: a command that reads it slowly, or
+    // not at all, never blocks the harness's wait.
+    if let (Some(bytes), Some(mut pipe)) = (stdin, child.stdin.take()) {
+        let bytes = bytes.to_vec();
+        thread::spawn(move || {
+            let _ = std::io::Write::write_all(&mut pipe, &bytes);
+        });
+    }
+    let stdout = drain(child.stdout.take());
+    let stderr = drain(child.stderr.take());
+    // The call's own limit, or the run's clock, whichever comes first.
+    let deadline = cx.deadline().map_or(Instant::now() + timeout, |d| {
+        d.min(Instant::now() + timeout)
+    });
+    let started = Instant::now();
+    let mut timed_out = false;
+    let mut interrupted = false;
+    let status = loop {
+        if let Some(status) = child.try_wait()? {
+            break Some(status);
+        }
+        if Instant::now() >= deadline {
+            timed_out = true;
+            kill_group(&child);
+            break child.wait().ok();
+        }
+        // Esc: the whole group stops within one poll, and what it printed so far is kept.
+        if cx.cancelled() {
+            interrupted = true;
+            kill_group(&child);
+            break child.wait().ok();
+        }
+        thread::sleep(Duration::from_millis(10));
+    };
+    // Whatever the shell left running in the background ends with the call.
+    kill_group(&child);
+    let pipe = first_stage(&status_file, !timed_out && !interrupted);
+    Ok(Ran {
+        stdout: stdout.recv_timeout(DRAIN).unwrap_or_default(),
+        stderr: stderr.recv_timeout(DRAIN).unwrap_or_default(),
+        code: status.and_then(|s| s.code()),
+        pipe,
+        timed_out,
+        interrupted,
+        waited: started.elapsed(),
+    })
+}
+
+/// The command to spawn, and the file its status line writes to: `command` as written unless
+/// it is a pipeline that ends where it seems to. Only a pipeline hides a status, and a heredoc
+/// or a trailing `\` would swallow a line after it and run it.
+fn with_status_line(command: &str, tmp: &Path) -> (String, PathBuf) {
+    let file = tmp.join(format!(
+        ".pipestatus-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos())
+    ));
+    let wraps =
+        command.contains('|') && !command.contains("<<") && !command.trim_end().ends_with('\\');
+    let wrapped = if wraps {
+        with_pipe_status(command, &file)
+    } else {
+        command.to_owned()
+    };
+    (wrapped, file)
+}
+
+/// The first stage's status the line wrote, when the command reached it (`ended`) with a
+/// pipeline of two or more stages; the file is removed either way.
+fn first_stage(file: &Path, ended: bool) -> Option<u8> {
+    let read = ended
+        .then(|| std::fs::read_to_string(file).ok())
+        .flatten()
+        .and_then(|s| {
+            s.split_whitespace()
+                .map(str::parse)
+                .collect::<Result<Vec<u8>, _>>()
+                .ok()
+        })
+        .filter(|p| p.len() >= 2)
+        .map(|p| p[0]);
+    let _ = std::fs::remove_file(file);
+    read
+}
+
+/// `command`, then a line that writes its last pipeline's statuses to `file` and exits as the
+/// command would have: `$?` and `PIPESTATUS` are read in one expansion, before either changes.
+/// A command that exits on its own never reaches the line, and leaves no file. Written for bash
+/// 3.2, macOS's own: no negative index.
+fn with_pipe_status(command: &str, file: &Path) -> String {
+    let quoted = file.display().to_string().replace('\'', "'\\''");
+    format!(
+        "{command}\n__mikata_ps=(\"${{PIPESTATUS[@]}}\" \"$?\"); \
+         printf '%s' \"${{__mikata_ps[*]:0:${{#__mikata_ps[@]}}-1}}\" > '{quoted}' 2>/dev/null; \
+         exit \"${{__mikata_ps[${{#__mikata_ps[@]}}-1]}}\""
+    )
+}
+
+fn kill_group(child: &Child) {
+    // The group may already be gone; that is the outcome we want.
+    let _ = kill_process_group(Pid::from_child(child), Signal::KILL);
+}
+
+/// Read a pipe to its end on a thread, keeping `MAX_OUTPUT` bytes: all of a short output, the
+/// head and the tail of a long one.
+fn drain(pipe: Option<impl std::io::Read + Send + 'static>) -> mpsc::Receiver<Captured> {
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let mut got = Captured::default();
+        if let Some(mut pipe) = pipe {
+            let mut buf = [0u8; 8192];
+            while let Ok(n) = pipe.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                got.take(&buf[..n]);
+            }
+        }
+        let _ = tx.send(got);
+    });
+    rx
+}

@@ -20,7 +20,7 @@ import type {
   NoteStanding,
   PathOwner,
   ProofVerdict,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useCallback, useEffect, useState } from 'react';
 import { type Change, usePush } from './push.ts';
 import { establish, post, signedOut } from './session.ts';
@@ -286,7 +286,7 @@ async function read<T>(
   });
   if (res.status === 401) {
     signedOut();
-    throw new Error('this browser holds no board session: open the URL `mnemorphd board` prints');
+    throw new Error('this browser holds no board session: open the URL `mikatad board` prints');
   }
   if (!res.ok) throw new Error(await why(res));
   const v = parse(await res.json());

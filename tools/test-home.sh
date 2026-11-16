@@ -3,7 +3,7 @@
 # test through $NEXTEST_ENV. Nothing of the developer's home is read or written by a test. Under
 # tools/test-env.sh, $TMPDIR is that run's own directory, removed when it ends: no home outlives it.
 set -euo pipefail
-root=$(mktemp -d "${TMPDIR:-/tmp}/mnemorph-test-home.XXXXXX")
+root=$(mktemp -d "${TMPDIR:-/tmp}/mikata-test-home.XXXXXX")
 for d in home state config data cache run; do mkdir -p "$root/$d"; done
 chmod 700 "$root" "$root/state" "$root/run"
 {
@@ -13,5 +13,5 @@ chmod 700 "$root" "$root/state" "$root/run"
   echo "XDG_DATA_HOME=$root/data"
   echo "XDG_CACHE_HOME=$root/cache"
   echo "XDG_RUNTIME_DIR=$root/run"
-  echo "MNEMORPH_ISOLATED=1"
+  echo "MIKATA_ISOLATED=1"
 } >> "${NEXTEST_ENV:?run by nextest as a setup script}"

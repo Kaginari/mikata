@@ -4,7 +4,7 @@
  * text, links are allowlisted, images never load. The server reads only the file's end and cuts
  * each entry; the page says both.
  */
-import type { BoardWorld, JournalEntry } from '@mnemorph/protocol';
+import type { BoardWorld, JournalEntry } from '@mikata/protocol';
 import { useEffect, useState } from 'react';
 import { type JournalQuery, useJournal } from '../data/bodies.ts';
 import { Markdown } from '../safe/Markdown.tsx';
@@ -149,7 +149,7 @@ export function JournalView({ w }: { w: BoardWorld }) {
         (j.entries.length === 0 ? (
           <Empty glyph="▤" title={j.bytes === null ? 'No journal yet' : 'No entry here'}>
             {j.bytes === null
-              ? 'This world has no .mnemorph/log.md yet.'
+              ? 'This world has no .mikata/log.md yet.'
               : 'No entry matches the search.'}
           </Empty>
         ) : (

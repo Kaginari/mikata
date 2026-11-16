@@ -2,8 +2,8 @@
 // laid out by tldraw's own converter (@tldraw/mermaid) in headless Chromium, and written as
 // docs/canvas/<page>.tldr (one tldraw page per sketch) and docs/canvas/<sketch>-{light,dark}.svg.
 // The Mermaid block stays the source of truth: change it, then run `pnpm --filter
-// @mnemorph/canvas draw`. Needs the Chromium @playwright/test pins (`pnpm --filter
-// @mnemorph/canvas exec playwright install chromium`).
+// @mikata/canvas draw`. Needs the Chromium @playwright/test pins (`pnpm --filter
+// @mikata/canvas exec playwright install chromium`).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

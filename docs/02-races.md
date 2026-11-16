@@ -99,7 +99,7 @@ creature that slips **falls** back. Trust is earned, measured and revocable.
 
 ### The shape of a race in code
 
-Every race is a variant of one Rust enum, `mnemorph_races::Race`, and the law is its methods and
+Every race is a variant of one Rust enum, `mikata_races::Race`, and the law is its methods and
 a few functions over it. No configuration can add a race, change a reporting line or widen a shelf.
 
 ```rust
@@ -198,14 +198,14 @@ the human pinned for the child stands as pinned.
 ### The three modes
 
 A session opens in one of three modes ([`Mode`](05-architecture.md#the-terminal-ui), in
-`mnemorph_loop::open`), and says which and why on `mnemorph status`, on the app's first lines, in
+`mikata_loop::open`), and says which and why on `mikata status`, on the app's first lines, in
 the protocol's `initialize` answer and on the run's `law` beat.
 
 | Mode | The session's Summoner | Bodies it may commission | Shared page |
 |---|---|---|---|
 | `light-coding` | does the work itself: Summoner's prompt, a Slime's shelf, the whole repository as its zone | none | none |
 | `structured-coding` | keeps light-coding's tools and holds `commission` beside them: it does a known fix itself, or hands a lane to its Elf | the Elves that report to it; they commission Orcs, and Orcs Slimes | the work board |
-| `collective-coding` | writes only `.mnemorph/tmp`: the board is its plan, and the code is the members' | any living creature that reports to it, directly | the work board |
+| `collective-coding` | writes only `.mikata/tmp`: the board is its plan, and the code is the members' | any living creature that reports to it, directly | the work board |
 
 The human may ask for a mode with `--mode light-coding|structured-coding|collective-coding`
 wherever a session opens. Left unasked (`auto`), the world decides, in this order:
@@ -222,8 +222,8 @@ The names are the human's. The code and the prompts keep the words the modes wer
 `solo` is light-coding, the chain that `commission` runs is structured-coding, and `collective`
 is collective-coding. The bench's reports name its arms `solo`, `hierarchy` and `collective`.
 
-**The work board** (`mnemorph_loop::workboard`) is `.mnemorph/tmp/board.md`, the one page the
-bodies of a structured-coding or collective-coding session share. It is not the web board (`mnemorphd board`), which
+**The work board** (`mikata_loop::workboard`) is `.mikata/tmp/board.md`, the one page the
+bodies of a structured-coding or collective-coding session share. It is not the web board (`mikatad board`), which
 is the human's page.
 
 - **Every brief carries it.** A commissioned body's ask opens with the board as it stands, its
@@ -248,7 +248,7 @@ the soil, the sandbox and the end gate, with no dispatch. Its zone is the whole 
 a world with creatures the territory the ask touches. It is the default mode, and the one the
 measurements favour: a chain pays a prefix and a report on every hop, and most tasks never
 earn that back. **It plans before it writes**, as an Elf does: two or three ways in
-`.mnemorph/tmp/plan.md` under `## Paths`, each with its cost and its risks, the one it takes under
+`.mikata/tmp/plan.md` under `## Paths`, each with its cost and its risks, the one it takes under
 `## Chosen`, and each named risk tested before it answers. On Terminal-Bench that step was the
 chain's one measured win, without the chain: light-coding passed `cancel-async-tasks` 0 times in 4,
 falling into the trap the task names each time, and with the step 5 in 5, at a third of the
@@ -378,8 +378,8 @@ refusal names the race that can do it: `outward: route to kijin-forge`.
 | the **verify block** of a Slime's doc | that Slime's Orc — the rest of the doc is the Slime's; the gate diffs by line range | the Orc's own gate |
 | the **workspace** — every file at the repository root (manifests, lockfiles, toolchain pins, `justfile`, `README.md`, `LICENSE`, dotfiles) and `tools/`; the root's toolchain directories (`.cargo/`, `.claude/`) are its zone's by its doc | the compiled zone `slime-workspace`, under `orc-workspace` | the full build and test suite |
 | a **post** (CI, release, deploy, PR files) | one Kijin | its own gate (self-gated) |
-| the **proving ground** `.mnemorph/dark-elf/` | the Dark Elf | its own gate (self-gated) |
-| the **plan** and the **dimension manifest** (`.mnemorph/dimension.toml`, the copy of the relations to neighbouring worlds the human stated) | Summoner | its own gate |
+| the **proving ground** `.mikata/dark-elf/` | the Dark Elf | its own gate (self-gated) |
+| the **plan** and the **dimension manifest** (`.mikata/dimension.toml`, the copy of the relations to neighbouring worlds the human stated) | Summoner | its own gate |
 
 A self-gated race writes its own verify lines; like every changed line, they run from the next
 turn, never the turn that wrote them. Every path in the world has exactly one owner: a path no
@@ -401,7 +401,7 @@ one and may retire any. An Orc has at most three such Slimes at once, each funde
 own slice when it commissions it, and every one is retired, card and row, when the Orc's
 commission ends. A Slime the Orc started on exactly the same ground before is woken instead of
 born, with what it learned, so a part of the codebase an Orc keeps returning to keeps one Slime and
-its memory. `mnemorphd roster list` says how often each was started: the record that says whether
+its memory. `mikatad roster list` says how often each was started: the record that says whether
 it is worth adopting as a creature of its own, which keeps it past the commission.
 
 **A race, a rank, a post and a soil are the witness's, never the card's.** A creature's card says
@@ -410,7 +410,7 @@ Elf's speciality is read from its name — but the card lives in the world, wher
 a cloned repository writes it. So every privilege of this chapter reads the card held to its row
 in the creatures' witness under the human's state directory: a card that differs runs at the
 lower of the two and loses its rank, and a card with no row is a stranger, a Slime of its own
-seat alone, until the human adopts it (`mnemorphd roster adopt`). The harness writes the rows of
+seat alone, until the human adopts it (`mikatad roster adopt`). The harness writes the rows of
 the births it makes — relief's young, at their parent's base race, and a Slime an Orc starts —
 and holds a card an
 evolution swap rewrites to its row; a new name a swap brings, a rise, a fall and an adoption are
@@ -432,7 +432,7 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
   the session's body has a Slime's shelf over the whole repository (`read`, `write`; nothing
   outward), and in structured-coding `dispatch` beside it, so it does a known fix itself and hands
   down what is unclear or large. Collective-coding: `read`, `dispatch`, and writes to
-  `.mnemorph/tmp` alone,
+  `.mikata/tmp` alone,
   where its board and plan live; a code write is refused, naming the member whose zone holds the
   file. In every mode the law file — and any rule meant to reach other bodies' prompts — changes
   only as a diff the human applies.
@@ -523,14 +523,14 @@ the human's alone ([the roster's trust](05-architecture.md#the-rosters-trust)).
 ### 🫂 Collective-coding — equals, not ranks (experimental)
 
 *The same mind in different bodies, each with its own clean context: an experiment against the
-chain. Asked for with `mnemorph --mode collective-coding`, or switched on for every session with
+chain. Asked for with `mikata --mode collective-coding`, or switched on for every session with
 `collective.on` (the global file alone; off by default).*
 
 - **Who.** Every living body whose card says it reports to the Summoner is a member. In this
   mode the session's Summoner is told its members in place of its lanes.
 - **Only the Summoner summons.** It may commission any member directly, past the chain's ranks;
   a member that tries to order another is refused, and says what it needs on an `@F` line.
-- **The board.** `.mnemorph/tmp/board.md`. The Summoner writes the brief, the `## Done when`
+- **The board.** `.mikata/tmp/board.md`. The Summoner writes the brief, the `## Done when`
   list (every output the ask states, one a line, named `D1`, `D2`, … as in the light-coding plan), the map
   and the parts there, each part naming the lines its share makes true (`- slime-a: the parser |
   D1, D3`); every brief a member gets carries the board's newest 24 000 bytes; the `@F` and `@W`
@@ -540,7 +540,7 @@ chain. Asked for with `mnemorph --mode collective-coding`, or switched on for ev
   files it changed, compared with what the board states.
 - **The Summoner restructures; the members write.** It reads only to map, writes the board
   first, and splits the work by zone, one brief per member, all in one turn so they run at once.
-  It writes nothing but `.mnemorph/tmp`: a code write is refused, naming the member whose zone
+  It writes nothing but `.mikata/tmp`: a code write is refused, naming the member whose zone
   holds the file. It judges by the tests: a share that fails goes back to its member with the
   failure, at most twice, then to another member; a share that passes it does not touch.
 - **What still holds.** One ground, one writer: members keep disjoint zones and right author
@@ -557,9 +557,9 @@ The Kijin is the one door between the world and everything beyond it. Nature 7 (
 stops being a checklist item and becomes a type: **only a Kijin's shelf carries `outward`**.
 
 Kijin hold one of five **posts**, named by the creature (`kijin-ci`, …). A post's **outward
-acts are compiled in** (`mnemorph_races::Post::acts`); its **territory is doc-declared** — the
+acts are compiled in** (`mikata_races::Post::acts`); its **territory is doc-declared** — the
 Kijin doc's `Post` field, world by world. The shell classifier reads every outward command as
-one or more act kinds (`mnemorph_races::OutwardKind`), and a Kijin's command whose kinds are not
+one or more act kinds (`mikata_races::OutwardKind`), and a Kijin's command whose kinds are not
 all its post's is refused before the gate is asked, naming the post, the act and the post that
 holds it. A Kijin whose name is no post does no outward act; the roster refuses a `kijin-` name
 on another race, and a Kijin doc whose heading is not `kijin-` and its directory. Light-coding's
@@ -572,7 +572,7 @@ or none, stays with the human.
 | `kijin-release` | the smith | changelog, versioning, release config, installers | `fetch`, `push-tag`, `publish` (registries, images, GitHub releases) — both `destructive` |
 | `kijin-deploy` | the commander | deploy manifests, environments | `fetch` (health checks), `deploy`, `rollback`, `write-outside` |
 | `kijin-forge` | the shrine keeper of records | PR templates, issue templates | `fetch` (issues, PRs), `push-branch`, `pull-request`, `comment`, `label` — typed through `outward`: a new branch, a pull request opened (alone, or with the push of its head under one approval), a label, a comment |
-| `kijin-scout` | the shadow (and **agent-mcp**: the MCP catalog's curator and conduit — [MCP](07-mcp.md)) | `.mnemorph/intel/` (machine-local, not tracked: the advisory mirror is hundreds of MB) | `fetch` only (advisory databases such as OSV, upstream releases): no outward write |
+| `kijin-scout` | the shadow (and **agent-mcp**: the MCP catalog's curator and conduit — [MCP](07-mcp.md)) | `.mikata/intel/` (machine-local, not tracked: the advisory mirror is hundreds of MB) | `fetch` only (advisory databases such as OSV, upstream releases): no outward write |
 
 The kinds, as the classifier reads them. A kind is read only from what the command's own words
 say: a git global option (`-c`, `--config-env`, `-C` outside the world, `--git-dir`), a word
@@ -603,7 +603,7 @@ act after it `other`.
   *journal intent* → *act* → *journal result*. The approval is bound to the plan the human saw —
   the commit, the working tree and the target ([the sandbox](05-architecture.md#sandbox)) — and
   rechecked just before the act: a world that changed meanwhile runs nothing and is asked again.
-- **The act runner** (`mnemorph_config::Runner`) is the one path a typed act takes. A Kijin asks
+- **The act runner** (`mikata_config::Runner`) is the one path a typed act takes. A Kijin asks
   for one through its `outward` tool, with a typed act — `{kind: "push-new-branch", remote,
   name}`, `{kind: "open-pull-request", repo, base, head, title, body}` (with `remote`, the head
   pushed first under the same approval, below), `{kind: "add-label", repo, pr, label}` or
@@ -630,7 +630,7 @@ act after it `other`.
   post is in flight`), never left waiting on the first one's human — and each is observed before
   the next is gated, so no probe reads a later act's effect as an earlier one's.
 - **A cut act is probed, never replayed.** An act cut between its intent and its result (a crash,
-  a kill, a run resumed with `mnemorph resume`) stays `committed` or `pending observation`. Before
+  a kill, a run resumed with `mikata resume`) stays `committed` or `pending observation`. Before
   its post's next act is gated, the runner probes each such act at the target it pinned and
   classifies it: **landed** → `observed`, and the human is not asked again for it; **absent** —
   nothing of it is outside → `absent`, and the same request is gated again as a new act;
@@ -675,7 +675,7 @@ act after it `other`.
   Enterprise server's comments are recorded and probed there. `gh` reads its login from `gh auth`:
   the environment's `GH_TOKEN` is a secret, removed before any command or probe, so a machine
   that has only the token gets `reconcile` until `gh auth login` is done. An approved typed act
-  reads the forge's logins as the probe does (`mnemorph_sandbox::FORGE_LOGINS`, read-only), since
+  reads the forge's logins as the probe does (`mikata_sandbox::FORGE_LOGINS`, read-only), since
   the harness rendered its command; a `bash` command, approved or not, is the model's text and
   reads none. It may write git's own note of the remote, `.git/refs/remotes`, and nothing else of
   `.git`, so a push leaves its tracking ref true. Nothing that runs may stop to ask for a username. A GitHub App's token cannot say
@@ -685,15 +685,15 @@ act after it `other`.
   its output (1 KiB at most, escaped, credentials in URLs blanked) and when. A `Command` has no
   probe: its receipt is `unobserved`, and says so; a cut act found never landed is `absent`. Every
   row is written first to a witness under the human's state directory
-  (`$XDG_STATE_HOME/mnemorph/kijin/<world>-<fnv64a>/<post>.jsonl`, found again by the world's
+  (`$XDG_STATE_HOME/mikata/kijin/<world>-<fnv64a>/<post>.jsonl`, found again by the world's
   path; the folder `0700`, its files `0600`), hash-chained — the witness is the trusted copy, its
 chain walked and anchored, and the journal holds the same bytes; after each command the tripwire rebuilds the journal from what it held and what the
   witness gained, and the count M11 reads comes from the witness alone, so a row a body forges
   never counts. A `reconcile` waits for the human
-  (`mnemorphd incident open` or `settle`) until a later row settles it; it is not a clean outward act, so it is what
+  (`mikatad incident open` or `settle`) until a later row settles it; it is not a clean outward act, so it is what
   `outwardCleanRate` counts against — and what the human may mark an incident, which suspends the
   envelope that covered the act and, from M11, may make an Oni fall.
-- **The undo is the harness's, not the plan's** (`mnemorph_config::Act`, classed by `plan`). An
+- **The undo is the harness's, not the plan's** (`mikata_config::Act`, classed by `plan`). An
   outward act is typed, and for a small closed set of kinds the harness renders both the command
   and its undo from the act's own fields; the gate runs the stored command exactly:
 
@@ -769,7 +769,7 @@ chain walked and anchored, and the journal holds the same bytes; after each comm
 - **A rolled-back or corrected act closes on four receipts.** An incident opens in the witness,
   outside the world (`<post>.incidents.jsonl`), keyed to the act's receipt: when the human
   approves an undo (a rollback), or marks an act as one — a `reconcile`, or an observed act that
-  was wrong (a correction) — with `mnemorphd incident open <post> <act>`. It closes only when all
+  was wrong (a correction) — with `mikatad incident open <post> <act>`. It closes only when all
   four receipts exist, each with its evidence:
 
   | Receipt | Evidence |
@@ -777,13 +777,13 @@ chain walked and anchored, and the journal holds the same bytes; after each comm
   | 1. undone | the undo's receipt, `observed` in the witness, undoing this act |
   | 2. journal corrected | the act's latest row in the witness: `corrected`, naming that undo |
   | 3. downstream told | a typed `comment` act naming the incident (`tells: <act>`), `observed` in the witness, committed after the incident opened, its body opening with the harness's `Rolled back act <id>: ` and the Kijin's words after; on the act's pull request for a label or a comment, and for a branch on a pull request whose head is that branch in the repository a pinned push URL names on the comment's host (`gh api …/pulls/<pr>`) |
-  | 4. lesson | a test or a `Verify:` line changed in the world since the commit HEAD named when the incident opened (or new since), or a Thought born after it; recorded once the human has read the change and said `y` (`mnemorphd incident lesson <post> <act> test <path> \| verify <path>:<line> \| thought <id>`), kept with its SHA-256, and hashed again on every read — a lesson edited or removed since counts no more |
+  | 4. lesson | a test or a `Verify:` line changed in the world since the commit HEAD named when the incident opened (or new since), or a Thought born after it; recorded once the human has read the change and said `y` (`mikatad incident lesson <post> <act> test <path> \| verify <path>:<line> \| thought <id>`), kept with its SHA-256, and hashed again on every read — a lesson edited or removed since counts no more |
 
   Every receipt is read again from the witness and the post's intents whenever the incident is
   read: an entry naming a receipt the witness does not hold as described counts for nothing, and
-  rows a body writes into the world's journal are never read. While it is open, `mnemorphd incident
+  rows a body writes into the world's journal are never read. While it is open, `mikatad incident
   list` shows it with the receipts it misses, and:
-  - **the envelope that covered it is suspended** (`mnemorph_config::suspended`, which the gate
+  - **the envelope that covered it is suspended** (`mikata_config::suspended`, which the gate
     asks before it admits an act under an envelope): every envelope one of whose patterns reads the act, or
     that the incident names; incidents that cannot be read suspend every envelope;
   - **its target takes no new act of the post**: the same branch on a push URL it shares, the
@@ -796,7 +796,7 @@ chain walked and anchored, and the journal holds the same bytes; after each comm
     same request is asked again as a new act.
 
   A `reconcile` that is no incident — the act is fine as it stands — the human settles with
-  `mnemorphd incident settle <post> <act>`: a `settled` row, nothing undone, and it leaves the list.
+  `mikatad incident settle <post> <act>`: a `settled` row, nothing undone, and it leaves the list.
 - **A rollback is a lease on what the act left.** `kijin-deploy` rolls back only while the
   version deployed is still the one its act deployed: the post journal's deploy (the
   environment, the version before, ours) against what the target reports now. A later deploy, by
@@ -809,30 +809,30 @@ chain walked and anchored, and the journal holds the same bytes; after each comm
 - **Secrets** never enter the context. The Kijin names a secret (`secret:GH_TOKEN`); the core
   injects it into the sandboxed process environment and redacts it from every output.
 - **Standing.** A Kijin has no long-lived context; it stands through its **post journal**
-  (`.mnemorph/kijin/<post>/post.jsonl`): the last known state of the outside (last CI run, the
+  (`.mikata/kijin/<post>/post.jsonl`): the last known state of the outside (last CI run, the
   deployed version per environment, open PRs) and each outward act's receipt. Every new body of that post reads it first.
-- **The advisory mirror** (`mnemorph_config::scout`). `mnemorphd scout` fetches, from OSV, each
+- **The advisory mirror** (`mikata_config::scout`). `mikatad scout` fetches, from OSV, each
   ecosystem the world's lockfiles name (`crates.io`, `npm`, `Go`, `PyPI`) into
-  `.mnemorph/intel/osv-scalibr/<ecosystem>/all.zip`, the layout `osv-scanner` 2.7 reads offline, in
-  the sandbox and over HTTPS alone. A body may write `.mnemorph/intel/`, so no link is followed
+  `.mikata/intel/osv-scalibr/<ecosystem>/all.zip`, the layout `osv-scanner` 2.7 reads offline, in
+  the sandbox and over HTTPS alone. A body may write `.mikata/intel/`, so no link is followed
   into it, a download lands whole and only if it is a zip, and one that fails keeps the mirror it
-  had. `mnemorph status` says each ecosystem's age as last read. **The audit**, `mnemorphd scout
+  had. `mikata status` says each ecosystem's age as last read. **The audit**, `mikatad scout
   audit`, runs `osv-scanner` over the world's root lockfiles against that mirror, in the sandbox
-  with the network off, and keeps what it found in `.mnemorph/intel/audit.json`: exit 1 on a
+  with the network off, and keeps what it found in `.mikata/intel/audit.json`: exit 1 on a
   finding, 2 when it could not look. An audit that could not look — an ecosystem unmirrored, no
-  scanner, the scanner failing — keeps nothing and never reads as clean. `mnemorph status` shows
+  scanner, the scanner failing — keeps nothing and never reads as clean. `mikata status` shows
   it, and `dark-elf-supply` gets it in its ask, as data, since a body may write the file; with no
   audit, it is told to say the dependencies were not audited.
-- **On a schedule** (`mnemorph_config::refresh`). `mnemorphd refresh` is one tick of these
+- **On a schedule** (`mikata_config::refresh`). `mikatad refresh` is one tick of these
   standing reads, each only when due: CI every `refresh.ci_minutes` (15), the mirror and its audit
   every `refresh.scout_hours` (24); 0 turns one off. Those keys are the human's global file's
   alone, since a mirror can be hundreds of megabytes. The terminal app starts a tick after a
   session and the board one an hour for each world. A read that fails says so and waits its turn.
-- **CI is an instrument** (`mnemorph_config::ci`). `mnemorphd ci` reads the forge's newest runs of
+- **CI is an instrument** (`mikata_config::ci`). `mikatad ci` reads the forge's newest runs of
   the world's `origin`, or `--repo`, through the harness's read-only probe, and writes each run
-  not seen, or whose state moved, to `.mnemorph/instruments/ci.jsonl`, so every creature checks
+  not seen, or whose state moved, to `.mikata/instruments/ci.jsonl`, so every creature checks
   the real CI state instead of trusting a doc (Nature 9). It changes nothing on the forge. A
-  body reads the file, never runs the command; the file is the world's, so `mnemorph status`
+  body reads the file, never runs the command; the file is the world's, so `mikata status`
   says each branch's newest run as last read, failures first, and it grants nothing.
 - **Score** `0.5·outwardCleanRate + 0.3·verifyGreenRate + 0.2·landRate`, where
   `outwardCleanRate` = outward acts that completed without rollback or human correction. Meter:
@@ -851,7 +851,7 @@ dispatched by the Orc whose domain it reviews, and its verdicts go to Summoner. 
 
 **Specialities.** Dark Elves are born like Kijin posts: six **specialities**, named by the
 creature, each with its surfaces and its attack classes compiled into the law
-(`mnemorph_races::Speciality`). A speciality is read from the name by exact match
+(`mikata_races::Speciality`). A speciality is read from the name by exact match
 (`Speciality::of`): `dark-elf-agent-2` holds none, and is routed nothing; the roster refuses a
 `dark-elf-` name on a race whose base is not Dark Elf. The race stays `DarkElf`: the shelf, the soil and the score are
 the race's; the speciality says what it hunts.
@@ -879,12 +879,12 @@ are the playbooks' headings, each owned once:
 
 | Speciality | Compiled surfaces | Attack classes |
 |---|---|---|
-| `dark-elf-harness` | `crates/*sandbox*/**`, `crates/mnemorph-tools/**`, `crates/mnemorph-tui/**`, `crates/mnemorph-loop/src/gate.rs`, `crates/mnemorph-config/src/runner.rs`, `crates/mnemorph-config/src/outward.rs` | sandbox-escape, toctou, path-traversal, command-injection, approval-binding, terminal-escape, memory-safety, hook-laundering |
-| `dark-elf-agent` | `crates/mnemorph-wire/**`, `crates/mnemorph-provider/**`, `crates/mnemorph-memory/**`, `crates/mnemorph-loop/src/commission.rs`, `crates/mnemorph-loop/src/run.rs`, `crates/mnemorph-loop/src/sequence.rs`, `crates/mnemorph-world/src/minds.rs` | prompt-injection, tool-argument-injection, wire-forgery, frame-confusion, mcp-identity, memory-poisoning |
+| `dark-elf-harness` | `crates/*sandbox*/**`, `crates/mikata-tools/**`, `crates/mikata-tui/**`, `crates/mikata-loop/src/gate.rs`, `crates/mikata-config/src/runner.rs`, `crates/mikata-config/src/outward.rs` | sandbox-escape, toctou, path-traversal, command-injection, approval-binding, terminal-escape, memory-safety, hook-laundering |
+| `dark-elf-agent` | `crates/mikata-wire/**`, `crates/mikata-provider/**`, `crates/mikata-memory/**`, `crates/mikata-loop/src/commission.rs`, `crates/mikata-loop/src/run.rs`, `crates/mikata-loop/src/sequence.rs`, `crates/mikata-world/src/minds.rs` | prompt-injection, tool-argument-injection, wire-forgery, frame-confusion, mcp-identity, memory-poisoning |
 | `dark-elf-supply` | `**/Cargo.toml`, `**/Cargo.lock`, `**/package.json`, `**/pnpm-lock.yaml`, `**/package-lock.json`, `**/yarn.lock`, `**/go.mod`, `**/go.sum`, `**/Dockerfile`, `**/*.Dockerfile`, `.github/workflows/**`, `.github/actions/**`, `.cargo/**`, `deny.toml`, `rust-toolchain.toml`, `pnpm-workspace.yaml` | known-vulnerability, dependency-confusion, workflow-injection, release-integrity, container-image |
-| `dark-elf-secrets` | `crates/mnemorph-config/**`, `crates/mnemorph-ledger/src/journal.rs`, `crates/mnemorph-loop/src/beats.rs`, `**/.env`, `**/.env.*`, `**/*.pem`, `**/*.key`, `**/*credential*`, `**/*secret*` | secret-exposure, credential-grant, redaction-gap, data-isolation, weak-crypto |
-| `dark-elf-web` | `crates/mnemorph-server/**`, `crates/mnemorphd/**`, `packages/protocol/**`, `packages/board/**`, `packages/sdk/**` | auth-bypass, cross-site-request, client-injection, request-forgery, unsafe-deserialisation, cloud-identity |
-| `dark-elf-law` | `crates/mnemorph-races/**`, `crates/mnemorph-world/**`, `crates/mnemorph-ledger/**`, `crates/mnemorph-loop/src/budget.rs`, `crates/mnemorph-loop/src/route.rs`, `crates/mnemorph-loop/src/session.rs`, `crates/mnemorph-loop/src/solo.rs`, `crates/mnemorph-provider/src/retry.rs`, `docs/02-races.md`, `**/log.md` | resource-exhaustion, unbounded-delegation, detached-work, ledger-integrity, phantom-effect |
+| `dark-elf-secrets` | `crates/mikata-config/**`, `crates/mikata-ledger/src/journal.rs`, `crates/mikata-loop/src/beats.rs`, `**/.env`, `**/.env.*`, `**/*.pem`, `**/*.key`, `**/*credential*`, `**/*secret*` | secret-exposure, credential-grant, redaction-gap, data-isolation, weak-crypto |
+| `dark-elf-web` | `crates/mikata-server/**`, `crates/mikatad/**`, `packages/protocol/**`, `packages/board/**`, `packages/sdk/**` | auth-bypass, cross-site-request, client-injection, request-forgery, unsafe-deserialisation, cloud-identity |
+| `dark-elf-law` | `crates/mikata-races/**`, `crates/mikata-world/**`, `crates/mikata-ledger/**`, `crates/mikata-loop/src/budget.rs`, `crates/mikata-loop/src/route.rs`, `crates/mikata-loop/src/session.rs`, `crates/mikata-loop/src/solo.rs`, `crates/mikata-provider/src/retry.rs`, `docs/02-races.md`, `**/log.md` | resource-exhaustion, unbounded-delegation, detached-work, ledger-integrity, phantom-effect |
 
 **Routing.** The harness routes each landing at the gate — `route(written paths) → specialities` —
 and commissions only the specialities whose surfaces those paths touch, in the table's order, and
@@ -901,8 +901,8 @@ read past, so an older and a newer binary read each other's rows.
 Each attack class has exactly one owning speciality, so two specialities never hunt the same
 class on the same paths.
 
-**The challenge, from opening to settling** (`mnemorph_loop::challenge`, kept by
-`mnemorph_world::challenge`):
+**The challenge, from opening to settling** (`mikata_loop::challenge`, kept by
+`mikata_world::challenge`):
 
 1. **Opening.** When the end gate passes a change of any body's — Summoner working alone, or a commissioned
    creature's — its changed paths are routed; a landing routed to any speciality opens a
@@ -936,7 +936,7 @@ class on the same paths.
 5. **The reserve.** Each review is a slice of the session's challenge reserve (a tenth of the
    envelope, a quarter of that per review); once the reserve is spent, reviewers wait queued.
    What each review spent is booked against the challenge, beside the body and who sent it.
-6. **Findings.** The reviewer's report is read through `mnemorph_proving::accept`; each valid
+6. **Findings.** The reviewer's report is read through `mikata_proving::accept`; each valid
    finding of its own speciality at medium or higher is kept with the challenge, awaiting its
    verdict. A finding below medium is not verified, and never counts, blocks or seals.
 7. **Verification.** In the same sweep, each finding kept is sent to a fresh verifier, which tries
@@ -946,24 +946,24 @@ class on the same paths.
 8. **Settling.** The challenge clears when every routed speciality has filed a valid ledger, every
    finding kept has its verdict, and nothing blocks; while a verdict is missing it reads
    *verifying*. The human may instead **waive** it, with a reason that says something (at least
-   20 characters, not a stock phrase): `mnemorphd challenge waive <landing> --why <reason>`, after
+   20 characters, not a stock phrase): `mikatad challenge waive <landing> --why <reason>`, after
    seeing it and answering `y` at the controlling terminal (`/dev/tty`; piped input is refused),
    or `/waive <landing> <reason>` in the terminal UI. A waiver is the
    human's alone: the door refuses inside a body's command, the records keep it only with the
    human as its author, a reason that holds and the tree the challenge was opened on, and a line
-   written there by anything else counts for nothing. `mnemorphd challenge list` shows what still
+   written there by anything else counts for nothing. `mikatad challenge list` shows what still
    holds a landing, `show <landing>` one in full.
 
 **Playbooks.** Each speciality's attack classes are a **playbook compiled into the law**
-(`mnemorph-races`), not a Mind: a Mind is writable inside the world it would audit. Each class
+(`mikata-races`), not a Mind: a Mind is writable inside the world it would audit. Each class
 has one, a markdown file compiled into the binary
-(`crates/mnemorph-races/playbooks/<speciality>/<class>.md`), headed by the class's name, with
+(`crates/mikata-races/playbooks/<speciality>/<class>.md`), headed by the class's name, with
 these fields:
 
 | Field | What it holds |
 |---|---|
 | `Invariant` | what must stay true; a break is a failure of it |
-| `Look` | where in Mnemorph to look: the files, calls and paths the class lives in |
+| `Look` | where in Mikata to look: the files, calls and paths the class lives in |
 | `Check` | how to check it: the inputs to try and the questions to settle |
 | `Witness` | what proves a break: the test, command or scanner output the finding contract takes |
 | `Not a finding` | the known false positives |
@@ -971,9 +971,9 @@ these fields:
 
 A class's playbook is at most 1.5 KiB and a speciality's together at most 8 KiB, held by the
 crate's tests. **The loading rule:** a routed body is given only its own speciality's
-playbooks (`mnemorph_races::for_landing`), and of those only the classes its written paths make
+playbooks (`mikata_races::for_landing`), and of those only the classes its written paths make
 relevant — each compiled surface names its classes (`Cargo.lock`: known vulnerability and
-dependency confusion; `crates/mnemorph-tui/**`: approval binding and terminal escape), a path is
+dependency confusion; `crates/mikata-tui/**`: approval binding and terminal escape), a path is
 placed on every compiled surface whose glob holds it, and a path none holds, on a surface the
 world declared, loads every class the speciality owns. The generalist owns no class: its brief
 is a fixed one on chains (`CHAINS`, at most 1.5 KiB) — a write-capable surface feeding an outward
@@ -981,7 +981,7 @@ act, an input surface feeding the wire, a config surface feeding the sandbox. No
 asks an entry for every owned class: a class the surfaces leave unloaded is ruled out there with
 its fact, as any other. A world adds its own surfaces in its docs; it never removes a class. The
 playbooks adapt Cloudflare's security-audit-skill (MIT;
-[notices](https://github.com/Kaginari/mnemorph/blob/main/THIRD-PARTY-NOTICES.md)).
+[notices](https://github.com/Kaginari/mikata/blob/main/THIRD-PARTY-NOTICES.md)).
 
 - **Duty.**
   1. **Diff challenge.** Adversarial review of every landing that touches a risk surface: auth,
@@ -1012,10 +1012,10 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
      - **Mind provenance** (`ledger-integrity`). A Mind is know-how, never law, and nothing read
        inside the world grants it trust: a body's write there is indistinguishable from the
        human's. Its provenance is a witness the harness keeps under the human's state directory
-       (`$XDG_STATE_HOME/mnemorph/minds/<world>-<fnv64a>.jsonl`), chained and anchored with the
+       (`$XDG_STATE_HOME/mikata/minds/<world>-<fnv64a>.jsonl`), chained and anchored with the
        other trust journals: each Mind's doc, the SHA-256 of its bytes at adoption, its owner — the
        human, or the creature that proposed it — and whether it is retired. Only the human writes
-       it, with `mnemorphd mind adopt|retire|unretire <name>`, answered `y` at the terminal; a
+       it, with `mikatad mind adopt|retire|unretire <name>`, answered `y` at the terminal; a
        body's command is refused. A Mind loads only while its doc holds the adopted bytes: one a
        body edited is *changed since adoption* and stays unloaded until the human re-adopts it.
        Retirement is the witness's: a `- **Retired:** yes` written into an adopted Mind's doc is a
@@ -1023,10 +1023,10 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
        Mind, so a dropped retirement is never read as none. A Mind the witness never adopted does
        not load, whatever its doc says: its provenance is unknown — a doc planted in a cloned
        repository, a world opened by another path, a write the tripwire could not undo. It is
-       shown *unadopted: adopt to use* in `status`, `mnemorphd mind list` and the session's
+       shown *unadopted: adopt to use* in `status`, `mikatad mind list` and the session's
        opening, with one hint; a world from before the witness adopts its Minds once. Adoption
        shows the doc's text, escaped and capped, and records the digest of exactly the bytes
-       shown. The file tools refuse `.mnemorph/minds/` with a message that says whose it is,
+       shown. The file tools refuse `.mikata/minds/` with a message that says whose it is,
        and the shell classifier refuses a command that writes or removes there (`mind`, a floor
        rule). What wearing a Mind injects names its doc and the digest of the bytes worn
        ([the toolbox](08-memory.md#the-toolbox)). Witnessed by
@@ -1037,13 +1037,13 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
        `a_worn_mind_names_its_source`.
      - **Journal chains** (`ledger-integrity`). The usage ledger and the value ledger are
        hash-chained ([the chain](06-consumption.md#the-usage-row)): the audit walks each
-       (`mnemorph_world::chains::verify`, the walk `mnemorphd housekeep --verify` runs) and checks
+       (`mikata_world::chains::verify`, the walk `mikatad housekeep --verify` runs) and checks
        its head against the newest head kept under the state directory or anchored in `log.md`. A broken link is found
        at its line; a torn tail is a truncation; a kept head the chain no longer holds means rows
        were dropped from the end or the chain was rooted again. Witnessed by `a_silent_edit_is_found_at_its_row` and
        `the_head_anchored_in_log_md_matches_the_journal`.
 - **Shelf.** `read`, scanners in the sandbox without network, `write` only in its proving ground
-  `.mnemorph/dark-elf/` (self-gated), the `coverage` tool to file its ledger, the `verdict` tool to
+  `.mikata/dark-elf/` (self-gated), the `coverage` tool to file its ledger, the `verdict` tool to
   file a verification, `seal` proposals.
 - **The witness rule.** A finding is `@F` only with an id and a **witness**: a proof-of-concept
   test in the proving ground that fails *for the stated reason* (it must exercise the code under
@@ -1051,12 +1051,12 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   a witness it is `@?` — a suspicion, never a finding. This is what keeps an adversarial model
   from crying wolf. A guardrail in a prompt is not a boundary: a finding needs a failure in code.
 - **The finding contract.** Each finding has a record,
-  `.mnemorph/dark-elf/<speciality>/findings/<fingerprint>.json`, and the harness reads back as
+  `.mikata/dark-elf/<speciality>/findings/<fingerprint>.json`, and the harness reads back as
   `@?` any record that breaks it:
   - **Its id is a root-cause fingerprint**: the speciality, the class, the file and the symbol —
     never a line, a body or a severity. It is stable across runs, so a moved line keeps its id and
     a later fix is still linked to it.
-  - **Its record** (`mnemorph_proving::FindingRecord`, JSON, at most 64 KiB, no field it does not
+  - **Its record** (`mikata_proving::FindingRecord`, JSON, at most 64 KiB, no field it does not
     name) holds the verdict (`finding` or `nv`), the fingerprint, the speciality, the class (a
     playbook reference), the file and the symbol; the claim; the trace from entry to sink with a
     `file:line` at each step; the witness — its kind (`test`, `poc-command`, `scanner-output`),
@@ -1082,7 +1082,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
     seal.
   - **Not findings**: a checklist deviation with no reachable failure, a missing second line of
     defence, harm a user can only do to themselves.
-- **The validator.** `mnemorph_proving::validate(record, world)` holds a record to the contract
+- **The validator.** `mikata_proving::validate(record, world)` holds a record to the contract
   against the landing's tree and gives a `Valid` — the only finding a count, a score or a seal
   takes — or every rule it breaks, by name, in this order:
 
@@ -1094,7 +1094,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   | `escaped` | no field holds a control character or an invisible format character (a bidi override, a zero-width space) |
   | `class-owned` | the class is one its speciality owns in the compiled table; the generalist owns none |
   | `fingerprint` | its fingerprint is the one derived from its root cause |
-  | `rec-path` | it was read from its own path, `.mnemorph/dark-elf/<speciality>/findings/<fingerprint>.json` |
+  | `rec-path` | it was read from its own path, `.mikata/dark-elf/<speciality>/findings/<fingerprint>.json` |
   | `file-exists` | its file is in the landing's tree, read by the wire's ASCII path rule, never through a symbolic link |
   | `symbol-present` | that file names its symbol (the last segment after `::` or `.`) as a whole word — a comment naming it is enough here; the independent verifier checks it is the code's |
   | `trace` | the trace runs entry, propagation, sink (one step: entry or sink), each at a safe `file:line` from line 1, the sink in its file |
@@ -1105,17 +1105,17 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   | `severity-cap` | its severity is within the cap above |
   | `preconditions` | from medium up, its preconditions and reachability are stated |
 
-  The harness reads a Dark Elf's report through `mnemorph_proving::accept`: each `@F`'s record is
+  The harness reads a Dark Elf's report through `mikata_proving::accept`: each `@F`'s record is
   read at its `rec:` path and validated, and a finding whose record breaks a rule is demoted to
   `@? invalid record (<rule>, …): <finding>` — named, never dropped. A root cause counts once: a
   second `@F` with a fingerprint already counted is demoted to `@? duplicate of #<fingerprint>`. The rules adapt Cloudflare's
-  `validate-findings.cjs` ([notices](https://github.com/Kaginari/mnemorph/blob/main/THIRD-PARTY-NOTICES.md)).
+  `validate-findings.cjs` ([notices](https://github.com/Kaginari/mikata/blob/main/THIRD-PARTY-NOTICES.md)).
 - **The coverage ledger.** "No findings" means something only beside it. Each routed speciality
   files one per landing through the `coverage` tool, and the harness keeps it with the landing's
   challenge in its own records, outside the world and out of every command's reach
-  (`$XDG_STATE_HOME/mnemorph/challenges/<world>-<fnv64a>.jsonl`), where the board and the ledger
+  (`$XDG_STATE_HOME/mikata/challenges/<world>-<fnv64a>.jsonl`), where the board and the ledger
   folds read it. For every surface the landing touched that the speciality is routed — compiled or
-  declared — and every attack class it owns, the ledger (`mnemorph_proving::coverage`) holds one
+  declared — and every attack class it owns, the ledger (`mikata_proving::coverage`) holds one
   entry:
   - **checked** — the method, and the evidence: the files read, each with the symbols looked at
     and its `sha256sum`, and the commands run. A command counts only when this body's own run
@@ -1159,8 +1159,8 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   report: the ledger is structured, a refusal reaches the body while it can still fix it, and no
   report cap can cut it nor prose forge it. A Dark Elf's `@S PASS` without a valid ledger reads
   `NOT_VERIFIED`. The rules adapt Cloudflare's `validate-coverage-ledger.cjs`.
-- **Independent verification** (`mnemorph_world::challenge::verification`, sent by
-  `mnemorph_loop::challenge`). Before a finding counts, blocks or is proposed as a seal, a
+- **Independent verification** (`mikata_world::challenge::verification`, sent by
+  `mikata_loop::challenge`). Before a finding counts, blocks or is proposed as a seal, a
   **fresh verifier** tries to refute it.
   - **The floor is medium.** Each valid finding of medium or higher is verified. Medium is where
     the contract first asks the preconditions and the reachability — what a verifier can refute —
@@ -1262,16 +1262,16 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   creature, so its score and its ascension are its own — `dark-elf-supply` may rise to Arch Dark
   Elf while `dark-elf-agent` has not. Meter: *Upheld*, ok ≥ 80, warn ≥ 50, ranked on findings.
   - **Its source.** The value ledger folds the challenge records alone
-    (`mnemorph_ledger::fold_findings` over `Challenges::finding_rows`), each world's from its own
+    (`mikata_ledger::fold_findings` over `Challenges::finding_rows`), each world's from its own
     file in the human's state directory, outside the world. Never the in-world journal, a finding
-    record under `.mnemorph/dark-elf/` or any file a body can write: records whose path lies inside
+    record under `.mikata/dark-elf/` or any file a body can write: records whose path lies inside
     the world are refused, not folded. Each row is held to the verification guards again as it is
     read, so a row forged into the records counts for nothing.
   - **Each settling row carries its build** — the version and commit that wrote it, a row from
     before stamps reading as `unknown` — and the fold counts findings by the build of the record
-    that settled each (`mnemorph_ledger::fold_findings_by_build` folds each build apart), so a
+    that settled each (`mikata_ledger::fold_findings_by_build` folds each build apart), so a
     rate earned under old rules is told from one earned under new. The score reads every build.
-    `mnemorphd challenge score` shows each rate with its count and interval, and the builds.
+    `mikatad challenge score` shows each rate with its count and interval, and the builds.
   - **One root cause counts once.** Findings are deduplicated by fingerprint within a speciality,
     across landings. The fingerprint is line-free, so a finding filed again after its line moved,
     or confirmed on a later landing, is the same finding.
@@ -1282,7 +1282,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
     proved it. **Refuted**: refuted by its verifier, or dismissed by the human as a false positive.
     A critical its verifier refuted waits for the human and is neither until decided, nor is a
     `cannot-verify` or an unverified finding. The human decides one finding with
-    `mnemorphd challenge decide <landing> <fingerprint> upheld|false-positive --why <reason>`,
+    `mikatad challenge decide <landing> <fingerprint> upheld|false-positive --why <reason>`,
     at the terminal. A decision lifts no block: the fix or a waiver does that. A waiver of the
     whole challenge decides no finding.
   - **The formulas.** *findings* = distinct root causes filed; *upheldRate* = upheld ÷ findings;
@@ -1299,10 +1299,10 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
     per speciality, read against the living body's form. A Dark Elf at the bars is proposed to
     rise; an Arch Dark Elf under its fall bar is proposed probation. Both go to the human, and
     nothing in the harness applies either: applying them is M11's.
-    `mnemorphd challenge score` prints each speciality's findings, upheld, refuted,
+    `mikatad challenge score` prints each speciality's findings, upheld, refuted,
     `cannot-verify`, held, unverified, precision, upheld rate, last ten and proposal, escaped.
 - **The seeded fixture.** How the machinery is held to what it should catch, with no model in CI.
-  `crates/mnemorph-proving/fixtures/seeded/` is a small world shaped like Mnemorph's surfaces —
+  `crates/mikata-proving/fixtures/seeded/` is a small world shaped like Mikata's surfaces —
   a sandbox launcher, a shell tool, an approval card, a wire emitter, workflows, a Dockerfile, a
   Cargo source replacement, an env file, a grant list, a journal, a server route, a board card,
   an effect check, a ledger fold — each file planting **one** known flaw taken from a playbook's
@@ -1314,7 +1314,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   (`FAKE-TOKEN-…`) and its hosts `.invalid`. Its answer key, `fixtures/seeded.toml`, lives beside
   the world, never in it, so a model hunting the world cannot read the answers; it names each
   plant's speciality, class, file and symbol — the expected minimal finding — and each control's
-  ruling fact. The deterministic tests (`mnemorph-proving`'s and `mnemorph-loop`'s `seeded`)
+  ruling fact. The deterministic tests (`mikata-proving`'s and `mikata-loop`'s `seeded`)
   show that:
   1. each plant's path routes to its speciality, and that speciality's brief carries the class's
      playbook;
@@ -1338,7 +1338,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
 - **Calibration.** How often a reviewer passes a real bug, or flags a sound case, is measured on a
   **gold set**: labelled cases, each a candidate finding, the code it names, and the truth. The
   seeded fixture's plants (bugs) and controls (not bugs) are read from its key;
-  `crates/mnemorph-proving/fixtures/gold.toml` adds the real findings the playbooks' Regression
+  `crates/mikata-proving/fixtures/gold.toml` adds the real findings the playbooks' Regression
   lines name — credential grants, a TOCTOU write, env-prefix laundering, a forged wire line, an
   escape into a card, a pre-existing label read as an effect, a self-declared id, hollow
   coverage, a swapped body file, approval typeahead — each with its severity and the commit that
@@ -1347,7 +1347,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   [reviewer] [models]` puts every case to a reviewer — `dark-elf` (each case by its own
   speciality, briefed with its playbooks), `dark-elf-<speciality>`, or `fable`, a milestone's
   fresh review with no playbook — and writes a report under
-  `$XDG_STATE_HOME/mnemorph/calibration/`, outside the world: per speciality and per model
+  `$XDG_STATE_HOME/mikata/calibration/`, outside the world: per speciality and per model
   family, recall and precision over the cases judged, coverage with abstentions and failed calls
   apart, false accepts and false rejects with 95% Wilson intervals, severity agreement, and how
   often the panel's models split. Like the paid evaluation it is an ignored test on free
@@ -1358,7 +1358,7 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
   playbooks its `brief` loads for the case's file; in `fable` mode, nothing more. It measures how
   a reviewer judges a stated claim on the gold set, not how it finds flaws in a live repository,
   and it has not yet been run. With no model,
-  `mnemorph-proving`'s `calibrate` tests hold the set — its labels to the class table and the
+  `mikata-proving`'s `calibrate` tests hold the set — its labels to the class table and the
   Regression lines, the prompt carrying the case and never its answer — and the scorer to numbers
   worked out by hand.
 
@@ -1396,10 +1396,10 @@ compiled law proposes the ascension and you apply it at the terminal — ascensi
 friction a creature meets, so it is yours to grant. An ascended creature that slips enters
 probation; if it does not recover, a fall is proposed, and you apply that too. Nothing is erased:
 the record and the doc carry over both ways. A rise or a fall is written where the race is trusted
-— the creatures' witness, by `mnemorphd roster rise <creature>` or `roster fall <creature>` at the
+— the creatures' witness, by `mikatad roster rise <creature>` or `roster fall <creature>` at the
 terminal ([applying a rise or a fall](#applying-a-rise-or-a-fall)) — and the card is set to match;
 a card that only says the new race runs at the lower one. The human's own word, outside any
-proposal, stays `mnemorphd roster set-race <creature> <race>`.
+proposal, stays `mikatad roster set-race <creature> <race>`.
 
 **Technical detail.** The bars are evaluated over the report ledger's 28-day window at every
 read of it; the bars themselves are compiled (`rises`, `falls`, `recovers`), and nothing learned
@@ -1413,7 +1413,7 @@ enters them. The two thresholds are apart on purpose (hysteresis), so a creature
 | <img src="../assets/portraits/oni@64.png" width="28" alt="Oni"> **Oni** | Kijin | outward acts ≥ 30, outwardCleanRate ≥ 95%, zero rollbacks and zero corrections in the window | may act under **Oni envelopes**: standing permissions the human signs once (e.g. "push to `feat/*`, re-run CI, comment on PRs") — no prompt inside the envelope | any rollback or human correction of an envelope act — immediate, no probation |
 | <img src="../assets/portraits/arch-dark-elf@64.png" width="28" alt="Arch Dark Elf"> **Arch Dark Elf** | Dark Elf | findings ≥ 20, upheldRate ≥ 80%, precision ≥ 85% — per speciality, each its own record | its seal proposals go straight to the human, skipping Summoner's triage; may run background fuzz campaigns with their own budget | precision < 70% over the last 10 settled findings, or cannot-verify > 50% of the last 10 findings filed |
 
-How a fall is read (`mnemorph-races`, `falls`):
+How a fall is read (`mikata-races`, `falls`):
 
 - **An event ends the ascension at once**: a High Orc's pass overturned on a sealed territory, a
   Named Slime's *tests intact* failure, an Oni's rolled-back or corrected envelope act.
@@ -1435,8 +1435,8 @@ How a fall is read (`mnemorph-races`, `falls`):
   own unit and its Wilson score interval (`wilson`, `Rate`) — `Upheld 0.85 (17/20, 95%
   0.64–0.95)` — and `no reports` when `n` is zero. Eighteen of twenty is a lower bound near 0.70,
   and none seen is never no risk: the interval says how far the record can be trusted.
-- **Where the meters show** (`mnemorph_world::meters`). `mnemorph status` prints one compact line
-  per living creature, and `mnemorphd meters` (`--json` too) groups them by race; each meter by
+- **Where the meters show** (`mikata_world::meters`). `mikata status` prints one compact line
+  per living creature, and `mikatad meters` (`--json` too) groups them by race; each meter by
   its law name, with its count and interval:
 
   ```text
@@ -1487,7 +1487,7 @@ Every decision is explained (`explain_rise`, `explain_fall`, `Explanation`):
 - **The Dark Elf's proposals carry their lines** (`SpecialityFold::proposed`): the
   `cannot-verify` bar is a line of its own (`cannotVerifyRate > 0.50`, recovering at `<= 0.50`,
   rising again on `upheldRate`). The challenge records number their rows by line, from 1, as their
-  chain counts lines; `mnemorphd challenge score` prints each line, escaped, under its proposal,
+  chain counts lines; `mikatad challenge score` prints each line, escaped, under its proposal,
   and says when the records' chain does not hold — a proposal then names no head.
 
 Honest bad news never lowers a score. The report fold (`fold_reports`) reads the harness's facts
@@ -1511,7 +1511,7 @@ about each report — the gate's word on its landing, a first-try pass, the hole
 
 #### The report fold
 
-Every race but the Dark Elf is measured on its reports, folded by `mnemorph_world::reports` from
+Every race but the Dark Elf is measured on its reports, folded by `mikata_world::reports` from
 the harness's own journals under the human's state directory — never a copy in the world, which a
 body can write. Each journal is read once, its hash chain walked over the bytes read and held to
 the head anchored under the state directory (the usage witness as `usage-witness`); a chain that
@@ -1538,11 +1538,11 @@ A verdict names its run; one from before verdicts did is given to its body's lat
 or before it. A creature's meters are its name's rows under its doc's base race: the race is the
 one the usage witness says it ran as, so a doc that claims another race claims no record.
 
-The fold is kept in the **report ledger**, `$XDG_STATE_HOME/mnemorph/reports/<world>-<fnv64a>.jsonl`
+The fold is kept in the **report ledger**, `$XDG_STATE_HOME/mikata/reports/<world>-<fnv64a>.jsonl`
 ([storage](05-architecture.md#storage-files-are-the-truth)) — one row per report (`run`, `ask` or
 `act`), each with every input value above and the `build` of the journal row that settled it, and
 chained from its genesis; a row whose source row carries no build says `unstamped`.
-`mnemorphd meters` folds and keeps it; `mnemorph status` and the board
+`mikatad meters` folds and keeps it; `mikata status` and the board
 fold the same rows in memory and write nothing. Each row carries `ts`, the trusted time its report
 began — a run's first call in the usage witness, a throne landing's verdict, an outward act's first
 row in its post's witness — which the window reads. The compiled law proposes rises and falls from
@@ -1550,7 +1550,7 @@ these rows; none applies itself ([applying a rise or a fall](#applying-a-rise-or
 
 #### Applying a rise or a fall
 
-`mnemorph_world::ascension` reads the report ledger's rows and the creatures' witness, and
+`mikata_world::ascension` reads the report ledger's rows and the creatures' witness, and
 nothing else: no model, no estimate, no interval — the Wilson interval is shown beside a meter,
 never judged on.
 
@@ -1576,8 +1576,8 @@ never judged on.
   from the reports, shown, and never written.
 - **An input no trusted journal carries** (`slimeHealth` for an Orc, `envelopeCorrections` for a
   Kijin) computes no proposal: an Orc or a Kijin is not proposed a move until it is journaled, and
-  `mnemorph status` and `mnemorphd meters` say the input unknown — never zero (`unknown` in
-  `--json`). A Dark Elf is not read here at all: its proposals stay on its findings (`mnemorphd
+  `mikata status` and `mikatad meters` say the input unknown — never zero (`unknown` in
+  `--json`). A Dark Elf is not read here at all: its proposals stay on its findings (`mikatad
   challenge score`).
 - **A proposal carries its inputs**: the meters over the reports read, each with its count and
   interval; how many were read and the window; the law's lines, one per bar; the SHA-256 of the
@@ -1586,32 +1586,32 @@ never judged on.
   counts in one form or the other; the lines of each trusted journal it was folded from (`read`);
   and the build that read it, which is shown and never digested, so another build reads the same
   proposal.
-- **Only the human applies one.** `mnemorphd roster rise <creature>` or `roster fall <creature>`
+- **Only the human applies one.** `mikatad roster rise <creature>` or `roster fall <creature>`
   shows the proposal in full and asks for `y` at the terminal (`/dev/tty`; piped input is refused,
-  and there is no `--yes`). It is refused inside a body's command, under any `mnemorph`,
-  `mnemorphd` or `mnemorph-guard` ancestor, with no home or a state directory inside the world,
+  and there is no `--yes`). It is refused inside a body's command, under any `mikata`,
+  `mikatad` or `mikata-guard` ancestor, with no home or a state directory inside the world,
   when the report fold is unavailable or the report ledger kept beside it cannot be read as a
   regular file or does not walk whole, and when the proposal moved between the showing and the
   yes. The yes writes one row to the creatures' witness — `act` `rise` or `fall`, the new race,
   `by` `human`, the proposal's id, its `inputs_sha256`, `as_of` and `read` — chained with the
   rest, only onto the witness the proposal was read from (a row written in between, a second
   apply or a relief, refuses it whole), and sets the card's `Race` line to match.
-- **Where proposals show.** `mnemorph status` (`ascend` lines), `mnemorphd meters` (and each
+- **Where proposals show.** `mikata status` (`ascend` lines), `mikatad meters` (and each
   creature's `proposal`, `probation` and `unknown` in `--json`) and the board's bodies page say each pending
   proposal and probation with the command that applies it, escaped, its words quoted for a shell:
 
   ```text
-  ascend   sly: rise to named-slime proposed (landRate 1.00 (21/21, 95% 0.85–1.00) · gateRate 1.00 (21/21, 95% 0.85–1.00) · holeRate 0.00 (0/21, 95% 0.00–0.15); 21 reports) — the human applies it with: mnemorphd roster rise sly --world /home/me/world
+  ascend   sly: rise to named-slime proposed (landRate 1.00 (21/21, 95% 0.85–1.00) · gateRate 1.00 (21/21, 95% 0.85–1.00) · holeRate 0.00 (0/21, 95% 0.00–0.15); 21 reports) — the human applies it with: mikatad roster rise sly --world /home/me/world
   ascend   lexer (named-slime): on probation since 2026-11-01T09:00:00Z — 2 of 5 reports; it recovers at its fall bar or a fall is proposed
   ```
 - **Replay.** The proposals are a function of the journals' lines and the witness's rows alone.
-  `mnemorphd roster replay` folds, for every `rise` and `fall` row, exactly the journal lines it
+  `mikatad roster replay` folds, for every `rise` and `fall` row, exactly the journal lines it
   names (`read`), and recomputes it over the rows before it: each must name the very proposal the
   law makes there — its id, its digest, its race and its `as_of` — or the replay names the first
   row that does not reproduce and exits 1. A row written later — a verdict on an old run, a
   child's landing, an upheld finding — reshapes the reports read now, never an applied row's.
   The same journals with the same applies give the same proposals at the same points and the same
-  rows (`crates/mnemorph-world/tests/ascension.rs`).
+  rows (`crates/mikata-world/tests/ascension.rs`).
 
 **The guts classes are signals for a learned value, never a meter.** Every act of every body is
 classed `fail`, `red-pin`, `positive`, `repeat`, `echo` or `thrash` by harness code from its
@@ -1629,7 +1629,7 @@ that no update may undo:
   projected back after each update.
 
 **The learned guts** is the first such model, and the only one built: one logistic unit per race
-giving the chance its run lands (`mnemorph_races::learned`). Its inputs (version 2) are:
+giving the chance its run lands (`mikata_races::learned`). Its inputs (version 2) are:
 - each guts class's count in the body's last 5 acts;
 - three readings the harness takes itself, kept in the trusted guts journal with every act and
   never read from text: the edit misses in the same 5 acts, the share of the statement rows
@@ -1645,9 +1645,9 @@ one does. Its step is normalised and its error clipped, so one example never pus
 past its label. It learns only from runs the gate judged: a run no check ran for has no label, and
 counting it as failed would teach it that every unchecked run fails. It reads the harness's own
 journals, the guts record and the report ledger, outside the world. It predicts and never acts:
-`mnemorphd guts runs` prints a world's runs as it reads them, `mnemorphd guts fit … --save` trains
+`mikatad guts runs` prints a world's runs as it reads them, `mikatad guts fit … --save` trains
 it, scores it on the runs it held out against their base rate, and keeps it under the human's state
-directory, and `mnemorphd guts show` prints what is kept. A run may carry a `group`, which a bench
+directory, and `mikatad guts show` prints what is kept. A run may carry a `group`, which a bench
 sets to its task: two runs of one task are not independent, so a model scored on a task whose
 other runs it trained on is scored on what it memorised. When any run has a group, `fit` prints a
 second split that holds out whole groups, by a stable hash, and resamples the gain's interval by
@@ -1673,7 +1673,7 @@ the split by group:
 - **A held-out set judges once.** A set that has judged fits has been looked at: each look is a
   chance to keep the fit that happened to score well on it, and no interval knows how many looks
   there were. `fit` names each held-out set by the SHA-256 of its run ids, records under the
-  human's state directory (`mnemorph/learned/held-out.json`) that the set judged one more fit,
+  human's state directory (`mikata/learned/held-out.json`) that the set judged one more fit,
   and prints beside the gain how many it had judged before. The fit that decides whether the
   guts advises runs on a set that has judged nothing. A set that is new only because the record
   grew is said too: how many of its runs were held out for earlier fits. One command is one
@@ -1681,7 +1681,7 @@ the split by group:
   directory the count cannot be kept, and the fit says it cannot decide.
 
 **Advice is earned, and it can be lost.** A kept unit carries whether it advises
-(`mnemorph/learned/guts.json`, with the clock it was fitted with).
+(`mikata/learned/guts.json`, with the clock it was fitted with).
 
 - **Earned** by `guts fit … --save` only when the fit is short of the bar in nothing: the split
   by group; the gain over the base rate with a 90% lower bound above 0; a shuffled-label control
@@ -1693,17 +1693,17 @@ the split by group:
   scores the unit again first whenever 20 more labelled runs have come in since its last score:
   on every run since it was fitted, against its own reference, the interval resampled by group
   when the new runs name two or more, else by run. When the gain's lower bound is no longer
-  above 0 the unit stops advising and keeps why, with the numbers. `mnemorphd guts watch
+  above 0 the unit stops advising and keeps why, with the numbers. `mikatad guts watch
   <runs.jsonl>…` does the same on a record.
 - **Never given back by a rescore.** Only a new fit that clears the bar again, on a held-out set
   that has judged nothing, earns it back.
-- **The advice record** (`mnemorph/learned/advice.jsonl`) holds one line each time a unit earns
+- **The advice record** (`mikata/learned/advice.jsonl`) holds one line each time a unit earns
   its advice, misses it, keeps it at a rescore, or loses it.
 
 Nothing in the harness reads a unit's advice yet: the learned guts still only predicts. This is
 the gate any reader of it will have to pass through.
  The throne's runs from before its rename say `rimuru` and
-are fitted with the Summoner's. The maths is mnemorph-research's `value-function-math.md`, §3–§5.
+are fitted with the Summoner's. The maths is mikata-research's `value-function-math.md`, §3–§5.
 
 Rules that hold for every ascension:
 
@@ -1712,7 +1712,7 @@ Rules that hold for every ascension:
   unless the human's own file says, from 1 to 365), capped in uses if the human says so,
   revocable, listed to the human, and its time and count checked at the moment of use, not only
   when the act was planned. A revoked envelope stays on record ([config](05-architecture.md#configuration)).
-- **How the gate admits an act under an envelope** (`mnemorph_config::EnvelopeGate`, step 4 of
+- **How the gate admits an act under an envelope** (`mikata_config::EnvelopeGate`, step 4 of
   [the act runner](#-kijin--the-hands-that-reach-outside)). It reads, in this order, and stops at
   the first that fails — the act then goes to the human, the card saying why:
   1. the body is an Oni, by the race the trusted roster gives it: the creatures' witness holds it
@@ -1723,7 +1723,7 @@ Rules that hold for every ascension:
   2. the act is typed, not an undo, and classed `outward`, never `destructive`;
   3. the envelopes, read afresh from the human's global file alone, so one revoked a moment ago
      is seen revoked. A file in the world — the local one too — is never read for them, since
-     whatever runs there as the human may write it (`mnemorphd envelope list` says when a local
+     whatever runs there as the human may write it (`mikatad envelope list` says when a local
      file signs some, ignored); nor is a global file git tracks in the world, a link, a file
      another user owns, or one others may write or that sits in a folder others may write;
   4. an envelope one of whose patterns reads the act and that is signed for it: each names its
@@ -1734,7 +1734,7 @@ Rules that hold for every ascension:
   5. the compiled exclusions below — read only now, so no remote is asked about an act no
      envelope could cover;
   6. that envelope in force (not revoked, signed, not expired) and under its cap: its uses
-     counted in the uses ledger under the human's state directory (`mnemorph/oni/uses.jsonl`, one
+     counted in the uses ledger under the human's state directory (`mikata/oni/uses.jsonl`, one
      row per admitted act, for every world, hash-chained so a use written away or edited is
      found), a row that does not read giving no count;
   7. that envelope not suspended by an open incident.
@@ -1747,12 +1747,12 @@ Rules that hold for every ascension:
   `admitted by envelope <name> (use n/cap)`, its intent names the envelope (an incident opened on it names it too), the
   Kijin's receipt carries the same line, and the human is shown it as it happens — a line in the
   session, a `warning` event to a client, a line on the terminal — and in
-  `mnemorphd envelope list`, with every act each envelope admitted; `mnemorph status` gives each
+  `mikatad envelope list`, with every act each envelope admitted; `mikata status` gives each
   envelope one `envelope` line — its name, whether it is in force, its dates and its uses — and
-  says when none is signed or why none is honoured. `mnemorphd envelope revoke <name>` is the human's
+  says when none is signed or why none is honoured. `mikatad envelope revoke <name>` is the human's
   alone, asked at the terminal and journaled beside the uses.
 - **An envelope is suspended while an incident is open** on an act one of its patterns reads, or
-  that the incident names (`mnemorph_config::suspended`, [the Kijin's incidents](#-kijin--the-hands-that-reach-outside)):
+  that the incident names (`mikata_config::suspended`, [the Kijin's incidents](#-kijin--the-hands-that-reach-outside)):
   it covers nothing until the incident closes on its four receipts; an incident record that
   cannot be read suspends every envelope.
 - **An envelope that is a bare `*`** — a pattern whose only word is `*`, or one whose words a `*`
@@ -1776,7 +1776,7 @@ Rules that hold for every ascension:
   - a push or pull request whose diff touches CI configuration (`.github/`, `.gitlab-ci.yml`, a
     `justfile` or `Makefile`, …), deploy or release configuration (`Dockerfile`, `deploy/`,
     `*.tf`, `release-plz.toml`, …), a manifest or lock file at any depth (`Cargo.toml`,
-    `package.json`, `build.rs`, `.cargo/`, …) or the world's tracked `.mnemorph/config.toml` — a
+    `package.json`, `build.rs`, `.cargo/`, …) or the world's tracked `.mikata/config.toml` — a
     pushed workflow runs with the repository's secrets, so that push is always asked. A push is
     judged by every commit it brings that no branch on its pinned URL holds (read with `git
     ls-remote --heads` at the pinned URL), a pull request by the forge's comparison of its base
@@ -1794,7 +1794,7 @@ Rules that hold for every ascension:
 - Each rise and fall is a row in the creatures' witness naming its proposal and the digest of the
   readings that caused it; probation is read from the reports, never written.
 - A creature can be named down by the human at any time, proposal or none:
-  `mnemorphd roster set-race <creature> <race>`.
+  `mikatad roster set-race <creature> <race>`.
 
 ### Evolution — the other way to change
 
@@ -1812,10 +1812,10 @@ any more. Both stay from isekai, unchanged in spirit:
 and those of the Minds it wears) holds more than 7 entries: stress says something is wrong, a full
 desk says it has learned enough to change. It is checked after every court and at run start.
 
-What is built reads only what the harness can trust, and proposes only (`mnemorph_world::evolve`,
-shown as `evolve` lines in `mnemorph status` and by `mnemorphd evolution due`): **stressed** is
+What is built reads only what the harness can trust, and proposes only (`mikata_world::evolve`,
+shown as `evolve` lines in `mikata status` and by `mikatad evolution due`): **stressed** is
 its last 3 verdicts in the trusted gate journal failed — a verdict no check could run for
-(`unrun`, `unpinned`) is skipped — or, from the strain journal (`mnemorph_world::strain`), its
+(`unrun`, `unpinned`) is skipped — or, from the strain journal (`mikata_world::strain`), its
 strain since it was last cleared reached the council's line of 5, or a run of its ended at the
 doom checkpoint. That journal is the harness's, under the state directory, chained and anchored
 with the others; the council's own tally stays in the world, where a body writes, and a forged
@@ -1837,24 +1837,24 @@ gate failed on the creature's own verify lines or its doc names files that are g
 record restarts; **mutate** otherwise — repeated lessons become traits and verify lines, a
 recurring *how* is minted as a skill on trial.
 
-**Proven before swapped** (`mnemorph_loop::prove`). A plan is staged under
-`.mnemorph/tmp/evolution/<id>/` and swapped in only when it is proven over an overlay — a scratch
+**Proven before swapped** (`mikata_loop::prove`). A plan is staged under
+`.mikata/tmp/evolution/<id>/` and swapped in only when it is proven over an overlay — a scratch
 copy of the world (build output, instruments and scratch left out), the plan written into it,
 never into the world — and every body gets exactly the files the plan meant. Over the overlay
 the ontology (`onto check`, its cards read against the live world's witness) must find nothing
 the live world does not: a finding is new by severity, code, file and message — its line aside,
 so a doc grown longer above it is not — and a doc that no longer reads is new. Every creature doc
-the plan writes must have its verify lines pinned by the human (`mnemorphd verify pin`) — a line
+the plan writes must have its verify lines pinned by the human (`mikatad verify pin`) — a line
 the card alone says never runs — and each must pass in the sandbox over the overlay, writing
 nothing. A plan that re-parents or widens a card is refused so: its overlay holds a
 `roster-mismatch` the world does not. Otherwise nothing is asked, nothing written, and every
 reason said. The old doc rests in the attic.
 
-**On its own, on trial** (`mnemorph_loop::auto`). With `evolution.mode = "auto"` — the default,
+**On its own, on trial** (`mikata_loop::auto`). With `evolution.mode = "auto"` — the default,
 and the human's global file's alone, since it lets the harness swap without asking — evolution
 runs itself and keeps only what beats doing nothing. After each session in the terminal app, one
-tick runs in the background (`mnemorphd evolution auto`, its output in
-`$XDG_STATE_HOME/mnemorph/evolution-auto.log`; a board or a scheduled loop may run it too), under
+tick runs in the background (`mikatad evolution auto`, its output in
+`$XDG_STATE_HOME/mikata/evolution-auto.log`; a board or a scheduled loop may run it too), under
 a lock so two never run at once:
 
 1. **Settle.** A swap whose window of 10 runs is full is judged, its do-nothing controls run
@@ -1876,12 +1876,12 @@ At most one judgement and one draft a tick, so a tick's spend is bounded. Every 
 `settle` row in the evolution ledger — kept or rolled back, by `harness` or `human`, and the
 judgement it stood on — and a swap is settled once; a settled swap's window closes, early or
 not, so its body is free for the next. The human may settle any swap first:
-`mnemorphd evolution keep <id>` or `rollback <id>`, its judgement shown, asked at the terminal.
+`mikatad evolution keep <id>` or `rollback <id>`, its judgement shown, asked at the terminal.
 With `evolution.mode = "propose"` nothing runs on its own.
 
 **Paced.** A creature evolves at most once every 10 runs (replayed from the ledger), one plan runs
-at a time, and every plan drawn is a proposal (`mnemorph_world::proposals`) until it is swapped
-in, for `mnemorphd evolution list | show | apply | reject`, each verb but `list` naming the
+at a time, and every plan drawn is a proposal (`mikata_world::proposals`) until it is swapped
+in, for `mikatad evolution list | show | apply | reject`, each verb but `list` naming the
 proposal's id. A proposal is kept under the human's state directory, chained and anchored with the other
 journals: its file set and each file's digest as the world held it when drawn and as staged.
 `list` says each one's state, `show` the lines it would take away and bring. `apply` is refused
@@ -1890,14 +1890,14 @@ not the bytes drawn, since a body can write the staging; otherwise it is proven,
 swapped in as `swap` is, and closed. `reject` closes it and removes its staging, never through a
 link, asked at the terminal. Each swap writes its row to the evolution ledger.
 
-**Judged after the freeze** (`mnemorph_ledger::evolution`). A plan proven in the sandbox has only
+**Judged after the freeze** (`mikata_ledger::evolution`). A plan proven in the sandbox has only
 graded itself on the verify lines it wrote; once swapped in, the change is frozen and judged on
 what comes after it, and only that:
 
 - **The ledger.** The evolution ledger lives outside the world, under the human's state directory
-  (`$XDG_STATE_HOME/mnemorph/evolution/<world>-<fnv64a>.jsonl`, else `~/.local/state/…`), written by
+  (`$XDG_STATE_HOME/mikata/evolution/<world>-<fnv64a>.jsonl`, else `~/.local/state/…`), written by
   the harness alone and out of every command's reach, like the challenge records. It is chained by
-  hash, and its head is anchored with the world's other chained journals (`mnemorphd housekeep
+  hash, and its head is anchored with the world's other chained journals (`mikatad housekeep
   --verify`); judging reads it held to the newest anchored head, so a ledger chained again from
   its start, or cut at its end, is broken. A ledger with no chain is never judged, nor a window
   whose last row is not a link of it.
@@ -1953,15 +1953,15 @@ what comes after it, and only that:
   keep or a rollback is proposed to the human like every other change to a race, and settling it
   is the human's (`evolution keep | rollback <id>`).
 
-**The lifecycle, end to end** (`mnemorph_world::evolution`, `mnemorph_loop::evolution`). In `propose`
+**The lifecycle, end to end** (`mikata_world::evolution`, `mikata_loop::evolution`). In `propose`
 mode nothing here runs on its own: the human swaps a plan in, asks for its judgement and settles
 it. In `auto` mode the tick above does each step after a session.
 
-1. **Proposed.** A plan is staged under `.mnemorph/tmp/evolution/<id>/`, each file at the world
-   path it replaces or creates — a Mind under `.mnemorph/minds/`, a creature doc under
-   `.mnemorph/<race>/<name>/`, a split's young in a folder of its own. Who drafts it is free (a
+1. **Proposed.** A plan is staged under `.mikata/tmp/evolution/<id>/`, each file at the world
+   path it replaces or creates — a Mind under `.mikata/minds/`, a creature doc under
+   `.mikata/<race>/<name>/`, a split's young in a folder of its own. Who drafts it is free (a
    body, the human, or the drafter); it changes nothing while staged. **The drafter**
-   (`mnemorph_loop::draft`, `mnemorphd evolution draft <creature>`) drafts a **mutate** or a
+   (`mikata_loop::draft`, `mikatad evolution draft <creature>`) drafts a **mutate** or a
    **rebirth** for a creature the trigger finds due: one call to the configured model, with no
    tool, shown the creature's doc and its desk as data — a body may have written either — and
    answering only trait lines, `@T <trait> from=<note id>,…`, each citing notes on the desk. The
@@ -1971,15 +1971,15 @@ it. In `auto` mode the tick above does each step after a session.
    where no field is read. At most 7 traits of at most 200 characters, one line each, no control
    character, every citation a note on the desk: any rule broken refuses the draft whole, and it
    stages nothing. The plan is staged under a new folder, none followed through a link, and kept
-   as a proposal with the bytes drawn; `mnemorphd evolution apply <id>` swaps it in. The call is priced in the usage ledger against the human's caps, as no
+   as a proposal with the bytes drawn; `mikatad evolution apply <id>` swaps it in. The call is priced in the usage ledger against the human's caps, as no
    body's run, so it never counts in a creature's record. A split is drawn by relief, not drafted:
    the trigger names the two parts of the zone its trouble clusters in, and
-   `mnemorphd relief <name> --around <part>,<part>` splits it there — one part to each young, the
+   `mikatad relief <name> --around <part>,<part>` splits it there — one part to each young, the
    rest of the ground shared out so each holds as many. A split is structural (new seats, the old
    one retired, its notes and pins inherited) and no do-nothing control judges it, so it is the
-   human's: `evolution due`, `mnemorph status` and the tick name it with that command, and nothing
+   human's: `evolution due`, `mikata status` and the tick name it with that command, and nothing
    applies it on its own.
-2. **Swapped**, by the human: `mnemorphd evolution swap <id> --creature <name>` with its file set —
+2. **Swapped**, by the human: `mikatad evolution swap <id> --creature <name>` with its file set —
    `--file` for each file it replaces, `--create` for each it creates, `--remove` for each it
    removes — and `--arm`, `--body` for each body judged (the creature unless named) and
    `--proven-on` for each task it was proven on, by the ask's text (fingerprinted as the runs
@@ -1995,7 +1995,7 @@ it. In `auto` mode the tick above does each step after a session.
    written through a link. A staged file, or a named file's bytes before, is read up to 8 MiB.
    The plan is shown, **proven over an overlay** (above) — a plan not proven is refused before
    it is asked — and asked for `y` at the terminal; a
-   body never runs it. The harness hashes the soil under `.mnemorph/` (the
+   body never runs it. The harness hashes the soil under `.mikata/` (the
    instruments, memory and scratch left out) before and after writing it, keeps the named files'
    bytes before beside the ledger (`<ledger>.swaps/<id>/before/`, folders 0700 and files 0600,
    kept only while they are the bytes the soil hashed), and appends one `swap` row:
@@ -2011,11 +2011,11 @@ it. In `auto` mode the tick above does each step after a session.
    it found (a *tests intact* failure). An ask the human stops writes no row; a task the ledger
    already holds, or one any swap's plan was proven on, is never stamped, since it could no longer be
    held out. Neither is an ask under another build than the swap's: that window could never fill,
-   so `mnemorph status` and `judge` say `swap <id> built by <x>; this build <y>: re-swap to judge`,
+   so `mikata status` and `judge` say `swap <id> built by <x>; this build <y>: re-swap to judge`,
    and such a swap holds no body against a new one. After 10 rows the window is full and asks run
    unstamped.
 4. **Controlled**, on demand: no scheduler runs the controls beside the window.
-   `mnemorphd evolution judge <id>` runs the do-nothing control of every window run still without
+   `mikatad evolution judge <id>` runs the do-nothing control of every window run still without
    one — the same ask, by the same body (Summoner alone, or the creature with its own prompt, soil
    and verify lines), through the configured model, under the swap's own build — in a scratch
    copy of the world (build output, instruments and scratch left out), reset to the attic's tree
@@ -2047,7 +2047,7 @@ same gate word every time.
 
 ### What changed from isekai, and why
 
-| isekai | Mnemorph | Why |
+| isekai | Mikata | Why |
 |---|---|---|
 | a rank table in config (`ranks.*`) | an enum and its compiled methods | we know what works; a configurable tree produced unknowns and 8k lines of config |
 | Kijin = one standing release lane | Kijin = the only outward race, five posts | Containment as a type, not a rule to remember |

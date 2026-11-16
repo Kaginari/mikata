@@ -4,7 +4,7 @@
  * tests hold that, and hold the one pairing the board does lean on by colour — present against
  * missing — apart under every deficiency.
  */
-import { dark, light, races } from '@mnemorph/theme';
+import { dark, light, races } from '@mikata/theme';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { apart, VISIONS } from './palette.ts';
