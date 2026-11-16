@@ -3,7 +3,7 @@
  * (colour-vision deficiency, a monochrome screenshot). Every coloured node on the board is one of
  * these, and the end-to-end tests check each has a label.
  */
-import type { WorldState, WorldStatus } from '@mnemorph/protocol';
+import type { WorldState, WorldStatus } from '@mikata/protocol';
 import type { ReactNode } from 'react';
 
 export type Tone = 'holo' | 'muted' | 'alarm' | 'gold';

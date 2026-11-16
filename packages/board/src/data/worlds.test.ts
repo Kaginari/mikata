@@ -5,7 +5,7 @@ import { parseWorlds } from './worlds.ts';
 /**
  * `GET /api/worlds` byte for byte as the board server's handler writes it: serde's compact JSON
  * of `BoardWorlds`, fields in declaration order, `null` for an absent remote or a world never
- * opened, the missing worlds apart (crates/mnemorph-server/src/board/mod.rs, tests/board.rs).
+ * opened, the missing worlds apart (crates/mikata-server/src/board/mod.rs, tests/board.rs).
  */
 const SERVED =
   '{"worlds":[' +

@@ -4,7 +4,7 @@
  * scope, standing and review. The human's two routes, confirm and wake, are behind a dialog that
  * names the note. Every word a note holds is a body's: shown through `<Safe>`, granting nothing.
  */
-import type { BoardWorld, MemoryNote, NoteScope, NoteStanding } from '@mnemorph/protocol';
+import type { BoardWorld, MemoryNote, NoteScope, NoteStanding } from '@mikata/protocol';
 import { useState } from 'react';
 import {
   confirmNote,
@@ -242,7 +242,7 @@ function Act({
       </dl>
       <p className="panel-note">
         The words are a body's: the server checks again that this note still says exactly this
-        before it acts. As the CLI: <code className="mono">mnemorphd memory {kind} </code>
+        before it acts. As the CLI: <code className="mono">mikatad memory {kind} </code>
         <code className="mono">
           <Safe text={n.id} />
         </code>

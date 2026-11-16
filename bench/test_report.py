@@ -89,7 +89,7 @@ class Auto(unittest.TestCase):
 
 class Causes(unittest.TestCase):
     def test_each_ending_is_told_by_its_cause(self):
-        said = lambda e: row("t", "solo", exit=1, stderr="  ✗ x\nmnemorph: %s\n" % e)
+        said = lambda e: row("t", "solo", exit=1, stderr="  ✗ x\nmikata: %s\n" % e)
         for stderr_ending, want in [
             ("escalate: more than two failed acts in a row", "escalated"),
             ("checkpoint: the budget is spent", "checkpoint"),
@@ -107,7 +107,7 @@ class Causes(unittest.TestCase):
         self.assertEqual(report.cause(row("t", "solo", exit=1, ending="escalate: x")), "escalated")
 
     def test_a_run_the_provider_stopped_is_rerun_never_counted(self):
-        infra = row(TASKS[0], "solo", exit=1, stderr="mnemorph: failed: the provider answered 502\n")
+        infra = row(TASKS[0], "solo", exit=1, stderr="mikata: failed: the provider answered 502\n")
         rows = [infra] + full()[1:]
         out, code = report.report(rows, ["solo", "hierarchy"], partial=False)
         self.assertEqual((code, out["rerun"]), (1, [(TASKS[0], "solo", "on")]))
@@ -211,7 +211,7 @@ class MixedArms(unittest.TestCase):
         import pathlib
         import tempfile
         with tempfile.TemporaryDirectory() as d:
-            loop = pathlib.Path(d) / ".mnemorph" / "instruments" / "loop"
+            loop = pathlib.Path(d) / ".mikata" / "instruments" / "loop"
             loop.mkdir(parents=True)
             (loop / "r1.jsonl").write_text('{"beat":"law","on":false}\n{"beat":"ask","text":"x"}\n'
                                            '{"beat":"law","on":true,"resumed":true}\n')

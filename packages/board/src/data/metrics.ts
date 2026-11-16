@@ -22,7 +22,7 @@ import type {
   Spent,
   Tally,
   Usage,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useCallback, useEffect, useState } from 'react';
 import { type Change, usePush } from './push.ts';
 import { establish, signedOut } from './session.ts';

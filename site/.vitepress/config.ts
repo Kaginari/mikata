@@ -9,11 +9,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 // reaches the root node_modules under pnpm's isolated layout.
 export default withMermaid(
   defineConfig({
-    title: 'Mnemorph',
+    title: 'Mikata',
     description:
-      'An agent harness grown from isekai: Rust core and terminal app, TypeScript board.',
+      'Mikata, the coding agent on your side: one body that writes down what done means and checks every line of it.',
     srcDir: '../docs',
-    rewrites: { 'README.md': 'index.md' },
+    rewrites: { 'README.md': 'index.md', 'experimental/README.md': 'experimental/index.md' },
     // Local-only notes (ignored by git) never reach the site.
     srcExclude: ['study-maki.md'],
     cleanUrls: true,
@@ -33,7 +33,7 @@ export default withMermaid(
               : self.renderToken(tokens, idx, options);
       },
     },
-    // The brand's files are the site's public files: the emblem is the logo and the favicon.
+    // The brand's files are the site's public files: the icon is the logo and the favicon.
     vite: { publicDir: fileURLToPath(new URL('../../assets/brand', import.meta.url)) },
     // A canvas links to its SVG at full size: the SVGs are served beside the pages, at /canvas/.
     buildEnd(site) {
@@ -44,7 +44,7 @@ export default withMermaid(
     },
     head: [
       ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
-      ['link', { rel: 'icon', type: 'image/png', href: '/mnemorph-icon@64.png' }],
+      ['link', { rel: 'icon', type: 'image/png', href: '/mikata-icon@64.png' }],
       ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
       [
         'link',
@@ -54,41 +54,52 @@ export default withMermaid(
         },
       ],
     ],
-    // Dark first, like the banner; the toggle still offers light.
+    // Dark first, like the logo; the toggle still offers light.
     appearance: 'dark',
     lastUpdated: true,
     themeConfig: {
-      logo: '/mnemorph-icon@64.png',
+      logo: '/mikata-icon@64.png',
       nav: [
         { text: 'Book', link: '/' },
+        { text: 'Bench', link: '/bench' },
         { text: 'Roadmap', link: '/roadmap' },
-        { text: 'GitHub', link: 'https://github.com/Kaginari/mnemorph' },
+        { text: 'Experimental', link: '/experimental/' },
+        { text: 'GitHub', link: 'https://github.com/Kaginari/mikata' },
       ],
       sidebar: [
         {
-          text: 'The book',
+          text: 'Mikata',
           items: [
             { text: 'Overview', link: '/01-overview' },
+            { text: 'The loop', link: '/02-loop' },
+            { text: 'Architecture', link: '/03-architecture' },
+            { text: 'The client protocol', link: '/04-protocol' },
+            { text: 'Consumption', link: '/05-consumption' },
+            { text: 'MCP', link: '/06-mcp' },
+            { text: 'Memory', link: '/07-memory' },
             { text: 'The bench', link: '/bench' },
-            { text: 'Experimental modes', link: '/experimental-modes' },
-            { text: 'Races', link: '/02-races' },
-            { text: 'The loop', link: '/03-loop' },
-            { text: 'Communication', link: '/04-communication' },
-            { text: 'Architecture', link: '/05-architecture' },
-            { text: 'Consumption', link: '/06-consumption' },
-            { text: 'MCP', link: '/07-mcp' },
-            { text: 'Memory', link: '/08-memory' },
-            { text: 'Ontology', link: '/09-ontology' },
             { text: 'Roadmap', link: '/roadmap' },
           ],
         },
         {
           text: 'Reference',
           items: [
-            { text: 'Lessons from isekai', link: '/lessons' },
+            { text: 'Lessons', link: '/lessons' },
             { text: 'Releasing', link: '/releasing' },
-            { text: 'Race cards brief', link: '/race-cards-prompt' },
-            { text: 'Research: DIKWP-MESH', link: '/research/dikwp-mesh' },
+          ],
+        },
+        {
+          text: 'Experimental: the lab',
+          collapsed: true,
+          items: [
+            { text: 'What the lab is', link: '/experimental/' },
+            { text: 'The experimental modes', link: '/experimental/modes' },
+            { text: 'Races', link: '/experimental/races' },
+            { text: 'Communication between bodies', link: '/experimental/communication' },
+            { text: 'Ontology', link: '/experimental/ontology' },
+            { text: 'How it was built: M0 to M14', link: '/experimental/roadmap-m0-m14' },
+            { text: 'Race cards brief', link: '/experimental/race-cards-prompt' },
+            { text: 'Research: DIKWP-MESH', link: '/experimental/research/dikwp-mesh' },
           ],
         },
       ],

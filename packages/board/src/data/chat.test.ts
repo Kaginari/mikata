@@ -1,4 +1,4 @@
-import type { Arrived } from '@mnemorph/protocol';
+import type { Arrived } from '@mikata/protocol';
 import { describe, expect, it } from 'vitest';
 import { Chat, groupCounts, summary } from './chat.ts';
 

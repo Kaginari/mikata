@@ -6,7 +6,7 @@
  * The match is one pass over the candidate for each query, linear in its length, and never builds
  * a regular expression from what was typed.
  */
-import type { BoardRun, BoardSession, BoardWorld } from '@mnemorph/protocol';
+import type { BoardRun, BoardSession, BoardWorld } from '@mikata/protocol';
 import { BODIES_TABS, format, type Route, WORLD_SECTIONS, type WorldSection } from '../router.ts';
 
 /** What a command is, for its group and its glyph. */

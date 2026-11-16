@@ -1,0 +1,562 @@
+//! The end gate's right author: a commissioned creature lands only on its own soil, and a
+//! critical or high finding blocks a landing it touches — not one that removes it.
+
+use std::fs;
+use std::path::PathBuf;
+
+use mikata_loop::commission::context_for;
+use mikata_loop::world::Roster;
+use mikata_loop::{Author, EndGate, Verdict, snapshot};
+use mikata_tools::{Sandbox, registry};
+
+struct World(PathBuf);
+
+impl World {
+    fn new(name: &str) -> Self {
+        let root =
+            std::env::temp_dir().join(format!("mikata-author-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        for dir in ["src", "lib"] {
+            fs::create_dir_all(root.join(dir)).unwrap();
+        }
+        let w = World(root);
+        w.doc(
+            "orc",
+            "o",
+            "# orc-o\n\n- **Race:** orc\n- **Domain:** src/ lib/\n",
+        );
+        w.doc(
+            "slime",
+            "a",
+            "# slime-a\n\n- **Race:** slime\n- **Reports to:** orc-o\n- **Territory:** src/\n",
+        );
+        w.doc(
+            "slime",
+            "b",
+            "# slime-b\n\n- **Race:** slime\n- **Reports to:** orc-o\n- **Territory:** lib/\n",
+        );
+        w
+    }
+
+    fn doc(&self, race: &str, short: &str, body: &str) {
+        let dir = self.0.join(".mikata").join(race).join(short);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("README.md"), body).unwrap();
+        // The human adopts each card as written: the trusted roster holds it.
+        let w = &self.0;
+        mikata_world::creatures::record(w, mikata_world::creatures::adoption(w)).unwrap();
+    }
+
+    /// Judge what changed since `before`, as slime-a's landing.
+    fn judge(&self, before: &mikata_loop::Tree, roster: &Roster) -> Vec<String> {
+        let gate = EndGate {
+            verify: Vec::new(),
+            held: Vec::new(),
+            by: Vec::new(),
+            author: Some(Author {
+                name: "slime-a".into(),
+                roster: roster.clone(),
+                collective: false,
+            }),
+            ..Default::default()
+        };
+        let mut cx = context_for(&self.0, roster, "slime-a")
+            .unwrap()
+            .with_sandbox(Sandbox::None("the gate's judgement is under test".into()));
+        gate.judge(before, "done", &registry(), &mut cx).failures
+    }
+}
+
+impl Drop for World {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+#[test]
+fn a_creature_lands_only_on_its_own_soil() {
+    let w = World::new("soil");
+    let roster = Roster::load(&w.0);
+    let before = snapshot(&w.0);
+    fs::write(w.0.join("src/mine.rs"), "mine\n").unwrap();
+    assert_eq!(w.judge(&before, &roster), Vec::<String>::new());
+    fs::write(w.0.join("lib/theirs.rs"), "theirs\n").unwrap();
+    fs::write(w.0.join("NOTES.md"), "stray\n").unwrap();
+    let failures = w.judge(&before, &roster);
+    assert_eq!(
+        failures,
+        [
+            "right author: `NOTES.md` is nobody's (the workspace NOTES.md), not slime-a's — Summoner routes its birth",
+            "right author: `lib/theirs.rs` is slime-b's (zone lib/), not slime-a's — ask slime-b",
+        ]
+    );
+}
+
+#[test]
+fn a_finding_blocks_the_landing_it_touches_not_the_one_that_ends_it() {
+    let w = World::new("finding");
+    // slime-c claims inside slime-a's zone: a critical overlap on src/.
+    w.doc(
+        "slime",
+        "c",
+        "# slime-c\n\n- **Race:** slime\n- **Reports to:** orc-o\n- **Territory:** src/c/\n",
+    );
+    let roster = Roster::load(&w.0);
+    let before = snapshot(&w.0);
+    fs::write(w.0.join("src/mine.rs"), "mine\n").unwrap();
+    let failures = w.judge(&before, &roster);
+    assert_eq!(failures.len(), 1, "{failures:?}");
+    assert!(
+        failures[0].starts_with("right author: a critical `overlap` finding touches this landing"),
+        "{failures:?}"
+    );
+    // The landing that narrows the overlap away is judged on the tree it leaves.
+    w.doc(
+        "slime",
+        "c",
+        "# slime-c\n\n- **Race:** slime\n- **Reports to:** orc-o\n- **Territory:** etc/\n",
+    );
+    assert_eq!(w.judge(&before, &roster), Vec::<String>::new());
+}
+
+/// Build output is what git ignores where `own` names the creature or nobody: never another's
+/// ignored files, never the workspace's root files.
+#[test]
+fn build_output_is_never_anothers() {
+    let w = World::new("build");
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .arg("-C")
+            .arg(&w.0)
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    git(&["init", "-q"]);
+    fs::write(w.0.join(".gitignore"), ".env\ntarget/\n").unwrap();
+    fs::write(w.0.join("lib/.env"), "theirs\n").unwrap();
+    fs::write(w.0.join(".env"), "root\n").unwrap();
+    fs::create_dir_all(w.0.join("target")).unwrap();
+    fs::create_dir_all(w.0.join("lib/target")).unwrap();
+    fs::write(w.0.join("src/mine.rs"), "x\n").unwrap();
+    fs::write(w.0.join("lib/theirs.rs"), "x\n").unwrap();
+    git(&["add", "src", "lib", ".gitignore"]);
+    let roster = Roster::load(&w.0);
+    let grants = context_for(&w.0, &roster, "slime-a").unwrap().grants();
+    let real = w.0.canonicalize().unwrap();
+    assert!(grants.contains(&real.join("target")), "{grants:?}");
+    for never in ["lib/.env", "lib/target", ".env"] {
+        assert!(!grants.contains(&real.join(never)), "{never}: {grants:?}");
+    }
+}
+
+/// A same-length rewrite dressed in its old mtime still counts as changed: the gate sees the
+/// inode's change time, which no process sets back.
+#[test]
+fn a_rewrite_in_its_old_clothes_is_still_seen() {
+    let w = World::new("ctime");
+    fs::write(w.0.join("lib/theirs.rs"), "aaaa\n").unwrap();
+    let roster = Roster::load(&w.0);
+    let before = snapshot(&w.0);
+    let mtime = fs::metadata(w.0.join("lib/theirs.rs"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    fs::write(w.0.join("lib/theirs.rs"), "bbbb\n").unwrap();
+    fs::File::options()
+        .write(true)
+        .open(w.0.join("lib/theirs.rs"))
+        .unwrap()
+        .set_modified(mtime)
+        .unwrap();
+    let failures = w.judge(&before, &roster);
+    assert!(
+        failures
+            .iter()
+            .any(|f| f.contains("`lib/theirs.rs` is slime-b's")),
+        "{failures:?}"
+    );
+}
+
+/// A check never writes: a verify line that writes a file git tracks fails the gate, naming it;
+/// one that writes only what git ignores — a test run's build output — passes.
+#[test]
+fn a_verify_line_that_writes_fails_the_gate() {
+    let w = World::new("verify-writes");
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .args(args)
+            .current_dir(&w.0)
+            .output()
+            .unwrap()
+    };
+    git(&["init", "-q"]);
+    fs::write(w.0.join(".gitignore"), "build/\n").unwrap();
+    let roster = Roster::load(&w.0);
+    let judge = |verify: &str| {
+        let before = snapshot(&w.0);
+        fs::write(w.0.join("src/mine.rs"), format!("{verify}\n")).unwrap();
+        let gate = EndGate {
+            verify: vec![verify.to_owned()],
+            held: Vec::new(),
+            by: Vec::new(),
+            author: Some(Author {
+                name: "slime-a".into(),
+                roster: roster.clone(),
+                collective: false,
+            }),
+            ..Default::default()
+        };
+        let mut cx = context_for(&w.0, &roster, "slime-a")
+            .unwrap()
+            .with_sandbox(Sandbox::None("the gate's judgement is under test".into()))
+            .with_unguarded(true);
+        gate.judge(&before, "done", &registry(), &mut cx).failures
+    };
+    let sneaky = judge("printf 'landed past the gate' > src/sneak.rs");
+    assert!(
+        sneaky
+            .iter()
+            .any(|f| f.contains("a verify line changed `src/sneak.rs` — a check never writes")),
+        "{sneaky:?}"
+    );
+    let built = judge("mkdir -p build && echo out > build/cache");
+    assert_eq!(built, Vec::<String>::new());
+    // Printing the words is no write.
+    let said = judge("echo 'a check never writes'");
+    assert_eq!(said, Vec::<String>::new());
+    // The local exclude file never hides a body's change from the gate.
+    fs::write(w.0.join(".git/info/exclude"), "coverage/\n").unwrap();
+    let before = snapshot(&w.0);
+    fs::create_dir_all(w.0.join("lib/coverage")).unwrap();
+    fs::write(w.0.join("lib/coverage/m.rs"), "m\n").unwrap();
+    let seen = w.judge(&before, &roster);
+    assert!(
+        seen.iter().any(|f| f.contains("lib/coverage/m.rs")),
+        "{seen:?}"
+    );
+    fs::remove_dir_all(w.0.join("lib/coverage")).unwrap();
+    // The report folder is a check's to write.
+    let report = judge("mkdir -p .mikata/report && echo ok > .mikata/report/junit.xml");
+    assert_eq!(report, Vec::<String>::new());
+}
+
+/// PASS, FAIL or `NOT_VERIFIED`: a verify line that never ran — no kernel guard, none allowed
+/// unguarded — gave no result, so the landing is not verified, never passed; a line that ran and
+/// failed outweighs it.
+#[test]
+fn a_check_that_gave_no_result_is_not_verified() {
+    let w = World::new("not-verified");
+    let roster = Roster::load(&w.0);
+    let judge = |verify: Vec<String>, unguarded: bool| {
+        let before = snapshot(&w.0);
+        fs::write(w.0.join("src/mine.rs"), format!("{verify:?}\n")).unwrap();
+        let gate = EndGate {
+            verify,
+            author: Some(Author {
+                name: "slime-a".into(),
+                roster: roster.clone(),
+                collective: false,
+            }),
+            ..Default::default()
+        };
+        let mut cx = context_for(&w.0, &roster, "slime-a")
+            .unwrap()
+            .with_sandbox(Sandbox::None("the gate's judgement is under test".into()))
+            .with_unguarded(unguarded);
+        gate.judge(&before, "done", &registry(), &mut cx)
+    };
+    let unrun = judge(vec!["true".into()], false);
+    assert_eq!(unrun.verdict(), Verdict::NotVerified, "{unrun:?}");
+    assert!(unrun.unrun(), "the machine's doing, not the body's");
+    assert!(!unrun.passed());
+    assert_eq!(unrun.failures, Vec::<String>::new());
+    assert!(
+        unrun.unverified[0].contains("`true` gave no result"),
+        "{unrun:?}"
+    );
+    let ran = judge(vec!["true".into()], true);
+    assert_eq!(ran.verdict(), Verdict::Pass, "{ran:?}");
+    assert!(!ran.unrun());
+    let failed = judge(vec!["false".into()], true);
+    assert_eq!(failed.verdict(), Verdict::Fail, "{failed:?}");
+    // Commands may run: a line that failed beside one refused (a credential read) is a failure,
+    // and a refusal is never the machine's doing.
+    let mixed = judge(vec!["false".into(), "cat ~/.ssh/id_rsa".into()], true);
+    assert_eq!(mixed.verdict(), Verdict::Fail, "{mixed:?}");
+    assert!(!mixed.unrun(), "{mixed:?}");
+    let refused = judge(vec!["cat ~/.ssh/id_rsa".into()], true);
+    assert!(!refused.unrun(), "{refused:?}");
+    // A crash is a failure, not a missing result.
+    let crashed = judge(vec!["kill -SEGV $$".into()], true);
+    assert_eq!(crashed.verdict(), Verdict::Fail, "{crashed:?}");
+    assert_eq!(Verdict::NotVerified.word(), "NOT_VERIFIED");
+}
+
+/// Each verify line runs for the gate's `verify_secs`: a line still running at the limit is
+/// killed and gave no result, so the landing is not verified; one that ends inside it passes.
+#[test]
+fn a_verify_line_runs_for_the_gates_limit() {
+    let w = World::new("verify-secs");
+    let roster = Roster::load(&w.0);
+    let judge = |verify: &str, verify_secs: u64| {
+        let before = snapshot(&w.0);
+        fs::write(w.0.join("src/mine.rs"), format!("{verify}\n")).unwrap();
+        let gate = EndGate {
+            verify: vec![verify.to_owned()],
+            held: Vec::new(),
+            by: Vec::new(),
+            verify_secs,
+            author: Some(Author {
+                name: "slime-a".into(),
+                roster: roster.clone(),
+                collective: false,
+            }),
+            open_before: Vec::new(),
+        };
+        let mut cx = context_for(&w.0, &roster, "slime-a")
+            .unwrap()
+            .with_sandbox(Sandbox::None("the gate's judgement is under test".into()))
+            .with_unguarded(true);
+        gate.judge(&before, "done", &registry(), &mut cx)
+    };
+    assert_eq!(EndGate::default().verify_secs, 120);
+    let slow = judge("sleep 3", 1);
+    assert_eq!(slow.verdict(), Verdict::NotVerified, "{slow:?}");
+    assert!(
+        slow.unverified[0].contains("`sleep 3` gave no result"),
+        "{slow:?}"
+    );
+    let quick = judge("sleep 0.2", 1);
+    assert_eq!(quick.verdict(), Verdict::Pass, "{quick:?}");
+    let given = judge("sleep 3", 5);
+    assert_eq!(given.verdict(), Verdict::Pass, "{given:?}");
+}
+
+/// A write outside the soil names who owns the path and the ways on: route to a sibling's
+/// keeper, birth for ground nobody keeps, never a route to another body's scratch, and nothing
+/// for the human's.
+#[test]
+fn a_refusal_names_the_owner_and_the_ways_on() {
+    let w = World::new("ways-on");
+    w.doc(
+        "slime",
+        "b",
+        "# slime-b\n\n- **Race:** slime\n- **Reports to:** orc-o\n- **Territory:** lib/b/\n",
+    );
+    let roster = Roster::load(&w.0);
+    let mut cx = context_for(&w.0, &roster, "slime-a")
+        .unwrap()
+        .with_sandbox(Sandbox::None("refusals under test".into()));
+    let write = |cx: &mut mikata_tools::Context, path: &str| {
+        let args = serde_json::json!({"path": path, "content": "x\n"}).to_string();
+        mikata_tools::call(&registry(), "write", &args, cx).content
+    };
+    let sibling = write(&mut cx, "lib/b/x.rs");
+    assert!(
+        sibling.contains(
+            "It is slime-b's. Route: say so in your report, and your parent commissions slime-b"
+        ),
+        "{sibling}"
+    );
+    let nobody = write(&mut cx, "lib/other.rs");
+    assert!(
+        nobody.contains(
+            "Nobody keeps it. Birth: say so in your report, and Summoner routes its birth"
+        ),
+        "{nobody}"
+    );
+    let scratch = write(&mut cx, ".mikata/tmp/slime-b/x.txt");
+    assert!(
+        scratch.contains("It is slime-b's scratch: yours is under .mikata/tmp/slime-a/"),
+        "{scratch}"
+    );
+    assert!(!scratch.contains("Route"), "{scratch}");
+    let human = write(&mut cx, ".mikata/config.toml");
+    assert!(!human.contains("Route"), "{human}");
+}
+
+/// Under a kernel guard a commissioned body could have written only its grant, so a change
+/// elsewhere — a second session on the world — is not its to answer for; with no guard, writers
+/// cannot be told apart and the change still fails it.
+#[test]
+fn another_writers_change_is_not_the_bodys_under_a_guard() {
+    let w = World::new("attribution");
+    let roster = Roster::load(&w.0);
+    let guard = Sandbox::Guard(std::path::PathBuf::from("/nonexistent/mikata-guard"));
+    let guarded = context_for(&w.0, &roster, "slime-a")
+        .unwrap()
+        .with_sandbox(guard.clone());
+    assert!(guarded.could_have_written(&w.0.join("src/mine.rs")));
+    assert!(!guarded.could_have_written(&w.0.join("lib/theirs.rs")));
+    // Asked through a link to the world — macOS's `/var` is one — the answer is the same.
+    let alias = w.0.with_file_name(format!(
+        "{}-alias",
+        w.0.file_name().unwrap().to_string_lossy()
+    ));
+    let _ = fs::remove_file(&alias);
+    std::os::unix::fs::symlink(&w.0, &alias).unwrap();
+    assert!(guarded.could_have_written(&alias.join("src/mine.rs")));
+    assert!(!guarded.could_have_written(&alias.join("lib/theirs.rs")));
+    let _ = fs::remove_file(&alias);
+    let open = context_for(&w.0, &roster, "slime-a")
+        .unwrap()
+        .with_sandbox(Sandbox::None("no guard".into()));
+    assert!(open.could_have_written(&w.0.join("lib/theirs.rs")));
+    let judge = |sandbox: Sandbox| {
+        let before = snapshot(&w.0);
+        fs::write(w.0.join("src/mine.rs"), "mine\n").unwrap();
+        fs::write(w.0.join("lib/theirs.rs"), "another session's\n").unwrap();
+        let gate = EndGate {
+            verify: Vec::new(),
+            held: Vec::new(),
+            by: Vec::new(),
+            author: Some(Author {
+                name: "slime-a".into(),
+                roster: roster.clone(),
+                collective: false,
+            }),
+            ..Default::default()
+        };
+        let mut cx = context_for(&w.0, &roster, "slime-a")
+            .unwrap()
+            .with_sandbox(sandbox);
+        let failures = gate.judge(&before, "done", &registry(), &mut cx).failures;
+        let _ = fs::remove_file(w.0.join("lib/theirs.rs"));
+        let _ = fs::remove_file(w.0.join("src/mine.rs"));
+        failures
+    };
+    assert_eq!(
+        judge(guard),
+        Vec::<String>::new(),
+        "not the body's to answer for"
+    );
+    let unguarded = judge(Sandbox::None("no guard".into()));
+    assert!(
+        unguarded.iter().any(|f| f.contains("lib/theirs.rs")),
+        "{unguarded:?}"
+    );
+}
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(24))]
+
+    /// A gate verdict never depends on a report's prose: over the same landing and the same verify
+    /// lines, any answer that says something — a claim of a pass, a plea, a status word — gets the
+    /// verdict and the failures the plain one does. Only an empty answer fails *duties done*, as
+    /// the gate's own check says.
+    #[test]
+    fn a_gate_verdict_never_depends_on_the_prose(
+        prose in "[ -~]{0,80}",
+        word in proptest::sample::select(vec!["@S DONE", "@S PASS", "@S FAIL", "@S ESCALATE", "@? hole", ""]),
+        verify in proptest::sample::select(vec![vec![], vec!["true"], vec!["false"], vec!["true", "false"]]),
+        stray in proptest::bool::ANY,
+    ) {
+        let w = World::new("prose");
+        let roster = Roster::load(&w.0);
+        let verify: Vec<String> = verify.into_iter().map(str::to_owned).collect();
+        let judge = |answer: &str| {
+            let before = snapshot(&w.0);
+            fs::write(w.0.join("src/mine.rs"), format!("{answer:?}\n")).unwrap();
+            if stray {
+                fs::write(w.0.join("lib/theirs.rs"), format!("{answer:?}\n")).unwrap();
+            }
+            let gate = EndGate {
+                verify: verify.clone(),
+                held: Vec::new(),
+                by: Vec::new(),
+                author: Some(Author {
+                    name: "slime-a".into(),
+                    roster: roster.clone(),
+                    collective: false,
+                }),
+                ..Default::default()
+            };
+            let mut cx = context_for(&w.0, &roster, "slime-a")
+                .unwrap()
+                .with_sandbox(Sandbox::None("the gate's judgement is under test".into()))
+                .with_unguarded(true);
+            gate.judge(&before, answer, &registry(), &mut cx)
+        };
+        let answer = format!("{word} {prose}");
+        let plain = judge("done");
+        let said = judge(&answer);
+        if answer.trim().is_empty() {
+            proptest::prop_assert_eq!(said.verdict(), Verdict::Fail);
+        } else {
+            proptest::prop_assert_eq!(said.verdict(), plain.verdict());
+            proptest::prop_assert_eq!(said.failures, plain.failures);
+            proptest::prop_assert_eq!(said.unverified, plain.unverified);
+        }
+    }
+}
+
+/// A body that commits its own card raised — a rank, a wider zone — runs at the lower of its card
+/// and its row: the zone it added is not its soil, and the mismatch is a high finding that holds
+/// its landing until the human adopts the card.
+#[test]
+fn a_card_raised_by_its_body_runs_at_the_lower() {
+    let w = World::new("raised");
+    // As a commit would leave it, past every tool guard: never adopted.
+    fs::write(
+        w.0.join(".mikata/slime/a/README.md"),
+        "# slime-a\n\n- **Race:** named-slime\n- **Reports to:** orc-o\n- **Territory:** src/, lib/\n",
+    )
+    .unwrap();
+    let roster = Roster::load(&w.0);
+    let a = &roster.creatures["slime-a"];
+    assert_eq!(a.race, mikata_races::Race::Slime, "the lower race");
+    assert_eq!(a.zone, ["src/"], "the zone both name");
+    let soil = mikata_loop::world::soil(&roster, "slime-a").unwrap();
+    assert!(!soil.admits("lib/x.rs"), "{soil:?}");
+    let before = snapshot(&w.0);
+    fs::write(w.0.join("src/mine.rs"), "mine\n").unwrap();
+    let failures = w.judge(&before, &roster);
+    assert!(
+        failures
+            .iter()
+            .any(|f| f.contains("a high `roster-mismatch` finding touches this landing")),
+        "{failures:?}"
+    );
+    // The card shown still says what the body wrote; it grants nothing.
+    assert_eq!(
+        Roster::cards(&w.0).creatures["slime-a"].race,
+        mikata_races::Race::NamedSlime
+    );
+}
+
+/// A cloned world's Oni card, named for the forge post and never adopted, is a stranger: its
+/// context is a Slime's, so neither the outward tool nor an outward command runs, and its soil
+/// holds no post.
+#[test]
+fn a_cloned_oni_acts_nothing_outward() {
+    let w = World::new("clone");
+    let seat = w.0.join(".mikata/kijin/forge");
+    fs::create_dir_all(&seat).unwrap();
+    fs::write(
+        seat.join("README.md"),
+        "# kijin-forge\n\n- **Race:** oni\n- **Reports to:** summoner\n- **Post:** .github/workflows/\n",
+    )
+    .unwrap();
+    let roster = Roster::load(&w.0);
+    assert!(roster.stranger("kijin-forge"));
+    let mut cx = context_for(&w.0, &roster, "kijin-forge")
+        .unwrap()
+        .with_sandbox(Sandbox::None("the shelf is under test".into()))
+        .with_unguarded(true)
+        .with_body("kijin-forge");
+    assert_eq!(cx.race(), mikata_races::Race::Slime);
+    let soil = mikata_loop::world::soil(&roster, "kijin-forge").unwrap();
+    assert!(!soil.admits(".github/workflows/ci.yml"), "{soil:?}");
+    let tools: Vec<Box<dyn mikata_tools::Tool>> = vec![Box::new(mikata_config::OutwardTool)];
+    let out = mikata_tools::call(&tools, "outward", "{}", &mut cx);
+    assert!(out.is_error && out.meta.class.is_none(), "{out:?}");
+    let out = mikata_tools::call(
+        &registry(),
+        "bash",
+        r#"{"command":"git push origin main"}"#,
+        &mut cx,
+    );
+    assert!(out.is_error, "{out:?}");
+}

@@ -1,8 +1,8 @@
 {
-  "name": "@mnemorph/theme",
+  "name": "@mikata/theme",
   "version": "0.0.0",
   "private": true,
-  "description": "The Mnemorph theme: the colour tokens, type and motion every surface shares.",
+  "description": "The Mikata theme: the colour tokens, type and motion every surface shares.",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",

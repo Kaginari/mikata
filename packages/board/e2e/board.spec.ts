@@ -4,7 +4,7 @@
  * theme and hostile text.
  */
 import { fileURLToPath } from 'node:url';
-import type { BoardOverview } from '@mnemorph/protocol';
+import type { BoardOverview } from '@mikata/protocol';
 import { expect, type Page, test, type WebSocketRoute } from '@playwright/test';
 import { FIXTURE_NOW, fixtureOverviews, fixtureWorlds } from '../src/data/fixtures.ts';
 import { fixtureIntegrations, fixtureMetrics } from '../src/data/metricsFixtures.ts';
@@ -233,7 +233,7 @@ test('every world reads in words, the latest first', async ({ page }, info) => {
   await expect(missing.locator('.missing-world')).toContainText('/tmp/old-spike');
   await expect(missing.locator('.missing-world')).toContainText('missing since 2026-10-21');
   await expect(missing.locator('.missing-world')).toContainText(
-    'mnemorphd board forget /tmp/old-spike',
+    'mikatad board forget /tmp/old-spike',
   );
   expect(await lowContrast(page)).toEqual([]);
   if (info.project.name === 'desktop') {
@@ -249,7 +249,7 @@ test('deep links land, the back button returns', async ({ page }) => {
   await expect(page.locator('.page-chat .composer')).toBeVisible();
   await page.goBack();
   await expect(page.locator('.page-title')).toContainText('Memory');
-  await expect(page).toHaveTitle(/tempest-try · Mnemorph/);
+  await expect(page).toHaveTitle(/tempest-try · Mikata/);
 });
 
 test('an unknown address and an unknown world are said to be', async ({ page }) => {
@@ -375,7 +375,7 @@ test('a world overview says each source, and unknown where it is', async ({ page
   await page.goto(`/#/w/${GONE.id}`);
   await expect(page.getByRole('heading', { name: 'old-spike is missing' })).toBeVisible();
   await expect(page.getByText('missing since 2026-10-21')).toBeVisible();
-  await expect(page.getByText('mnemorphd board forget /tmp/old-spike')).toBeVisible();
+  await expect(page.getByText('mikatad board forget /tmp/old-spike')).toBeVisible();
 
   await page.goto(`/#/w/${SQLGLOT.id}`);
   await expect(page.getByText('too many entries: updates slowed')).toBeVisible();
@@ -396,7 +396,7 @@ test('a pushed world/changed is shown within a second', async ({ page }) => {
   if (!live) throw new Error('fixtures');
   live.activity = {
     value: { at: '2026-10-30T11:59:59Z', what: 'a run journal written' },
-    source: '.mnemorph/instruments/loop/',
+    source: '.mikata/instruments/loop/',
     trusted: false,
     why: null,
   };

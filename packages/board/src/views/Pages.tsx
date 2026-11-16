@@ -46,7 +46,7 @@ export function SettingsView({
         </h2>
         <p className="setting-sub">
           The terminal app's schemes, chosen here for this browser; the terminal keeps its own (
-          <code className="mono">/theme</code>). hud is Mnemorph's own cyan.
+          <code className="mono">/theme</code>). hud is Mikata's own cyan.
         </p>
         <div className="radio-row" role="radiogroup" aria-labelledby="setting-scheme">
           {SCHEMES.map((s) => (

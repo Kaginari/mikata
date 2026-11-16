@@ -7,7 +7,7 @@
  * whose race reports to the throne, hangs from the throne. Nothing in a doc can make the drawing
  * loop: an edge that would close a cycle is left out and said, as is one to a name no body has.
  */
-import type { BoardBody, BodyState, RaceLaw, ThroneLive } from '@mnemorph/protocol';
+import type { BoardBody, BodyState, RaceLaw, ThroneLive } from '@mikata/protocol';
 
 /** The lanes, top to bottom: the throne, then the races as the law lists them (base races). */
 export const LANES = ['summoner', 'elf', 'orc', 'slime', 'kijin', 'dark-elf'] as const;

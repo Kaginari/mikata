@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """The solo-against-hierarchy bench: 30 small tasks, each run twice — solo (the throne alone,
 escalating on the signals code reads) and hierarchy (the ask handed to the Elf) — on one model,
-and with `--law on,off` each of those again with the law off (`mnemorph run --no-law`).
+and with `--law on,off` each of those again with the law off (`mikata run --no-law`).
 
     python3 bench/run.py --check                 # every task's verify fails on its starter: no model
     python3 bench/run.py [--model M] [--tasks 01,02] [--modes solo,hierarchy,auto] [--law on,off] [--limit N]
 
-The key: OPENROUTER_API_KEY from the environment, else ~/.config/mnemorph/openrouter.key. It is
+The key: OPENROUTER_API_KEY from the environment, else ~/.config/mikata/openrouter.key. It is
 handed only to the run's own process, never written, never printed. Results go one line per run
 to bench/results/<model>.jsonl; a rerun skips what is there, so a run stopped by a rate limit or
 a daily cap resumes where it stopped.
@@ -53,15 +53,15 @@ def run_env(world):
 
 def world_for(task, model, mode=None):
     """A fresh world: the task's starter, the bench's creatures, the model's configuration, git.
-    A solo world holds the throne alone: with no one to hand work to, it is solo as Mnemorph
+    A solo world holds the throne alone: with no one to hand work to, it is solo as Mikata
     means it."""
-    w = Path(tempfile.mkdtemp(prefix="mnemorph-bench-"))
+    w = Path(tempfile.mkdtemp(prefix="mikata-bench-"))
     shutil.copytree(task / "world", w, dirs_exist_ok=True)
     below = shutil.ignore_patterns("elf", "orc", "slime") if mode == "solo" else None
-    shutil.copytree(BENCH / "world" / ".mnemorph", w / ".mnemorph", dirs_exist_ok=True, ignore=below)
+    shutil.copytree(BENCH / "world" / ".mikata", w / ".mikata", dirs_exist_ok=True, ignore=below)
     # The provider is the human's global file's alone: a world's file naming it is a hole. The
     # run's own XDG_CONFIG_HOME, outside the world, stands in for that file.
-    config = config_home(w) / "mnemorph"
+    config = config_home(w) / "mikata"
     config.mkdir(parents=True)
     (config / "config.toml").write_text(
         "[providers.openrouter]\n"
@@ -74,7 +74,7 @@ def world_for(task, model, mode=None):
         # The chain's own budget, so the hierarchy is not starved against solo.
         + "[steps]\nelf = 80\norc = 80\nslime = 80\n[limits]\nsession_minutes = 120\n"
     )
-    (w / ".gitignore").write_text(".mnemorph/instruments/\n.mnemorph/tmp/\n__pycache__/\n")
+    (w / ".gitignore").write_text(".mikata/instruments/\n.mikata/tmp/\n__pycache__/\n")
     git = ["git", "-c", "user.name=bench", "-c", "user.email=bench@localhost"]
     subprocess.run(["git", "init", "-q"], cwd=w, check=True)
     subprocess.run(git + ["add", "-A"], cwd=w, check=True)
@@ -87,11 +87,11 @@ def adopted(world):
     """The human's part in a fresh world: its creatures adopted and its verify lines pinned. A card
     with no row in the witness is a stranger, so an unadopted world has no hierarchy, and a gate
     runs only pinned lines. Under the run's own state directory, never the human's witness."""
-    core = [str(REPO / "target/debug/mnemorphd")]
+    core = [str(REPO / "target/debug/mikatad")]
     env = run_env(world)
     where = ["--world", str(world), "--yes"]
     subprocess.run(core + ["roster", "adopt"] + where, env=env, check=True, capture_output=True)
-    for card in sorted((world / ".mnemorph").glob("*/*/README.md")):
+    for card in sorted((world / ".mikata").glob("*/*/README.md")):
         text = card.read_text()
         if "- **Verify:**" in text:
             name = text.splitlines()[0].lstrip("# ").strip()
@@ -130,7 +130,7 @@ def check():
 def key():
     if os.environ.get("OPENROUTER_API_KEY"):
         return os.environ["OPENROUTER_API_KEY"]
-    path = Path.home() / ".config" / "mnemorph" / "openrouter.key"
+    path = Path.home() / ".config" / "mikata" / "openrouter.key"
     if not path.exists():
         return None
     if path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
@@ -143,7 +143,7 @@ def ledger(world):
     """Calls, weighted tokens, dollars, and the calls of bodies below the throne, from the world's
     usage ledger."""
     calls, wt, usd, below = 0, 0, 0.0, 0
-    path = world / ".mnemorph" / "instruments" / "usage.jsonl"
+    path = world / ".mikata" / "instruments" / "usage.jsonl"
     for line in path.read_text().splitlines() if path.exists() else []:
         try:
             row = json.loads(line)
@@ -159,7 +159,7 @@ def ledger(world):
 def law_beats(world):
     """Every `law` beat the run's journals wrote, the session's and each body's: what a report
     checks the arm against, and a resume would show in."""
-    loop = world / ".mnemorph" / "instruments" / "loop"
+    loop = world / ".mikata" / "instruments" / "loop"
     beats = []
     for journal in sorted(loop.glob("*.jsonl")) if loop.exists() else []:
         for line in journal.read_text().splitlines():
@@ -173,7 +173,7 @@ def law_beats(world):
 
 
 def escalations(world):
-    loop = world / ".mnemorph" / "instruments" / "loop"
+    loop = world / ".mikata" / "instruments" / "loop"
     n = 0
     for journal in loop.glob("*.jsonl") if loop.exists() else []:
         n += journal.read_text().count("solo escalates to")
@@ -181,7 +181,7 @@ def escalations(world):
 
 
 def read_json(stdout):
-    """What `mnemorph run --json` said: its result line, the session's own turn endings, and the
+    """What `mikata run --json` said: its result line, the session's own turn endings, and the
     acts a rule refused, by rule — the bodies below included. A line that does not parse is
     skipped: a run killed mid-line has no result."""
     result, endings, refusals = None, [], {}
@@ -208,7 +208,7 @@ def run_one(task, mode, model, secret, timeout, keep=False, law="on"):
     ask = (task / "ask.md").read_text().strip()
     if mode == "hierarchy":
         ask = HANDOFF + ask
-    cli = [str(REPO / "target/debug/mnemorph"), "run", ask, "--world", str(world), "--json"]
+    cli = [str(REPO / "target/debug/mikata"), "run", ask, "--world", str(world), "--json"]
     if law == "off":
         cli.append("--no-law")
     env = dict(run_env(world), OPENROUTER_API_KEY=secret)
@@ -230,9 +230,9 @@ def run_one(task, mode, model, secret, timeout, keep=False, law="on"):
     calls, wt, usd, below = ledger(world)
     scrubbed = (err or "").replace(secret, "[key]")
     # How it ended: the result line `--json` writes, else the session's last `turnEnded`, else the
-    # `mnemorph: <ending>` line stderr ends on. The report reads the cause.
+    # `mikata: <ending>` line stderr ends on. The report reads the cause.
     said, endings, refusals = read_json(stdout)
-    told = [l[len("mnemorph: "):] for l in (err or "").splitlines() if l.startswith("mnemorph: ")]
+    told = [l[len("mikata: "):] for l in (err or "").splitlines() if l.startswith("mikata: ")]
     if code is None:
         ended = "hang"
     elif said and said.get("ending"):
@@ -272,7 +272,7 @@ def run_one(task, mode, model, secret, timeout, keep=False, law="on"):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--check", action="store_true")
-    p.add_argument("--model", default=os.environ.get("MNEMORPH_BENCH_MODEL", DEFAULT_MODEL))
+    p.add_argument("--model", default=os.environ.get("MIKATA_BENCH_MODEL", DEFAULT_MODEL))
     p.add_argument("--tasks", default="")
     p.add_argument("--modes", default="solo,hierarchy,auto")
     p.add_argument("--law", default="on", help="the law arms: on, off, or on,off")
@@ -292,7 +292,7 @@ def main():
         return 2
     secret = key()
     if not secret:
-        print("no key: set OPENROUTER_API_KEY, or write ~/.config/mnemorph/openrouter.key (mode 600)")
+        print("no key: set OPENROUTER_API_KEY, or write ~/.config/mikata/openrouter.key (mode 600)")
         return 2
     out = Path(a.out) if a.out else BENCH / "results" / (re.sub(r"[^A-Za-z0-9._-]", "_", a.model) + ".jsonl")
     out.parent.mkdir(exist_ok=True)

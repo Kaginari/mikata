@@ -1,8 +1,8 @@
 {
-  "name": "@mnemorph/board",
+  "name": "@mikata/board",
   "version": "0.0.0",
   "private": true,
-  "description": "The board — the web cockpit served by mnemorphd.",
+  "description": "The board — the web cockpit served by mikatad.",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -12,9 +12,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@mnemorph/protocol": "workspace:*",
-    "@mnemorph/sdk": "workspace:*",
-    "@mnemorph/theme": "workspace:*",
+    "@mikata/protocol": "workspace:*",
+    "@mikata/sdk": "workspace:*",
+    "@mikata/theme": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

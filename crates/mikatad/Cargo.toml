@@ -1,0 +1,19 @@
+[package]
+name = "mikatad"
+description = "The Mikata core: every decision, no UI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+mikata-server = { path = "../mikata-server" }
+serde_json = "1"
+
+[dev-dependencies]
+sha2 = "0.11"
+tempfile = "3"
+
+[lints]
+workspace = true

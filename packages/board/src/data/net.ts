@@ -6,7 +6,7 @@
  * Pure layout and 3D geometry only; the canvas (`views/Net.tsx`) keeps no logic a test could
  * reach. jsdom has no canvas, so everything here runs under plain vitest.
  *
- * The colony's shape (docs/02-races.md): Player (the human) above the throne, Summoner on the
+ * The colony's shape (docs/experimental/races.md): Player (the human) above the throne, Summoner on the
  * city's peak, the chain Elf → Orc → Slime running down one terrace, Kijin and Dark Elf out on the
  * flanks, and each base's ascended form beside it, joined by a dashed ascension edge.
  */
@@ -16,9 +16,9 @@ export type NodeKind = 'human' | 'throne' | 'base' | 'ascended' | 'body' | 'mind
 export interface ColonyNode {
   id: string;
   name: string;
-  /** The race's job, in one line (docs/02-races.md's plain-words table). */
+  /** The race's job, in one line (docs/experimental/races.md's plain-words table). */
   job: string;
-  /** The race's colour token (`--mn-race-*` in @mnemorph/theme's tokens.css). */
+  /** The race's colour token (`--mn-race-*` in @mikata/theme's tokens.css). */
   token: string;
   /** World position, in the layout's own units. */
   position: readonly [number, number, number];

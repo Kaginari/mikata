@@ -14,7 +14,7 @@ import type {
   Sourced,
   Spend,
   WorldStatus,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 import { useCallback, useEffect, useState } from 'react';
 import { parseMeter } from './metrics.ts';
 import { type Change, usePush } from './push.ts';
@@ -155,7 +155,7 @@ async function read(id: string, signal: AbortSignal): Promise<BoardOverview> {
   });
   if (res.status === 401) {
     signedOut();
-    throw new Error('this browser holds no board session: open the URL `mnemorphd board` prints');
+    throw new Error('this browser holds no board session: open the URL `mikatad board` prints');
   }
   if (res.status === 404) throw new Error('the board lists no world with this id');
   if (!res.ok) throw new Error(`the board server answered ${res.status}`);

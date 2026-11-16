@@ -1,12 +1,10 @@
-# Mnemorph — the book
+# Mikata — the book
 
-Mnemorph is the agent harness that grows out of isekai: the same nine natures, the same wire,
-rebuilt as a Rust core with a Rust terminal app, `mnemorph`, plus a TypeScript SDK for the web
-board. The races are **code**, not
-configuration: what each one may do, whom it answers to, how it is scored and how it ascends is
-compiled into the binary.
+Mikata is a coding agent: a Rust core and terminal app, `mikata`, a server, `mikatad`, for the
+TypeScript SDK and the web board, and one body that writes down what "done" means and checks
+every line of it before it answers. This book says exactly what the code does.
 
-We start by writing, then we code. Every page reads the same way:
+Every page reads the same way:
 
 1. **In one picture** — a diagram you can understand in a minute.
 2. **In plain words** — the idea, without jargon.
@@ -16,9 +14,10 @@ We start by writing, then we code. Every page reads the same way:
 
 Two layers, one picture each:
 
-- **Canvases** — the overview, races and ascensions, the loop, one order down and back, the
-  client protocol, the architecture, the sandbox and consumption are drawn on tldraw's canvas:
-  one document per page, `docs/canvas/<page>.tldr` (a tldraw page per sketch), and each sketch
+- **Canvases** — the overview, the loop, the architecture, the sandbox, the client protocol and
+  consumption (and, in the lab, the races and one order down the chain) are drawn on tldraw's
+  canvas: one document per page, `docs/canvas/<page>.tldr` (a tldraw page per sketch; a lab page's
+  is `experimental-<page>.tldr`), and each sketch
   exported as `docs/canvas/<sketch>-light.svg` and `-dark.svg`, which the page shows in the
   reader's theme. A `.tldr` opens in [tldraw offline](https://github.com/tldraw/tldraw-offline),
   tldraw.com and tldraw's VS Code extension.
@@ -26,7 +25,7 @@ Two layers, one picture each:
   They render on GitHub, diff in review, and are the source a canvas is drawn from: under a
   canvas, its sketch sits folded in a "The sketch in Mermaid" section.
 
-A canvas is drawn, never edited by hand: `pnpm --filter @mnemorph/canvas draw` lays each sketch
+A canvas is drawn, never edited by hand: `pnpm --filter @mikata/canvas draw` lays each sketch
 out with tldraw's own Mermaid converter (`@tldraw/mermaid`) in headless Chromium and writes the
 `.tldr` and both SVGs; the same sketches always make the same files. Its labels are written as
 plain SVG text in tldraw's hand-drawn font, cut down to the characters they use, so an SVG holds
@@ -36,7 +35,7 @@ only (the loop and the sandbox top-down, the architecture by ELK, one order's me
 its rows spaced), its Mermaid text kept as written. A node its sketch dashes keeps the dashed
 border. Each canvas links to its SVG at full size. The list of sketches and their layouts is
 `tools/canvas/draw.mjs`'s; it needs the Chromium `@playwright/test` pins once (`pnpm --filter
-@mnemorph/canvas exec playwright install chromium`).
+@mikata/canvas exec playwright install chromium`).
 
 When the code changes a flow, the sketch and its canvas change in the same change (Vitality).
 Canvases are reviewed like code: a tldraw document or an SVG can carry script, and tldraw
@@ -49,33 +48,32 @@ source outside the file, `<foreignObject>`, embed or media there.
 
 | # | Page | Read it to learn |
 |---|---|---|
-| 1 | [Overview](01-overview.md) | what Mnemorph is, light-coding and the other modes, the processes |
+| 1 | [Overview](01-overview.md) | what Mikata does with an ask, the split by project, the processes |
+| 2 | [The loop](02-loop.md) | one turn, budgets, the stress instruments, resume, the verify pins, the end gate |
+| 3 | [Architecture](03-architecture.md) | crates, the terminal UI, the board, storage, sandbox, configuration |
+| 4 | [The client protocol](04-protocol.md) | how the SDK and the board speak to `mikatad` |
+| 5 | [Consumption](05-consumption.md) | how every token is budgeted, metered and stopped |
+| 6 | [MCP](06-mcp.md) | MCP servers from your config, scoped, ranked, priced and learned; only the needed specs out |
+| 7 | [Memory](07-memory.md) | the archive and the traces, recall with a seat for dissent, why only the gate writes memory |
 | — | [The bench](bench.md) | what we measured against OpenCode and Maki, how, and every screen since |
-| — | [Experimental modes](experimental-modes.md) | structured-coding and collective-coding: the lab, its costs, what is next |
-| 2 | [Races](02-races.md) | every race and ascension: duty, powers, limits, score, fall |
-| 3 | [The loop](03-loop.md) | the six beats of one turn, budgets, stress |
-| 4 | [Communication](04-communication.md) | the wire between bodies, dispatch down and back, the client protocol |
-| 5 | [Architecture](05-architecture.md) | crates, packages, processes, storage, sandbox |
-| 6 | [Consumption](06-consumption.md) | how every token is budgeted, metered and stopped |
-| 7 | [MCP](07-mcp.md) | the client: servers from your config, scoped by race, ranked, priced and learned; only the needed specs out |
-| 8 | [Memory](08-memory.md) | the archive and the traces, recall with a seat for dissent, why only the gate writes memory |
-| 9 | [Ontology](09-ontology.md) | who owns each path, facts with who said them, relations between worlds |
-| 10 | [Roadmap](roadmap.md) | the order we build it in, rung by rung |
-| — | [Lessons](lessons.md) | what isekai taught us, and what our own bench has since, each one a test or a rule |
+| — | [Roadmap](roadmap.md) | what comes next |
+| — | [Lessons](lessons.md) | what isekai and our own bench taught us, each one a test or a rule |
 | — | [Releasing](releasing.md) | how a version is tagged, built, smoke-tested, drafted and published |
-| — | [Race cards prompt](race-cards-prompt.md) | the brief for the card artwork |
-| — | [Research: DIKWP-MESH](research/dikwp-mesh.md) | the mathematics behind the ontology's outer layer |
 
-## The three words that matter
+## The lab
 
-- **Race** — a kind of agent, compiled in: six races and five ascended forms. No config adds
-  another.
-- **Creature** — one living instance of a race, with a name and a territory: `slime-wire`,
-  `orc-engine`. Creatures are data in `.mnemorph/`.
-- **Body** — one running context that a creature rides for one commission. It dies with the
-  task. Only what it wrote to the world survives it.
+[Experimental](experimental/) holds what Mikata was as **Mnemorph**: a kingdom of races, a chain of
+bodies that hand work down (structured-coding), and a collective of equals (collective-coding).
+They still run, behind `--mode`, and are frozen: one body a project did better on every screen.
+Their pages are there: [the modes](experimental/modes.md), [the races](experimental/races.md),
+[communication between bodies](experimental/communication.md), [the ontology](experimental/ontology.md),
+and [how it was all built, M0 to M14](experimental/roadmap-m0-m14.md).
 
-And one more, since everything else depends on it: the **mode** a session opens in — light-coding (the
-default: Summoner works alone, and the one to use), or the experimental structured-coding and
-collective-coding ([which, and how to start it](01-overview.md#which-mode-and-how-to-start-it);
-[why light-coding](bench.md)).
+## Three words
+
+- **World** — the repository Mikata works in, and its folder `.mikata/`: the journal `log.md`, the
+  ledgers, memory, your config. Sessions forget; the world remembers.
+- **Body** — one running context: the model, its prompt and its tools, for one ask. It dies with
+  the ask. Only what it wrote to the world survives it.
+- **Gate** — what stands between a body and your repository: the sandbox on every command, your
+  word on an act a guard rule says to ask about, and the end gate on every change.

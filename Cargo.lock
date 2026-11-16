@@ -1528,6 +1528,223 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "mikata-config"
+version = "1.0.0"
+dependencies = [
+ "mikata-ledger",
+ "mikata-races",
+ "mikata-tools",
+ "rustix",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "toml",
+ "toml_edit",
+]
+
+[[package]]
+name = "mikata-ledger"
+version = "1.0.0"
+dependencies = [
+ "mikata-races",
+ "proptest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
+name = "mikata-loop"
+version = "1.0.0"
+dependencies = [
+ "ignore",
+ "mikata-config",
+ "mikata-ledger",
+ "mikata-memory",
+ "mikata-provider",
+ "mikata-proving",
+ "mikata-races",
+ "mikata-tools",
+ "mikata-wire",
+ "mikata-world",
+ "proptest",
+ "rustix",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "toml",
+]
+
+[[package]]
+name = "mikata-memory"
+version = "1.0.0"
+dependencies = [
+ "mikata-ledger",
+ "mikata-sandbox",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "mikata-provider"
+version = "1.0.0"
+dependencies = [
+ "bytes",
+ "futures-util",
+ "mikata-ledger",
+ "mikata-wire",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml",
+]
+
+[[package]]
+name = "mikata-proving"
+version = "1.0.0"
+dependencies = [
+ "mikata-races",
+ "mikata-wire",
+ "proptest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
+name = "mikata-races"
+version = "1.0.0"
+dependencies = [
+ "proptest",
+]
+
+[[package]]
+name = "mikata-sandbox"
+version = "1.0.0"
+dependencies = [
+ "landlock",
+ "libc",
+ "rustix",
+ "seccompiler",
+]
+
+[[package]]
+name = "mikata-server"
+version = "1.0.0"
+dependencies = [
+ "axum",
+ "form_urlencoded",
+ "futures-util",
+ "getrandom 0.4.3",
+ "http-body-util",
+ "mikata-loop",
+ "mikata-server",
+ "rustix",
+ "serde",
+ "serde_json",
+ "subtle",
+ "tempfile",
+ "tokio",
+ "tokio-tungstenite",
+ "toml",
+ "tower",
+ "ts-rs",
+]
+
+[[package]]
+name = "mikata-tools"
+version = "1.0.0"
+dependencies = [
+ "brush-parser",
+ "globset",
+ "ignore",
+ "mikata-races",
+ "mikata-sandbox",
+ "mikata-wire",
+ "proptest",
+ "regex",
+ "rustix",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tree-sitter",
+ "tree-sitter-go",
+ "tree-sitter-python",
+ "tree-sitter-rust",
+ "tree-sitter-typescript",
+]
+
+[[package]]
+name = "mikata-tui"
+version = "1.0.0"
+dependencies = [
+ "base64 0.23.1",
+ "image",
+ "mikata-loop",
+ "mikata-races",
+ "mikata-server",
+ "mikata-tools",
+ "png",
+ "pulldown-cmark",
+ "ratatui",
+ "rustix",
+ "serde_json",
+ "signal-hook",
+ "similar",
+ "syntect",
+ "tempfile",
+ "tokio",
+ "unicode-segmentation",
+ "unicode-width",
+]
+
+[[package]]
+name = "mikata-wire"
+version = "1.0.0"
+dependencies = [
+ "proptest",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "mikata-world"
+version = "1.0.0"
+dependencies = [
+ "libc",
+ "mikata-ledger",
+ "mikata-memory",
+ "mikata-proving",
+ "mikata-races",
+ "mikata-sandbox",
+ "mikata-wire",
+ "rustix",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
+name = "mikatad"
+version = "1.0.0"
+dependencies = [
+ "mikata-server",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1563,223 +1780,6 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "mnemorph-config"
-version = "1.0.0"
-dependencies = [
- "mnemorph-ledger",
- "mnemorph-races",
- "mnemorph-tools",
- "rustix",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "toml",
- "toml_edit",
-]
-
-[[package]]
-name = "mnemorph-ledger"
-version = "1.0.0"
-dependencies = [
- "mnemorph-races",
- "proptest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "toml",
-]
-
-[[package]]
-name = "mnemorph-loop"
-version = "1.0.0"
-dependencies = [
- "ignore",
- "mnemorph-config",
- "mnemorph-ledger",
- "mnemorph-memory",
- "mnemorph-provider",
- "mnemorph-proving",
- "mnemorph-races",
- "mnemorph-tools",
- "mnemorph-wire",
- "mnemorph-world",
- "proptest",
- "rustix",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "mnemorph-memory"
-version = "1.0.0"
-dependencies = [
- "mnemorph-ledger",
- "mnemorph-sandbox",
- "serde",
- "serde_json",
- "sha2",
-]
-
-[[package]]
-name = "mnemorph-provider"
-version = "1.0.0"
-dependencies = [
- "bytes",
- "futures-util",
- "mnemorph-ledger",
- "mnemorph-wire",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "mnemorph-proving"
-version = "1.0.0"
-dependencies = [
- "mnemorph-races",
- "mnemorph-wire",
- "proptest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "toml",
-]
-
-[[package]]
-name = "mnemorph-races"
-version = "1.0.0"
-dependencies = [
- "proptest",
-]
-
-[[package]]
-name = "mnemorph-sandbox"
-version = "1.0.0"
-dependencies = [
- "landlock",
- "libc",
- "rustix",
- "seccompiler",
-]
-
-[[package]]
-name = "mnemorph-server"
-version = "1.0.0"
-dependencies = [
- "axum",
- "form_urlencoded",
- "futures-util",
- "getrandom 0.4.3",
- "http-body-util",
- "mnemorph-loop",
- "mnemorph-server",
- "rustix",
- "serde",
- "serde_json",
- "subtle",
- "tempfile",
- "tokio",
- "tokio-tungstenite",
- "toml",
- "tower",
- "ts-rs",
-]
-
-[[package]]
-name = "mnemorph-tools"
-version = "1.0.0"
-dependencies = [
- "brush-parser",
- "globset",
- "ignore",
- "mnemorph-races",
- "mnemorph-sandbox",
- "mnemorph-wire",
- "proptest",
- "regex",
- "rustix",
- "serde",
- "serde_json",
- "sha2",
- "tree-sitter",
- "tree-sitter-go",
- "tree-sitter-python",
- "tree-sitter-rust",
- "tree-sitter-typescript",
-]
-
-[[package]]
-name = "mnemorph-tui"
-version = "1.0.0"
-dependencies = [
- "base64 0.23.1",
- "image",
- "mnemorph-loop",
- "mnemorph-races",
- "mnemorph-server",
- "mnemorph-tools",
- "png",
- "pulldown-cmark",
- "ratatui",
- "rustix",
- "serde_json",
- "signal-hook",
- "similar",
- "syntect",
- "tempfile",
- "tokio",
- "unicode-segmentation",
- "unicode-width",
-]
-
-[[package]]
-name = "mnemorph-wire"
-version = "1.0.0"
-dependencies = [
- "proptest",
- "serde_json",
- "sha2",
-]
-
-[[package]]
-name = "mnemorph-world"
-version = "1.0.0"
-dependencies = [
- "libc",
- "mnemorph-ledger",
- "mnemorph-memory",
- "mnemorph-proving",
- "mnemorph-races",
- "mnemorph-sandbox",
- "mnemorph-wire",
- "rustix",
- "serde",
- "serde_json",
- "tempfile",
- "toml",
-]
-
-[[package]]
-name = "mnemorphd"
-version = "1.0.0"
-dependencies = [
- "mnemorph-server",
- "serde_json",
- "sha2",
- "tempfile",
 ]
 
 [[package]]

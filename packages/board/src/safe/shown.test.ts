@@ -12,10 +12,10 @@ import {
   shown,
 } from './shown.ts';
 
-/** The vectors the Rust tests read too (crates/mnemorph-wire/tests/shown_vectors.rs). */
+/** The vectors the Rust tests read too (crates/mikata-wire/tests/shown_vectors.rs). */
 const vectors = JSON.parse(
   readFileSync(
-    new URL('../../../../crates/mnemorph-wire/tests/shown-vectors.json', import.meta.url),
+    new URL('../../../../crates/mikata-wire/tests/shown-vectors.json', import.meta.url),
     'utf8',
   ),
 ) as {

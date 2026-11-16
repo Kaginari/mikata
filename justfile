@@ -28,24 +28,24 @@ rust:
     tools/test-env.sh cargo nextest run --workspace --no-tests=pass
     cargo deny check
 
-# Tests under a sentinel home, never the developer's: `just test-isolated -p mnemorph-tui`.
+# Tests under a sentinel home, never the developer's: `just test-isolated -p mikata-tui`.
 test-isolated *args:
     tools/test-env.sh cargo nextest run {{args}}
 
-# The race law is covered whole: every region of mnemorph-races runs under its tests.
+# The race law is covered whole: every region of mikata-races runs under its tests.
 law:
     # Old profile data merges into a new run and can read a covered function as missed.
     cargo llvm-cov clean --workspace
-    tools/test-env.sh cargo llvm-cov -p mnemorph-races --fail-under-regions 100 --summary-only
+    tools/test-env.sh cargo llvm-cov -p mikata-races --fail-under-regions 100 --summary-only
 
 # TypeScript: Biome and the board's own lint (tokens only, no HTML from strings), types, tests,
 # and the board's build. Its Playwright suite is `just board-e2e` (CI runs it on Linux).
 ts:
     pnpm lint
     pnpm typecheck
-    pnpm --filter @mnemorph/board build
+    pnpm --filter @mikata/board build
     # The SDK's tests speak to the real core.
-    cargo build -q -p mnemorphd
+    cargo build -q -p mikatad
     pnpm test
     # The npm packages as a user gets them: packed, installed and imported.
     bash tools/test-npm-pack.sh
@@ -53,19 +53,19 @@ ts:
 # The board end to end in Chromium, at phone and desktop widths in both themes: screenshots in
 # packages/board/test-results/screens/, axe on every page, and the M12 exit — every world served,
 # a chat, an approval on the card, memory, ontology, bodies and metrics live — on the real server,
-# bridge and core over a scripted model (mnemorph-server's `board_e2e` example, which embeds the
+# bridge and core over a scripted model (mikata-server's `board_e2e` example, which embeds the
 # built board). Needs the pinned browser once:
-# `pnpm --filter @mnemorph/board exec playwright install chromium`.
+# `pnpm --filter @mikata/board exec playwright install chromium`.
 board-e2e:
-    pnpm --filter @mnemorph/board build
-    cargo build -p mnemorph-server --example board_e2e
-    pnpm --filter @mnemorph/board e2e
+    pnpm --filter @mikata/board build
+    cargo build -p mikata-server --example board_e2e
+    pnpm --filter @mikata/board e2e
 
-# Every crate depends only on lower layers (docs/05-architecture.md).
+# Every crate depends only on lower layers (docs/03-architecture.md).
 layers:
     node tools/check-layers.mjs
     # The shipped binaries are built without the board's test seams.
-    if cargo tree -p mnemorphd -p mnemorph-tui -e normal,build -f '{p} {f}' | grep -q 'test-support'; then \
+    if cargo tree -p mikatad -p mikata-tui -e normal,build -f '{p} {f}' | grep -q 'test-support'; then \
         echo "a shipped binary is built with the test-support feature"; exit 1; fi
 
 # The bench, with no model: its report's rules, and every task real and answer-free.
@@ -86,7 +86,7 @@ rc-smoke artifact="":
     set -euo pipefail
     artifact='{{artifact}}'
     if [ -z "$artifact" ]; then
-        cargo build --release --locked -p mnemorph-tui -p mnemorphd -p mnemorph-sandbox --bins
+        cargo build --release --locked -p mikata-tui -p mikatad -p mikata-sandbox --bins
         artifact=${CARGO_TARGET_DIR:-target}/release
     fi
     version=$(awk -F'"' '/^version *=/{print $2; exit}' Cargo.toml)
@@ -101,12 +101,12 @@ workflows:
 # default; the key travels only through OPENROUTER_API_KEY and is never printed.
 seeded-eval model="nvidia/nemotron-3.5-lightning:free":
     test -n "${OPENROUTER_API_KEY:-}" || { echo "seeded-eval: set OPENROUTER_API_KEY"; exit 1; }
-    MNEMORPH_LIVE=1 MNEMORPH_LIVE_OR_MODEL='{{model}}' cargo nextest run -p mnemorph-loop --test seeded --run-ignored only --no-capture seeded_eval
+    MIKATA_LIVE=1 MIKATA_LIVE_OR_MODEL='{{model}}' cargo nextest run -p mikata-loop --test seeded --run-ignored only --no-capture seeded_eval
 
 # The reviewers' calibration: a reviewer — `dark-elf` (each case by its own speciality),
 # `dark-elf-<speciality>` or `fable` — judges every case of the gold set, and its recall,
 # precision, false accepts and rejects and severity agreement are written to a report under
-# `$XDG_STATE_HOME/mnemorph/calibration/`, outside the world. Never part of `check`. `models` is a
+# `$XDG_STATE_HOME/mikata/calibration/`, outside the world. Never part of `check`. `models` is a
 # comma-separated panel, free by default; the key travels only through OPENROUTER_API_KEY and is
 # never printed. Free models may log or train on what they are sent: each case's claim and its code
 # — the seeded fixture's files and gold.toml's reconstructions, never the live tree — and, for a
@@ -115,7 +115,7 @@ seeded-eval model="nvidia/nemotron-3.5-lightning:free":
 calibrate reviewer="dark-elf" models="nvidia/nemotron-3.5-lightning:free":
     test -n "${OPENROUTER_API_KEY:-}" || { echo "calibrate: set OPENROUTER_API_KEY"; exit 1; }
     echo "calibrate: sends to {{models}}, which may log or train on it: each gold case's claim and code (fixture files and reconstructions, never the live tree){{ if reviewer == "fable" { "" } else { ", and the compiled playbooks" } }}."
-    MNEMORPH_LIVE=1 MNEMORPH_CALIBRATE_REVIEWER='{{reviewer}}' MNEMORPH_CALIBRATE_MODELS='{{models}}' cargo nextest run -p mnemorph-loop --test calibrate --run-ignored only --no-capture calibrate_live
+    MIKATA_LIVE=1 MIKATA_CALIBRATE_REVIEWER='{{reviewer}}' MIKATA_CALIBRATE_MODELS='{{models}}' cargo nextest run -p mikata-loop --test calibrate --run-ignored only --no-capture calibrate_live
 
 # Build the book as a website (fails on a dead link, a diagram Mermaid cannot parse, or a canvas
 # holding a script, a handler, an outside link or HTML).
@@ -124,11 +124,11 @@ docs:
     ! git grep -nE '^(<<<<<<<|>>>>>>>)( |$)' -- .
     node tools/check-diagrams.mjs
     node tools/check-canvas.mjs
-    pnpm --filter @mnemorph/site build
+    pnpm --filter @mikata/site build
 
 # Serve the book locally while editing it.
 docs-dev:
-    pnpm --filter @mnemorph/site dev
+    pnpm --filter @mikata/site dev
 
 # Format everything in place.
 fmt:

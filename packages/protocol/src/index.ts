@@ -1,6 +1,6 @@
 /**
- * The protocol between mnemorphd and its clients. The types are generated from the Rust crates
- * (`crates/mnemorph-server/src/protocol.rs`, and the board's API in `src/board/mod.rs`) and checked
+ * The protocol between mikatad and its clients. The types are generated from the Rust crates
+ * (`crates/mikata-server/src/protocol.rs`, and the board's API in `src/board/mod.rs`) and checked
  * in; the check fails when they drift.
  */
 export type { Activity } from './generated/Activity.js';

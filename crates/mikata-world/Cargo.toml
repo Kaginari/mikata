@@ -1,0 +1,28 @@
+[package]
+name = "mikata-world"
+description = "The world: creatures, territory, dispatch, the end gate, the log writer, evolution."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+mikata-sandbox = { path = "../mikata-sandbox" }
+mikata-wire = { path = "../mikata-wire" }
+mikata-races = { path = "../mikata-races" }
+mikata-ledger = { path = "../mikata-ledger" }
+mikata-memory = { path = "../mikata-memory" }
+mikata-proving = { path = "../mikata-proving" }
+libc = "0.2"
+rustix = { version = "1", features = ["fs"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
+

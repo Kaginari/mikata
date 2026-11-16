@@ -1,5 +1,5 @@
 /*
- * Mnemorph tokens — the web's half of the theme; src/index.ts holds the same values for the CLI,
+ * Mikata tokens — the web's half of the theme; src/index.ts holds the same values for the CLI,
  * and its test keeps the two equal. Dark is the default; an app sets data-theme="light" on <html>.
  */
 

@@ -4,7 +4,7 @@
  * and is approved on the card under its protections — nothing answers it before it is armed —
  * and runs; memory, ontology, bodies and metrics are read, and move live as a body writes.
  *
- * The `board_e2e` example of mnemorph-server serves the built page over two fresh worlds (see its
+ * The `board_e2e` example of mikata-server serves the built page over two fresh worlds (see its
  * docs); `board_e2e note|fact`, and a creature doc written into the world, land what a body would
  * while the page watches. CI builds the board,
  * then the example; locally the suite is skipped without it.
@@ -19,7 +19,7 @@ import { lowContrast } from './checks.ts';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const BIN =
-  process.env.MNEMORPH_BOARD_E2E ??
+  process.env.MIKATA_BOARD_E2E ??
   join(process.env.CARGO_TARGET_DIR ?? join(repo, 'target'), 'debug/examples/board_e2e');
 
 const screen = (file: string) =>
@@ -45,7 +45,7 @@ for (const theme of ['dark', 'light'] as const) {
 
     test.beforeEach(async ({ page }) => {
       await page.emulateMedia({ colorScheme: theme });
-      root = mkdtempSync(join(tmpdir(), 'mnemorph-board-exit-'));
+      root = mkdtempSync(join(tmpdir(), 'mikata-board-exit-'));
       server = spawn(BIN, [root], { stdio: ['ignore', 'pipe', 'inherit'] });
       url = await new Promise<string>((resolve, reject) => {
         let out = '';
@@ -187,9 +187,9 @@ for (const theme of ['dark', 'light'] as const) {
       await page.goto(`${new URL(url).origin}/${at('/bodies')}`);
       await expect(page.locator('.colony-node[data-name="orc-notes"]')).toBeVisible();
       // A body writes a new creature's doc: the colony grows, live.
-      mkdirSync(join(worldDir, '.mnemorph/slime/slime-notes'), { recursive: true });
+      mkdirSync(join(worldDir, '.mikata/slime/slime-notes'), { recursive: true });
       writeFileSync(
-        join(worldDir, '.mnemorph/slime/slime-notes/README.md'),
+        join(worldDir, '.mikata/slime/slime-notes/README.md'),
         '# slime-notes\n\n- **Race:** slime\n- **Reports to:** orc-notes\n- **Territory:** docs/\n',
       );
       await expect(page.locator('.colony-node[data-name="slime-notes"]')).toBeVisible({

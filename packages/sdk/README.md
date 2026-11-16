@@ -1,11 +1,11 @@
-# @mnemorph/sdk
+# @mikata/sdk
 
-The client for `mnemorphd`: stdio and WebSocket transports, and reconnecting by session. `@mnemorph/sdk/browser` is the browser's entry.
+The client for `mikatad`: stdio and WebSocket transports, and reconnecting by session. `@mikata/sdk/browser` is the browser's entry.
 
 ```sh
-npm install @mnemorph/sdk
+npm install @mikata/sdk
 ```
 
-It needs a running `mnemorphd`, from [Mnemorph](https://github.com/Kaginari/mnemorph). See [the client protocol](https://github.com/Kaginari/mnemorph/blob/main/docs/04-communication.md#the-client-protocol).
+It needs a running `mikatad`, from [Mikata](https://github.com/Kaginari/mikata). See [the client protocol](https://github.com/Kaginari/mikata/blob/main/docs/04-protocol.md).
 
 Pre-1.0: the API may change between minor versions. MIT.

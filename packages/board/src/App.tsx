@@ -2,7 +2,7 @@
  * The board's shell: the rail on the left, the centre, the foldable pane on the right — and at
  * phone width the rail and the pane as drawers over the centre.
  */
-import type { BoardWorld } from '@mnemorph/protocol';
+import type { BoardWorld } from '@mikata/protocol';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { type Chats, useChats } from './data/chats.ts';
@@ -32,7 +32,7 @@ import { SignedOut } from './views/SignedOut.tsx';
 import { MissingWorld, NoWorld, SectionView, WorldView } from './views/World.tsx';
 import { WorldsView } from './views/Worlds.tsx';
 
-const PANE_KEY = 'mnemorph.pane';
+const PANE_KEY = 'mikata.pane';
 const PHONE = '(max-width: 760px)';
 
 function initialPane(): boolean {
@@ -256,7 +256,7 @@ function Shell() {
   }, []);
   useEffect(() => {
     // The name is a world's own text, or a decoded address: escaped, never a live bidi mark.
-    document.title = `${shown(name)} · Mnemorph`;
+    document.title = `${shown(name)} · Mikata`;
   }, [name]);
 
   const togglePane = () =>

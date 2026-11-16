@@ -14,11 +14,11 @@
       "!**/dist",
       "!**/*.md",
       "!assets",
-      "!crates/mnemorph-tui/assets",
+      "!crates/mikata-tui/assets",
       "!packages/protocol/src/generated",
-      "!crates/mnemorph-proving/fixtures",
-      "!crates/mnemorph-tools/src/index/fixtures",
-      "!crates/mnemorph-provider/tests/cassettes"
+      "!crates/mikata-proving/fixtures",
+      "!crates/mikata-tools/src/index/fixtures",
+      "!crates/mikata-provider/tests/cassettes"
     ]
   },
   "formatter": {

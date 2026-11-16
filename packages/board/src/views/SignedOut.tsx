@@ -1,6 +1,6 @@
 /**
  * The page a tab without a board session shows in place of the board: why, and the one thing to
- * do. Each link `mnemorphd board` prints works once, in one browser, so a link another browser
+ * do. Each link `mikatad board` prints works once, in one browser, so a link another browser
  * opened first (VS Code's, say) is spent here.
  */
 import type { Access } from '../data/session.ts';
@@ -18,7 +18,7 @@ export function SignedOut({ why }: { why: Exclude<Access, 'open'> }) {
             </h1>
             <p>
               Perhaps by another browser, such as VS Code’s. Run{' '}
-              <code className="mono">mnemorphd board</code> for a new one, and open it in this
+              <code className="mono">mikatad board</code> for a new one, and open it in this
               browser.
             </p>
           </>
@@ -28,7 +28,7 @@ export function SignedOut({ why }: { why: Exclude<Access, 'open'> }) {
               This tab isn’t signed in
             </h1>
             <p>
-              Run <code className="mono">mnemorphd board</code> and open the link it prints, in this
+              Run <code className="mono">mikatad board</code> and open the link it prints, in this
               browser. Each link works once.
             </p>
           </>

@@ -5,7 +5,7 @@
  * every word a world wrote goes through `<Safe>`.
  */
 import './metrics.css';
-import type { BoardMetrics, MetricsCreature, Named, Sourced, Tally } from '@mnemorph/protocol';
+import type { BoardMetrics, MetricsCreature, Named, Sourced, Tally } from '@mikata/protocol';
 import { useState } from 'react';
 import {
   dollars,

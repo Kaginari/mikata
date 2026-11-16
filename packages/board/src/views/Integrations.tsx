@@ -6,7 +6,7 @@
  * file, to copy.
  */
 import './metrics.css';
-import type { BoardIntegrations, ConfigView } from '@mnemorph/protocol';
+import type { BoardIntegrations, ConfigView } from '@mikata/protocol';
 import { useState } from 'react';
 import { keyFileWords, keyWords, useIntegrations } from '../data/integrations.ts';
 import { Safe } from '../safe/Safe.tsx';
@@ -35,17 +35,17 @@ function HowTo({ title, text }: { title: string; text: string }) {
   );
 }
 
-const ADD_PROVIDER = `# ~/.config/mnemorph/config.toml
+const ADD_PROVIDER = `# ~/.config/mikata/config.toml
 [providers.openrouter]
 kind = "openai"
 base_url = "https://openrouter.ai/api/v1"
 key_env = "OPENROUTER_API_KEY"   # the variable's name, never the key
-key_file = "~/.config/mnemorph/openrouter.key"   # read when the variable is not set (chmod 600)
+key_file = "~/.config/mikata/openrouter.key"   # read when the variable is not set (chmod 600)
 
 [models.tier]
 fast = "openrouter:deepseek/deepseek-v4-flash"`;
 
-const ADD_MCP = `# ~/.config/mnemorph/config.toml
+const ADD_MCP = `# ~/.config/mikata/config.toml
 [mcp.servers.search]
 command = "web-search-mcp"
 args = ["--stdio"]
@@ -56,7 +56,7 @@ class = "read"             # every tool's class; undeclared, a tool is outward
 [mcp.servers.search.tools.submit]
 class = "outward"          # one tool's own class wins over the server's`;
 
-const ADD_BENCH = `# ~/.config/mnemorph/config.toml
+const ADD_BENCH = `# ~/.config/mikata/config.toml
 [board]
 bench_results = "/home/you/kaginari/bench/results"`;
 

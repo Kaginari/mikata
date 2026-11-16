@@ -11,7 +11,7 @@ import type {
   BoardTimeline,
   RaceLaw,
   TimelineEntry,
-} from '@mnemorph/protocol';
+} from '@mikata/protocol';
 
 const RACES: [string, string, string, string | null, string[]][] = [
   ['summoner', 'Summoner', 'summoner', null, ['elf', 'kijin', 'dark-elf']],
@@ -121,7 +121,7 @@ const commission = (
   changed: state === 'ended' ? 1 : 0,
   failures: [],
   why: null,
-  source: `.mnemorph/instruments/loop/${body}-186f0a2b3c4d5e6f-0.jsonl`,
+  source: `.mikata/instruments/loop/${body}-186f0a2b3c4d5e6f-0.jsonl`,
   trusted: false,
   acts,
   acts_cut: 0,
@@ -158,7 +158,7 @@ const body = (b: Partial<BoardBody> & Pick<BoardBody, 'name' | 'race'>): BoardBo
   verify: 0,
   retired: false,
   heir_of: null,
-  doc: `.mnemorph/${b.race}/${b.name}/README.md`,
+  doc: `.mikata/${b.race}/${b.name}/README.md`,
   minds: [],
   live: { state: 'idle', why: 'its last commission ended: answered', run: null, at: null },
   acts: fixtureEntries.filter((e) => e.body === b.name),
@@ -224,7 +224,7 @@ export const fixtureBodies: BoardBodies = {
           'rise: reports 20 >= 20 (over 20 reports)',
           'rise: landRate 0.95 >= 0.90 (over 20 reports)',
         ],
-        command: "mnemorphd roster rise slime-parser --world '/home/me/my world'",
+        command: "mikatad roster rise slime-parser --world '/home/me/my world'",
       },
       parent: 'orc-sql',
       ground: [{ kind: 'zone', path: 'sqlglot/parser.py' }],
@@ -275,12 +275,12 @@ export const fixtureBodies: BoardBodies = {
       live: { state: 'retired', why: 'its doc retired it', run: null, at: null },
     }),
   ],
-  problems: ['.mnemorph/slime/bad/README.md: `<b>bad</b>` is already the creature at …'],
+  problems: ['.mikata/slime/bad/README.md: `<b>bad</b>` is already the creature at …'],
   loops: [],
   throne: { live: true, why: 'run r17 is held by a live session' },
   races: fixtureRaces,
   roster: {
-    source: '.mnemorph/<race>/<seat>/README.md (in the world)',
+    source: '.mikata/<race>/<seat>/README.md (in the world)',
     trusted: false,
     why: 'a body can write its doc: shown, granting nothing',
   },
@@ -300,7 +300,7 @@ export const fixtureBodies: BoardBodies = {
   ],
   minds: { source: "the Minds' witness under the state directory", trusted: true, why: null },
   live: {
-    source: '.mnemorph/instruments/loop/ (run journals and locks, in the world)',
+    source: '.mikata/instruments/loop/ (run journals and locks, in the world)',
     trusted: false,
     why: null,
   },
@@ -309,7 +309,7 @@ export const fixtureBodies: BoardBodies = {
     trusted: true,
     why: null,
   },
-  law: { source: 'the race law, compiled into mnemorphd', trusted: true, why: null },
+  law: { source: 'the race law, compiled into mikatad', trusted: true, why: null },
   ascension: {
     source:
       "the compiled race law over the report fold and the creatures' witness (state directory): proposed only — the human applies a rise or a fall at the terminal",
@@ -382,8 +382,8 @@ export const fixtureQueue: BoardQueue = {
     },
   ],
   counts: { held: 2, claimed: 1, done: 1, dropped: 1 },
-  source: '.mnemorph/shared/queue.jsonl',
-  witness: '~/.local/state/mnemorph/queue/sqlglot-9f2c.jsonl',
+  source: '.mikata/shared/queue.jsonl',
+  witness: '~/.local/state/mikata/queue/sqlglot-9f2c.jsonl',
   witness_why: null,
 };
 
@@ -452,6 +452,6 @@ export function journalOf(q: string | null): BoardJournal {
     q,
     older: false,
     bytes: 4096,
-    source: '.mnemorph/log.md',
+    source: '.mikata/log.md',
   };
 }

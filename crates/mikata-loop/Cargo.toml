@@ -1,0 +1,35 @@
+[package]
+name = "mikata-loop"
+description = "The loop: the six beats of a turn, budgets as readings, the journal and resume."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+mikata-world = { path = "../mikata-world" }
+mikata-provider = { path = "../mikata-provider" }
+mikata-tools = { path = "../mikata-tools" }
+mikata-ledger = { path = "../mikata-ledger" }
+mikata-memory = { path = "../mikata-memory" }
+mikata-races = { path = "../mikata-races" }
+mikata-wire = { path = "../mikata-wire" }
+mikata-proving = { path = "../mikata-proving" }
+tokio = { version = "1", features = ["time", "rt", "macros", "sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ignore = "0.4"
+sha2 = "0.11"
+rustix = { version = "1", features = ["fs", "process"] }
+mikata-config = { path = "../mikata-config" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+mikata-config = { path = "../mikata-config" }
+proptest = "1"
+tempfile = "3"
+toml = "1"
+tokio = { version = "1", features = ["time", "rt", "macros", "sync", "test-util"] }

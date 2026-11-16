@@ -1,0 +1,40 @@
+[package]
+name = "mikata-tui"
+description = "The `mikata` command: the terminal app (one session hosted in-process, drawn with Ratatui) and `mikata run`, one ask without it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "mikata"
+path = "src/main.rs"
+
+[dependencies]
+mikata-loop = { path = "../mikata-loop" }
+mikata-races = { path = "../mikata-races" }
+mikata-server = { path = "../mikata-server" }
+mikata-tools = { path = "../mikata-tools" }
+ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
+pulldown-cmark = { version = "0.13.5", default-features = false }
+syntect = { version = "5.3.0", default-features = false, features = ["default-syntaxes", "regex-fancy"] }
+similar = "2.7.0"
+unicode-width = "0.2.2"
+unicode-segmentation = "1.12"
+serde_json = "1"
+base64 = "0.23"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+# The animations' sprite sheets, read as raw palette indices (image expands them).
+png = "0.18.1"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "macros", "time"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["fs", "termios", "event"] }
+signal-hook = "0.3.18"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

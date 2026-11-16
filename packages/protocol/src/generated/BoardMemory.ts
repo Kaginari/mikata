@@ -8,7 +8,7 @@ import type { MemoryNote } from "./MemoryNote.js";
  */
 export type BoardMemory = { 
 /**
- * Counted as `mnemorphd memory status` counts it, as the overview shows it.
+ * Counted as `mikatad memory status` counts it, as the overview shows it.
  */
 standing: Memory, 
 /**

@@ -1,18 +1,18 @@
 /target/
 node_modules/
 dist/
-.mnemorph/instruments/
-.mnemorph/index/
-.mnemorph/tmp/
-.mnemorph/intel/
-.mnemorph/shared/queue.jsonl
-.mnemorph/attic/tmp/
+.mikata/instruments/
+.mikata/index/
+.mikata/tmp/
+.mikata/intel/
+.mikata/shared/queue.jsonl
+.mikata/attic/tmp/
 site/.vitepress/dist/
 site/.vitepress/cache/
 
 # Local-only notes, kept out of the repository.
 docs/study-maki.md
-.mnemorph/config.local.toml
+.mikata/config.local.toml
 .claude/worktrees/
 
 # Python bytecode: never kept.

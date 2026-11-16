@@ -1,5 +1,5 @@
 /** The right pane: what the centre's subject holds at a glance. Folds away; its state is kept. */
-import type { BoardWorld } from '@mnemorph/protocol';
+import type { BoardWorld } from '@mikata/protocol';
 import type { ReactNode } from 'react';
 import type { Load } from '../data/worlds.ts';
 import type { Route } from '../router.ts';

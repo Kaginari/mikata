@@ -1,5 +1,5 @@
 import DefaultTheme from 'vitepress/theme';
-import '@mnemorph/theme/tokens.css';
+import '@mikata/theme/tokens.css';
 import './style.css';
 
 // VitePress marks dark mode with `html.dark`; the tokens read `data-theme`. Mirror the one onto

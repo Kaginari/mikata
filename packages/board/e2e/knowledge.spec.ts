@@ -37,7 +37,7 @@ async function open(page: Page, hash: string, posted: Posted[] = []) {
     if (req.method() === 'POST') {
       posted.push({
         url: url.pathname,
-        csrf: req.headers()['x-mnemorph-csrf'],
+        csrf: req.headers()['x-mikata-csrf'],
         body: req.postDataJSON(),
       });
       return r.fulfill(json({ done: 'confirmed: done' }));

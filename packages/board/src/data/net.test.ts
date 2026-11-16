@@ -1,4 +1,4 @@
-import { type RaceKey, races } from '@mnemorph/theme';
+import { type RaceKey, races } from '@mikata/theme';
 import { describe, expect, test } from 'vitest';
 import {
   baseOf,

@@ -3,7 +3,7 @@
  * and `GET /api/w/<id>/facts` answer: every standing and status, a claim under review, an
  * unproven event, a contested fact with both sides — and hostile text a body could write.
  */
-import type { BoardFacts, BoardMemory, MemoryNote } from '@mnemorph/protocol';
+import type { BoardFacts, BoardMemory, MemoryNote } from '@mikata/protocol';
 
 const seen = (c: string) => c.repeat(64).slice(0, 64);
 
@@ -55,7 +55,7 @@ export const fixtureMemory: BoardMemory = {
       frozen: true,
       events: [
         {
-          file: '.mnemorph/memory/creature/slime-api.jsonl',
+          file: '.mikata/memory/creature/slime-api.jsonl',
           event: 'e41',
           note: 'n-e41',
           why: 'the author does not resolve',
@@ -140,7 +140,7 @@ export const fixtureMemory: BoardMemory = {
   total: 5,
   offset: 0,
   limit: 100,
-  source: '.mnemorph/memory/ (as `mnemorphd memory status` reads it)',
+  source: '.mikata/memory/ (as `mikatad memory status` reads it)',
 };
 
 export const fixtureFacts: BoardFacts = {
@@ -262,5 +262,5 @@ export const fixtureFacts: BoardFacts = {
     { n: 9, at: '2026-10-29T15:00:00Z', body: 'slime-api', changed: ['api/app.py'] },
   ],
   git: true,
-  source: '.mnemorph/ontology/facts.jsonl (as `mnemorphd onto check` reads it)',
+  source: '.mikata/ontology/facts.jsonl (as `mikatad onto check` reads it)',
 };

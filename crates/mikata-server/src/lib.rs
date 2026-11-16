@@ -1,0 +1,701 @@
+//! The server: the client protocol over a pair of streams (stdio for the CLI), driving one
+//! session. It renders nothing and decides nothing: it turns the run's beats into events, the
+//! client's lines into asks, and the human gate into a request the client answers.
+//!
+//! Three lanes keep it honest. One writer thread owns the output, so lines never interleave or
+//! reorder. One reader thread reads the input and answers the gate's waits itself, so a gate
+//! blocking a run can never block the read that would release it. One driver task owns the
+//! session and takes the human's lines strictly in the order they came.
+
+pub mod board;
+pub mod protocol;
+
+/// How a session's bodies work together: what the core's `--mode` option asks for.
+pub use mikata_loop::Mode;
+/// Evolution on its own: a trial, then keep or roll back by the rule.
+pub use mikata_loop::auto;
+/// The Dark Elf challenges as the human reads them.
+pub use mikata_loop::challenge;
+/// An evolution drafted by a model, for a creature due.
+/// The human's homes, and the move of Mnemorph's folders to Mikata's names.
+pub use mikata_loop::dirs;
+pub use mikata_loop::draft;
+/// The human's door to the Oni's envelopes.
+pub use mikata_loop::envelope;
+/// An evolution's controls run on demand, and its judgement.
+pub use mikata_loop::evolution;
+/// A `git` command started without the harness's secrets.
+pub use mikata_loop::git;
+/// Close the harness's `/proc` files (its environment, where provider keys live) to other processes.
+pub use mikata_loop::harden_self;
+/// The human's door to the Kijin's incidents.
+pub use mikata_loop::incident;
+/// The MCP journal, for `usage` to say what each server's schema cost against what was used.
+pub use mikata_loop::mcp_journal;
+/// A run's numbers, read from its journal: `runs --metrics`.
+pub use mikata_loop::metrics;
+/// A staged plan proven over an overlay of the world before it is swapped.
+pub use mikata_loop::prove;
+/// A session's numbers across its bodies: `runs --session`.
+pub use mikata_loop::session_metrics;
+/// The wire, for the commands that speak it without a session (`check`).
+pub use mikata_loop::wire;
+/// The world, for the commands that read it without a session (`onto owner`).
+pub use mikata_loop::world;
+/// The configuration, for the commands that read the human's global file (`board`, `housekeep`).
+pub use mikata_loop::{Config, Paths, config};
+/// The runs that stopped and may be resumed.
+pub use mikata_loop::{Stopped, stopped};
+
+/// The files git tracks in `world`, relative to it, as `onto check` reads them; `None` when the
+/// world is no git repository. The world's own git config runs nothing ([`git`]).
+#[must_use]
+pub fn tracked(world: &std::path::Path) -> Option<Vec<String>> {
+    let out = git()
+        .arg("-C")
+        .arg(world)
+        // `-z`: names as they are, never quoted (`src/café.rs`, not `"src/caf\303\251.rs"`).
+        .args(["ls-files", "-z"])
+        .stdin(std::process::Stdio::null())
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+    Some(
+        String::from_utf8_lossy(&out.stdout)
+            .split('\0')
+            .filter(|p| !p.is_empty())
+            .map(str::to_owned)
+            .collect(),
+    )
+}
+
+use std::collections::{HashMap, VecDeque};
+use std::io::{BufRead, Write};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex, PoisonError};
+use std::time::Duration;
+
+use mikata_loop::{
+    Beat, Gate, GateAnswer, GateAsk, GateFingerprint, Observer, Opened, Seen, StreamEvent,
+};
+use serde_json::{Value, json};
+
+use crate::protocol::{
+    Event, GateReply, GateRequest, Hello, Incoming, PROTOCOL, REPLAY, RESULT_BYTES,
+};
+
+/// How long the gate waits for the human before it denies.
+pub const GATE_WAIT: Duration = Duration::from_secs(600);
+
+/// Opens the session once the client says hello, with the gate and observer the server made.
+/// It is kept until it succeeds, so a failed `initialize` can be tried again.
+pub type Opener = Box<dyn FnMut(Arc<dyn Gate>, Observer) -> Result<Opened, String> + Send>;
+
+/// The core's side of one connection.
+struct Core {
+    /// The writer's lane; `None` tells it the connection is over.
+    out: mpsc::Sender<Option<String>>,
+    /// The events kept for a reconnect, and the last `seq` given: one lock, so `seq` reaches the
+    /// wire in order.
+    replay: Mutex<(u64, VecDeque<Value>)>,
+    ids: Mutex<(String, String, String)>,
+    asks: Mutex<HashMap<u64, mpsc::Sender<GateAnswer>>>,
+    next_ask: AtomicU64,
+    /// Lines sent and not yet taken to the end of their turn.
+    outstanding: AtomicUsize,
+    /// The client left: no gate waits, no queued line runs.
+    closed: AtomicBool,
+}
+
+impl Core {
+    fn send(&self, line: &Value) {
+        let _ = self.out.send(Some(line.to_string()));
+    }
+
+    /// Answer a request; a notification (no id) gets no answer.
+    fn reply(&self, id: Option<&Value>, result: &Value) {
+        if let Some(id) = id {
+            self.send(&json!({"jsonrpc": "2.0", "id": id, "result": result}));
+        }
+    }
+
+    fn fail(&self, id: Option<&Value>, code: i64, message: &str) {
+        if let Some(id) = id {
+            self.send(
+                &json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}}),
+            );
+        }
+    }
+
+    /// Deny every act waiting for the human, with `why`.
+    fn release(&self, why: &str) {
+        let waiting: Vec<_> = self
+            .asks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .drain()
+            .collect();
+        for (_, tx) in waiting {
+            let _ = tx.send(GateAnswer::Deny(why.into()));
+        }
+    }
+
+    /// The client left: release the gate and stop taking lines.
+    fn close(&self) {
+        self.closed.store(true, Ordering::SeqCst);
+        self.release("the client left");
+    }
+
+    /// Number the event, keep it for a reconnect, and send it — all under one lock, so `seq`
+    /// reaches the wire in the order it was given.
+    fn emit(&self, event: &Event) {
+        self.emit_as(event, None);
+    }
+
+    /// As [`Core::emit`], for a commissioned body below the session: its own body and run.
+    fn emit_as(&self, event: &Event, below: Option<(&str, &str)>) {
+        let (session, mut run, mut body) = self
+            .ids
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        if let Some((b, r)) = below {
+            b.clone_into(&mut body);
+            r.clone_into(&mut run);
+        }
+        let mut params = serde_json::to_value(event).unwrap_or(Value::Null);
+        if let Some(o) = params.as_object_mut() {
+            o.remove("type");
+            o.insert("session".into(), json!(session));
+            o.insert("run".into(), json!(run));
+            o.insert("body".into(), json!(body));
+        }
+        let mut replay = self.replay.lock().unwrap_or_else(PoisonError::into_inner);
+        replay.0 += 1;
+        if let Some(o) = params.as_object_mut() {
+            o.insert("seq".into(), json!(replay.0));
+        }
+        let line = json!({"jsonrpc": "2.0", "method": format!("event/{}", event.kind()), "params": params});
+        if replay.1.len() == REPLAY {
+            replay.1.pop_front();
+        }
+        replay.1.push_back(line.clone());
+        self.send(&line);
+    }
+
+    fn see(&self, seen: &Seen) {
+        // A commissioned body's beat comes wrapped once per rank: the innermost names who.
+        let mut below = None;
+        let mut inner = seen;
+        while let Seen::From { body, run, seen } = inner {
+            below = Some((body.as_str(), run.as_str()));
+            inner = seen;
+        }
+        for event in events(inner) {
+            self.emit_as(&event, below);
+        }
+    }
+
+    fn answered(&self, id: u64, msg: &Incoming) {
+        let answer = match (&msg.result, &msg.error) {
+            (Some(r), _) => match serde_json::from_value::<GateReply>(r.clone()) {
+                Ok(GateReply { allow: true, .. }) => GateAnswer::Approve,
+                Ok(GateReply { reason, .. }) => {
+                    GateAnswer::Deny(reason.unwrap_or_else(|| "the human denied it".into()))
+                }
+                Err(e) => GateAnswer::Deny(format!("the client's answer did not read: {e}")),
+            },
+            _ => GateAnswer::Deny("the client could not ask the human".into()),
+        };
+        if let Some(waiting) = self
+            .asks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&id)
+        {
+            let _ = waiting.send(answer);
+        }
+    }
+}
+
+/// The session's own body: the throne's voice.
+pub const SESSION_BODY: &str = "summoner";
+
+/// The gate a client answers: `gate/ask`, sent as a request; silence denies.
+struct ClientGate(Arc<Core>);
+
+impl Gate for ClientGate {
+    fn ask(&self, ask: &GateAsk) -> GateAnswer {
+        let core = &self.0;
+        let id = core.next_ask.fetch_add(1, Ordering::SeqCst) + 1;
+        let (tx, rx) = mpsc::channel();
+        {
+            let mut asks = core.asks.lock().unwrap_or_else(PoisonError::into_inner);
+            // Checked under the lock `close` drains, so no ask slips in after it.
+            if core.closed.load(Ordering::SeqCst) {
+                return GateAnswer::Deny("the client left".into());
+            }
+            asks.insert(id, tx);
+        }
+        let request = GateRequest {
+            body: if ask.body.is_empty() {
+                SESSION_BODY.to_owned()
+            } else {
+                ask.body.clone()
+            },
+            race: ask.race.name().to_owned(),
+            class: ask.class.to_string(),
+            act: ask.act.clone(),
+            why: ask.why.clone(),
+            outside: ask
+                .outside
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect(),
+            plan: ask.fingerprint.as_ref().map(GateFingerprint::short),
+            left_ms: None,
+            digest: None,
+            too_large: None,
+        };
+        core.send(&json!({"jsonrpc": "2.0", "id": format!("gate-{id}"), "method": "gate/ask", "params": request}));
+        let answer = rx
+            .recv_timeout(GATE_WAIT)
+            .unwrap_or_else(|_| GateAnswer::Deny("the human did not answer in 10 minutes".into()));
+        core.asks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&id);
+        answer
+    }
+
+    fn admitted(&self, ask: &GateAsk, by: &str) {
+        // A warning: the human's to see, never the model's.
+        self.0.emit(&Event::Warning {
+            text: mikata_loop::gate_admitted_line(ask, by),
+        });
+    }
+}
+
+/// The events one thing the run did becomes.
+#[must_use]
+pub fn events(seen: &Seen) -> Vec<Event> {
+    match seen {
+        Seen::Usage {
+            usage,
+            usd,
+            wt,
+            spent_wt,
+            occupancy,
+            stress_line,
+        } => vec![Event::Usage {
+            input: usage.input,
+            output: usage.output,
+            cache_read: usage.cache_read,
+            cache_write: usage.cache_write,
+            usd: *usd,
+            wt: *wt,
+            spent_wt: *spent_wt,
+            occupancy: *occupancy,
+            stress_line: *stress_line,
+        }],
+        Seen::Beat(beat) => beat_events(beat),
+        Seen::From { seen, .. } => events(seen),
+    }
+}
+
+fn beat_events(beat: &Beat) -> Vec<Event> {
+    match beat {
+        Beat::Ask { text } => vec![Event::TurnStarted { text: text.clone() }],
+        Beat::Model { content, stop, .. } => {
+            let text: String = content
+                .iter()
+                .filter(|b| b["type"] == "text")
+                .filter_map(|b| b["text"].as_str())
+                .collect();
+            let mut out = vec![Event::Assistant {
+                text,
+                stop: stop.clone(),
+            }];
+            out.extend(content.iter().filter(|b| b["type"] == "tool_use").map(|b| {
+                Event::ToolCall {
+                    id: b["id"].as_str().unwrap_or_default().to_owned(),
+                    name: b["name"].as_str().unwrap_or_default().to_owned(),
+                    input: b["input"].clone(),
+                }
+            }));
+            out
+        }
+        Beat::Result {
+            tool_use_id,
+            content,
+            is_error,
+            ..
+        } => {
+            let mut end = content.len().min(RESULT_BYTES);
+            while !content.is_char_boundary(end) {
+                end -= 1;
+            }
+            vec![Event::ToolResult {
+                id: tool_use_id.clone(),
+                content: content[..end].to_owned(),
+                is_error: *is_error,
+                cut: content.len() - end,
+            }]
+        }
+        Beat::Note { text } => vec![Event::Note { text: text.clone() }],
+        Beat::Warning { text } => vec![Event::Warning { text: text.clone() }],
+        Beat::Gate {
+            changed,
+            failures,
+            unverified,
+            verdict,
+            unchecked,
+            verified_by,
+            ..
+        } => vec![Event::GateVerdict {
+            unchecked: *unchecked,
+            verified_by: verified_by.clone(),
+            passed: failures.is_empty() && unverified.is_empty(),
+            // A journal from before the word: it is read from the lists.
+            verdict: if !verdict.is_empty() {
+                verdict.clone()
+            } else if !failures.is_empty() {
+                "FAIL".into()
+            } else if !unverified.is_empty() {
+                "NOT_VERIFIED".into()
+            } else {
+                "PASS".into()
+            },
+            changed: changed.clone(),
+            failures: failures.clone(),
+            unverified: unverified.clone(),
+        }],
+        // The guts' readings are for the record and the value model, not for the surfaces.
+        Beat::Guts { .. }
+        | Beat::Recall { .. }
+        | Beat::Compacted { .. }
+        | Beat::Prefix { .. }
+        | Beat::Tree { .. }
+        | Beat::Rides { .. }
+        | Beat::Law { .. } => {
+            vec![]
+        }
+        Beat::End { ending } => vec![Event::TurnEnded {
+            ending: ending.clone(),
+        }],
+    }
+}
+
+/// Serve one connection: read JSON-RPC lines from `input`, write them to `output`, until the
+/// input ends or the client asks to shut down. The session opens on `initialize`. On the way out
+/// every act waiting at the gate is denied, the turn in flight is stopped, queued lines are
+/// dropped, and the output is flushed before this returns.
+///
+/// # Errors
+///
+/// The runtime cannot start.
+pub fn serve(
+    input: impl BufRead + Send + 'static,
+    output: impl Write + Send + 'static,
+    version: &str,
+    opener: Opener,
+) -> Result<(), String> {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("runtime: {e}"))?;
+    let (out, lines) = mpsc::channel::<Option<String>>();
+    let writer = std::thread::spawn(move || {
+        let mut output = output;
+        while let Ok(Some(line)) = lines.recv() {
+            if writeln!(output, "{line}")
+                .and_then(|()| output.flush())
+                .is_err()
+            {
+                break;
+            }
+        }
+    });
+    let core = Arc::new(Core {
+        out,
+        replay: Mutex::new((0, VecDeque::new())),
+        ids: Mutex::new((String::new(), String::new(), SESSION_BODY.into())),
+        asks: Mutex::new(HashMap::new()),
+        next_ask: AtomicU64::new(0),
+        outstanding: AtomicUsize::new(0),
+        closed: AtomicBool::new(false),
+    });
+    let inbox = read(input, Arc::clone(&core));
+    runtime.block_on(main_lane(
+        inbox,
+        Arc::clone(&core),
+        version.to_owned(),
+        opener,
+    ));
+    // Every line is written; the writer ends even while the reader still waits on its input.
+    let _ = core.out.send(None);
+    let _ = writer.join();
+    // The reader thread may still be blocked reading; it holds nothing that needs it.
+    runtime.shutdown_background();
+    Ok(())
+}
+
+/// The reader: answers the gate itself, and sends everything else, in order, to the main lane.
+/// When the input ends, the client is gone: the gate is released at once.
+fn read(
+    input: impl BufRead + Send + 'static,
+    core: Arc<Core>,
+) -> tokio::sync::mpsc::UnboundedReceiver<Incoming> {
+    let (requests, inbox) = tokio::sync::mpsc::unbounded_channel::<Incoming>();
+    std::thread::spawn(move || {
+        for line in input.lines() {
+            let Ok(line) = line else { break };
+            if line.trim().is_empty() {
+                continue;
+            }
+            let value = match serde_json::from_str::<Value>(&line) {
+                Ok(v) => v,
+                Err(e) => {
+                    core.send(&json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": format!("not JSON: {e}")}}));
+                    continue;
+                }
+            };
+            if !value.is_object() {
+                let why = if value.is_array() {
+                    "batches are not supported: send one message per line"
+                } else {
+                    "a message is a JSON object"
+                };
+                core.send(&json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32600, "message": why}}));
+                continue;
+            }
+            let msg: Incoming = match serde_json::from_value(value) {
+                Ok(m) => m,
+                Err(e) => {
+                    core.send(&json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32600, "message": format!("not a JSON-RPC message: {e}")}}));
+                    continue;
+                }
+            };
+            if msg.method.is_none() {
+                // A response: only the gate's are expected.
+                if let Some(id) = msg
+                    .id
+                    .as_ref()
+                    .and_then(Value::as_str)
+                    .and_then(|s| s.strip_prefix("gate-"))
+                    .and_then(|n| n.parse().ok())
+                {
+                    core.answered(id, &msg);
+                }
+            } else if requests.send(msg).is_err() {
+                break;
+            }
+        }
+        core.close();
+    });
+    inbox
+}
+
+/// The main lane: the client's requests, one at a time.
+async fn main_lane(
+    mut inbox: tokio::sync::mpsc::UnboundedReceiver<Incoming>,
+    core: Arc<Core>,
+    version: String,
+    mut session_maker: Opener,
+) {
+    let mut prompts: Option<tokio::sync::mpsc::UnboundedSender<String>> = None;
+    let mut steer = None;
+    let mut interrupt = None;
+    let mut driver = None;
+    while let Some(msg) = inbox.recv().await {
+        let id = msg.id.as_ref();
+        let method = msg.method.clone().unwrap_or_default();
+        match method.as_str() {
+            "initialize" => {
+                if prompts.is_some() {
+                    core.fail(id, -32600, "already initialized");
+                    continue;
+                }
+                let seeing = Arc::clone(&core);
+                let observer: Observer = Arc::new(move |seen: &Seen| seeing.see(seen));
+                match session_maker(Arc::new(ClientGate(Arc::clone(&core))), observer) {
+                    Ok(opened) => {
+                        core.reply(id, &hello(&opened, &version));
+                        *core.ids.lock().unwrap_or_else(PoisonError::into_inner) = (
+                            opened.session_id.clone(),
+                            opened.run_id.clone(),
+                            SESSION_BODY.into(),
+                        );
+                        interrupt = Some(opened.session.interrupt());
+                        steer = Some(opened.session.steer());
+                        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+                        prompts = Some(tx);
+                        driver = Some(tokio::spawn(drive(opened, rx, Arc::clone(&core))));
+                    }
+                    Err(e) => core.fail(id, -32001, &e),
+                }
+            }
+            "session/prompt" => {
+                let Some(tx) = &prompts else {
+                    core.fail(id, -32002, "initialize first");
+                    continue;
+                };
+                let Some(text) = msg.params["text"].as_str().filter(|t| !t.trim().is_empty())
+                else {
+                    core.fail(id, -32602, "session/prompt needs `text`");
+                    continue;
+                };
+                let queued = core.outstanding.fetch_add(1, Ordering::SeqCst) > 0;
+                if queued {
+                    core.emit(&Event::Queued {
+                        text: text.to_owned(),
+                    });
+                }
+                let _ = tx.send(text.to_owned());
+                core.reply(id, &json!({"queued": queued}));
+            }
+            "session/send" => match &steer {
+                Some(lane) => steer_with(&core, id, lane, &msg.params),
+                None => core.fail(id, -32002, "initialize first"),
+            },
+            "session/interrupt" => {
+                if let Some(i) = &interrupt {
+                    i.fire();
+                }
+                // An act waiting for the human is part of the turn Esc stops.
+                core.release("the human interrupted");
+                core.reply(id, &json!({}));
+            }
+            "session/events" => replay(&core, id, msg.params["since"].as_u64().unwrap_or(0)),
+            "shutdown" => {
+                core.reply(id, &json!({}));
+                break;
+            }
+            _ => core.fail(id, -32601, &format!("no method `{method}`")),
+        }
+    }
+    // The input ended or the client said goodbye: nothing more runs. Queued lines are dropped,
+    // the gate is released, the turn in flight is stopped and allowed to record.
+    core.close();
+    if let Some(i) = &interrupt {
+        i.fire();
+    }
+    drop(prompts);
+    if let Some(d) = driver {
+        let _ = d.await;
+    }
+}
+
+/// `session/send`: a line for the running turn's next tool step; refused when nothing runs.
+fn steer_with(core: &Core, id: Option<&Value>, lane: &mikata_loop::Steer, params: &Value) {
+    let Some(text) = params["text"].as_str().filter(|t| !t.trim().is_empty()) else {
+        return core.fail(id, -32602, "session/send needs `text`");
+    };
+    if core.outstanding.load(Ordering::SeqCst) == 0 {
+        return core.fail(
+            id,
+            -32003,
+            "nothing runs: a line sent steers a running turn — send it as a message instead",
+        );
+    }
+    lane.lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .push_back(text.to_owned());
+    core.reply(id, &json!({}));
+}
+
+/// `session/events`: every kept event after `since`, and where the kept ones begin — so a gap
+/// is never silent.
+fn replay(core: &Core, id: Option<&Value>, since: u64) {
+    let replay = core.replay.lock().unwrap_or_else(PoisonError::into_inner);
+    let oldest = replay.1.front().and_then(|e| e["params"]["seq"].as_u64());
+    let events: Vec<Value> = replay
+        .1
+        .iter()
+        .filter(|e| e["params"]["seq"].as_u64().is_some_and(|s| s > since))
+        .cloned()
+        .collect();
+    let complete = oldest.is_none_or(|o| o <= since + 1);
+    core.reply(
+        id,
+        &json!({"events": events, "oldest": oldest, "complete": complete, "more": false}),
+    );
+}
+
+fn hello(opened: &Opened, version: &str) -> Value {
+    serde_json::to_value(Hello {
+        protocol: PROTOCOL,
+        version: version.to_owned(),
+        world: opened.world.display().to_string(),
+        model: opened.model.clone(),
+        provider: opened.provider.clone(),
+        session: opened.session_id.clone(),
+        run: opened.run_id.clone(),
+        holes: opened.holes.clone(),
+        budget: opened.budget.map(|b| protocol::Budget {
+            left_wt: b.wt,
+            cap: b.cap.to_owned(),
+        }),
+        key: opened.key.clone(),
+        sandbox: opened.sandbox.clone(),
+        mode: opened.mode.word().to_owned(),
+        mode_why: opened.mode_why.clone(),
+        body: SESSION_BODY.into(),
+        held: held(&opened.world),
+    })
+    .unwrap_or(Value::Null)
+}
+
+/// The orders held on `world`'s shared work queue.
+fn held(world: &std::path::Path) -> u32 {
+    use mikata_loop::world::queue::State;
+    let open = mikata_loop::world::Queue::of(world).open();
+    u32::try_from(open.iter().filter(|i| i.state == State::Held).count()).unwrap_or(u32::MAX)
+}
+
+/// The session's lane: one line at a time, in the order they came, until the client leaves.
+async fn drive(
+    opened: Opened,
+    mut lines: tokio::sync::mpsc::UnboundedReceiver<String>,
+    core: Arc<Core>,
+) {
+    let world = opened.world.clone();
+    let mut session = opened.session;
+    while let Some(line) = lines.recv().await {
+        if core.closed.load(Ordering::SeqCst) {
+            break;
+        }
+        let streaming = Arc::clone(&core);
+        let mut on = move |e: StreamEvent| match e {
+            StreamEvent::Text(text) => streaming.emit(&Event::TextDelta { text }),
+            StreamEvent::ToolStart { id, name } => streaming.emit(&Event::ToolStart { id, name }),
+            // Reasoning and a call's arguments as they stream are the terminal UI's for now: the
+            // protocol carries the call whole, and the answer's text.
+            StreamEvent::ToolInput { .. } | StreamEvent::Thinking(_) => {}
+        };
+        session.drive(&line, &mut on).await;
+        core.emit(&Event::Held { held: held(&world) });
+        core.outstanding.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+/// The opener for a world directory: its configuration, its backend, keys from this process's
+/// environment; in the mode the human asked for on the core's command line, or the world's own.
+pub fn opener(world: std::path::PathBuf, mode: Option<mikata_loop::Mode>) -> Opener {
+    Box::new(move |gate, observer| {
+        mikata_loop::open_mode(&world, mode, mikata_loop::Law::On, gate, observer, |var| {
+            std::env::var(var).ok()
+        })
+    })
+}
+
+/// The opener that resumes a stopped run of a world — its id, or `last` — through the same
+/// opening as [`opener`]'s: a refusal is the `initialize` call's error.
+pub fn resumer(world: std::path::PathBuf, run: String, mode: Option<mikata_loop::Mode>) -> Opener {
+    Box::new(move |gate, observer| {
+        mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| {
+            std::env::var(var).ok()
+        })
+    })
+}

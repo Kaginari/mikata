@@ -234,13 +234,13 @@ importers:
 
   packages/board:
     dependencies:
-      "@mnemorph/protocol":
+      "@mikata/protocol":
         specifier: workspace:*
         version: link:../protocol
-      "@mnemorph/sdk":
+      "@mikata/sdk":
         specifier: workspace:*
         version: link:../sdk
-      "@mnemorph/theme":
+      "@mikata/theme":
         specifier: workspace:*
         version: link:../theme
       react:
@@ -273,7 +273,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      "@mnemorph/protocol":
+      "@mikata/protocol":
         specifier: workspace:*
         version: link:../protocol
 
@@ -281,7 +281,7 @@ importers:
 
   site:
     devDependencies:
-      "@mnemorph/theme":
+      "@mikata/theme":
         specifier: workspace:*
         version: link:../packages/theme
       markdown-it-mathjax3:

@@ -1,6 +1,6 @@
 # Lessons carried from isekai
 
-Every row below is a failure isekai actually shipped, hit in use, or caught late. Mnemorph does not
+Every row below is a failure isekai actually shipped, hit in use, or caught late. Mikata does not
 carry them as advice: each row becomes either a test that fails if the mistake comes back, or a
 design rule the code makes impossible to break, and the milestone column names the rung of the
 roadmap where that test or rule must exist before the rung counts as done.
@@ -89,7 +89,7 @@ roadmap where that test or rule must exist before the rung counts as done.
 | A body reporting `@S FAIL` ran its lifecycle to `DONE` and judges read the lifecycle; a body that wrote nothing never met the gate, so no verdict reached the log. | The verdict is a distinct type parsed from the report's wire, never the lifecycle status; every dispatch lands exactly one log row, written or not. | M7 |
 | 42% of one session's tokens were higher ranks relaying a lower rank's text word for word. | Reports above a size floor are filed on disk; the parent receives an envelope (verdict, path, checksum, wrote set, short digest). Test: envelope rides, the full text is filed and intact. | M7 |
 | A wire report ran 70% over its byte cap. | `@CAP` is enforced by the encoder, cutting the least important lines first and never `@S`, `@?` or `@U`. Test: oversize report keeps those lines. | M1 |
-| A creature whose Territory listed the world directory itself (`.isekai`) claimed every seat, the shared queue and scratch, and isekai's two owner functions broke ties differently (authoring rank first in `world.Owner`, longest prefix first in `onto owner`), so the gate and the owner query could disagree. | Ownership is one function with a fixed order — harness soil, scratch, seats, compiled soils, the longest Slime zone, the longest Orc domain — that every caller uses ([the ontology](09-ontology.md#ownership-one-function)). Test: a creature claiming `.mnemorph` owns none of the seats, the queue or scratch. | M7 |
+| A creature whose Territory listed the world directory itself (`.isekai`) claimed every seat, the shared queue and scratch, and isekai's two owner functions broke ties differently (authoring rank first in `world.Owner`, longest prefix first in `onto owner`), so the gate and the owner query could disagree. | Ownership is one function with a fixed order — harness soil, scratch, seats, compiled soils, the longest Slime zone, the longest Orc domain — that every caller uses ([the ontology](experimental/ontology.md#ownership-one-function)). Test: a creature claiming `.mikata` owns none of the seats, the queue or scratch. | M7 |
 | Bodies re-derived "who owns this file" from scratch at every boundary hit and burned a day on it. | An out-of-territory refusal names the owner and carries the three arms (widen, birth, route); one dispatch-card read gives owner, rank, strain and domain. | M7 |
 | Territory as a file list left new files ownerless; one wide flat directory made a single keeper a bottleneck that could only retire, not split; a retired seat kept claiming soil its successors overlapped. | Territories are directory prefixes; founding chunks wide flat directories into bounded zones; a one-prefix zone splits by its own subtree; a retired creature derives no territory. Test: ontology check clean after split, retire and ascension. | M7 |
 | A disciplinary body reverted and deleted files it had not authored. | No body deletes or reverts what it did not write; delete moves to an attic with a ledger line. Test: a foreign untracked file survives a cleanup turn. | M7 |
@@ -158,13 +158,15 @@ roadmap where that test or rule must exist before the rung counts as done.
 
 ## Claude Code integration
 
+Planned, not built: Mikata has no Claude Code hooks adapter yet. These rows are what it must hold when it is.
+
 | Lesson | Becomes | Milestone |
 |---|---|---|
-| Under Claude Code each hook is a fresh process, so the Stop gate read the model's own edits as pre-turn state, and a unit test passed for the wrong reason. | Turn-open state (verify set, tree snapshot) is captured at `UserPromptSubmit` and persisted. Test: an end-to-end hook sequence driven by the real binary. | M13 |
-| `CLAUDE.md` (Claude Code) and `AGENTS.md` (OpenCode) are the only files auto-loaded after a clear, and neither was wired. | Init writes `CLAUDE.md` and symlinks `AGENTS.md` to it, one file for both hosts; a `SessionStart` hook injects the law and recent log. | M13 |
-| Claude Code is the loop and the harness is the law: hooks must be deterministic and need no API key. | `mnemorph hook <event>` for SessionStart, PreToolUse (guard + classifier), Stop (end gate) and PreCompact (drain), all offline. | M13 |
-| Installing the guard into Claude Code must not clobber the user's other hooks. | Hook install merges into `settings.json`, keeps foreign hooks, and is idempotent. Test against a scratch HOME. | M13 |
-| Claude Code's file tools and its bash tool are gated by different mechanisms. | The guard and classifier cover every write surface the host exposes, not only bash. | M13 |
+| Under Claude Code each hook is a fresh process, so the Stop gate read the model's own edits as pre-turn state, and a unit test passed for the wrong reason. | Turn-open state (verify set, tree snapshot) is captured at `UserPromptSubmit` and persisted. Test: an end-to-end hook sequence driven by the real binary. | not built: planned at M13, no `mikata hook` yet |
+| `CLAUDE.md` (Claude Code) and `AGENTS.md` (OpenCode) are the only files auto-loaded after a clear, and neither was wired. | Init writes `CLAUDE.md` and symlinks `AGENTS.md` to it, one file for both hosts; a `SessionStart` hook injects the law and recent log. | not built: planned at M13, no `mikata hook` yet |
+| Claude Code is the loop and the harness is the law: hooks must be deterministic and need no API key. | `mikata hook <event>` for SessionStart, PreToolUse (guard + classifier), Stop (end gate) and PreCompact (drain), all offline. | not built: planned at M13, no `mikata hook` yet |
+| Installing the guard into Claude Code must not clobber the user's other hooks. | Hook install merges into `settings.json`, keeps foreign hooks, and is idempotent. Test against a scratch HOME. | not built: planned at M13, no `mikata hook` yet |
+| Claude Code's file tools and its bash tool are gated by different mechanisms. | The guard and classifier cover every write surface the host exposes, not only bash. | not built: planned at M13, no `mikata hook` yet |
 
 ## Process (how to build)
 
@@ -181,11 +183,11 @@ roadmap where that test or rule must exist before the rung counts as done.
 | An old system formatter that could not parse the language's newer syntax ran in the release script, and a stale binary was judged as the new one. | The toolchain is pinned in the repo (M0); `status` prints the build's version and commit, and checks run against a freshly built binary (M6, where `status` is born). | M6 |
 | A gap named once and left was usually named again later. | A gap named twice is fixed, not noted; the log records the first naming so the second is recognizable. | M7 |
 | The race law's coverage gate failed at 97% after a doc-comment-only change: profile data from earlier builds merged into the new run and read two covered functions as missed. | `just law` cleans the coverage data before it measures; a gate that can fail falsely gets ignored. | M1 |
-| The local config file, `.mnemorph/config.local.toml`, was trusted like the human's global one. But it lives inside the world, where a body's command or a repository's `make test` can write it. So the next session would have started an attacker's MCP server, with the network on and no guard. | Everything that widens the sandbox, the gate, a spending cap, a provider or an MCP server is read from the global file alone. A local file's copy of any such key is a hole. Tests: a local `mcp.servers` entry never starts, a local `allow_unguarded` is ignored. | M13 |
+| The local config file, `.mikata/config.local.toml`, was trusted like the human's global one. But it lives inside the world, where a body's command or a repository's `make test` can write it. So the next session would have started an attacker's MCP server, with the network on and no guard. | Everything that widens the sandbox, the gate, a spending cap, a provider or an MCP server is read from the global file alone. A local file's copy of any such key is a hole. Tests: a local `mcp.servers` entry never starts, a local `allow_unguarded` is ignored. | M13 |
 
-## Measured on Mnemorph's own bench
+## Measured on Mikata's own bench
 
-These rows are not isekai's. Each is something Mnemorph's bench showed in November 2026 (fixes in
+These rows are not isekai's. Each is something Mikata's bench showed in November 2026 (fixes in
 a Python library, journals read back call by call), and each became a rule with its test.
 
 | Lesson | Becomes | Milestone |

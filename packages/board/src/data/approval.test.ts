@@ -50,7 +50,7 @@ it('computes the digest the board does (the shared vector)', async () => {
     outside: [],
     plan: 'plan 3f9a',
   });
-  expect(d).toBe('a614742b4e5d3e7407f6a74e044e648e388319e9af643e92a27d0dcc6eb0f0a0');
+  expect(d).toBe('00cc66a5b48cace3a65844ad46f3eac70e2d94279c9928eccabdb52f88b773ee');
 });
 
 describe('the card', () => {

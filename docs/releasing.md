@@ -1,6 +1,6 @@
 # Releasing
 
-How a version of Mnemorph reaches a machine: a maintainer tags it, a workflow builds, tests and
+How a version of Mikata reaches a machine: a maintainer tags it, a workflow builds, tests and
 drafts it, the maintainer reviews the draft and publishes it, and `install.sh` fetches and
 verifies it.
 
@@ -37,13 +37,13 @@ real repository with history ([lessons](lessons.md), M14).
 
 ### What ships
 
-One archive per target, `mnemorph-<target>.tar.gz`, holding `mnemorph-<version>-<target>/`:
+One archive per target, `mikata-<target>.tar.gz`, holding `mikata-<version>-<target>/`:
 
 | File | For |
 |---|---|
-| `mnemorph` | the terminal app and `mnemorph run` |
-| `mnemorphd` | the server, the board (embedded) and the admin commands |
-| `mnemorph-guard` | Linux only: the kernel guard every command runs through, found beside `mnemorph` |
+| `mikata` | the terminal app and `mikata run` |
+| `mikatad` | the server, the board (embedded) and the admin commands |
+| `mikata-guard` | Linux only: the kernel guard every command runs through, found beside `mikata` |
 | `LICENSE`, `THIRD-PARTY-NOTICES.md`, `README.md`, `CHANGELOG.md` | the licence, the notices, the book's front page, the notes |
 
 | Target | Built on |
@@ -62,15 +62,15 @@ One archive per target, `mnemorph-<target>.tar.gz`, holding `mnemorph-<version>-
    `cargo check` refresh `Cargo.lock`), rename `## [Unreleased]` in `CHANGELOG.md` to
    `## [X.Y.Z] - YYYY-MM-DD`, open a new empty `## [Unreleased]` above it, point the
    `[Unreleased]` link at the bottom to `…/compare/vX.Y.Z...main`, and add
-   `[X.Y.Z]: https://github.com/Kaginari/mnemorph/releases/tag/vX.Y.Z` beside it. Land that as a
+   `[X.Y.Z]: https://github.com/Kaginari/mikata/releases/tag/vX.Y.Z` beside it. Land that as a
    pull request.
 2. Run `just rc-smoke` locally: the same smoke test, on a release build.
-3. Tag the merged commit and push the tag: `git tag -a vX.Y.Z -m "Mnemorph X.Y.Z"` then
+3. Tag the merged commit and push the tag: `git tag -a vX.Y.Z -m "Mikata X.Y.Z"` then
    `git push origin vX.Y.Z`.
 4. The `release` workflow runs:
    - `prepare` refuses a tag that is not `vX.Y.Z`, that differs from `Cargo.toml`'s version, or
      whose changelog section is missing or undated; the section becomes the draft's notes;
-   - `board` builds the board once, embedded by every `mnemorphd`;
+   - `board` builds the board once, embedded by every `mikatad`;
    - `build` compiles each target with `--locked`, packages it (`tools/package-release.sh`), and
      on Linux runs `tools/rc-smoke.sh` on the archive and `tools/test-install.sh` with it;
    - `checksums` writes `SHA256SUMS` over the four archives;
@@ -94,14 +94,14 @@ A pre-release tag (`vX.Y.Z-rc.1`) drafts a pre-release; its changelog section is
 The `attest` job signs build provenance for the archives and `SHA256SUMS` with
 `actions/attest-build-provenance`: keyless, through GitHub's OIDC token and Sigstore, so no key
 and no secret exist. It needs `id-token: write` and `attestations: write`, which only that job is
-granted. It is off until the repository variable `MNEMORPH_ATTEST` is `true`. Once on, anyone
-can check an archive with `gh attestation verify mnemorph-<target>.tar.gz --repo Kaginari/mnemorph`.
+granted. It is off until the repository variable `MIKATA_ATTEST` is `true`. Once on, anyone
+can check an archive with `gh attestation verify mikata-<target>.tar.gz --repo Kaginari/mikata`.
 
 ### The checks around it
 
 | Check | Runs | What it proves |
 |---|---|---|
-| `just rc-smoke [artifact]` (`tools/rc-smoke.sh`) | by hand; the `rc-smoke` workflow; the release workflow | the built binaries answer `--version` (the expected version), `status`, a headless `run` that lands through the end gate, and `mnemorphd board --help`, in a fresh lived-in HOME, against a scripted provider on loopback — and leave the real HOME, other programs' files, the user's git hooks and the world's history untouched |
+| `just rc-smoke [artifact]` (`tools/rc-smoke.sh`) | by hand; the `rc-smoke` workflow; the release workflow | the built binaries answer `--version` (the expected version), `status`, a headless `run` that lands through the end gate, and `mikatad board --help`, in a fresh lived-in HOME, against a scripted provider on loopback — and leave the real HOME, other programs' files, the user's git hooks and the world's history untouched |
 | `just install-test` (`tools/test-install.sh`) | `just check`, on Linux and macOS | `install.sh` installs each supported machine's archive from a fake release served on loopback, under two minutes, without touching a profile; it refuses a tampered archive, a missing `SHA256SUMS`, a missing line, a missing release, an unsupported OS or architecture |
 | the `rc-smoke` workflow | pull requests touching the release's files, weekly, by hand | shellcheck and `dash -n` on the scripts; a release build packaged, smoke-tested and installed |
 
@@ -114,10 +114,10 @@ Silicon shell under Rosetta gets the native build), checks the version is `x.y.z
 or later (curl, else wget), and refuses to unpack unless the archive's line is present and
 matches, and unless every member stays beneath the unpack directory: no absolute name, no `..`,
 no symbolic or hard link. It copies the binaries into
-`~/.local/bin` (or `--dir`, or `MNEMORPH_INSTALL_DIR`), each beside and renamed over the old one,
-runs `mnemorph --version`, and prints the `export PATH=…` line when the directory is not on PATH:
-it needs no sudo and edits no profile. `--version` (or `MNEMORPH_VERSION`) picks a release;
-`MNEMORPH_RELEASE_BASE` points it at a mirror or a test's local server: it must be `https://`,
+`~/.local/bin` (or `--dir`, or `MIKATA_INSTALL_DIR`), each beside and renamed over the old one,
+runs `mikata --version`, and prints the `export PATH=…` line when the directory is not on PATH:
+it needs no sudo and edits no profile. `--version` (or `MIKATA_VERSION`) picks a release;
+`MIKATA_RELEASE_BASE` points it at a mirror or a test's local server: it must be `https://`,
 plain `http://` only to `127.0.0.1`, `localhost` or `[::1]`, or `file:///` (with curl); anything
 else is refused.
 
@@ -130,14 +130,14 @@ macOS archive by hand on a Mac before publishing.
 
 ### npm
 
-`@mnemorph/protocol` and `@mnemorph/sdk` are on npm at 0.1.0, published by hand, apart from the binaries: their
+`@mikata/protocol` and `@mikata/sdk` are on npm at 0.1.0, published by hand, apart from the binaries: their
 versions need not match the release's until 1.0. Bump both packages' `version`, then, with a
 token the human holds and never commits:
 
 ```sh
-pnpm --filter @mnemorph/protocol --filter @mnemorph/sdk build
-pnpm --filter @mnemorph/protocol publish --no-git-checks
-pnpm --filter @mnemorph/sdk publish --no-git-checks
+pnpm --filter @mikata/protocol --filter @mikata/sdk build
+pnpm --filter @mikata/protocol publish --no-git-checks
+pnpm --filter @mikata/sdk publish --no-git-checks
 ```
 
 Always `pnpm publish`, never `npm publish`: pnpm rewrites `workspace:*` and `publishConfig.exports`.

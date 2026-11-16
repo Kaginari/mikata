@@ -86,7 +86,7 @@ test.describe('the page, signed out', () => {
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const BIN =
-  process.env.MNEMORPH_BOARD_E2E ??
+  process.env.MIKATA_BOARD_E2E ??
   join(process.env.CARGO_TARGET_DIR ?? join(repo, 'target'), 'debug/examples/board_e2e');
 
 test.describe('the server, refusing a page load', () => {
@@ -99,7 +99,7 @@ test.describe('the server, refusing a page load', () => {
 
   test.beforeEach(async () => {
     test.skip(test.info().project.name !== 'desktop', 'one browser is enough');
-    root = mkdtempSync(join(tmpdir(), 'mnemorph-board-signin-'));
+    root = mkdtempSync(join(tmpdir(), 'mikata-board-signin-'));
     server = spawn(BIN, [root], { stdio: ['ignore', 'pipe', 'inherit'] });
     const url = await new Promise<string>((resolve, reject) => {
       let out = '';
@@ -114,7 +114,7 @@ test.describe('the server, refusing a page load', () => {
     port = new URL(url).port;
     // A name of the test's own pointed at loopback, as a rebinding page's would be.
     browser = await chromium.launch({
-      args: ['--host-resolver-rules=MAP mnemorph.test 127.0.0.1'],
+      args: ['--host-resolver-rules=MAP mikata.test 127.0.0.1'],
     });
   });
 
@@ -127,7 +127,7 @@ test.describe('the server, refusing a page load', () => {
   test('a foreign host name gets a page naming the board’s addresses', async () => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await watchCsp(page);
-    const res = await page.goto(`http://mnemorph.test:${port}/`);
+    const res = await page.goto(`http://mikata.test:${port}/`);
     expect(res?.status()).toBe(403);
     expect(res?.headers()['content-security-policy']).toContain("script-src 'self'");
     await expect(page.getByRole('heading', { name: 'This address is refused' })).toBeVisible();

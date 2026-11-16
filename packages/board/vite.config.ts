@@ -11,7 +11,7 @@ import { factsOf, fixtureMemory } from './src/data/knowledgeFixtures.ts';
  */
 function fixtures(): Plugin {
   return {
-    name: 'mnemorph-board-fixtures',
+    name: 'mikata-board-fixtures',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use('/api/worlds', (_req, res) => {
@@ -57,7 +57,7 @@ function fixtures(): Plugin {
 export const PREVIEW_PORT = 4317;
 
 /**
- * The headers `mnemorphd board` sends with every response (crates/mnemorph-server/src/board/
+ * The headers `mikatad board` sends with every response (crates/mikata-server/src/board/
  * guard.rs), so the end-to-end tests run the page under the same CSP: a violation fails them.
  */
 export const BOARD_HEADERS = {

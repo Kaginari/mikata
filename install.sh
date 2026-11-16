@@ -1,8 +1,8 @@
 #!/bin/sh
-# Install Mnemorph — `mnemorph`, `mnemorphd` and, on Linux, `mnemorph-guard` — from a GitHub
+# Install Mikata — `mikata`, `mikatad` and, on Linux, `mikata-guard` — from a GitHub
 # release, for this machine's OS and architecture.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Kaginari/mnemorph/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Kaginari/mikata/main/install.sh | sh
 #   sh install.sh --version 1.0.0 --dir ~/bin
 #
 # The archive is checked against the release's SHA256SUMS before anything is unpacked: a
@@ -11,23 +11,23 @@
 # printed instead.
 #
 # Environment:
-#   MNEMORPH_VERSION       the version to install (default: the latest release)
-#   MNEMORPH_INSTALL_DIR   where the binaries go (default: ~/.local/bin)
-#   MNEMORPH_RELEASE_BASE  where releases are read from: https://, or http:// on loopback, or
-#                          file:/// (default: https://github.com/Kaginari/mnemorph/releases)
+#   MIKATA_VERSION       the version to install (default: the latest release)
+#   MIKATA_INSTALL_DIR   where the binaries go (default: ~/.local/bin)
+#   MIKATA_RELEASE_BASE  where releases are read from: https://, or http:// on loopback, or
+#                          file:/// (default: https://github.com/Kaginari/mikata/releases)
 set -eu
 
-say() { printf 'mnemorph-install: %s\n' "$*"; }
-die() { printf 'mnemorph-install: error: %s\n' "$*" >&2; exit 1; }
+say() { printf 'mikata-install: %s\n' "$*"; }
+die() { printf 'mikata-install: error: %s\n' "$*" >&2; exit 1; }
 
 usage() {
   cat <<'EOF'
-Install Mnemorph from a GitHub release.
+Install Mikata from a GitHub release.
 
 Usage: install.sh [--version <x.y.z|latest>] [--dir <install dir>]
 
-  --version, -v   the release to install (default: latest; MNEMORPH_VERSION)
-  --dir, -d       where to put the binaries (default: ~/.local/bin; MNEMORPH_INSTALL_DIR)
+  --version, -v   the release to install (default: latest; MIKATA_VERSION)
+  --dir, -d       where to put the binaries (default: ~/.local/bin; MIKATA_INSTALL_DIR)
   --help, -h      this help
 
 The archive is verified against the release's SHA256SUMS before it is unpacked.
@@ -38,9 +38,9 @@ EOF
 # Everything runs from main, called on the last line: a download cut short defines nothing and
 # runs nothing. Its stdin is /dev/null, so no command reads the rest of a piped script.
 main() {
-  base=${MNEMORPH_RELEASE_BASE:-https://github.com/Kaginari/mnemorph/releases}
-  version=${MNEMORPH_VERSION:-latest}
-  dir=${MNEMORPH_INSTALL_DIR:-}
+  base=${MIKATA_RELEASE_BASE:-https://github.com/Kaginari/mikata/releases}
+  version=${MIKATA_VERSION:-latest}
+  dir=${MIKATA_INSTALL_DIR:-}
 
   while [ $# -gt 0 ]; do
     case $1 in
@@ -52,7 +52,7 @@ main() {
   done
 
   if [ -z "$dir" ]; then
-    [ -n "${HOME:-}" ] || die "HOME is unset: pass --dir or set MNEMORPH_INSTALL_DIR"
+    [ -n "${HOME:-}" ] || die "HOME is unset: pass --dir or set MIKATA_INSTALL_DIR"
     dir=$HOME/.local/bin
   fi
   [ "$(id -u)" -ne 0 ] || say "running as root: nothing here needs it"
@@ -84,7 +84,7 @@ main() {
     https://*) scheme='https' ;;
     http://127.0.0.1 | http://127.0.0.1[:/]* | http://localhost | http://localhost[:/]* | "http://[::1]" | "http://[::1]"[:/]*) scheme='http' ;;
     file:///*) scheme='file' ;;
-    *) die "MNEMORPH_RELEASE_BASE must be https://, http:// on loopback, or file:///: refusing $base" ;;
+    *) die "MIKATA_RELEASE_BASE must be https://, http:// on loopback, or file:///: refusing $base" ;;
   esac
   if command -v curl >/dev/null 2>&1; then
     case $scheme in
@@ -121,9 +121,9 @@ main() {
     v*) url=$base/download/$version ;;
     *) url=$base/download/v$version ;;
   esac
-  asset=mnemorph-$target.tar.gz
+  asset=mikata-$target.tar.gz
 
-  tmp=$(mktemp -d 2>/dev/null || mktemp -d -t mnemorph-install)
+  tmp=$(mktemp -d 2>/dev/null || mktemp -d -t mikata-install)
   trap 'rm -rf "$tmp"' EXIT INT TERM
 
   say "installing $version for $target into $dir"
@@ -152,11 +152,11 @@ main() {
   fi
   mkdir "$tmp/x"
   tar -xzf "$tmp/$asset" -C "$tmp/x"
-  src=$(find "$tmp/x" -type f -name mnemorph | head -n 1)
-  [ -n "$src" ] || die "the archive holds no mnemorph binary"
+  src=$(find "$tmp/x" -type f -name mikata | head -n 1)
+  [ -n "$src" ] || die "the archive holds no mikata binary"
   src=$(dirname "$src")
-  bins="mnemorph mnemorphd"
-  [ "$os" = Linux ] && bins="$bins mnemorph-guard"
+  bins="mikata mikatad"
+  [ "$os" = Linux ] && bins="$bins mikata-guard"
   for b in $bins; do
     [ -f "$src/$b" ] || die "the archive holds no $b"
   done
@@ -169,11 +169,11 @@ main() {
     mv -f "$dir/.$b.new" "$dir/$b"
   done
   say "installed: $(echo "$bins" | sed 's/ /, /g')"
-  installed=$("$dir/mnemorph" --version 2>/dev/null) || die "the installed mnemorph does not run on this machine"
+  installed=$("$dir/mikata" --version 2>/dev/null) || die "the installed mikata does not run on this machine"
   say "$installed"
 
   case ":${PATH:-}:" in
-    *":$dir:"*) say "run: mnemorph status" ;;
+    *":$dir:"*) say "run: mikata status" ;;
     *)
       say "$dir is not on your PATH. Add it, for example:"
       # The literal line to paste: $PATH stays unexpanded.

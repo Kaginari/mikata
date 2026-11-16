@@ -1,6 +1,6 @@
 /**
  * The WebSocket transport: a tab on a board chat, `ws://127.0.0.1:<port>/ws/session/<id>`. It
- * offers the subprotocol `mnemorph.v1` and the CSRF token as `mnemorph.csrf.<token>` (a browser's
+ * offers the subprotocol `mikata.v1` and the CSRF token as `mikata.csrf.<token>` (a browser's
  * WebSocket cannot set a header), and reconnects after a drop with a growing pause. On each
  * reopening the `Client` takes control back if it had it and replays what it missed by `seq`.
  * A close that says the chat is over — ended, signed out, unknown, crowded, refused — is final.
@@ -8,7 +8,7 @@
 import type { Transport } from './client.js';
 
 /** The subprotocol a chat's socket speaks. */
-export const SUBPROTOCOL = 'mnemorph.v1';
+export const SUBPROTOCOL = 'mikata.v1';
 
 /** The close codes after which reconnecting would not help. */
 export const FINAL_CLOSES: ReadonlySet<number> = new Set([
@@ -80,7 +80,7 @@ export function ws(options: WsOptions): Transport {
       return finish(`no CSRF token: ${(e as Error).message}`);
     }
     if (over) return;
-    const s = make(options.url, [SUBPROTOCOL, `mnemorph.csrf.${token}`]);
+    const s = make(options.url, [SUBPROTOCOL, `mikata.csrf.${token}`]);
     sock = s;
     let up = false;
     s.onopen = () => {

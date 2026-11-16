@@ -1,6 +1,6 @@
 # Third-party notices
 
-Mnemorph adapts material from the projects below. Each notice is kept with the material it
+Mikata adapts material from the projects below. Each notice is kept with the material it
 covers, as its licence asks.
 
 ## Cloudflare security-audit-skill
@@ -8,21 +8,21 @@ covers, as its licence asks.
 - **Upstream:** <https://github.com/cloudflare/security-audit-skill>
 - **Pinned commit:** `c1c8a8c1471069fb0e188eeaff69b8e8db6564a8`
 - **Licence:** MIT, © 2025–2026 Cloudflare, Inc.
-- **What Mnemorph adapts:** the Dark Elf's audit discipline — its playbooks of attack classes,
+- **What Mikata adapts:** the Dark Elf's audit discipline — its playbooks of attack classes,
   the finding contract (a line-free root-cause fingerprint, the "needs validation" verdict,
   severity capped at demonstrated impact), the coverage ledger and independent verification
-  ([races](docs/02-races.md#-dark-elf--the-adversary)), and the rules of its
-  `validate-findings.cjs` and `validate-coverage-ledger.cjs` that `crates/mnemorph-proving` holds
+  ([races](docs/experimental/races.md#-dark-elf--the-adversary)), and the rules of its
+  `validate-findings.cjs` and `validate-coverage-ledger.cjs` that `crates/mikata-proving` holds
   a finding record and a coverage ledger to. The playbooks and the validators are rewritten in
-  Mnemorph's own words, format and language, not copied; material taken from a later upstream
+  Mikata's own words, format and language, not copied; material taken from a later upstream
   commit moves the pin above.
 - **Adapted upstream files** (`skills/security-audit/`): `ATTACK-CLASSES.md`, `HUNTING.md`,
   `AI-AND-LLM.md`, `SUPPLY-CHAIN-AND-RELEASE.md`, `WEB-PROTOCOL-AND-AUTH.md`,
   `MEMORY-SAFETY-AND-BINARY.md`, `PROTOCOLS-RPC-AND-MESSAGING.md`,
   `RESOURCE-EXHAUSTION-AND-AVAILABILITY.md`, `DATA-ISOLATION-AND-LIFECYCLE.md`,
   `DESKTOP-MOBILE-AND-LOCAL-IPC.md`, `CLIENT-SIDE.md` and `CLOUD-AND-DEPLOYMENT.md`, into the
-  per-class playbooks under `crates/mnemorph-races/playbooks/`; `validate-findings.cjs` and
-  `validate-coverage-ledger.cjs` into `crates/mnemorph-proving`.
+  per-class playbooks under `crates/mikata-races/playbooks/`; `validate-findings.cjs` and
+  `validate-coverage-ledger.cjs` into `crates/mikata-proving`.
 
 ```text
 MIT License

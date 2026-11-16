@@ -1,12 +1,12 @@
 /**
- * The key `mnemorphd board` prints in the URL's fragment (`#k=<key>`) is traded once for the
+ * The key `mikatad board` prints in the URL's fragment (`#k=<key>`) is traded once for the
  * session cookie: read, dropped from the address bar and history before anything renders, then
  * posted to `POST /session`. A page opened without a key relies on the cookie it already holds.
  *
  * The trade answers the CSRF token bound to the session. It lives in this module's memory only —
  * never storage, the DOM or a log — and a reloaded page asks for it again at `GET /api/session`
- * while the cookie lives. Every mutation sends it in `x-mnemorph-csrf`; a chat's WebSocket offers
- * it as the subprotocol entry `mnemorph.csrf.<token>` (the SDK's `ws({csrf})`), and so does the
+ * while the cookie lives. Every mutation sends it in `x-mikata-csrf`; a chat's WebSocket offers
+ * it as the subprotocol entry `mikata.csrf.<token>` (the SDK's `ws({csrf})`), and so does the
  * board's push socket.
  *
  * A tab without a session shows one page saying so, never a blank root: `signedOut()` is told by
@@ -87,7 +87,7 @@ export function takeKey() {
     }
     if (!res.ok)
       throw new Error(
-        `the board refused the key (${res.status}): it may be spent; open the URL “mnemorphd board” prints again`,
+        `the board refused the key (${res.status}): it may be spent; open the URL “mikatad board” prints again`,
       );
     token = readToken(await res.json().catch(() => undefined));
   });
@@ -106,7 +106,7 @@ export async function csrf(): Promise<string> {
   const res = await fetch('/api/session', { credentials: 'same-origin' });
   if (res.status === 401) signedOut();
   if (!res.ok)
-    throw new Error(`no board session (${res.status}): open the URL “mnemorphd board” prints`);
+    throw new Error(`no board session (${res.status}): open the URL “mikatad board” prints`);
   token = readToken(await res.json());
   if (!token) throw new Error('the board answered no CSRF token');
   return token;
@@ -118,7 +118,7 @@ export async function post(path: string, body: unknown): Promise<Response> {
   return fetch(path, {
     method: 'POST',
     credentials: 'same-origin',
-    headers: { 'content-type': 'application/json', 'x-mnemorph-csrf': t },
+    headers: { 'content-type': 'application/json', 'x-mikata-csrf': t },
     body: JSON.stringify(body),
   });
 }

@@ -1,16 +1,16 @@
 /**
- * Light, dark or auto. `@mnemorph/theme`'s tokens.css is dark by default and light under
+ * Light, dark or auto. `@mikata/theme`'s tokens.css is dark by default and light under
  * `data-theme="light"`; auto follows the system and moves when it does. The choice is kept per
  * browser.
  */
-import { DEFAULT_SCHEME, SCHEMES, type SchemeName } from '@mnemorph/theme';
+import { DEFAULT_SCHEME, SCHEMES, type SchemeName } from '@mikata/theme';
 import { useCallback, useEffect, useState } from 'react';
 
 export type Choice = 'auto' | 'light' | 'dark';
 export type Theme = 'light' | 'dark';
 export const CHOICES: readonly Choice[] = ['auto', 'light', 'dark'];
 
-const KEY = 'mnemorph.theme';
+const KEY = 'mikata.theme';
 
 /** The theme a choice gives, the system preferring light or not. */
 export function resolve(choice: Choice, systemLight: boolean): Theme {
@@ -52,7 +52,7 @@ export function apply(choice: Choice) {
  */
 export { DEFAULT_SCHEME, SCHEMES, type SchemeName };
 
-const SCHEME_KEY = 'mnemorph.scheme';
+const SCHEME_KEY = 'mikata.scheme';
 
 /** The stored scheme; the default when none, an unknown one, or storage cannot be read. */
 export function storedScheme(): SchemeName {

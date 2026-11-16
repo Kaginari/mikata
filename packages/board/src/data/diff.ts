@@ -1,6 +1,6 @@
 /**
  * What a file tool changes, as a diff with its line numbers — as the TUI draws it
- * (crates/mnemorph-tui/src/diff.rs): `edit` and `multiedit` from their old and new strings,
+ * (crates/mikata-tui/src/diff.rs): `edit` and `multiedit` from their old and new strings,
  * `patch` from its unified diff, `write` as the new file's head.
  */
 

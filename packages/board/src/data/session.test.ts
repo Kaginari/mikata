@@ -50,7 +50,7 @@ it('keeps the traded CSRF token in memory and sends it on a mutation', async () 
   expect(await csrf()).toBe(TOKEN);
   await post('/api/w/w1/sessions', {});
   expect(fetch).toHaveBeenCalledTimes(2);
-  expect(fetch.mock.calls[1]?.[1].headers['x-mnemorph-csrf']).toBe(TOKEN);
+  expect(fetch.mock.calls[1]?.[1].headers['x-mikata-csrf']).toBe(TOKEN);
   // Nowhere but memory.
   expect(JSON.stringify({ ...window.localStorage })).not.toContain(TOKEN);
   expect(JSON.stringify({ ...window.sessionStorage })).not.toContain(TOKEN);

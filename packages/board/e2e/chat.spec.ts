@@ -273,7 +273,7 @@ test('a past run reads from its journal, read-only, and resumes', async ({ page 
     );
     await p.route(`**/api/w/${LIVE.id}/sessions`, async (r) => {
       resumed = r.request().postDataJSON();
-      expect(r.request().headers()['x-mnemorph-csrf']).toBe('a'.repeat(64));
+      expect(r.request().headers()['x-mikata-csrf']).toBe('a'.repeat(64));
       await r.fulfill({
         status: 201,
         contentType: 'application/json',

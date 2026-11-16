@@ -11,15 +11,15 @@ it('resolves a theme choice', () => {
 });
 
 it('keeps the scheme per browser, neon unless another is chosen', () => {
-  window.localStorage.removeItem('mnemorph.scheme');
+  window.localStorage.removeItem('mikata.scheme');
   expect(storedScheme()).toBe('neon');
-  window.localStorage.setItem('mnemorph.scheme', 'lagoon');
+  window.localStorage.setItem('mikata.scheme', 'lagoon');
   expect(storedScheme()).toBe('lagoon');
   applyScheme(storedScheme());
   expect(document.documentElement.dataset.scheme).toBe('lagoon');
-  window.localStorage.setItem('mnemorph.scheme', 'pink');
+  window.localStorage.setItem('mikata.scheme', 'pink');
   expect(storedScheme()).toBe('neon');
-  window.localStorage.removeItem('mnemorph.scheme');
+  window.localStorage.removeItem('mikata.scheme');
 });
 
 it('says how long ago, short', () => {

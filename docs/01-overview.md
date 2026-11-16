@@ -5,7 +5,7 @@
 <a href="./canvas/overview-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./canvas/overview-dark.svg">
-  <img src="./canvas/overview-light.svg" alt="The overview canvas: Player talks to Summoner; in light-coding, Summoner does the work itself; with creatures it commissions the Elf, the Kijin and the Dark Elf; the Elf commissions the Orc and the Orc the Slime; Summoner writes what it knows on the work board, and the Elf, the Orc and the Slime read it and post what they found; reports and verdicts climb back; only the Kijin reaches the outside world, every act through the human gate">
+  <img src="./canvas/overview-light.svg" alt="The overview canvas: you give Mikata an ask; it writes down what done means as lines it can run, does the work inside your repository, and checks every line; a failing line sends it back to the work; then the end gate runs your verify line and checks that no test was deleted or skipped; it answers with what changed. An ask that names several projects runs one body a project, at once">
 </picture>
 </a>
 
@@ -21,154 +21,82 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    V(["🐉 Player — the human"])
-    R["👑 Summoner — the voice you talk to<br/>light-coding: it does the work itself<br/>with creatures: it may hand work down"]
-    E["🌿 Elf — plans a lane"]
-    O["🪓 Orc — rules a domain, codes the check first<br/>contracts sideways with other Orcs"]
-    S["💧 Slime — writes the code of its zone"]
-    B[("📋 the work board<br/>Summoner writes what it knows<br/>every body reads it<br/>and posts what it found")]
-    K["👹 Kijin — the only hands that reach outside<br/>CI · release · deploy · forge · scout"]
-    D["🌑 Dark Elf — challenges the code<br/>security · CVEs · secrets · attacks"]
-    OUT[("🌍 the outside world<br/>GitHub · CI · registries · clusters · advisories")]
+    V(["You"])
+    M["Mikata<br/>one body over your repository"]
+    P["several projects named in the ask?<br/>one body a project, at once,<br/>each in its own folder"]
+    L[("Done when<br/>D1, D2, … each a line it can run")]
+    W["the work<br/>reads only the lines it needs<br/>writes inside your repository"]
+    C{"its own check<br/>every line, the tests it touched"}
+    G{"the end gate<br/>your verify line runs green<br/>no test deleted or skipped"}
+    A(["the answer, with what changed"])
 
-    V <-->|human words| R
-    R -->|commission| E
-    E -->|commission| O
-    O -->|commission| S
-    R -->|commission| K
-    R -->|commission| D
-    K <-->|every act through the human gate| OUT
-    D -.->|witnessed findings| R
-    S -.->|report| O -.->|verdict| E -.->|lane verdict| R
-    E <-.-> B
-    O <-.-> B
-    S <-.-> B
-    classDef human fill:#f8efcf,stroke:#D4AF37,stroke-width:2px,color:#3a2e05
-    class V human
-    classDef throne fill:#dbeefe,stroke:#3FA9F5,stroke-width:2px,color:#0b2540
-    class R throne
-    classDef elf fill:#dcf3e6,stroke:#2FA36B,stroke-width:2px,color:#0b2a1a
-    class E elf
-    classDef orc fill:#f8e8d2,stroke:#C9822B,stroke-width:2px,color:#3a2408
-    class O orc
-    classDef slime fill:#d6f5f1,stroke:#19C3B0,stroke-width:2px,color:#06302b
-    class S slime
-    classDef kijin fill:#fbdde1,stroke:#D7263D,stroke-width:2px,color:#3d0710
-    class K kijin
-    classDef dark fill:#ebe2fb,stroke:#7B4FD6,stroke-width:2px,color:#22114a
-    class D dark
-    classDef outside fill:#eceff3,stroke:#6b7280,stroke-width:1.5px,color:#111827
-    class OUT outside
+    V -->|your ask| M
+    M -.-> P
+    M --> L --> W --> C
+    C -->|a line does not hold| W
+    C -->|every line holds| G
+    G -->|refused| W
+    G -->|passes| A
+    A --> V
+    classDef you fill:#fdf3c4,stroke:#c9a400,stroke-width:2px,color:#3a2e05
+    class V you
+    classDef mikata fill:#d7f8fb,stroke:#00a7b3,stroke-width:2px,color:#06302b
+    class M,P mikata
     classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
-    class B store
+    class L store
+    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    class C,G gate
 ```
 
 </details>
 
-| <img src="../assets/portraits/player@64.png" width="64" alt="Player"> | <img src="../assets/portraits/summoner@64.png" width="64" alt="Summoner"> | <img src="../assets/portraits/elf@64.png" width="64" alt="Elf"> | <img src="../assets/portraits/orc@64.png" width="64" alt="Orc"> | <img src="../assets/portraits/slime@64.png" width="64" alt="Slime"> | <img src="../assets/portraits/kijin@64.png" width="64" alt="Kijin"> | <img src="../assets/portraits/dark-elf@64.png" width="64" alt="Dark Elf"> |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Player** | **Summoner** | **Elf** | **Orc** | **Slime** | **Kijin** | **Dark Elf** |
-
 ## In plain words
 
-You talk to **Summoner**. What happens next depends on the **mode** the session opened in, and
-`mnemorph status` says which one you are in and why.
+**Mikata** (味方, "ally": the one on your side) is a coding agent. You give it an ask; one body
+works through it over your whole repository, the way a careful engineer would:
 
-**Light-coding is the default, and the mode to use.** Summoner does the work itself, in one body
-over your whole repository, the way a careful engineer would:
-
-1. **It writes down what "done" means, first:** every output your ask states, every case that must
-   keep working, each a line `D1`, `D2`… it can run.
+1. **It writes down what "done" means, first:** every output your ask states and every case that
+   must keep working, each a line `D1`, `D2`… it can run.
 2. **It weighs two or three ways** to do the ask, with what each risks, and picks one.
 3. **It does the work,** reading only the lines it needs.
-4. **It checks before it answers:** it runs every line of the list and the tests of what it
+4. **It checks before it answers:** it runs every line of its list and the tests of what it
    touched. A difference or a red test means not done.
-5. **The end gate judges every file it changed:** your pinned checks pass, no test deleted or
-   skipped.
+5. **The end gate judges every file it changed:** your verify line runs green, and no test was
+   deleted or skipped.
 
-That habit, writing "done" down and checking it, is what put light-coding ahead of OpenCode and
-Maki on our bench, at the lowest price per pass ([the bench](bench.md)). It needs nothing set up.
+That habit, writing "done" down and checking it, is what put Mikata ahead of OpenCode and Maki on
+our bench, at the lowest price per pass ([the bench](bench.md)). It needs nothing set up.
 
-**Two more modes are experimental** ([experimental modes](experimental-modes.md)): our lab, tested
-and usable, not yet ahead of one body.
+**An ask that names several projects is split by itself.** When the ask names two or more folders
+at the root of your repository that each hold a project file of their own (`pyproject.toml`,
+`Cargo.toml`, `package.json`, `go.mod`, …), Mikata runs one body a project, at once, each with its
+folder as its root, then checks each project once before it answers. Five whole repositories in
+one ask: one body fixed 2.5 of 5 on average; one body a project, 4.5 of 5.
 
-- **Structured-coding**, in a world that has creatures. Summoner may hand the work down a fixed
-  chain. An
-  **Elf** plans a lane of work and decides which domains are involved. An **Orc** owns a domain:
-  before any code is written it codes the check that will judge the code, then orders its
-  **Slimes**. A Slime is the only one allowed to edit the code of its own small zone. Summoner
-  still does a fix itself when it already knows the files, the lines and the change.
-- **Collective-coding.** The creatures that report to Summoner are equals. Summoner
-  writes the work board, splits the ask by zone and summons the members it needs, which work at
-  once; it writes no code itself.
+**It stays on your machine.** The body reads and writes inside your repository, and every command
+runs in a sandbox. An act that reaches outside (a push, a publish, a deploy) is not on its shelf
+and is refused; beyond your machine it reaches only the model provider and the MCP servers you
+declare.
 
-In structured-coding and collective-coding the bodies share **the work board**, one page in the
-world
-(`.mnemorph/tmp/board.md`): every body's brief carries it, and what each body found is posted back
-to it, so a body ordered later builds on what an earlier one read.
+**What it learns stays with the repository.** Everything that matters is written to the world
+folder, `.mikata/`: the journal `log.md`, the ledgers, memory. Sessions forget; the world
+remembers.
 
-Two races stand beside the chain, both answering to Summoner:
+### Say what the result must be
 
-- **Kijin** are the hands that reach outside: pushing branches, opening pull requests, watching
-  CI, publishing releases, deploying. Nobody else can. Every outside act still asks you first,
-  unless you have signed a standing permission for it (honoured from M11).
-- **Dark Elves** are the adversaries. They attack the code that the others wrote: security
-  reviews, known vulnerabilities in dependencies, leaked secrets, unsafe patterns. They cannot
-  fix anything themselves. A finding only counts if it comes with proof: a failing test or a
-  scanner output.
+Mikata checks its work against what the ask states. On four tasks, an ask with its examples and
+their expected output passed 4 times in 4; the same ask as one paragraph of prose passed 4 times
+in 8, at the same price. Without examples the body writes its own checks from its own reading of
+the ask, and a wrong reading passes them: one task failed 4 times in 4 on a case the ask said, in
+words, must stay as it was. One example of what must change and one of what must not is worth more
+than a paragraph.
 
-Reports flow back up the same chain, each rank compressing what the rank below said, until
-Summoner answers you in plain language.
+### The modes
 
-Everything that matters is written to the world directory `.mnemorph/` — creature documents, the
-journal `log.md`, the ledgers. Sessions forget; the world remembers.
-
-### Which mode, and how to start it
-
-| Mode | Use it when | Start it | It needs |
-|---|---|---|---|
-| **light-coding** | almost always: a bug, a feature, a refactor, a question about the code | `mnemorph`, in a world where no Elf reports to Summoner; `mnemorph --mode light-coding` anywhere | nothing |
-| **structured-coding** (experimental) | the work is too large for one context, or must stay inside zones that each have their own check | `mnemorph`, in a world where an Elf reports to Summoner; or `mnemorph --mode structured-coding` | adopted creature cards: an Elf under `summoner`, its Orcs, their Slimes with verify lines |
-| **collective-coding** (experimental) | an ask has separate parts in separate zones, and you want them worked at once | `mnemorph --mode collective-coding`; or `collective.on = true` in your global config | at least one adopted creature that reports to `summoner` |
-
-- **`--mode` goes wherever a session opens:** `mnemorph`, `mnemorph resume <run>`,
-  `mnemorph run "<ask>"`, and `mnemorphd` for a program. `auto` is the default:
-  collective-coding when `collective.on` is set and Summoner has members, structured-coding when
-  an Elf reports to it, else light-coding.
-- **`mnemorph status` says the mode and why**, with no key needed:
-  `mode     light-coding — no Elf reports to the Summoner in this world`. The app says it on its
-  first
-  lines, the web board in the session pane, `mnemorph run --json` on its result line, and the
-  run's journal on its `law` beat.
-- **A mode the world cannot give opens no session.** `mnemorph --mode structured-coding` in a world
-  with
-  no Elf is refused with what is missing, before any key is asked for; it never falls back to
-  another mode in silence.
-- **A resumed run's mode is decided again.** `mnemorph resume <run>` with no `--mode` opens in
-  the mode the world gives now. When that is not the mode the run stopped in, the first lines say
-  so: pass `--mode` to go on in the old one.
-- **Creatures are cards you write and adopt.** A card is `.mnemorph/<race>/<name>/README.md`: its
-  race, whom it reports to and its ground ([soil](02-races.md#soil--who-may-write-what)). A card
-  is a stranger until you adopt it with `mnemorphd roster adopt`; `mnemorphd roster list` shows
-  who is here, and this repository's own `.mnemorph/` is a worked example. A card that waits
-  gives no mode, and the reason says how many wait:
-  `… no Elf reports to the Summoner in this world; 9 cards here are not adopted yet …`.
-
-**Start with light-coding.** It is the mode the measurements favour: on every screen of our
-bench it did as much as the other two modes or more, for a fraction of the price. The last, five
-whole repositories in one ask: light-coding, running one body a project at once, fixed 4.5 of 5
-on average in 19 minutes for $1.72; structured-coding, once the harness handed the work out by
-domain, 3.3 of 5 for $2.36. An ask that names two or more separate projects of the world (each a
-root folder with its own project file) is split that way by itself. Every screen, and why the other two lose:
-[the bench](bench.md#the-modes-against-each-other) and [experimental
-modes](experimental-modes.md).
-
-**Say what the result must be.** Light-coding checks its work against what the ask states. On
-four tasks, an ask with its examples and their expected output passed 4 times in 4; the same ask
-as one paragraph of prose passed 4 times in 8, at the same price. Without examples the body
-writes its own checks from its own reading of the ask, and a wrong reading passes them: one task
-failed 4 times in 4 on a case the ask said, in words, must stay as it was. One example of what
-must change and one of what must not is worth more than a paragraph.
+Every session opens in **light-coding**: the one body above. `mikata status` says the mode and
+why. Two other modes, where the work is handed down a chain of bodies or shared by a collective,
+are kept as [experimental](experimental/): usable, measured, and frozen, since one body a project
+did better on every screen.
 
 ## Technical detail
 
@@ -184,11 +112,11 @@ config:
 ---
 flowchart LR
     subgraph user["your machine"]
-      CLI["mnemorph<br/>Rust · Ratatui<br/>the core in-process"]
+      CLI["mikata<br/>Rust · Ratatui<br/>the core in-process"]
       BOARD["board<br/>TypeScript · React<br/>in the browser"]
-      CORE["mnemorphd<br/>Rust core, served"]
+      CORE["mikatad<br/>Rust core, served"]
       SB["sandboxed tools<br/>landlock + seccomp / Seatbelt"]
-      W[(".mnemorph/<br/>docs · log.md · ledgers")]
+      W[(".mikata/<br/>log.md · ledgers · memory")]
     end
     LLM[("model providers<br/>Anthropic · OpenAI-compatible")]
 
@@ -212,18 +140,18 @@ flowchart LR
     style user fill:#f8fafc,stroke:#94a3b8
 ```
 
-- **The core** (Rust crates) owns everything that must be correct: the loop, the races, the gate,
-  the sandbox, the ledgers, the provider clients. It has no UI, and every surface links the same
+- **The core** (Rust crates) owns everything that must be correct: the loop, the gate, the
+  sandbox, the ledgers, the provider clients. It has no UI, and every surface links the same
   crates.
-- **`mnemorph`** (Rust, Ratatui) is the command you run. With no subcommand it is the terminal
-  app; `mnemorph run "<ask>"` asks once without it, for scripts. It hosts the session in its own
-  process — no protocol between the screen and the core — and draws the same events the server
-  sends ([the terminal UI](05-architecture.md#the-terminal-ui)). It renders; it decides nothing.
-- **`mnemorphd`** (Rust) is the core as a server: JSON-RPC 2.0 over stdio for the TypeScript SDK,
-  and the world's admin commands (`mnemorphd runs`, `mnemorphd memory status`, `mnemorphd q list`, …).
-- **The board** (TypeScript, React) is the web cockpit, served by `mnemorphd` on loopback. It
-  speaks the same protocol over a WebSocket. (The *work board* above is another thing: a page in
-  the world that the bodies of a session share.)
+- **`mikata`** (Rust, Ratatui) is the command you run. With no subcommand it is the terminal
+  app; `mikata run "<ask>"` asks once without it, for scripts. It hosts the session in its own
+  process, with no protocol between the screen and the core, and draws the same events the server
+  sends ([the terminal UI](03-architecture.md#the-terminal-ui)). It renders; it decides nothing.
+- **`mikatad`** (Rust) is the core as a server: JSON-RPC 2.0 over stdio for the TypeScript SDK
+  ([the client protocol](04-protocol.md)), the web board on loopback, and the world's admin
+  commands (`mikatad runs`, `mikatad memory status`, …).
+- **The board** (TypeScript, React) is the web cockpit, served by `mikatad` on loopback. It
+  speaks the same protocol over a WebSocket.
 - One protocol, defined once in Rust; the TypeScript types are generated from it. A client can
   never drift from the core.
 
@@ -231,20 +159,18 @@ flowchart LR
 
 | Compiled in (code) | Configured (data) |
 |---|---|
-| the six races and five ascended forms, their tree, shelves, powers | which creatures exist and their territories |
-| the gate's checks, the wire envelope | which model rides each race |
-| ascension conditions, privileges and falls | budgets: amounts per session, day, month |
-| score formulas and meters | provider credentials (by reference, never inline) |
-| the nine natures' enforcement points | Minds (skills): know-how a body can load |
-| what is `read`, `write`, `outward`, `destructive` | Oni envelopes: standing outward permissions you sign |
+| the loop, its budgets and stress instruments | the provider and the model |
+| the end gate's checks | your verify line (the project's test command) |
+| the classes of an act: `read`, `write`, `outward`, `destructive` | guard rules that ask you instead of refusing |
+| the sandbox's rules | budgets: amounts per session, day, month |
+| the meters and the ledgers | provider credentials, by reference, never inline |
+| the split by project | MCP servers, and Minds: know-how a body can load |
 
-Races are behaviour; creatures, Minds and models are data. That is the line isekai blurred with a
-configurable rank table, and the line Mnemorph keeps.
+### Where it comes from
 
-### What stays from isekai
-
-The nine natures, the crest, the wire register, the gate's four checks (Mnemorph adds two: tests
-intact and no seal), territories, Minds,
-memory tiers, the value ledger, evolution (split, mutate, rebirth) and ascension. What changes is
-where they live: in typed Rust instead of prose plus configuration, with the docs in this book
-saying exactly what the code does.
+Mikata grew out of [isekai](https://github.com/Kaginari/isekai) and was called **Mnemorph** until
+November 2026. Mnemorph's idea was a kingdom of races, each a different kind of body with its own
+tools: Elves that plan, Orcs that judge, Slimes that write. The bench kept the discipline and
+dropped the kingdom: one body that writes "done" down and checks it beat the chain of races on
+every screen. The races live on as the [experimental lab](experimental/), and their rules live
+on inside the one body.

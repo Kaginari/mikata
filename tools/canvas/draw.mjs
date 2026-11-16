@@ -1,9 +1,9 @@
 // Draws the book's canvases: each sketch listed below is taken from its page's Mermaid block,
 // laid out by tldraw's own converter (@tldraw/mermaid) in headless Chromium, and written as
-// docs/canvas/<page>.tldr (one tldraw page per sketch) and docs/canvas/<sketch>-{light,dark}.svg.
+// docs/canvas/<page>.tldr (one tldraw page per sketch; a page under experimental/ as experimental-<page>) and docs/canvas/<sketch>-{light,dark}.svg.
 // The Mermaid block stays the source of truth: change it, then run `pnpm --filter
-// @mnemorph/canvas draw`. Needs the Chromium @playwright/test pins (`pnpm --filter
-// @mnemorph/canvas exec playwright install chromium`).
+// @mikata/canvas draw`. Needs the Chromium @playwright/test pins (`pnpm --filter
+// @mikata/canvas exec playwright install chromium`).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,22 +26,22 @@ const out = join(docs, 'canvas');
 // and ranks.
 const SKETCHES = {
   '01-overview': [['overview', 0, 'The overview']],
-  '02-races': [['races', 0, 'Races and ascensions']],
-  '03-loop': [['loop', 0, 'The loop', { direction: 'TD' }]],
-  '04-communication': [
+  '02-loop': [['loop', 0, 'The loop', { direction: 'TD' }]],
+  '04-protocol': [['client-protocol', 0, 'The client protocol']],
+  'experimental/races': [['races', 0, 'Races and ascensions']],
+  'experimental/communication': [
     [
       'order',
       0,
       'One order, down and back',
       { wrap: 14, sequence: { actorMargin: 120 }, labelSize: 'l', stretchY: 1.6 },
     ],
-    ['client-protocol', 3, 'The client protocol'],
   ],
-  '05-architecture': [
+  '03-architecture': [
     ['architecture', 0, 'The architecture', { elk: { nodePlacementStrategy: 'SIMPLE' } }],
     ['sandbox', 1, 'The sandbox', { direction: 'TD' }],
   ],
-  '06-consumption': [['consumption', 0, 'Consumption']],
+  '05-consumption': [['consumption', 0, 'Consumption']],
 };
 
 // The narrowest a canvas's labels may print in the book's column, and its widest shape.
@@ -172,7 +172,7 @@ try {
       return { title, ...canvasLayout(source, layout), dashed: dashedNodes(source) };
     });
     const result = await page.evaluate((s) => window.mnDraw(s), input);
-    writeFileSync(join(out, `${name}.tldr`), `${result.tldr}\n`);
+    writeFileSync(join(out, `${name.replaceAll('/', '-')}.tldr`), `${result.tldr}\n`);
     for (const [i, [sketch, , title]] of sketches.entries()) {
       for (const theme of ['light', 'dark']) {
         await lone.setContent(

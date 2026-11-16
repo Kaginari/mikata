@@ -1,14 +1,14 @@
 {
-  "name": "@mnemorph/sdk",
+  "name": "@mikata/sdk",
   "version": "0.1.0",
-  "description": "The client for mnemorphd: transports (stdio, WebSocket), reconnect by sequence, typed calls.",
+  "description": "The client for mikatad: transports (stdio, WebSocket), reconnect by sequence, typed calls.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kaginari/mnemorph.git",
+    "url": "git+https://github.com/Kaginari/mikata.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://github.com/Kaginari/mnemorph#readme",
+  "homepage": "https://github.com/Kaginari/mikata#readme",
   "files": [
     "dist"
   ],
@@ -23,7 +23,7 @@
     "./browser": "./src/browser.ts"
   },
   "dependencies": {
-    "@mnemorph/protocol": "workspace:*"
+    "@mikata/protocol": "workspace:*"
   },
   "publishConfig": {
     "access": "public",

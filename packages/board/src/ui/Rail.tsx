@@ -2,7 +2,7 @@
  * The left rail: the wordmark, search, the worlds, then the board-wide pages. Inside a world it
  * becomes that world's: back to all worlds, its chats and its sections.
  */
-import type { BoardRun, BoardSession, BoardWorld } from '@mnemorph/protocol';
+import type { BoardRun, BoardSession, BoardWorld } from '@mikata/protocol';
 import { useState } from 'react';
 import { type Chats, startChat } from '../data/chats.ts';
 import { mod } from '../data/shortcuts.ts';
@@ -220,7 +220,7 @@ function Worlds({ load, route, now }: { load: Load; route: Route; now: number })
   if (load.data.worlds.length === 0) {
     return (
       <p className="rail-note">
-        No worlds yet: <code className="mono">mnemorphd board add &lt;dir&gt;</code>
+        No worlds yet: <code className="mono">mikatad board add &lt;dir&gt;</code>
       </p>
     );
   }

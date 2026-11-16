@@ -1,5 +1,5 @@
 /*
- * The board's shell. Colours come from @mnemorph/theme's tokens only (tools/check-board.mjs fails
+ * The board's shell. Colours come from @mikata/theme's tokens only (tools/check-board.mjs fails
  * on a raw colour): a mix of two tokens, or of a token and transparent, is the most it does.
  */
 

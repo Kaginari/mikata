@@ -10,8 +10,8 @@ import type {
   BoardStarted,
   BoardTranscript,
   RunState,
-} from '@mnemorph/protocol';
-import { eventType } from '@mnemorph/protocol';
+} from '@mikata/protocol';
+import { eventType } from '@mikata/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePush } from './push.ts';
 import { establish, post, signedOut } from './session.ts';
@@ -93,7 +93,7 @@ async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {
   });
   if (res.status === 401) {
     signedOut();
-    throw new Error('this browser holds no board session: open the URL `mnemorphd board` prints');
+    throw new Error('this browser holds no board session: open the URL `mikatad board` prints');
   }
   if (!res.ok) {
     const why = (await res.text().catch(() => '')).slice(0, 300);

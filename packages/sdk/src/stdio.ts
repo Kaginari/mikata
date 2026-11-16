@@ -1,10 +1,10 @@
-/** The stdio transport: `mnemorphd` started as a child, spoken to on its stdin and stdout. Node
+/** The stdio transport: `mikatad` started as a child, spoken to on its stdin and stdout. Node
  * only. */
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import type { Transport } from './client.js';
 
-/** Start `mnemorphd` and speak to it on its stdin and stdout. */
+/** Start `mikatad` and speak to it on its stdin and stdout. */
 export function stdio(
   options: {
     command?: string | undefined;
@@ -18,7 +18,7 @@ export function stdio(
     ...(options.world ? ['--world', options.world] : []),
     ...(options.resume ? ['--resume', options.resume] : []),
   ];
-  const child = spawn(options.command ?? 'mnemorphd', args, {
+  const child = spawn(options.command ?? 'mikatad', args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: options.env ?? process.env,
   });
@@ -34,14 +34,14 @@ export function stdio(
     closed = true;
     for (const c of closers) c(why);
   };
-  child.on('error', (e: Error) => close(`mnemorphd could not start: ${e.message}`));
+  child.on('error', (e: Error) => close(`mikatad could not start: ${e.message}`));
   // A write on a dead pipe is an error event, never a crash of the host.
-  child.stdin.on('error', (e: Error) => close(`mnemorphd's input closed: ${e.message}`));
+  child.stdin.on('error', (e: Error) => close(`mikatad's input closed: ${e.message}`));
   // 'close', not 'exit': it fires once the core's output is drained, so its last lines arrive.
   child.on('close', (code: number | null, signal: NodeJS.Signals | null) =>
     close(
       stderr.trim() ||
-        (signal ? `mnemorphd was stopped by ${signal}` : `mnemorphd exited with ${code ?? 0}`),
+        (signal ? `mikatad was stopped by ${signal}` : `mikatad exited with ${code ?? 0}`),
     ),
   );
   return {
