@@ -1,13 +1,8 @@
-//! The welcome: the card the conversation opens on, above its first entry — the MIKATA
-//! wordmark in block letters, the tagline, what Mikata does in four lines, the world, the model,
-//! the session, the memory and the verify line in capitals, and the keys that matter first.
-//!
-//! The wordmark is drawn in text alone — `█ ▀ ▄` and spaces, each cell one foreground colour on
-//! the card's face — so it is as sharp as the font in every terminal, and scrolls with the
-//! transcript like any line. Pictures are the sidebar's alone. Across its width the letters run
-//! the logo's two colours, gold for you into Mikata's cyan. The wordmark is 47 cells, so it shows
-//! on a card 53 wide or more (its frame takes 6). On a narrower card a one-line `◈ MIKATA` in the
-//! same gradient stands in.
+//! The welcome: the card the conversation opens on, above its first entry — one title line,
+//! **◆ Mikata** in the logo's gold into cyan, the version and the tagline; what Mikata does in
+//! four lines; the world, the model, the session, the memory and the verify line in capitals;
+//! and the keys that matter first. No block letters: the sidebar's head shows the logo, and a
+//! line of text reads the same in every terminal and font.
 
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -29,36 +24,6 @@ pub const ABOUT: [&str; 4] = [
     "Memory with provenance: a note is grounded by a passing check, your word, or a second voice.",
 ];
 
-/// The block letters, five rows each: full and half blocks only, so every cell is one colour.
-const FONT: [(char, [&str; 5]); 5] = [
-    ('M', ["██▄ ▄██", "██▀█▀██", "██   ██", "██   ██", "██   ██"]),
-    ('I', ["██████", "  ██  ", "  ██  ", "  ██  ", "██████"]),
-    ('K', ["██  ▄█▀", "██▄█▀  ", "███▄   ", "██ ▀█▄ ", "██   ██"]),
-    ('A', ["▄█████▄", "██   ██", "███████", "██   ██", "██   ██"]),
-    ('T', ["██████", "  ██  ", "  ██  ", "  ██  ", "  ██  "]),
-];
-
-/// The name the wordmark spells.
-const NAME: &str = "MIKATA";
-
-/// The wordmark's rows, uncoloured: each letter's row, one space between letters.
-#[must_use]
-pub fn wordmark_rows() -> [String; 5] {
-    std::array::from_fn(|r| {
-        NAME.chars()
-            .filter_map(|c| FONT.iter().find(|(l, _)| *l == c))
-            .map(|(_, rows)| rows[r])
-            .collect::<Vec<_>>()
-            .join(" ")
-    })
-}
-
-/// The wordmark's width, in cells.
-#[must_use]
-pub fn wordmark_width() -> usize {
-    wordmark_rows()[0].chars().count()
-}
-
 /// The logo's gradient at `along` (0 at the left, 1 at the right): gold, for you, into Mikata's
 /// cyan, made readable on the theme's page.
 #[must_use]
@@ -74,56 +39,36 @@ fn along(x: usize, width: usize) -> f32 {
     f
 }
 
-/// The wordmark in block letters, each cell coloured by its column; `None` when it is wider than
-/// `room`.
-#[must_use]
-pub fn wordmark(t: &Theme, room: usize) -> Option<Lines> {
-    let width = wordmark_width();
-    if width > room {
-        return None;
-    }
-    Some(
-        wordmark_rows()
-            .iter()
-            .map(|row| {
-                Line::from(
-                    row.chars()
-                        .enumerate()
-                        .map(|(x, c)| {
-                            if c == ' ' {
-                                Span::raw(" ")
-                            } else {
-                                Span::styled(
-                                    c.to_string(),
-                                    Style::new().fg(hue(t, along(x, width)).color()),
-                                )
-                            }
-                        })
-                        .collect::<Vec<_>>(),
-                )
-            })
-            .collect(),
-    )
-}
+/// The title's mark and name, each character a step of the logo's gradient, bold.
+pub const TITLE: &str = "◆ Mikata";
 
-/// The narrow stand-in for the wordmark: `◈ MIKATA` on one line, in the same gradient.
+/// The title line: [`TITLE`] in the gradient, then the version and the tagline, muted. On a card
+/// too narrow for both, the version and the tagline wrap under the title.
 #[must_use]
-pub fn mark_line(t: &Theme) -> Line<'static> {
-    let text: Vec<char> = format!("◈ {NAME}").chars().collect();
-    let width = text.len();
-    Line::from(
-        text.into_iter()
-            .enumerate()
-            .map(|(x, c)| {
-                Span::styled(
-                    c.to_string(),
-                    Style::new()
-                        .fg(hue(t, along(x, width)).color())
-                        .add_modifier(Modifier::BOLD),
-                )
-            })
-            .collect::<Vec<_>>(),
-    )
+pub fn title(t: &Theme, inner: usize) -> Lines {
+    let chars: Vec<char> = TITLE.chars().collect();
+    let width = chars.len();
+    let mut spans: Vec<Span<'static>> = chars
+        .into_iter()
+        .enumerate()
+        .map(|(x, c)| {
+            Span::styled(
+                c.to_string(),
+                Style::new()
+                    .fg(hue(t, along(x, width)).color())
+                    .add_modifier(Modifier::BOLD),
+            )
+        })
+        .collect();
+    let after = format!("{} · {TAGLINE}", env!("CARGO_PKG_VERSION"));
+    if width + 2 + after.chars().count() <= inner {
+        spans.push(Span::raw("  "));
+        spans.push(Span::styled(after, t.muted()));
+        return vec![Line::from(spans)];
+    }
+    let mut rows = vec![Line::from(spans)];
+    rows.extend(wrap_text(&after, inner, t.muted()));
+    rows
 }
 
 fn surface(t: &Theme) -> Surface {
@@ -135,13 +80,7 @@ fn surface(t: &Theme) -> Surface {
 pub fn card(m: &Model, w: usize) -> Lines {
     let t = &m.theme;
     let inner = Slab::inner(w);
-    let mut rows: Lines = wordmark(t, inner).unwrap_or_else(|| vec![mark_line(t)]);
-    rows.push(Line::from(""));
-    rows.extend(wrap_text(
-        TAGLINE,
-        inner,
-        t.text().add_modifier(Modifier::ITALIC),
-    ));
+    let mut rows: Lines = title(t, inner);
     rows.push(Line::from(""));
     for (n, text) in ABOUT.into_iter().enumerate() {
         let tone = if n % 2 == 0 { t.p.holo } else { t.p.gold };
@@ -285,77 +224,33 @@ mod tests {
     }
 
     #[test]
-    fn the_wordmark_is_drawn_with_crisp_glyphs_alone() {
-        let rows = wordmark_rows();
-        let width = wordmark_width();
-        for row in &rows {
-            assert_eq!(row.chars().count(), width, "every row as wide: {row:?}");
-            for c in row.chars() {
-                assert!(" █▀▄▌▐".contains(c), "{c:?} is not a crisp glyph");
-            }
-        }
-        // Drawn: each glyph one foreground on the card's own face, never a background of its own.
-        for variant in [Variant::Dark, Variant::Light] {
-            let mut m = model(variant);
-            let (text, buf) = screen(&mut m, 120, 50);
-            let y = text
-                .lines()
-                .position(|l| l.contains(&rows[0]))
-                .expect("the wordmark is drawn");
-            let x = text
-                .lines()
-                .nth(y)
-                .unwrap()
-                .chars()
-                .collect::<Vec<_>>()
-                .windows(rows[0].chars().count())
-                .position(|win| win.iter().collect::<String>() == rows[0])
-                .unwrap();
-            let face = surface(&m.theme).face.color();
-            for (r, row) in rows.iter().enumerate() {
-                for (i, c) in row.chars().enumerate() {
-                    let at = (u16::try_from(x + i).unwrap(), u16::try_from(y + r).unwrap());
-                    let cell = &buf[at];
-                    assert_eq!(cell.symbol(), c.to_string(), "{at:?}");
-                    assert_eq!(cell.bg, face, "{variant:?} {at:?}: one colour a cell");
-                    if c != ' ' {
-                        assert!(matches!(cell.fg, Color::Rgb(..)), "{at:?}");
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn the_wordmark_runs_the_logos_gradient() {
+    fn the_title_runs_the_logos_gradient_in_bold() {
         for variant in [Variant::Dark, Variant::Light] {
             let t = Theme::new(variant);
-            let rows = wordmark(&t, 200).unwrap();
-            let fgs: Vec<Color> = rows[2]
-                .spans
+            let line = &title(&t, 200)[0];
+            let fgs: Vec<Color> = line.spans[..TITLE.chars().count()]
                 .iter()
                 .filter(|s| s.content != " ")
                 .filter_map(|s| s.style.fg)
                 .collect();
-            let first = *fgs.first().unwrap();
-            let last = *fgs.last().unwrap();
             assert_eq!(
-                first,
+                fgs[0],
                 hue(&t, 0.0).color(),
                 "{variant:?}: gold first, for you"
             );
             assert_eq!(
-                last,
+                *fgs.last().unwrap(),
                 hue(&t, 1.0).color(),
                 "{variant:?}: Mikata's cyan last"
             );
-            assert_ne!(first, last);
-            let distinct: std::collections::BTreeSet<String> =
-                fgs.iter().map(|c| format!("{c:?}")).collect();
             assert!(
-                distinct.len() > 20,
-                "{variant:?}: a hue a column, not a few bands"
+                line.spans[..TITLE.chars().count()]
+                    .iter()
+                    .all(|s| s.style.add_modifier.contains(Modifier::BOLD))
             );
+            let plain = crate::kit::text::plain(line);
+            assert!(plain.starts_with(TITLE), "{plain}");
+            assert!(plain.contains(env!("CARGO_PKG_VERSION")) && plain.contains(TAGLINE));
         }
         let t = Theme::new(Variant::Dark);
         assert_eq!(hue(&t, 0.0), t.readable(t.p.gold));
@@ -363,50 +258,24 @@ mod tests {
     }
 
     #[test]
-    fn a_narrow_card_falls_back_to_one_line() {
+    fn a_narrow_card_wraps_the_tagline_under_the_title() {
         let t = Theme::new(Variant::Dark);
-        assert!(wordmark(&t, wordmark_width()).is_some());
-        assert!(wordmark(&t, wordmark_width() - 1).is_none());
-        let mut m = model(Variant::Dark);
-        let first = |w: usize| crate::kit::text::plain(&card(&m, w)[1]);
-        // A card narrower than the wordmark and its frame: one line, in the gradient.
-        let fits = (1..200)
-            .find(|w| Slab::inner(*w) >= wordmark_width())
-            .unwrap();
-        assert_eq!(Slab::inner(fits), wordmark_width());
-        assert!(first(fits - 1).contains("◈ MIKATA"), "{}", first(fits - 1));
-        assert!(first(fits).contains(&wordmark_rows()[0]), "{}", first(fits));
-        assert!(first(40).contains("◈ MIKATA"));
-        for w in [80, 120, 200] {
-            assert!(first(w).contains(&wordmark_rows()[0]), "{w}: {}", first(w));
-        }
-        let (text, _) = screen(&mut m, 40, 50);
-        assert!(!text.contains(&wordmark_rows()[0]), "{text}");
-        for w in [80, 120, 200] {
-            let (text, _) = screen(&mut m, w, 60);
-            assert!(text.contains(&wordmark_rows()[0]), "{w} columns: {text}");
-        }
-    }
-
-    #[test]
-    fn the_wordmark_shows_once_the_screen_is_wide_enough_folded_or_open() {
-        for open in [false, true] {
+        let one = title(&t, 120);
+        assert_eq!(one.len(), 1);
+        let narrow = title(&t, 24);
+        assert!(narrow.len() > 1);
+        assert_eq!(crate::kit::text::plain(&narrow[0]), TITLE);
+        let rest: String = narrow[1..]
+            .iter()
+            .map(crate::kit::text::plain)
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert!(rest.contains("on your side"), "{rest}");
+        for w in [40u16, 80, 120, 200] {
             let mut m = model(Variant::Dark);
-            m.sidebar.open = open;
-            let shows = |m: &mut _, w: u16| screen(m, w, 60).0.contains(&wordmark_rows()[0]);
-            let wide = (40u16..240)
-                .find(|w| shows(&mut m, *w))
-                .expect("it shows somewhere");
-            for w in [wide, wide + 1, 200] {
-                assert!(shows(&mut m, w), "{w} columns, open {open}");
-            }
-            let (text, _) = screen(&mut m, wide - 1, 60);
-            assert!(!text.contains(&wordmark_rows()[0]), "{}: {text}", wide - 1);
-            assert!(
-                text.lines().filter(|l| l.contains("◈ MIKATA")).count() >= 2,
-                "{}: the header's mark and the card's line: {text}",
-                wide - 1
-            );
+            let (text, _) = screen(&mut m, w, 60);
+            assert!(text.contains(TITLE), "{w} columns: {text}");
+            assert!(!text.contains('█'), "{w}: no block letters");
         }
     }
 
@@ -428,6 +297,7 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join(" ");
             assert!(flat.contains(TAGLINE), "{w}: {text}");
+            assert!(flat.contains(TITLE), "{w}: {text}");
             for about in ABOUT {
                 assert!(flat.contains(about), "{w}: {about:?} in {text}");
             }
@@ -471,19 +341,17 @@ mod tests {
         assert!(!text.contains("can't be grounded"));
     }
 
-    /// The screen row the wordmark's first row is drawn on, if it is.
+    /// The screen row the title is drawn on, if it is.
     fn wordmark_row(text: &str) -> Option<usize> {
-        let first = &wordmark_rows()[0];
-        text.lines().position(|l| l.contains(first.as_str()))
+        text.lines().position(|l| l.contains(TITLE))
     }
 
-    /// The rows the welcome card draws above the wordmark: its own top edge.
+    /// The rows the welcome card draws above the title: its own top edge.
     fn above_wordmark(m: &Model) -> usize {
-        let first = &wordmark_rows()[0];
         card(m, 80)
             .iter()
-            .position(|l| crate::kit::text::plain(l).contains(first.as_str()))
-            .expect("the card holds the wordmark")
+            .position(|l| crate::kit::text::plain(l).contains(TITLE))
+            .expect("the card holds the title")
     }
 
     fn tick(m: &mut Model) {
@@ -499,7 +367,7 @@ mod tests {
             m.sidebar.open = open;
             m.info("deepseek-v4-flash via deepseek · sandbox bwrap");
             let (text, _) = screen(&mut m, 120, 40);
-            let row = wordmark_row(&text).expect("the wordmark is drawn");
+            let row = wordmark_row(&text).expect("the title is drawn");
             assert_eq!(row, TOP + above_wordmark(&m), "open {open}:\n{text}");
             // The room the short transcript leaves is below it, above the input.
             let input = text

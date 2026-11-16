@@ -858,7 +858,10 @@ impl Transcript {
             have += lines.len();
             tail.push((Some(i), lines));
         }
-        let with_head = i == 0 && have < want;
+        // Every entry laid: the welcome above the first, always, so the top of the history — the
+        // scroll's far end, `top` — counts it. Left out whenever the entries alone reached
+        // `want`, it could never be scrolled to.
+        let with_head = i == 0;
         if with_head {
             have += head.len();
             tail.push((None, head.clone()));

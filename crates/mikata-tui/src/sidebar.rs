@@ -34,7 +34,7 @@ use crate::theme::Theme;
 /// The sidebar's width, its gutter included.
 pub const WIDTH: u16 = 36;
 /// The sidebar's height, in rows, from which the logo sits at its head.
-pub const HEAD_FROM: usize = 36;
+pub const HEAD_FROM: usize = 30;
 /// The narrowest frame that keeps the sidebar: below it, the transcript takes the whole width.
 pub const FOLD_BELOW: u16 = 100;
 

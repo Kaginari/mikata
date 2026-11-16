@@ -25,9 +25,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   is Mikata's logo, still: as real pixels, or, in glyph cells, a flat mark rendered at the exact
   sub-pixels of the glyphs the terminal draws, so it stays sharp: the races'
   animated portraits and Player's are gone, with their 7.6 MB of embedded clips, and nothing ticks
-  for the head any more. The welcome spells MIKATA in the logo's gold and cyan, its tagline is "the
-  coding agent on your side", its four lines say what light-coding does, and the race chips are
-  gone.
+  for the head any more; the head shows from 30 rows, not 36. The welcome opens on one title line,
+  **◆ Mikata** in the logo's gold into cyan, the version and "the coding agent on your side", with
+  no block letters; its four lines say what light-coding does, and the race chips are gone.
 - **The book is Mikata's.** The README and `docs/` are about Mikata: the overview, the loop, the
   architecture, the client protocol (now its own page), consumption, MCP and memory, renumbered.
   Mnemorph's races, its chain and collective modes, the ontology, the old M0 to M14 roadmap, its
