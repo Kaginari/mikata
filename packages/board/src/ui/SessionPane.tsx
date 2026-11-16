@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import type { FileMark } from '../data/chat.ts';
+import { shownBody } from '../data/names';
 import { establish, signedOut } from '../data/session.ts';
 import { Safe } from '../safe/Safe.tsx';
 import type { Side } from '../views/Chat.tsx';
@@ -126,7 +127,7 @@ export function SessionPane({ side }: { side: Side | undefined }) {
         : 'unpriced'
       : `$${u.usd.toFixed(2)}`;
   const files = tree(v?.files ?? []);
-  const me = side?.hello?.body;
+  const me = side?.hello?.body && shownBody(side.hello.body);
   return (
     <>
       <h2 className="pane-head">{side?.live === false ? 'Past chat' : 'Session'}</h2>
@@ -232,7 +233,7 @@ export function SessionPane({ side }: { side: Side | undefined }) {
                         }
                         glyph={b.state === 'failed' ? '✕' : b.state === 'working' ? '●' : '○'}
                       >
-                        <Safe text={b.name} /> · {b.state}
+                        <Safe text={shownBody(b.name)} /> · {b.state}
                       </Mark>
                     </li>
                   ))}
@@ -244,7 +245,7 @@ export function SessionPane({ side }: { side: Side | undefined }) {
           <ul className="bodies">
             {v?.bodies.map((b) => (
               <li key={b.name}>
-                <Safe text={b.name} /> · {b.state}
+                <Safe text={shownBody(b.name)} /> · {b.state}
               </li>
             ))}
           </ul>

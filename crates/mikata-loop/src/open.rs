@@ -623,6 +623,16 @@ fn build(
     let (run_id, hold, resuming) = held_run(world, start, fresh_run)?;
     prepare(world);
     let (mut body, cx) = solo_as(world, model_id, law);
+    // The lab's throne hands outward work to a Kijin: off light-coding, its race's own shelf, and
+    // the prompt says so.
+    let cx = if mode == Mode::Light {
+        cx
+    } else {
+        body.system = body
+            .system
+            .replace(crate::solo::OUTWARD_LIGHT, crate::solo::OUTWARD_LAB);
+        cx.with_shelf(Race::Slime.shelf())
+    };
     let collective = mode == Mode::Collective;
     if !members.is_empty() {
         body.system.push_str(&crate::collective::prompt(&members));

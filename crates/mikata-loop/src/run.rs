@@ -3560,10 +3560,15 @@ impl Run {
             || root.join(format!("{id}.jsonl")),
             |d| d.join(format!("{id}.jsonl")),
         );
+        // The session's shelf, light-coding's: a project's body acts outside as the session's does.
+        let cx = match self.cx.shelf_set() {
+            Some(classes) => cx.inherit(&self.cx).with_shelf(classes),
+            None => cx.inherit(&self.cx),
+        };
         let setup = Setup {
             model: Arc::clone(&self.model),
             tools: mikata_tools::registry(),
-            cx: cx.inherit(&self.cx),
+            cx,
             journal: Journal::new(journal),
             ledger: self.ledger.clone(),
             prices: self.prices.clone(),

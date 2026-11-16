@@ -37,6 +37,7 @@ import { verdictTone } from './facts.tsx';
 import { Pager } from './Memory.tsx';
 import './knowledge.css';
 import './bodies.css';
+import { shownBody } from '../data/names';
 
 const TAB_WORDS: Record<BodiesTab, string> = {
   colony: 'Colony',
@@ -302,7 +303,7 @@ export function Act({ e }: { e: TimelineEntry }) {
         </Mark>
       )}{' '}
       <span className="act-who">
-        <Safe text={e.body} />
+        <Safe text={shownBody(e.body)} />
       </span>
       {e.ask && (
         <span className="act-ask">
@@ -400,7 +401,7 @@ function BodyCard({
     <section className="panel body-card" aria-label={`body card: ${b.name}`}>
       <header className="body-card-head">
         <h2 className="body-card-name">
-          <Safe text={b.name} />
+          <Safe text={shownBody(b.name)} />
         </h2>
         <button type="button" className="button button-small" onClick={onClose}>
           Close

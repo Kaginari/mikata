@@ -30,6 +30,7 @@ import {
   tooLarge,
 } from '../data/approval.ts';
 import type { Live, Waiting } from '../data/live.ts';
+import { shownBody } from '../data/names';
 import { Safe } from '../safe/Safe.tsx';
 import { Mark } from './Mark.tsx';
 
@@ -402,7 +403,7 @@ function ApprovalCard({ live, waiting, more }: { live: Live; waiting: Waiting; m
       >
         <h2 className="approval-title" id="approval-title">
           <Mark tone="gold" glyph="◆">
-            <Shown text={a.body} /> (<Shown text={a.race} />) wants to run{' '}
+            <Shown text={shownBody(a.body)} /> (<Shown text={a.race} />) wants to run{' '}
             {a.class === 'outward' ? 'an' : 'a'} <Shown text={a.class} /> act
           </Mark>
           {more > 0 && <span className="approval-more">{more} more waiting</span>}

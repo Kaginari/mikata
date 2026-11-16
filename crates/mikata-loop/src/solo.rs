@@ -1,5 +1,6 @@
-//! Solo, which the human knows as light-coding ([`crate::open::Mode`]): Summoner's voice and a
-//! Slime's hands over the whole repository, under the end gate —
+//! Solo, which the human knows as light-coding ([`crate::open::Mode`]): one body, Mikata, over the
+//! whole repository, under the end gate, that also acts outside the machine with the human's
+//! word —
 //! the default for small asks and for headless and benchmark runs. In a world with Elves under a
 //! living throne the session also holds the `commission` tool (see `open`).
 
@@ -13,7 +14,7 @@ use crate::run::{Body, Limits};
 
 /// Solo's system prompt: the stable, cached prefix of every turn.
 pub const SOLO_PROMPT: &str = "\
-You are the Summoner, the voice of Mikata, working alone in this repository (solo mode). You understand \
+You are Mikata, working alone in this repository on the human's side (solo mode). You understand \
 the human's ask, do the work with your tools, and answer.
 
 How you work:
@@ -37,8 +38,9 @@ root, and background processes end with the call. Stay in the repository: it is 
 below.
 - Every command is classified and runs under a kernel guard. A refusal names its reason and the \
 lawful route; never work around it — say what you need instead.
-- Acts that leave the machine (push, publish, deploy, the network) are not yours in solo mode. When \
-the work needs one, finish what you can and say what remains.
+- Acts that leave the machine (push, a pull request, publish, deploy) are yours when the ask needs \
+them: each one is put to the human before it runs. One the human denies stays undone: say what \
+remains, never try another way to it.
 - Before you write any code, write .mikata/tmp/plan.md. First, under `## Done when`, copy every \
 output the ask states, one a line, each line named `D1`, `D2`, and so on, in order: each example \
 with what it must give, each expected string, each case it says must keep working. Then weigh two or three ways to do the ask under `## Paths`: each \
@@ -55,6 +57,25 @@ briefly, in plain words. Then, one line each, what you learned that is written n
 next session should know: `@U law <path> <fact> check=<verify line or test>` for a rule of a file \
 you changed — name the path and the check that tests it: only that check, passing in this work's \
 gate, proves it — or `@U colony <fact>` for how this repository is worked.";
+
+/// Light-coding's shelf: Mikata reads, writes, and acts outside the machine — a push, a pull
+/// request, a publish — each outward or destructive act put to the human first, as the guard and
+/// the gate put every one.
+pub const LIGHT_SHELF: &[ToolClass] = &[
+    ToolClass::Read,
+    ToolClass::Write,
+    ToolClass::Outward,
+    ToolClass::Destructive,
+];
+
+/// The prompt's line on acts outside the machine, in light-coding.
+pub const OUTWARD_LIGHT: &str = "- Acts that leave the machine (push, a pull request, publish, deploy) are yours when the ask needs \
+them: each one is put to the human before it runs. One the human denies stays undone: say what \
+remains, never try another way to it.";
+
+/// The same line in the lab's modes, where the throne hands outward work to a Kijin.
+pub const OUTWARD_LAB: &str = "- Acts that leave the machine (push, publish, deploy, the network) are not yours: a Kijin's post \
+holds them. When the work needs one, finish what you can and say what remains.";
 
 /// What the session's prompt says checks the work, from its end gate: the pinned verify lines by
 /// name, a card line that no pin holds as failing every change, or, with no line at all, that
@@ -105,8 +126,9 @@ impl Law {
     }
 }
 
-/// The solo body for `model`, and its tools' context over `world`: Summoner's voice, a Slime's
-/// shelf (read and write; nothing outward), the whole repository as soil.
+/// The solo body for `model`, and its tools' context over `world`: Mikata, on [`LIGHT_SHELF`],
+/// the whole repository as soil. Inside, its name is `summoner`: its memory, its MCP scope and
+/// its events keep that name.
 #[must_use]
 pub fn solo(world: &Path, model: &str) -> (Body, Context) {
     solo_as(world, model, Law::On)
@@ -132,11 +154,12 @@ pub fn solo_as(world: &Path, model: &str, law: Law) -> (Body, Context) {
         model: model.to_owned(),
         system,
     };
-    let mut cx = Context::new(Race::Slime, world, &["."]).with_body("summoner");
+    let mut cx = Context::new(Race::Slime, world, &["."])
+        .with_body("summoner")
+        .with_shelf(LIGHT_SHELF);
     if let Some(attic) = mikata_tools::Attic::for_world(cx.world()) {
         cx = cx.with_attic(attic);
     }
-    debug_assert!(!Race::Slime.shelf().contains(&ToolClass::Outward));
     (body, cx)
 }
 

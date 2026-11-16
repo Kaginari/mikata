@@ -1,5 +1,6 @@
 /** Inside a world: its overview, a section, or a session. */
 import type { BoardMissing, BoardOverview, BoardWorld, Sourced } from '@mikata/protocol';
+import { shownBody } from '../data/names';
 import { useOverview } from '../data/overview.ts';
 import { usePush } from '../data/push.ts';
 import type { WorldSection } from '../router.ts';
@@ -199,7 +200,7 @@ function Overview({ o, now }: { o: BoardOverview; now: number }) {
           ) : (
             <>
               <p>
-                <GatePill g={g} /> on <Safe text={g.last.body} />
+                <GatePill g={g} /> on <Safe text={shownBody(g.last.body)} />
                 's landing · <When at={g.last.at} now={now} />
               </p>
               <p className="panel-note">

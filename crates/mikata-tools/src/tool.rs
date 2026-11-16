@@ -8,7 +8,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use mikata_races::{Race, ToolClass, check_class};
+use mikata_races::{Race, ToolClass};
 use mikata_sandbox::Sandbox;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -217,6 +217,9 @@ struct Loosened {
 /// asks, and what it already read.
 pub struct Context {
     race: Race,
+    /// The classes of act this body may take, when they are not its race's own: light-coding's
+    /// one body, Mikata, also acts outside the machine ([`Self::with_shelf`]).
+    shelf: Option<&'static [ToolClass]>,
     world: PathBuf,
     soil: Vec<PathBuf>,
     /// The body's own seat, absolute: the one place under `.mikata` its plan is written.
@@ -391,6 +394,7 @@ impl Context {
             std::env::var_os("HOME").map_or_else(|| PathBuf::from("/"), |h| real(Path::new(&h)));
         Self {
             race,
+            shelf: None,
             world,
             soil,
             seat: None,
@@ -818,6 +822,45 @@ impl Context {
         self.race
     }
 
+    /// The body may take the classes of `shelf`, not its race's: light-coding's Mikata reads,
+    /// writes and acts outside the machine, every outward or destructive act still put to the
+    /// human first. Never inherited by a body it commissions: that body has its own race.
+    #[must_use]
+    pub fn with_shelf(mut self, classes: &'static [ToolClass]) -> Self {
+        self.shelf = Some(classes);
+        self
+    }
+
+    /// The shelf set by [`Self::with_shelf`], if one was: what a sibling body of the same session
+    /// takes on.
+    #[must_use]
+    pub fn shelf_set(&self) -> Option<&'static [ToolClass]> {
+        self.shelf
+    }
+
+    /// The classes this body may take: its own shelf when one was set, else its race's.
+    #[must_use]
+    pub fn shelf(&self) -> &'static [ToolClass] {
+        self.shelf.unwrap_or_else(|| self.race.shelf())
+    }
+
+    /// Whether this body may take an act of `class` ([`Self::shelf`]); the refusal names the race
+    /// and the class, as a race's own shelf does.
+    ///
+    /// # Errors
+    ///
+    /// `class` is not on the body's shelf.
+    pub fn may(&self, class: ToolClass) -> Result<(), mikata_races::ShelfRefusal> {
+        if self.shelf().contains(&class) {
+            Ok(())
+        } else {
+            Err(mikata_races::ShelfRefusal {
+                race: self.race,
+                class,
+            })
+        }
+    }
+
     /// The home `~` resolves to.
     #[must_use]
     pub fn home(&self) -> &Path {
@@ -982,7 +1025,7 @@ pub fn call(tools: &[Box<dyn Tool>], name: &str, raw_args: &str, cx: &mut Contex
             names.join(", ")
         ));
     };
-    if let Err(refusal) = check_class(cx.race, tool.class()) {
+    if let Err(refusal) = cx.may(tool.class()) {
         return Outcome::unheld(refusal);
     }
     match serde_json::from_str::<Value>(raw_args) {

@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant, SystemTime};
 
-use mikata_races::{Race, ToolClass, check_class};
+use mikata_races::{Race, ToolClass};
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 
@@ -213,20 +213,20 @@ impl Server {
     /// for the race, and some class it could be given — declared, inferable or the default — on
     /// the shelf. Selection never widens a shelf.
     #[must_use]
-    pub fn may_serve(&self, race: Race, guarded: bool) -> bool {
+    pub fn may_serve(&self, race: Race, classes: &[ToolClass], guarded: bool) -> bool {
         if !self.names(race) {
             return false;
         }
-        let mut classes: Vec<ToolClass> = self.tools.values().copied().collect();
+        let mut could: Vec<ToolClass> = self.tools.values().copied().collect();
         if let Some(c) = self.class {
-            classes.push(c);
+            could.push(c);
         } else {
-            classes.extend([ToolClass::Outward, ToolClass::Destructive]);
+            could.extend([ToolClass::Outward, ToolClass::Destructive]);
             if !self.network && guarded {
-                classes.push(ToolClass::Read);
+                could.push(ToolClass::Read);
             }
         }
-        classes.iter().any(|c| check_class(race, *c).is_ok())
+        could.iter().any(|c| classes.contains(c))
     }
 
     /// Who the server is, for its cached catalog: a change of program, arguments, passed
@@ -730,11 +730,16 @@ impl Mcp {
     }
 
     /// The servers whose tools could reach `race`'s shelf.
-    fn serving(&self, race: Race, guarded: bool) -> impl Iterator<Item = &Server> {
+    fn serving<'a>(
+        &'a self,
+        race: Race,
+        classes: &'a [ToolClass],
+        guarded: bool,
+    ) -> impl Iterator<Item = &'a Server> {
         self.settings
             .servers
             .iter()
-            .filter(move |s| s.may_serve(race, guarded))
+            .filter(move |s| s.may_serve(race, classes, guarded))
     }
 
     /// `server`'s catalog when it is known — listed this session, or fresh in the cache — with
@@ -795,16 +800,23 @@ impl Mcp {
     }
 
     /// The configured server `name`, when it may serve `race`.
-    fn server_for(&self, name: &str, race: Race, guarded: bool) -> Option<&Server> {
-        self.serving(race, guarded).find(|s| s.name == name)
+    fn server_for<'a>(
+        &'a self,
+        name: &str,
+        race: Race,
+        classes: &'a [ToolClass],
+        guarded: bool,
+    ) -> Option<&'a Server> {
+        self.serving(race, classes, guarded)
+            .find(|s| s.name == name)
     }
 
     /// The tools of `listing` on `race`'s shelf: the only ones a body of it ever sees.
-    fn shelved(listing: &Listing, race: Race) -> Vec<Spec> {
+    fn shelved(listing: &Listing, classes: &[ToolClass]) -> Vec<Spec> {
         listing
             .specs
             .iter()
-            .filter(|s| check_class(race, s.class).is_ok())
+            .filter(|s| classes.contains(&s.class))
             .cloned()
             .collect()
     }
@@ -831,7 +843,7 @@ impl Mcp {
     #[must_use]
     pub fn offer_framed(self: &Arc<Self>, race: Race, cx: &Context, frame: Frame) -> Offer {
         let guarded = guarded(cx);
-        if self.serving(race, guarded).next().is_none() {
+        if self.serving(race, cx.shelf(), guarded).next().is_none() {
             return Offer {
                 tools: Vec::new(),
                 lines: Vec::new(),
@@ -841,7 +853,7 @@ impl Mcp {
             };
         }
         let holes = self
-            .serving(race, guarded)
+            .serving(race, cx.shelf(), guarded)
             .filter_map(|s| self.known(s, guarded))
             .flat_map(|l| l.holes)
             .collect();
@@ -937,11 +949,11 @@ impl Mcp {
     #[must_use]
     pub fn level0_lines(&self, race: Race, cx: &Context) -> Vec<String> {
         let guarded = guarded(cx);
-        self.serving(race, guarded)
+        self.serving(race, cx.shelf(), guarded)
             .filter_map(|s| {
                 let mut line = match self.known(s, guarded) {
                     Some(l) => {
-                        let shelved = Self::shelved(&l, race);
+                        let shelved = Self::shelved(&l, cx.shelf());
                         if shelved.is_empty() {
                             return None;
                         }
@@ -979,10 +991,10 @@ impl Mcp {
         let guarded = guarded(cx);
         let mut specs = Vec::new();
         let mut unlisted = Vec::new();
-        for s in self.serving(race, guarded) {
+        for s in self.serving(race, cx.shelf(), guarded) {
             match self.known(s, guarded) {
                 Some(l) => {
-                    let shelved = Self::shelved(&l, race);
+                    let shelved = Self::shelved(&l, cx.shelf());
                     // A server past the ceiling is level 0 only: never ranked, searched or framed.
                     if Self::over_ceiling(s, &shelved, race).is_none() {
                         specs.extend(shelved);
@@ -1042,14 +1054,14 @@ impl Mcp {
     /// No server of that name in the race's scope, or one that could not be listed.
     pub fn level1(&self, server: &str, cx: &Context) -> Result<String, String> {
         let race = cx.race();
-        let Some(s) = self.server_for(server, race, guarded(cx)) else {
+        let Some(s) = self.server_for(server, race, cx.shelf(), guarded(cx)) else {
             return Err(format!(
                 "`{}` is no MCP server in your scope",
                 mikata_wire::shown(&server.chars().take(40).collect::<String>())
             ));
         };
         let listing = self.load(s, cx)?;
-        let shelved = Self::shelved(&listing, race);
+        let shelved = Self::shelved(&listing, cx.shelf());
         if let Some(why) = Self::over_ceiling(s, &shelved, race) {
             return Err(why);
         }
@@ -1129,10 +1141,10 @@ impl Mcp {
         };
         let (server, _) = name.split_once("__").ok_or_else(missing)?;
         let s = self
-            .server_for(server, race, guarded(cx))
+            .server_for(server, race, cx.shelf(), guarded(cx))
             .ok_or_else(missing)?;
         let listing = self.load(s, cx)?;
-        let shelved = Self::shelved(&listing, race);
+        let shelved = Self::shelved(&listing, cx.shelf());
         if let Some(why) = Self::over_ceiling(s, &shelved, race) {
             return Err(why);
         }
@@ -1200,7 +1212,7 @@ impl Mcp {
         // The shelf is held by `find` — the only way here — which admits only the tools of
         // `cx`'s race's shelf ([`Mcp::shelved`]). This is a belt, for debug builds and tests.
         debug_assert!(
-            check_class(cx.race(), spec.class).is_ok(),
+            cx.may(spec.class).is_ok(),
             "find admitted {} off the {} shelf",
             spec.name,
             cx.race()
