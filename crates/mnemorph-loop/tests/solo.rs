@@ -799,8 +799,13 @@ async fn an_ask_naming_separate_projects_runs_one_body_a_project() {
             .iter()
             .find(|m| m.contains(&format!("the project in `{p}/`")))
             .unwrap_or_else(|| panic!("no body for {p}: {parts:?}"));
-        let root = w.world().join(p).display().to_string();
-        assert!(part.contains(&root), "its root is its folder: {part}");
+        // On macOS the temporary folder is a link: the root is said as it resolves.
+        let root = fs::canonicalize(w.world().join(p)).unwrap();
+        assert!(
+            part.contains(&root.display().to_string())
+                || part.contains(&w.world().join(p).display().to_string()),
+            "its root is its folder: {part}"
+        );
     }
     assert!(!parts.iter().any(|m| m.contains("the project in `notes/`")));
     let summoner = format!("{:?}", requests[2].messages);
