@@ -614,7 +614,7 @@ fn head(m: &Model, w: usize) -> Lines {
     if who != m.header.body {
         state.insert(
             0,
-            Span::styled(format!("{} ", one_line(&who)), t.race(race)),
+            Span::styled(format!("{} ", crate::safe::shown(&who)), t.race(race)),
         );
     }
     out.push(centred(state));
@@ -876,7 +876,7 @@ fn bodies(m: &Model, w: usize, rows: usize) -> Lines {
     if !open {
         return out;
     }
-    let me = one_line(&m.header.body);
+    let me = crate::safe::shown(&m.header.body);
     let race = |name: &str| m.sidebar.races.get(name).copied();
     let state = if m.busy() {
         vec![Span::styled(
@@ -925,7 +925,7 @@ fn bodies(m: &Model, w: usize, rows: usize) -> Lines {
             vec![
                 Span::raw(indent),
                 Span::styled("● ", dot),
-                Span::styled(one_line(&body.name), name),
+                Span::styled(crate::safe::shown(&body.name), name),
             ],
             right,
             w,

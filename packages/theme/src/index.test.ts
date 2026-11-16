@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  brand,
   contrast,
   DEFAULT_SCHEME,
   dark,
@@ -37,6 +38,16 @@ describe('the css and the ts agree', () => {
   it('the races', () => {
     const decl = block(':root');
     for (const [k, v] of Object.entries(races)) expect(decl[`race-${kebab(k)}`], k).toBe(v);
+  });
+
+  it('the brand', () => {
+    const decl = block(':root');
+    for (const [k, v] of Object.entries(brand)) expect(decl[`brand-${kebab(k)}`], k).toBe(v);
+  });
+
+  it("the brand's inks read on the light page (WCAG AA for large text, 3:1)", () => {
+    for (const ink of [brand.youInk, brand.allyInk])
+      for (const bg of [light.bg, light.panel]) expect(contrast(ink, bg)).toBeGreaterThanOrEqual(3);
   });
 });
 

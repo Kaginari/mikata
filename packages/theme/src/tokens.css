@@ -19,6 +19,12 @@
   --mn-glow: rgb(0 242 255 / 0.35);
   --mn-glow-soft: rgb(0 242 255 / 0.12);
 
+  /* the logo's colours, fixed in every scheme: gold for you, cyan for Mikata, and their inks */
+  --mn-brand-you: #f7d002;
+  --mn-brand-ally: #00f2ff;
+  --mn-brand-you-ink: #8a6d00;
+  --mn-brand-ally-ink: #00747e;
+
   /* the races, one colour each — the cards' frames (tools/cards.py) */
   --mn-race-summoner: #3fa9f5;
   --mn-race-elf: #2fa36b;

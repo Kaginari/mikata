@@ -330,7 +330,7 @@ fn header(m: &Model, width: usize) -> Line<'static> {
     spans.extend(mark(t));
     spans.push(Span::styled(" · ", t.frame()));
     spans.push(Span::styled(
-        crate::safe::one_line(&m.header.body),
+        crate::safe::shown(&m.header.body),
         t.summoner(),
     ));
     if width >= 50 {
@@ -577,7 +577,7 @@ fn input_box(m: &Model, w: usize) -> Lines {
     let mut rows = crate::kit::text::prefixed(lines, &[prompt], &[Span::raw("  ")]);
     // The footer: who the line goes to, in what mode, and what enter does now.
     let mut who = vec![Span::styled(
-        format!("◆ {}", crate::safe::one_line(&m.header.body)),
+        format!("◆ {}", crate::safe::shown(&m.header.body)),
         t.holo().add_modifier(Modifier::BOLD),
     )];
     if !m.header.mode.is_empty() {
@@ -590,7 +590,7 @@ fn input_box(m: &Model, w: usize) -> Lines {
         ("answer the card first".to_owned(), t.gold())
     } else if m.busy() {
         (
-            format!("enter queues for {}", crate::safe::one_line(&m.header.body)),
+            format!("enter queues for {}", crate::safe::shown(&m.header.body)),
             t.muted(),
         )
     } else {

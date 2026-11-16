@@ -389,7 +389,7 @@ fn print(
         return;
     };
     // Below the session: its acts and warnings, under its name; its text shows in its report.
-    let body = one_line(body);
+    let body = crate::safe::shown(body);
     match event {
         Event::ToolCall { name, input, .. } => {
             newline(p, err);
