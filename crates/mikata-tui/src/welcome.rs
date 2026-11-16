@@ -1,15 +1,13 @@
 //! The welcome: the card the conversation opens on, above its first entry — the MIKATA
-//! wordmark in block letters, the tagline, what Mikata does in four lines, the races as chips,
-//! the world, the model, the session, the memory and the verify line in capitals, and the
-//! keys that matter first.
+//! wordmark in block letters, the tagline, what Mikata does in four lines, the world, the model,
+//! the session, the memory and the verify line in capitals, and the keys that matter first.
 //!
 //! The wordmark is drawn in text alone — `█ ▀ ▄` and spaces, each cell one foreground colour on
 //! the card's face — so it is as sharp as the font in every terminal, and scrolls with the
 //! transcript like any line. Pictures are the sidebar's alone. Across its width the letters run
-//! the races' colours: Summoner's blue, the elves' green, the orcs' amber, the slimes' teal. The
-//! wordmark is 62 cells, so it shows on a card 68 wide or more (its frame takes 6): a terminal of
-//! 72 columns with the sidebar folded, 108 with it open. On a narrower card a one-line
-//! `◈ MIKATA` in the same gradient stands in.
+//! the logo's two colours, gold for you into Mikata's cyan. The wordmark is 47 cells, so it shows
+//! on a card 53 wide or more (its frame takes 6). On a narrower card a one-line `◈ MIKATA` in the
+//! same gradient stands in.
 
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -21,7 +19,7 @@ use crate::safe::one_line;
 use crate::theme::{Rgb, Theme};
 
 /// The tagline under the wordmark.
-pub const TAGLINE: &str = "an agent harness · the world remembers in documents";
+pub const TAGLINE: &str = "the coding agent on your side";
 
 /// What Mikata does, a line each.
 pub const ABOUT: [&str; 4] = [
@@ -61,18 +59,11 @@ pub fn wordmark_width() -> usize {
     wordmark_rows()[0].chars().count()
 }
 
-/// The races' gradient at `along` (0 at the left, 1 at the right): Summoner → elf → orc → slime,
-/// made readable on the theme's page.
+/// The logo's gradient at `along` (0 at the left, 1 at the right): gold, for you, into Mikata's
+/// cyan, made readable on the theme's page.
 #[must_use]
 pub fn hue(t: &Theme, along: f32) -> Rgb {
-    let stops = [t.races.summoner, t.races.elf, t.races.orc, t.races.slime];
-    let span = along.clamp(0.0, 1.0) * 3.0;
-    // Display only: a stop's index, 0..=2.
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    let i = (span.floor() as usize).min(2);
-    #[allow(clippy::cast_precision_loss)]
-    let frac = span - i as f32;
-    t.readable(stops[i].mix(stops[i + 1], frac))
+    t.readable(t.p.gold.mix(t.p.holo, along.clamp(0.0, 1.0)))
 }
 
 /// Where column `x` of `width` lies along the gradient.
@@ -136,7 +127,7 @@ pub fn mark_line(t: &Theme) -> Line<'static> {
 }
 
 fn surface(t: &Theme) -> Surface {
-    Surface::card(t, Some(t.races.dark_elf), 0.08)
+    Surface::card(t, Some(t.p.holo), 0.08)
 }
 
 /// The welcome card, `w` cells wide.
@@ -152,32 +143,12 @@ pub fn card(m: &Model, w: usize) -> Lines {
         t.text().add_modifier(Modifier::ITALIC),
     ));
     rows.push(Line::from(""));
-    let races = [t.races.summoner, t.races.orc, t.races.elf, t.races.slime];
-    for (text, hue) in ABOUT.into_iter().zip(races) {
-        let bullet = Span::styled("▸ ", Style::new().fg(t.readable(hue).color()));
+    for (n, text) in ABOUT.into_iter().enumerate() {
+        let tone = if n % 2 == 0 { t.p.holo } else { t.p.gold };
+        let bullet = Span::styled("▸ ", Style::new().fg(t.readable(tone).color()));
         let lines = wrap_text(text, inner.saturating_sub(2), t.muted());
         rows.extend(prefixed(lines, &[bullet], &[Span::raw("  ")]));
     }
-    rows.push(Line::from(""));
-    let chip = |name: &str, hue: Rgb| {
-        Span::styled(
-            format!(" {name} "),
-            Style::new()
-                .fg(t.readable(hue).color())
-                .bg(t.p.bg.mix(hue, 0.25).color()),
-        )
-    };
-    let mut chips = Vec::new();
-    for (name, hue) in [
-        ("summoner", t.races.summoner),
-        ("elf", t.races.elf),
-        ("orc", t.races.orc),
-        ("slime", t.races.slime),
-    ] {
-        chips.push(chip(name, hue));
-        chips.push(Span::raw(" "));
-    }
-    rows.push(truncate(Line::from(chips), inner));
     rows.push(Line::from(""));
     let field = |name: &str, value: &str| {
         truncate(
@@ -356,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn the_wordmark_runs_the_races_gradient() {
+    fn the_wordmark_runs_the_logos_gradient() {
         for variant in [Variant::Dark, Variant::Light] {
             let t = Theme::new(variant);
             let rows = wordmark(&t, 200).unwrap();
@@ -371,12 +342,12 @@ mod tests {
             assert_eq!(
                 first,
                 hue(&t, 0.0).color(),
-                "{variant:?}: Summoner's blue first"
+                "{variant:?}: gold first, for you"
             );
             assert_eq!(
                 last,
                 hue(&t, 1.0).color(),
-                "{variant:?}: the slimes' teal last"
+                "{variant:?}: Mikata's cyan last"
             );
             assert_ne!(first, last);
             let distinct: std::collections::BTreeSet<String> =
@@ -387,8 +358,8 @@ mod tests {
             );
         }
         let t = Theme::new(Variant::Dark);
-        assert_eq!(hue(&t, 1.0 / 3.0), t.races.elf);
-        assert_eq!(hue(&t, 2.0 / 3.0), t.races.orc);
+        assert_eq!(hue(&t, 0.0), t.readable(t.p.gold));
+        assert_eq!(hue(&t, 1.0), t.readable(t.p.holo));
     }
 
     #[test]
@@ -458,8 +429,8 @@ mod tests {
             for about in ABOUT {
                 assert!(flat.contains(about), "{w}: {about:?} in {text}");
             }
-            for chip in [" summoner ", " elf ", " orc ", " slime "] {
-                assert!(text.contains(chip), "{w}: {chip}");
+            for chip in [" elf ", " orc ", " slime "] {
+                assert!(!text.contains(chip), "{w}: no race on the welcome: {chip}");
             }
             for label in ["world", "model", "memory", "verify"] {
                 assert!(text.contains(&caps(label)), "{w}: {label}");

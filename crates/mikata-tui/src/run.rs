@@ -1,7 +1,7 @@
 //! The runtime: the session hosted in-process, the terminal owned and always given back, and
 //! the loop — receive a message, update, run the commands, draw when dirty — with frames
 //! coalesced to at most [`FPS`] a second, however fast the model streams. After each frame the
-//! [`Placer`] sends the portraits' pictures the frame wants, when they changed.
+//! [`Placer`] sends the pictures the frame wants, when they changed.
 
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -183,8 +183,6 @@ impl Host {
             .enable_all()
             .build()
             .map_err(|e| format!("runtime: {e}"))?;
-        // The races' portraits decode off the UI thread, once, while the session starts.
-        runtime.spawn_blocking(crate::kit::mnanim::warm);
         let interrupt = opened.session.interrupt();
         let steer = opened.session.steer();
         let (lines, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();

@@ -1,13 +1,12 @@
-//! The portraits as real pixels, end to end through the model and the view: where a frame wants
-//! them, never under an approval, nothing re-sent for an unchanged frame,
-//! and half blocks where the terminal draws no images.
+//! Mikata's logo as real pixels, end to end through the model and the view: where a frame wants
+//! it, never under an approval, never sent again for an unchanged frame, the same whoever works,
+//! and glyph cells where the terminal draws no images.
 
 use mikata_races::Race;
 use mikata_server::protocol::Event;
 use mikata_tools::Pending;
 use mikata_tui::app::{Header, Model, Msg, update, view};
 use mikata_tui::gate::Card;
-use mikata_tui::kit::mnanim::{self, Clip};
 use mikata_tui::kit::pixels::{self, Protocol};
 use mikata_tui::pictures::{Art, Pictures, Placer, Slot, Want};
 use mikata_tui::theme::Variant;
@@ -20,7 +19,6 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 const CELL: (u16, u16) = (8, 17);
 
 fn model(protocol: Protocol) -> Model {
-    mnanim::warm();
     let mut m = Model::new(
         Header {
             body: "summoner".into(),
@@ -57,20 +55,19 @@ fn card() -> Card {
     )
 }
 
-/// Sync until the placer has sent `sends` pictures, the frames written: a clip's frame is
-/// encoded on a thread of its own, and waited for.
-fn sync_until(placer: &mut Placer, m: &Model, buf: &Buffer, sends: usize) -> String {
-    let start = std::time::Instant::now();
-    let mut all = Vec::new();
-    let size = (buf.area.width, buf.area.height);
-    while placer.sends < sends && start.elapsed() < std::time::Duration::from_secs(120) {
-        placer
-            .sync(&m.pictures.wanted(), size, buf, &mut all)
-            .unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(10));
-    }
-    assert_eq!(placer.sends, sends, "sent in time");
-    String::from_utf8(all).unwrap()
+fn sync(placer: &mut Placer, m: &Model, buf: &Buffer) -> Vec<u8> {
+    let mut out = Vec::new();
+    let later = std::time::Instant::now() + mikata_tui::pictures::SETTLE;
+    placer
+        .sync_at(
+            &m.pictures.wanted(),
+            (buf.area.width, buf.area.height),
+            buf,
+            &mut out,
+            later,
+        )
+        .unwrap();
+    out
 }
 
 fn slot(wants: &[Want], s: Slot) -> Option<Want> {
@@ -78,34 +75,39 @@ fn slot(wants: &[Want], s: Slot) -> Option<Want> {
 }
 
 #[test]
-fn the_sidebar_alone_wants_a_picture_over_plain_cells() {
+fn the_sidebar_alone_wants_the_logo_over_plain_cells() {
     let mut m = model(Protocol::Iterm);
     let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
     let buf = draw(&mut m, &mut t);
     let wants = m.pictures.wanted();
     let side = slot(&wants, Slot::Sidebar).expect("the sidebar's head");
-    // 32 columns of 8 px: 256 px across, and 16 rows of 17 px, so a 256 px frame shows at its
-    // own size.
-    assert_eq!((side.area.width, side.area.height), (32, 16));
-    // Idle: Player, the human; a working body's race only during a turn.
-    assert_eq!(side.art, Art::Player);
+    // 32 columns of 8 px, and a square of rows: 15 of 17 px.
+    assert_eq!((side.area.width, side.area.height), (32, 15));
+    assert_eq!(side.art, Art::Logo);
     assert_eq!(side.bg, m.theme.p.bg);
     // The sidebar's alone: the welcome draws its wordmark in text.
     assert_eq!(wants.len(), 1);
-    // Under the picture, plain cells on its own background: no half block for it to hide.
-    for w in [side] {
-        for y in w.area.top()..w.area.bottom() {
-            for x in w.area.left()..w.area.right() {
-                let c = &buf[(x, y)];
-                assert_eq!(c.symbol(), " ", "{:?} at {x},{y}", w.slot);
-                assert_eq!(c.bg, w.bg.color(), "{:?} at {x},{y}", w.slot);
-            }
+    // Under the picture, plain cells on its own background: no glyph for it to hide.
+    for y in side.area.top()..side.area.bottom() {
+        for x in side.area.left()..side.area.right() {
+            let c = &buf[(x, y)];
+            assert_eq!(c.symbol(), " ", "at {x},{y}");
+            assert_eq!(c.bg, side.bg.color(), "at {x},{y}");
         }
     }
-    // A busy body's clip plays: the portrait asks ticks, at 8 frames a second under iTerm2.
+    // A busy turn wants the same logo, and no tick of its own.
     m.outstanding = 1;
-    assert!(m.portrait_plays());
-    assert_eq!(m.next_tick(), Some(std::time::Duration::from_millis(125)));
+    draw(&mut m, &mut t);
+    assert_eq!(
+        slot(&m.pictures.wanted(), Slot::Sidebar).unwrap().art,
+        Art::Logo
+    );
+    assert_eq!(
+        m.next_tick(),
+        Some(std::time::Duration::from_millis(
+            mikata_tui::kit::spinner::FRAME_MS
+        ))
+    );
 }
 
 #[test]
@@ -114,10 +116,7 @@ fn no_picture_is_placed_while_an_approval_is_open() {
     let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
     let mut placer = Placer::new(&m.pictures);
     let buf = draw(&mut m, &mut t);
-    let mut out = Vec::new();
-    placer
-        .sync(&m.pictures.wanted(), (120, 50), &buf, &mut out)
-        .unwrap();
+    sync(&mut placer, &m, &buf);
     assert_eq!(placer.sends, 1, "the sidebar alone");
 
     m.outstanding = 1;
@@ -134,59 +133,41 @@ fn no_picture_is_placed_while_an_approval_is_open() {
         Vec::new(),
         "nothing wanted under the card"
     );
-    let mut out = Vec::new();
-    placer
-        .sync(&m.pictures.wanted(), (120, 50), &buf, &mut out)
-        .unwrap();
-    assert_eq!(out, b"", "nothing sent while it is open");
+    assert_eq!(
+        sync(&mut placer, &m, &buf),
+        b"",
+        "nothing sent while it is open"
+    );
 
-    // Denied, the card goes, and the pictures come back.
+    // Denied, the card goes, and the logo comes back: sent again, built once.
     update(&mut m, Msg::Key(KeyEvent::from(KeyCode::Esc)));
     assert!(m.gate.is_none());
     let buf = draw(&mut m, &mut t);
-    assert!(slot(&m.pictures.wanted(), Slot::Sidebar).is_some());
-    // The sidebar alone comes back, its clip's frame as soon as it is encoded: the welcome wants
-    // no picture.
-    sync_until(&mut placer, &m, &buf, 2);
-    let later = std::time::Instant::now() + mikata_tui::pictures::SETTLE;
-    placer
-        .sync_at(
-            &m.pictures.wanted(),
-            (120, 50),
-            &buf,
-            &mut Vec::new(),
-            later,
-        )
-        .unwrap();
-    assert_eq!(placer.sends, 2, "nothing more once settled");
-    assert_eq!(placer.builds, 1, "Player's still, built once");
-    assert!(
-        placer.encoded() >= 1,
-        "the working body's frames, encoded off the thread"
-    );
+    sync(&mut placer, &m, &buf);
+    assert_eq!(placer.sends, 2);
+    assert_eq!(sync(&mut placer, &m, &buf), b"", "nothing more once shown");
+    assert_eq!(placer.builds, 1, "the logo, built once");
 }
 
 #[test]
-fn an_unchanged_frame_sends_nothing_and_a_new_body_swaps_the_picture() {
+fn the_logo_is_never_sent_again_whoever_works() {
     let mut m = model(Protocol::Iterm);
     let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
     let mut placer = Placer::new(&m.pictures);
     let buf = draw(&mut m, &mut t);
-    placer
-        .sync(&m.pictures.wanted(), (120, 50), &buf, &mut Vec::new())
-        .unwrap();
-    let sent = placer.sends;
-    for _ in 0..10 {
+    let first = String::from_utf8(sync(&mut placer, &m, &buf)).unwrap();
+    let side = slot(&m.pictures.wanted(), Slot::Sidebar).unwrap();
+    let at = format!(
+        "\x1b7\x1b[{};{}H\x1b]1337;File=",
+        side.area.y + 1,
+        side.area.x + 1
+    );
+    assert!(first.contains(&at), "the logo at the sidebar's head");
+    // Idle frames, then a turn, then a commissioned orc working: nothing is sent again.
+    for _ in 0..5 {
         let buf = draw(&mut m, &mut t);
-        let mut out = Vec::new();
-        placer
-            .sync(&m.pictures.wanted(), (120, 50), &buf, &mut out)
-            .unwrap();
-        assert_eq!(out, b"");
+        assert_eq!(sync(&mut placer, &m, &buf), b"");
     }
-    assert_eq!(placer.sends, sent);
-
-    // A commissioned orc works: the sidebar's picture is the orc's, sent once.
     m.outstanding = 1;
     update(
         &mut m,
@@ -197,20 +178,16 @@ fn an_unchanged_frame_sends_nothing_and_a_new_body_swaps_the_picture() {
             chain: vec!["orc-sql".into()],
         },
     );
-    let buf = draw(&mut m, &mut t);
-    let side = slot(&m.pictures.wanted(), Slot::Sidebar).unwrap();
-    assert!(
-        matches!(side.art, Art::Frame(Clip::Idle(Race::Orc), _)),
-        "{:?}",
-        side.art
-    );
-    let out = sync_until(&mut placer, &m, &buf, sent + 1);
-    let at = format!(
-        "\x1b7\x1b[{};{}H\x1b]1337;File=",
-        side.area.y + 1,
-        side.area.x + 1
-    );
-    assert!(out.contains(&at), "the orc's picture at the sidebar's head");
+    for _ in 0..5 {
+        update(&mut m, Msg::Tick(std::time::Duration::from_millis(33)));
+        let buf = draw(&mut m, &mut t);
+        assert_eq!(
+            sync(&mut placer, &m, &buf),
+            b"",
+            "the same logo for the orc"
+        );
+    }
+    assert_eq!(placer.sends, 1);
 }
 
 #[test]
@@ -230,21 +207,25 @@ fn the_sidebar_folding_takes_its_picture_away() {
 }
 
 #[test]
-fn without_images_the_portraits_are_half_blocks_and_play() {
+fn without_images_the_logo_is_glyph_cells_and_stands_still() {
     let mut m = model(Protocol::Blocks);
     let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
     let buf = draw(&mut m, &mut t);
     assert_eq!(m.pictures.wanted(), Vec::new());
-    let head: String = (0..buf.area.width)
-        .flat_map(|x| (2..18).map(move |y| (x, y)))
-        .map(|(x, y)| buf[(x, y)].symbol().to_owned())
-        .collect();
+    let head = |buf: &Buffer| -> String {
+        (0..buf.area.width)
+            .flat_map(|x| (2..18).map(move |y| (x, y)))
+            .map(|(x, y)| buf[(x, y)].symbol().to_owned())
+            .collect()
+    };
+    let idle = head(&buf);
     assert!(
-        head.contains('▀') || head.contains('▄'),
+        idle.contains('▀') || idle.contains('▄'),
         "half blocks drawn"
     );
     m.outstanding = 1;
-    assert!(m.portrait_plays());
+    update(&mut m, Msg::Tick(std::time::Duration::from_millis(500)));
+    assert_eq!(head(&draw(&mut m, &mut t)), idle, "working: the same logo");
 }
 
 #[test]
@@ -323,94 +304,4 @@ fn ctrl_c_and_esc_always_pass_a_late_window() {
         update(&mut m, Msg::KeyAt(KeyEvent::from(KeyCode::Char(c)), soon));
     }
     assert_eq!(m.input.text(), "");
-}
-
-#[test]
-fn a_body_seen_ascending_plays_its_ascension_once_then_its_risen_loop() {
-    let mut m = model(Protocol::Kitty);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
-    m.outstanding = 1;
-    update(
-        &mut m,
-        Msg::Below {
-            event: Event::TurnStarted {
-                text: "judge".into(),
-            },
-            chain: vec!["orc-sql".into()],
-        },
-    );
-    draw(&mut m, &mut t);
-    let side = slot(&m.pictures.wanted(), Slot::Sidebar).unwrap();
-    assert_eq!(side.art, Art::Frame(Clip::Idle(Race::Orc), 0));
-    update(&mut m, Msg::Tick(std::time::Duration::from_millis(500)));
-    // The world now says the same body is a High Orc: no event names an ascension yet, but the
-    // survey re-reads each creature's race, and a body risen to its ascended form is one.
-    let mikata_tui::app::Cmd::Survey(seq) = m.survey() else {
-        unreachable!("a survey asks for a survey")
-    };
-    let mut survey = mikata_tui::sidebar::Survey::default();
-    survey.races.insert("orc-sql".into(), Race::HighOrc);
-    update(&mut m, Msg::Surveyed { seq, survey });
-    assert_eq!(m.ascending, Some(Race::Orc));
-    draw(&mut m, &mut t);
-    let side = slot(&m.pictures.wanted(), Slot::Sidebar).unwrap();
-    assert_eq!(
-        side.art,
-        Art::Frame(Clip::Ascend(Race::Orc), 0),
-        "from its start"
-    );
-    // Five seconds on, the ascension is over: the risen form's loop.
-    for _ in 0..52 {
-        update(&mut m, Msg::Tick(std::time::Duration::from_millis(100)));
-    }
-    draw(&mut m, &mut t);
-    let side = slot(&m.pictures.wanted(), Slot::Sidebar).unwrap();
-    assert!(
-        matches!(side.art, Art::Frame(Clip::Idle(Race::HighOrc), _)),
-        "{:?}",
-        side.art
-    );
-    // Without pixels, the same clips play as glyph cells.
-    m.pictures = Pictures::new(Protocol::Blocks, None);
-    assert_eq!(m.playing().0, Clip::Idle(Race::HighOrc));
-}
-
-#[test]
-fn idle_wants_player_alone() {
-    for p in [Protocol::Kitty, Protocol::Iterm, Protocol::Sixel] {
-        let mut m = model(p);
-        let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
-        for _ in 0..3 {
-            update(&mut m, Msg::Tick(std::time::Duration::from_millis(100)));
-            draw(&mut m, &mut t);
-            let wants = m.pictures.wanted();
-            assert_eq!(wants.len(), 1, "{p:?}");
-            assert_eq!(wants[0].art, Art::Player, "{p:?}");
-        }
-        assert!(!m.portrait_plays(), "{p:?}: an idle UI wakes for nothing");
-    }
-}
-
-#[test]
-fn an_unfocused_window_pauses_the_portrait() {
-    let mut m = model(Protocol::Iterm);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
-    draw(&mut m, &mut t);
-    m.outstanding = 1;
-    assert!(m.portrait_plays());
-    update(&mut m, Msg::Focus(false));
-    assert!(
-        !m.portrait_plays(),
-        "no frames for a window no one looks at"
-    );
-    let clock = m.portrait_clock;
-    update(&mut m, Msg::Tick(std::time::Duration::from_millis(500)));
-    assert_eq!(m.portrait_clock, clock, "paused");
-    assert_ne!(
-        m.next_tick(),
-        Some(std::time::Duration::from_millis(125)),
-        "no portrait ticks"
-    );
-    update(&mut m, Msg::Focus(true));
-    assert!(m.portrait_plays(), "resumed");
 }

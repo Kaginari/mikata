@@ -237,16 +237,9 @@ pub struct Model {
     pub toast: Option<Toast>,
     /// The session's id, as the header names it.
     pub session_id: String,
-    /// How long the sidebar's portrait has played: it moves only while a body works and the
-    /// portrait is on screen.
-    pub portrait_clock: Duration,
-    /// The portraits as real pixels, where the terminal draws them.
+    /// The logo as real pixels, where the terminal draws them.
     pub pictures: crate::pictures::Pictures,
-    /// The base race of the body seen ascending: its ascension plays at the portrait's clock's
-    /// start, then the risen form's idle loop.
-    pub ascending: Option<mikata_races::Race>,
-    /// The terminal's window lost the focus: the portrait pauses, so nothing is drawn — nor, in
-    /// pixels, sent — for a window no one looks at.
+    /// The terminal's window lost the focus.
     pub unfocused: bool,
     /// The window after a probe that timed out, in which its replies may still arrive as keys.
     pub late: crate::probe::Late,
@@ -312,51 +305,18 @@ impl Model {
             frames: 0,
             toast: None,
             session_id: String::new(),
-            portrait_clock: Duration::ZERO,
             pictures: crate::pictures::Pictures::default(),
-            ascending: None,
             unfocused: false,
             late: crate::probe::Late::default(),
         }
     }
 
-    /// Whether the sidebar shows its portrait: open, wide enough, tall enough.
+    /// Whether the sidebar shows its logo: open, wide enough, tall enough.
     #[must_use]
     pub fn portrait_shown(&self) -> bool {
         let inner = self.size.0.saturating_sub(4);
         self.sidebar.width(inner) > 0
             && usize::from(self.size.1.saturating_sub(3)) >= crate::sidebar::HEAD_FROM
-    }
-
-    /// Whether the portrait plays: a body works, the portrait is on screen, and the window has
-    /// the focus.
-    #[must_use]
-    pub fn portrait_plays(&self) -> bool {
-        self.busy() && self.portrait_shown() && !self.unfocused
-    }
-
-    /// The clip the portrait plays now, and how far into it: the working body's idle loop, or
-    /// its ascension once seen, then the risen form's loop.
-    #[must_use]
-    pub fn playing(&self) -> (crate::kit::mnanim::Clip, Duration) {
-        use crate::kit::mnanim::{self, Clip};
-        let race = crate::activity::actor(self).1;
-        if let Some(clip) = self.ascending.and_then(Clip::ascension) {
-            let once = mnanim::length(16, clip.frames());
-            if self.portrait_clock < once {
-                return (clip, self.portrait_clock);
-            }
-            return (clip.then(), self.portrait_clock.saturating_sub(once));
-        }
-        (Clip::Idle(race), self.portrait_clock)
-    }
-
-    /// The working body was seen ascending from `base`: its ascension plays, once, from now.
-    pub fn ascend(&mut self, base: mikata_races::Race) {
-        if base.ascends_to().is_some() {
-            self.ascending = Some(base);
-            self.portrait_clock = Duration::ZERO;
-        }
     }
 
     /// Whether a turn runs.
@@ -371,11 +331,6 @@ impl Model {
     pub fn next_tick(&self) -> Option<Duration> {
         if self.viewport.animating() || self.toast.is_some() {
             Some(Duration::from_millis(16))
-        } else if self.portrait_plays() {
-            // The portrait's pace: 16 frames a second, 8 when each is its pixels sent again.
-            Some(Duration::from_millis(
-                1000 / u64::from(self.pictures.fps().max(1)),
-            ))
         } else if self.busy() || self.transcript.running() {
             Some(Duration::from_millis(FRAME_MS))
         } else if self.gate.is_some() {
@@ -459,28 +414,13 @@ pub fn update(m: &mut Model, msg: Msg) -> Vec<Cmd> {
     cmds
 }
 
-/// The portrait follows the body working now; it starts its loop from the first frame only when
-/// that body really changes, never on an event of the one already shown.
-///
-/// The same body seen again as the risen form of the race it had — no event says so yet, but
-/// the survey re-reads each creature's race — is an ascension: it plays once ([`Model::ascend`]).
+/// The activity follows the body working now, and its race.
 fn settle_actor(m: &mut Model) {
     let (now, race) = crate::activity::actor(m);
     if m.activity.actor.as_deref() != Some(now.as_str()) {
         m.activity.actor = Some(now);
-        m.activity.race = Some(race);
-        m.ascending = None;
-        m.portrait_clock = Duration::ZERO;
-    } else if let Some(was) = m.activity.race.replace(race)
-        && was != race
-    {
-        if was.ascends_to() == Some(race) {
-            m.ascend(was);
-        } else {
-            m.ascending = None;
-            m.portrait_clock = Duration::ZERO;
-        }
     }
+    m.activity.race = Some(race);
 }
 
 /// A key, unless it is part of a probe's late reply, or comes while one may still arrive and a
@@ -594,9 +534,6 @@ fn tick(m: &mut Model, dt: Duration) -> Vec<Cmd> {
     m.viewport.set_max(m.measured.get());
     m.viewport.update(ViewportMsg::Tick(dt.as_secs_f64()));
     m.transcript.clock += dt;
-    if m.portrait_plays() {
-        m.portrait_clock += dt;
-    }
     m.spin += dt;
     while m.spin >= Duration::from_millis(FRAME_MS) {
         m.spin -= Duration::from_millis(FRAME_MS);

@@ -10,11 +10,78 @@
 //! times the pixels. Pixels below half alpha are clear: a cell with any shows its opaque
 //! sub-pixels on the cells' own background.
 
+use std::sync::atomic::{AtomicU8, Ordering};
+
 use image::RgbaImage;
+use ratatui::style::Style;
+use ratatui::text::{Line, Span};
 
 use super::glyph_tables::{OCTANTS, SEXTANTS};
-use super::mnanim::Cell;
+use super::text::Lines;
 use crate::theme::Rgb;
+
+/// One cell: its glyph and its two colours.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cell {
+    /// A block glyph, or a space.
+    pub glyph: char,
+    /// The glyph's colour.
+    pub fg: Option<Rgb>,
+    /// The cell's background; `None` leaves the cells' own.
+    pub bg: Option<Rgb>,
+}
+
+/// The glyphs a picture is drawn with when it is not real pixels: what the terminal's font
+/// draws, set once at start.
+static GLYPHS: AtomicU8 = AtomicU8::new(0);
+
+/// Draw pictures in cells with `g` from now on.
+pub fn set_glyphs(g: Glyphs) {
+    let i = Glyphs::ALL.iter().position(|x| *x == g).unwrap_or(0);
+    GLYPHS.store(u8::try_from(i).unwrap_or(0), Ordering::Relaxed);
+}
+
+/// The glyphs pictures in cells are drawn with.
+#[must_use]
+pub fn glyphs_now() -> Glyphs {
+    Glyphs::ALL[usize::from(GLYPHS.load(Ordering::Relaxed)) % Glyphs::ALL.len()]
+}
+
+/// Rows of cells as lines; a cell with no background takes `under`, else the cells' own.
+#[must_use]
+pub fn lines(rows: &[Vec<Cell>], under: Option<Rgb>) -> Lines {
+    rows.iter()
+        .map(|row| {
+            Line::from(
+                row.iter()
+                    .map(|c| {
+                        let mut s = Style::new();
+                        if let Some(f) = c.fg {
+                            s = s.fg(f.color());
+                        }
+                        if let Some(b) = c.bg.or(under) {
+                            s = s.bg(b.color());
+                        }
+                        Span::styled(c.glyph.to_string(), s)
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect()
+}
+
+/// A PNG as cells `cols` wide and half as many rows, in `glyphs`: the picture shrunk to the
+/// glyphs' sub-pixels, its clear pixels showing the cells' own background. `None` when the PNG
+/// cannot be read.
+#[must_use]
+pub fn picture(png: &[u8], cols: usize, glyphs: Glyphs) -> Option<Vec<Vec<Cell>>> {
+    let (gw, gh) = glyphs.grid();
+    let img = image::load_from_memory(png).ok()?.to_rgba8();
+    let w = u32::try_from(cols * gw).ok()?;
+    let h = u32::try_from(cols / 2 * gh).ok()?;
+    let small = image::imageops::resize(&img, w, h, image::imageops::FilterType::Triangle);
+    Some(cells(&small, glyphs))
+}
 
 /// Which glyphs draw the sub-pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

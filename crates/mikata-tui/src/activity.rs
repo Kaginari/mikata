@@ -28,7 +28,7 @@ pub struct Activity {
     pub base_tokens: u64,
     /// The turn ended; the next one to start restarts the count.
     pub ended: bool,
-    /// The body the portrait last showed: a change of body restarts its loop.
+    /// The body last shown as working.
     pub actor: Option<String>,
     /// Its race as last seen: a change to its risen form is an ascension.
     pub race: Option<Race>,
@@ -134,7 +134,7 @@ pub fn actor(m: &Model) -> (String, Race) {
 }
 
 /// The newest commissioned body whose turn runs, while the session's does: one body's event
-/// never takes the portrait from a sibling that still works, and the session shows only when
+/// never takes the place from a sibling that still works, and the session shows only when
 /// none does.
 fn working(m: &Model) -> Option<&str> {
     if !m.busy() {
@@ -249,7 +249,7 @@ fn doing(m: &Model, phase: &Phase) -> String {
         )
 }
 
-/// The header's chip, and the sidebar's state under the portrait: idle, working in words with
+/// The header's chip, and the sidebar's state under the logo: idle, working in words with
 /// the time behind the spinner the strip turns, or waiting for the human.
 #[must_use]
 pub fn chip(m: &Model) -> Vec<Span<'static>> {

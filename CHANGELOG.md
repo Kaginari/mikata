@@ -21,8 +21,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   both exist, nothing is touched.
 - **Mikata's own look.** The logo is two cells mid-division, gold for you and cyan for Mikata;
   `assets/brand/` holds it for dark and light pages, the icon at 512 to 32 px, the favicon and the
-  social card, rendered from `assets/source/mikata-*.svg`. The terminal app's welcome spells MIKATA
-  and says what light-coding does.
+  social card, rendered from `assets/source/mikata-*.svg`. In the terminal app, the sidebar's head
+  is Mikata's logo, still, as real pixels or in the finest glyphs the terminal draws: the races'
+  animated portraits and Player's are gone, with their 7.6 MB of embedded clips, and nothing ticks
+  for the head any more. The welcome spells MIKATA in the logo's gold and cyan, its tagline is "the
+  coding agent on your side", its four lines say what light-coding does, and the race chips are
+  gone.
 - **The book is Mikata's.** The README and `docs/` are about Mikata: the overview, the loop, the
   architecture, the client protocol (now its own page), consumption, MCP and memory, renumbered.
   Mnemorph's races, its chain and collective modes, the ontology, the old M0 to M14 roadmap, its

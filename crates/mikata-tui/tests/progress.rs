@@ -12,7 +12,6 @@ use mikata_tools::Pending;
 use mikata_tui::activity::{self, Phase};
 use mikata_tui::app::{Cmd, Header, Model, Msg, update, view};
 use mikata_tui::gate::Card;
-use mikata_tui::kit::mnanim;
 use mikata_tui::theme::Variant;
 use mikata_tui::transcript::Entry;
 use ratatui::Terminal;
@@ -651,36 +650,32 @@ fn large_output_stays_folded() {
     );
 }
 
-/// The portrait at the sidebar's head: its rows, the padding that centres it cut away.
+/// The picture at the sidebar's head: its rows, the padding that centres it cut away.
 fn head(m: &Model) -> Vec<String> {
     let lines = mikata_tui::sidebar::view(m, 29, 37);
-    lines[..mnanim::SIZE / 2]
+    lines[..16]
         .iter()
         .map(|l| format!("{:?}", &l.spans[1..]))
         .collect()
 }
 
-/// `race`'s portrait at `clock`, as the head draws it.
-fn player(m: &Model) -> Vec<String> {
-    mikata_tui::sidebar::player_blocks(&m.theme)
+/// Mikata's logo, as the head draws it in cells.
+fn logo(m: &Model) -> Vec<String> {
+    mikata_tui::sidebar::logo_cells(&m.theme)
         .iter()
         .map(|l| format!("{:?}", &l.spans[..]))
         .collect()
 }
 
-fn portrait(race: Race, clock: Duration) -> Vec<String> {
-    let p = mnanim::portrait(race).unwrap();
-    mnanim::lines(p.at(clock), None)
-        .iter()
-        .map(|l| format!("{:?}", &l.spans[..]))
-        .collect()
-}
-
+/// The sidebar's head is Mikata's logo whoever works: the activity follows the body working now —
+/// the session's, a commissioned child's while it acts — and says so under the logo, which never
+/// changes for it.
 #[test]
-fn the_portrait_is_the_working_bodys_and_swaps_as_a_child_starts_and_stops() {
-    mnanim::warm();
+fn the_head_is_the_logo_and_the_activity_follows_the_working_body() {
     let mut m = model();
     update(&mut m, Msg::Resize(120, 40));
+    assert_eq!(head(&m), logo(&m), "idle");
+    assert_eq!(logo(&m).len(), 16, "the logo is drawn, 16 rows of cells");
     send(&mut m, "judge it");
     ev(
         &mut m,
@@ -689,7 +684,7 @@ fn the_portrait_is_the_working_bodys_and_swaps_as_a_child_starts_and_stops() {
         },
     );
     assert_eq!(activity::actor(&m), ("summoner".into(), Race::Summoner));
-    assert_eq!(head(&m), portrait(Race::Summoner, m.portrait_clock));
+    assert_eq!(head(&m), logo(&m), "working");
     let below = |m: &mut Model, chain: &[&str], event: Event| {
         update(
             m,
@@ -707,7 +702,7 @@ fn the_portrait_is_the_working_bodys_and_swaps_as_a_child_starts_and_stops() {
         },
     );
     assert_eq!(activity::actor(&m), ("orc-sql".into(), Race::Orc));
-    assert_eq!(head(&m), portrait(Race::Orc, m.portrait_clock), "the orc's");
+    assert_eq!(head(&m), logo(&m), "a child working: still the logo");
     assert!(screen(&mut m, 120, 40).contains("orc-sql · working"));
     below(
         &mut m,
@@ -734,54 +729,29 @@ fn the_portrait_is_the_working_bodys_and_swaps_as_a_child_starts_and_stops() {
         },
     );
     assert_eq!(activity::actor(&m), ("summoner".into(), Race::Summoner));
-    assert_eq!(head(&m), portrait(Race::Summoner, m.portrait_clock));
+    assert_eq!(head(&m), logo(&m));
 }
 
+/// The logo stands still: nothing ticks for it, idle or working; a turn ticks at the spinner's
+/// pace only.
 #[test]
-fn the_portrait_plays_only_while_a_body_works_and_shows() {
-    mnanim::warm();
+fn the_logo_never_moves_and_nothing_ticks_for_it() {
     let mut m = model();
     update(&mut m, Msg::Resize(120, 40));
     assert!(m.portrait_shown());
-    assert_eq!(
-        m.next_tick(),
-        None,
-        "idle: nothing ticks, the portrait still"
-    );
-    // Idle: Player, the human, still; a body's race and loop only while it works.
-    assert_eq!(head(&m), player(&m));
+    assert_eq!(m.next_tick(), None, "idle: nothing ticks");
+    let still = head(&m);
     send(&mut m, "go");
     assert_eq!(
         m.next_tick(),
-        Some(Duration::from_millis(1000 / 16)),
-        "working: the loop's own pace"
+        Some(Duration::from_millis(mikata_tui::kit::spinner::FRAME_MS)),
+        "working: the spinner's pace"
     );
-    tick(&mut m, 0.1);
-    assert_eq!(m.portrait_clock, Duration::from_millis(100));
-    assert_eq!(
-        head(&m),
-        portrait(Race::Summoner, Duration::from_millis(100))
-    );
-    assert_ne!(
-        head(&m),
-        portrait(Race::Summoner, Duration::ZERO),
-        "it moved on a frame"
-    );
-    // The sidebar hidden: the spinner ticks, the portrait does not move.
-    ctrl(&mut m, 'o');
-    assert!(!m.portrait_shown());
-    assert_eq!(m.next_tick(), Some(Duration::from_millis(100)));
-    tick(&mut m, 1.0);
-    assert_eq!(m.portrait_clock, Duration::from_millis(100));
-    // A short terminal keeps the sidebar but not its head: no portrait, no ticks for it.
-    ctrl(&mut m, 'o');
-    update(&mut m, Msg::Resize(120, 30));
-    assert!(!m.portrait_shown());
-    // Idle again: no ticks, and Player rests in Summoner's place.
-    update(&mut m, Msg::Resize(120, 40));
+    tick(&mut m, 0.5);
+    assert_eq!(head(&m), still, "it did not move");
     update(&mut m, Msg::Done { held: 0 });
     assert_eq!(m.next_tick(), None);
-    assert_eq!(head(&m), player(&m));
+    assert_eq!(head(&m), still);
 }
 
 #[test]
@@ -1105,8 +1075,7 @@ fn a_toast_never_covers_the_approval() {
 }
 
 #[test]
-fn two_working_children_keep_one_portrait_until_none_works() {
-    mnanim::warm();
+fn two_working_children_leave_the_newest_as_the_actor_until_none_works() {
     let mut m = model();
     update(&mut m, Msg::Resize(120, 40));
     send(&mut m, "fan out");
@@ -1133,18 +1102,13 @@ fn two_working_children_keep_one_portrait_until_none_works() {
     below(&mut m, &["orc-a"], start("a"));
     below(&mut m, &["slime-b"], start("b"));
     assert_eq!(activity::actor(&m).0, "slime-b", "the newest that works");
-    tick(&mut m, 0.25);
-    let clock = m.portrait_clock;
-    assert!(clock > Duration::ZERO);
-    // Their events alternate: the portrait stays, its loop runs on.
+    // Their events alternate: the actor stays the newest.
     for i in 0..6 {
         let who = if i % 2 == 0 { "orc-a" } else { "slime-b" };
         below(&mut m, &[who], step(&format!("{who}{i}")));
         assert_eq!(activity::actor(&m).0, "slime-b", "event {i}");
-        assert_eq!(head(&m), portrait(Race::Slime, m.portrait_clock));
+        assert_eq!(head(&m), logo(&m));
     }
-    assert_eq!(m.portrait_clock, clock, "no event restarted the loop");
-    // The slime ends while the orc works: the orc's portrait, from its first frame.
     below(
         &mut m,
         &["slime-b"],
@@ -1153,11 +1117,6 @@ fn two_working_children_keep_one_portrait_until_none_works() {
         },
     );
     assert_eq!(activity::actor(&m), ("orc-a".into(), Race::Orc));
-    assert_eq!(
-        m.portrait_clock,
-        Duration::ZERO,
-        "a real swap restarts the loop"
-    );
     // Summoner only when none works.
     below(
         &mut m,

@@ -6,7 +6,7 @@
 //! loop; [`gate`] is the human gate as an approval card; [`sidebar`] the column beside the
 //! transcript; [`activity`] the living status — what the session does now, in words; [`welcome`]
 //! the card the conversation opens on; [`probe`] asks the terminal what it can draw, and
-//! [`pictures`] places the races' portraits over the cells as real pixels where it can.
+//! [`pictures`] places Mikata's logo over the cells as real pixels where it can.
 
 pub mod activity;
 pub mod adopt;

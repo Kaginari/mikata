@@ -107,7 +107,7 @@ pub enum Tag {
     Warn,
     /// A hole in the configuration.
     Config,
-    /// How the portraits are drawn.
+    /// How the logo is drawn.
     Images,
 }
 

@@ -207,13 +207,7 @@ fn sidebar(m: &Model, area: Rect, buf: &mut Buffer) {
     if let Some((pad, cols, rows)) = crate::sidebar::picture_box(m, w, h) {
         m.pictures.want(Want {
             slot: Slot::Sidebar,
-            // Player while no body works; the body working now during a turn, its clip playing.
-            art: if m.busy() {
-                let (clip, at) = m.playing();
-                Art::Frame(clip, m.pictures.frame(clip, at))
-            } else {
-                Art::Player
-            },
+            art: Art::Logo,
             area: Rect::new(area.x + 3 + pad, top, cols, rows),
             bg: m.theme.p.bg,
         });

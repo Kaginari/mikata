@@ -1,5 +1,5 @@
 //! The sidebar: a column beside the transcript, toggled with Ctrl+O and folded away on a narrow
-//! terminal, in Isekai's look: the working body's portrait at its head over its state, then four
+//! terminal, in Isekai's look: Mikata's logo at its head over the working body's state, then four
 //! sections, each folded or opened by a click on its title (`▾` open, `▸` folded), each drawn
 //! only from what the observer or the world gave:
 //!
@@ -27,14 +27,13 @@ use serde_json::Value;
 
 use crate::app::Model;
 use crate::kit::gauge::Gauge;
-use crate::kit::mnanim;
 use crate::kit::text::{Lines, caps, cells, clip, clip_left, truncate, wrap_text};
 use crate::safe::one_line;
 use crate::theme::Theme;
 
 /// The sidebar's width, its gutter included.
 pub const WIDTH: u16 = 36;
-/// The sidebar's height, in rows, from which the portrait sits at its head.
+/// The sidebar's height, in rows, from which the logo sits at its head.
 pub const HEAD_FROM: usize = 36;
 /// The narrowest frame that keeps the sidebar: below it, the transcript takes the whole width.
 pub const FOLD_BELOW: u16 = 100;
@@ -595,10 +594,9 @@ pub fn band(t: &Theme, pct: u64) -> Style {
     }
 }
 
-/// The head: Player, the human, while no body works; during a turn the portrait of the body
-/// working — Summoner for the session, a commissioned body's race while it acts — playing its idle
-/// loop (or its ascension, once seen); centred, with the state under it (the world and the model
-/// are on the frame's edges). Real pixels go over blank rows; else the clip's glyph cells.
+/// The head: Mikata's logo, centred, with the state under it (the world and the model are on the
+/// frame's edges). Real pixels go over blank rows; else the logo in the finest glyphs the
+/// terminal's font draws.
 fn head(m: &Model, w: usize) -> Lines {
     let t = &m.theme;
     let (who, race) = crate::activity::actor(m);
@@ -607,17 +605,9 @@ fn head(m: &Model, w: usize) -> Lines {
         // The picture goes over these rows (the view places it): plain cells of the page.
         let blank = Line::from(Span::styled(" ".repeat(w), Style::new().bg(t.p.bg.color())));
         out.extend(std::iter::repeat_n(blank, usize::from(rows)));
-    } else if !m.busy() {
-        // Idle: Player, the human, in half blocks (no idle loop is drawn for Player).
+    } else {
         let pad = Span::raw(" ".repeat(w.saturating_sub(usize::from(PORTRAIT)) / 2));
-        out.extend(player_blocks(t).into_iter().map(|l| {
-            let mut spans = vec![pad.clone()];
-            spans.extend(l.spans);
-            Line::from(spans)
-        }));
-    } else if let Some((p, at)) = clip_cells(m) {
-        let pad = Span::raw(" ".repeat(w.saturating_sub(mnanim::SIZE) / 2));
-        out.extend(mnanim::lines(p.at(at), None).into_iter().map(|l| {
+        out.extend(logo_cells(t).into_iter().map(|l| {
             let mut spans = vec![pad.clone()];
             spans.extend(l.spans);
             Line::from(spans)
@@ -957,41 +947,31 @@ fn bodies(m: &Model, w: usize, rows: usize) -> Lines {
     out
 }
 
-/// The clip playing as glyph cells, and how far into it, once decoded: an ascension not decoded
-/// yet is asked for off the UI's thread, the risen form's loop standing in meanwhile.
-fn clip_cells(m: &Model) -> Option<(std::sync::Arc<mnanim::Loop>, std::time::Duration)> {
-    let (clip, at) = m.playing();
-    if let Some(p) = mnanim::clip_ready(clip) {
-        return Some((p, at));
-    }
-    if clip == clip.then() {
-        // An idle loop: the start-up warm-up decodes it.
-        return None;
-    }
-    mnanim::fetch(clip);
-    mnanim::clip_ready(clip.then()).map(|p| (p, at))
-}
-
-/// The portrait's width, in cells.
+/// The logo's width, in cells; it is half as many rows tall.
 const PORTRAIT: u16 = 32;
-#[allow(clippy::cast_lossless)]
-const _: () = assert!(PORTRAIT as usize == mnanim::SIZE);
 
-/// Player in half blocks, built once per theme background.
+/// Mikata's logo in glyph cells, in the glyphs the terminal draws, built once per background and
+/// glyph set.
 #[must_use]
-pub fn player_blocks(t: &crate::theme::Theme) -> Lines {
+pub fn logo_cells(t: &crate::theme::Theme) -> Lines {
+    use crate::kit::glyphs;
     use std::sync::Mutex;
-    static CACHE: Mutex<Option<(crate::theme::Rgb, Lines)>> = Mutex::new(None);
+    type Built = (crate::theme::Rgb, glyphs::Glyphs, Lines);
+    static CACHE: Mutex<Option<Built>> = Mutex::new(None);
+    let g = glyphs::glyphs_now();
     let mut c = CACHE
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    if let Some((bg, lines)) = c.as_ref()
+    if let Some((bg, built, lines)) = c.as_ref()
         && *bg == t.p.bg
+        && *built == g
     {
         return lines.clone();
     }
-    let lines = crate::kit::pixels::half_blocks(crate::kit::pixels::PLAYER, PORTRAIT, t.p.bg);
-    *c = Some((t.p.bg, lines.clone()));
+    let lines = glyphs::picture(crate::kit::pixels::LOGO, usize::from(PORTRAIT), g)
+        .map(|rows| glyphs::lines(&rows, Some(t.p.bg)))
+        .unwrap_or_default();
+    *c = Some((t.p.bg, g, lines.clone()));
     lines
 }
 

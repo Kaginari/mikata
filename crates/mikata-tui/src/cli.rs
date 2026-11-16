@@ -31,7 +31,7 @@ Options:
                     MIKATA_THEME, else the terminal's background; /theme changes it live
   --web             start the web board with the app, or reuse the one running, add this
                     world to it and open it in the browser; without it no board starts
-  --probe           print what the terminal can draw (the portraits' image protocol), and exit
+  --probe           print what the terminal can draw (the logo's image protocol), and exit
   --json            with run: every event as a JSON line on stdout, then a `result` line
   --gate-tty        with run: put each gated act to you on the terminal (/dev/tty); without it
                     run denies every gated act, since no one is there to approve it
@@ -73,7 +73,7 @@ the configuration names another. Its mode is decided again, as a fresh session's
 is not the mode it stopped in, the app's first lines say so, and --mode goes on in the old one.
 `mikatad runs` lists them.
 
-Portraits are real pixels where the terminal draws images — Kitty, iTerm2's inline images
+The sidebar's logo is real pixels where the terminal draws images — Kitty, iTerm2's inline images
 (iTerm2, WezTerm, VS Code with terminal.integrated.enableImages), Sixel — else glyphs.
 MIKATA_TUI_IMAGES=auto|kitty|iterm|sixel|blocks|off overrides the choice, and
 MIKATA_TUI_GLYPHS=half|quadrants|sextants|octants the glyphs.

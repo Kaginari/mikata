@@ -1,4 +1,4 @@
-//! Real pixels: the races' portraits drawn as images through a terminal's graphics protocol —
+//! Real pixels: Mikata's logo drawn as an image through a terminal's graphics protocol —
 //! Kitty's, iTerm2's inline images, or Sixel — as sharp as their source, where the terminal can.
 //!
 //! Everything here is pure: the terminal's replies read ([`Replies::parse`]), the protocol chosen
@@ -6,9 +6,8 @@
 //! encoded ([`kitty`], [`iterm`], [`sixel`]). Asking the terminal is [`crate::probe`]'s work;
 //! placing, moving and erasing a picture over the cells is [`crate::pictures`]'.
 //!
-//! The source art is embedded: Player's 256 px portrait ([`PLAYER`]) and the races' animations
-//! ([`crate::kit::mnanim`]). No byte of an escape sequence built here comes from the model or the
-//! world — only from those files and from numbers.
+//! The source art is embedded: Mikata's 256 px logo ([`LOGO`]). No byte of an escape sequence built
+//! here comes from the model or the world — only from that file and from numbers.
 
 use std::fmt::Write as _;
 use std::io::Cursor;
@@ -21,7 +20,7 @@ use image::{ImageFormat, RgbImage};
 use crate::kit::glyphs::Glyphs;
 use crate::theme::Rgb;
 
-/// How the portraits are drawn.
+/// How the logo is drawn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Protocol {
     /// Kitty's graphics protocol: a PNG, placed by id and deleted by id.
@@ -278,7 +277,7 @@ pub struct Caps {
     pub timed_out: bool,
     /// Notes: an unknown override, a terminal multiplexer.
     pub notes: Vec<String>,
-    /// The glyphs a portrait is drawn with when it is not real pixels ([`glyphs`]).
+    /// The glyphs the logo is drawn with when it is not real pixels ([`glyphs`]).
     pub glyphs: Glyphs,
 }
 
@@ -493,7 +492,7 @@ pub fn decide(
     }
 }
 
-/// The glyphs a terminal named `name` (XTVERSION) draws a portrait with when it shows no pixels:
+/// The glyphs a terminal named `name` (XTVERSION) draws the logo with when it shows no pixels:
 /// `MIKATA_TUI_GLYPHS` when set (`half`, `quadrants`, `sextants`, `octants`); half blocks on the
 /// Linux console; octants where the terminal draws them itself whatever the font (Kitty,
 /// Ghostty), sextants where it draws those (`WezTerm`, foot); else quadrants — block elements,
@@ -522,7 +521,7 @@ pub fn glyphs(name: Option<&str>, env: &impl Fn(&str) -> Option<String>) -> Glyp
     }
 }
 
-/// A square portrait's box `cols` cells wide: its rows, as near square in pixels as whole cells
+/// A square picture's box `cols` cells wide: its rows, as near square in pixels as whole cells
 /// allow, and its size in pixels — exactly the cells', so the terminal never rescales it.
 #[must_use]
 pub fn square(cols: u16, cell: (u16, u16)) -> (u16, u32, u32) {
@@ -533,8 +532,8 @@ pub fn square(cols: u16, cell: (u16, u16)) -> (u16, u32, u32) {
     (rows, wide, u32::from(rows) * ch)
 }
 
-/// Player's portrait, a 256 px RGBA PNG: the human, whom the sidebar shows while no body works.
-pub const PLAYER: &[u8] = include_bytes!("../../assets/portraits/player.png");
+/// Mikata's logo, a 256 px RGBA PNG: the two cells on their tile, which the sidebar's head shows.
+pub const LOGO: &[u8] = include_bytes!("../../assets/brand/mikata-icon.png");
 
 /// `source` (a PNG) as half blocks `cols` cells wide: each cell's upper pixel its foreground, its
 /// lower its background, on `bg`. For a terminal that draws no images.
@@ -1008,11 +1007,11 @@ mod tests {
     #[test]
     fn a_picture_is_exactly_its_box_on_the_background() {
         let bg = Rgb(6, 11, 18);
-        let img = picture(PLAYER, 256, 255, bg).unwrap();
+        let img = picture(LOGO, 256, 255, bg).unwrap();
         assert_eq!(img.dimensions(), (256, 255));
         // The square is 255 px, centred: the column left over is the background.
         assert_eq!(img.get_pixel(0, 0).0, [6, 11, 18]);
-        assert!(picture(PLAYER, 16, 16, bg).is_some());
+        assert!(picture(LOGO, 16, 16, bg).is_some());
         assert!(picture(b"not a png", 8, 8, bg).is_none());
     }
 
@@ -1055,7 +1054,7 @@ mod tests {
 
     #[test]
     fn sixel_payloads_are_well_formed() {
-        let img = picture(PLAYER, 24, 17, Rgb(6, 11, 18)).unwrap();
+        let img = picture(LOGO, 24, 17, Rgb(6, 11, 18)).unwrap();
         let s = sixel(&img);
         assert!(s.starts_with("\x1bP0;1;0q\"1;1;24;17#0;2;"));
         assert!(s.ends_with("-\x1b\\"));
@@ -1079,7 +1078,7 @@ mod tests {
         assert_eq!(pal.len(), 2);
         assert_eq!(pal[usize::from(px[0])], [255, 0, 0]);
         assert_eq!(pal[usize::from(px[3])], [0, 0, 255]);
-        let many = picture(PLAYER, 64, 64, Rgb(0, 0, 0)).unwrap();
+        let many = picture(LOGO, 64, 64, Rgb(0, 0, 0)).unwrap();
         let (pal, px) = quantize(&many, 255);
         assert!(pal.len() <= 255);
         assert_eq!(px.len(), 64 * 64);
