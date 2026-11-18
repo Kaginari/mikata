@@ -11,6 +11,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-18
+
+The first release of **Mikata** (味方, "ally": the one on your side), called Mnemorph while it was
+built: the Rust core, the `mikata` terminal app and `mikata run`, the `mikatad` server, the board
+and the admin commands, the TypeScript SDK, and the book. What changed since the first cut comes
+first; then everything, grouped by the [milestones](docs/experimental/roadmap-m0-m14.md) it was
+built by.
+
+**What to expect, as measured on our own bench** (fixes in a large Python library, one small open
+model): light-coding, the default, passed 8 or 9 of 10 issue-style tasks, ahead of the two other
+harnesses run beside it; 30 of 30 small projects asked as one; and five whole repositories in one
+ask, one body a project, 4.5 of 5. An ask with its examples and expected output does best: the
+same tasks stated in one paragraph of prose passed half as often. Structured-coding and
+collective-coding are kept as the lab, usable and frozen.
+
 ### Renamed
 
 - **Mnemorph is now Mikata** (味方, "ally": the one on your side). The binaries are `mikata`,
@@ -34,17 +49,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   emblem, banner and deck are in `docs/experimental/`, the lab, frozen. A short roadmap says what
   comes next. Claims the docs made of things not built (a Claude Code hooks adapter, a
   `--container` sandbox mode) now say they are not built.
-
-### Fixed
-
-- **A split ask is held to your caps.** The bodies light-coding starts for each project were given
-  the session's limits but not its spend caps, so a split run could spend past a month, day or
-  session cap. They now read the same ledger and stop at the same caps.
-- **A piped check is judged by its own exit status.** The shell now reads a pipeline's first stage's
-  status (`PIPESTATUS`), so `pytest | tail` or `python3 -c '…' 2>&1 | grep -v noise` counts as the
-  pass or failure it was, not as a run whose status was hidden. Hidden runs stop a body after eight;
-  in one five-project run they stopped a body after 59 of its 200 steps while it was still fixing its
-  project. A command with no pipe, a heredoc or a trailing `\` runs exactly as written.
 
 ### Changed
 
@@ -85,18 +89,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   and sends failures back. Measured before: on five projects, one Orc a folder, four runs broke on
   four different plans by the Elf.
 
-## [1.0.0] - 2026-11-14
+### Fixed
 
-The first release: the Rust core, the `mikata` terminal app and `mikata run`, the
-`mikatad` server, the board and the admin commands, the TypeScript SDK, and the book. Grouped
-by the [roadmap](docs/roadmap.md)'s milestones.
-
-**What to expect, as measured on our own bench** (fixes in a large Python library, one small
-open model): light-coding, the default mode, passed 8 or 9 of 10 issue-style tasks (ahead of
-the two other harnesses run beside it) and 30 of 30 small projects asked as one. An ask with its examples and expected output does best: the same
-tasks stated in one paragraph of prose passed half as often. Structured-coding and
-collective-coding work, but cost several times more than light-coding on work that fits one
-context; they are for asking, not the default.
+- **A split ask is held to your caps.** The bodies light-coding starts for each project were given
+  the session's limits but not its spend caps, so a split run could spend past a month, day or
+  session cap. They now read the same ledger and stop at the same caps.
+- **A piped check is judged by its own exit status.** The shell now reads a pipeline's first stage's
+  status (`PIPESTATUS`), so `pytest | tail` or `python3 -c '…' 2>&1 | grep -v noise` counts as the
+  pass or failure it was, not as a run whose status was hidden. Hidden runs stop a body after eight;
+  in one five-project run they stopped a body after 59 of its 200 steps while it was still fixing its
+  project. A command with no pipe, a heredoc or a trailing `\` runs exactly as written.
 
 ### M14 — 1.0
 
