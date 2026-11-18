@@ -53,8 +53,8 @@ A body runs the same six beats, over and over, until it has an answer:
    pasted text, always including one that disagrees if any does ([memory](07-memory.md)).
 3. **Plan** — ask the model what to do next.
 4. **Act** — run one tool the model asked for, after checking that the act is on the body's shelf
-   (light-coding's body reads and writes; a push or a publish is refused) and, where a guard rule
-   you set says so, after asking you.
+   (light-coding's Mikata reads, writes and acts outside the machine) and, for a push, a publish or
+   any act a guard rule you set names, after asking you.
 5. **Verify** — did the tool work? A failure counts against the body; a command that ran and
    answered "no" (a test that is red, a search that finds nothing) is a result, not a failure.
 6. **Record** — write what happened to the journal and the ledger.

@@ -48,6 +48,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **Mikata acts outside the machine itself, with your word.** In light-coding, Mikata may push,
+  open a pull request, publish or deploy when the ask needs it: every outward or destructive act,
+  MCP tools' included, shows you an approval card first, and `mikata run` denies them unless you pass
+  `--gate-tty`. The lab's modes are unchanged: there the throne hands such acts to a Kijin. The
+  prompt says "You are Mikata", and an MCP server may name `mikata` in its `races`.
 - **The session's body is shown as Mikata.** The terminal app and `mikata run` show the session's
   body as `mikata`, and a split's project bodies as `mikata/<project>`; inside, its name is still
   `summoner`, which its memory, its MCP scope and its events keep.

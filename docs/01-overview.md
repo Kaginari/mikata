@@ -73,10 +73,10 @@ at the root of your repository that each hold a project file of their own (`pypr
 folder as its root, then checks each project once before it answers. Five whole repositories in
 one ask: one body fixed 2.5 of 5 on average; one body a project, 4.5 of 5.
 
-**It stays on your machine.** The body reads and writes inside your repository, and every command
-runs in a sandbox. An act that reaches outside (a push, a publish, a deploy) is not on its shelf
-and is refused; beyond your machine it reaches only the model provider and the MCP servers you
-declare.
+**It acts outside only with your word.** Mikata reads and writes inside your repository, and every
+command runs in a sandbox. When the ask needs an act that leaves your machine (a push, a pull
+request, a publish, a deploy), Mikata does it itself, and each one shows you an approval card first:
+denied, it stays undone. `mikata run` denies every such act unless you pass `--gate-tty`.
 
 **What it learns stays with the repository.** Everything that matters is written to the world
 folder, `.mikata/`: the journal `log.md`, the ledgers, memory. Sessions forget; the world

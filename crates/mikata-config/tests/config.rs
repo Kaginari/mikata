@@ -1687,3 +1687,16 @@ fn a_provider_may_name_its_upstream_hosts() {
     );
     assert!(g.load().unwrap_err().contains("a list of strings"));
 }
+
+/// `mikata` names light-coding's one body in an MCP server's `races`: inside, its race is the
+/// Summoner's.
+#[test]
+fn an_mcp_server_may_name_mikata_as_its_race() {
+    use mikata_races::Race;
+    let g = Ground::new("mcp-mikata");
+    g.global("[mcp.servers.docs]\ncommand = \"docs-mcp\"\nraces = [\"mikata\", \"kijin\"]\n");
+    let c = g.load().unwrap();
+    let mcp = c.mcp().unwrap();
+    let docs = mcp.servers.iter().find(|s| s.name == "docs").unwrap();
+    assert_eq!(docs.races, [Race::Summoner, Race::Kijin]);
+}

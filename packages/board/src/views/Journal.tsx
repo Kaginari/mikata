@@ -14,6 +14,7 @@ import { Mark } from '../ui/Mark.tsx';
 import { Source } from './Bodies.tsx';
 import { Pager } from './Memory.tsx';
 import './bodies.css';
+import { shownBody } from '../data/names';
 
 const anchor = (n: number) => `journal-entry-${n}`;
 
@@ -33,7 +34,7 @@ function Entry({ e }: { e: JournalEntry }) {
           {e.body && (
             <>
               {' '}
-              · <Safe text={e.body} />
+              · <Safe text={shownBody(e.body)} />
             </>
           )}{' '}
           · entry {e.n}

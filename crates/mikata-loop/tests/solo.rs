@@ -300,20 +300,53 @@ async fn an_answer_that_changed_nothing_skips_the_gate() {
     );
 }
 
-/// Solo holds no outward act: the shelf refuses it with the lawful route.
+/// In light-coding Mikata acts outside the machine itself — a push, a pull request — every such
+/// act put to the human first: with no human there it is denied at the gate, never refused by a
+/// shelf; with the human's yes it runs.
 #[tokio::test]
-async fn solo_cannot_reach_outside() {
+async fn mikata_reaches_outside_only_with_the_humans_word() {
+    let result = |model: &ScriptedModel| -> String {
+        model.requests()[1]
+            .messages
+            .iter()
+            .flat_map(|m| &m.content)
+            .find_map(|b| match b {
+                Block::ToolResult { content, .. } => Some(content.clone()),
+                _ => None,
+            })
+            .expect("the push's result")
+    };
+    let push = || {
+        Arc::new(ScriptedModel::new([
+            tool("t1", "bash", json!({"command": "git push origin main"})),
+            answer("done"),
+        ]))
+    };
+    // No human to ask: denied at the gate.
     let w = World::new("outward");
-    let model = Arc::new(ScriptedModel::new([
-        tool("t1", "bash", json!({"command": "git push origin main"})),
-        answer("needs a push"),
-    ]));
+    let model = push();
     let mut run = w.run(model.clone(), &[]);
     ask(&mut run, "ship it").await;
-    let refused = model.requests()[1].messages.iter().flat_map(|m| &m.content).any(|b| {
-        matches!(b, Block::ToolResult { content, is_error: true, .. } if content.contains("not on the slime shelf") && content.contains("kijin"))
-    });
-    assert!(refused);
+    let said = result(&model);
+    assert!(said.contains("the human gate did not approve"), "{said}");
+    assert!(!said.contains("not on the"), "no shelf refuses it: {said}");
+    // The human says yes: asked once, as an outward act, and it runs (here with no remote to
+    // push to, so git's own failure comes back, not a refusal).
+    let w = World::new("outward-yes");
+    let human = Arc::new(mikata_tools::gate::Scripted::new([
+        mikata_tools::gate::Answer::Approve,
+    ]));
+    let model = push();
+    let mut run = w.run_with(model.clone(), &[], human.clone());
+    ask(&mut run, "ship it").await;
+    let asked = human.asked();
+    assert_eq!(asked.len(), 1, "{asked:?}");
+    assert_eq!(asked[0].class, mikata_races::ToolClass::Outward);
+    let said = result(&model);
+    assert!(
+        !said.contains("did not approve") && !said.contains("not on the"),
+        "it ran: {said}"
+    );
 }
 
 /// `.only(` runs one test and silently skips the rest.

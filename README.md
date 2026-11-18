@@ -27,8 +27,9 @@ One run a task, so read ours as "8 or 9"; the price per pass held in every scree
 a project of their own, and Mikata runs one body a project, at once, then checks each. Five whole
 repositories in one ask: one body fixed 2.5 of 5 on average; one body a project, 4.5 of 5.
 
-**It stays on your machine.** It reads and writes inside your repository, every command runs in a
-sandbox, and an act that reaches outside (a push, a publish, a deploy) is refused.
+**It acts outside only with your word.** It reads and writes inside your repository, every command
+runs in a sandbox, and an act that leaves your machine (a push, a pull request, a publish) is put to
+you first, every time.
 
 | Read | For |
 |---|---|

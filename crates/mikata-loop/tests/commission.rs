@@ -4359,6 +4359,38 @@ async fn the_human_may_ask_for_a_mode() {
     );
 }
 
+/// Light-coding's Mikata acts outside the machine with the human's word; the lab's throne does not:
+/// its prompt hands outward work to a Kijin, and its shelf refuses a push outright.
+#[tokio::test]
+async fn the_labs_throne_keeps_outward_acts_for_a_kijin() {
+    use mikata_loop::Mode;
+    use mikata_loop::solo::{OUTWARD_LAB, OUTWARD_LIGHT, SOLO_PROMPT};
+    assert!(
+        SOLO_PROMPT.contains(OUTWARD_LIGHT),
+        "the line the lab's session swaps is there"
+    );
+    assert!(SOLO_PROMPT.starts_with("You are Mikata"));
+    let w = World::new("lab-outward");
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::tool("t1", "bash", json!({"command": "git push origin main"})),
+        ScriptedModel::text("ok"),
+    ]));
+    let mut o = opened_in(&w, Some(Mode::Structured), false, &model).unwrap();
+    assert_eq!(o.mode, Mode::Structured);
+    o.session.run().ask("ship it", &mut |_| {}).await;
+    let system = format!("{:?}", model.requests()[0].system);
+    assert!(
+        system.contains(&format!("{OUTWARD_LAB:?}")[1..40]),
+        "{system}"
+    );
+    assert!(
+        !system.contains(&format!("{OUTWARD_LIGHT:?}")[1..40]),
+        "{system}"
+    );
+    let told = format!("{:?}", model.requests()[1].messages);
+    assert!(told.contains("not on the"), "the shelf refuses it: {told}");
+}
+
 /// A mode the world cannot give opens no session: the refusal says what is missing and how the
 /// human makes it, and never falls back to another mode in silence.
 #[test]

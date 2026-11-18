@@ -41,10 +41,9 @@ named for its race that its shelf can use.
 Every tool has a class — read, write, outward or destructive — that you declare for the tool or
 its server; a tool nobody declared is outward, unless the sandbox proves it a read.
 
-**For Mikata's own body, two settings matter.** A session's body counts as `summoner`, and it reads
-and writes but never reaches outside. So a server it may use names `summoner` in its `races`, and
-its tools are declared `read` or `write`; an undeclared tool is outward and is never offered to it.
-Outward tools reach only the [lab's](experimental/) Kijin and Oni, and ask you before each call.
+**For Mikata's own body,** a server it may use names `mikata` in its `races` (or `summoner`, its
+name inside). Mikata may take every class: its `read` and `write` tools run as they are called, and
+an outward or destructive one, an undeclared tool included, asks you before each call.
 
 A server always sends every one of its tool definitions, so Mikata shows them in three levels,
 each priced before it loads:
@@ -106,7 +105,7 @@ tools = 3                  # at most this many
 command = "docs-index-mcp"
 args = ["--stdio"]
 env = ["DOCS_INDEX_TOKEN"] # passed by name; every other secret is scrubbed
-races = ["summoner"]       # who may be offered its tools; none by default (summoner: Mikata's body)
+races = ["mikata"]         # who may be offered its tools; none by default
 purpose = "This project's API docs"  # its level-0 line
 class = "read"             # every tool's class, unless the tool declares its own
 network = false            # no sockets in its sandbox: a server that reaches outside is outward

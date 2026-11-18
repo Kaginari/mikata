@@ -1691,6 +1691,12 @@ impl Config {
             let races = list(&at("races"))
                 .iter()
                 .map(|r| {
+                    // `mikata`: light-coding's one body, whose race inside is the Summoner's.
+                    let r = if r == "mikata" {
+                        "summoner"
+                    } else {
+                        r.as_str()
+                    };
                     Race::from_name(r)
                         .ok_or_else(|| format!("mcp.servers.{name}.races: `{r}` is no race"))
                 })

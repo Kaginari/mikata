@@ -340,9 +340,9 @@ fn an_undeclared_tool_is_outward_and_a_hint_only_makes_it_dearer_unless_the_guar
     );
     // A Slime may open nothing here: every class it could be given lies off its shelf.
     let slime = w.server("hub", &[Race::Slime], None);
-    assert!(!slime.may_serve(Race::Slime, false));
+    assert!(!slime.may_serve(Race::Slime, Race::Slime.shelf(), false));
     assert!(
-        slime.may_serve(Race::Slime, true),
+        slime.may_serve(Race::Slime, Race::Slime.shelf(), true),
         "a guarded read could be inferred"
     );
 }

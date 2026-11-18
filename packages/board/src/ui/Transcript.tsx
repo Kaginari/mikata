@@ -10,6 +10,7 @@
 import { memo, useCallback, useState } from 'react';
 import { type Call, classOf, type Entry, groupCounts, running, summary } from '../data/chat.ts';
 import { type Change, changeOf, type DiffLine, stat } from '../data/diff.ts';
+import { shownBody } from '../data/names';
 import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 
@@ -410,7 +411,7 @@ export const EntryView = memo(function EntryView({
         <div className={e.alarm ? 'line line-below line-alarm' : 'line line-below'}>
           <span aria-hidden="true">↳ </span>
           <span className="below-who">
-            <Safe text={e.body} />
+            <Safe text={shownBody(e.body)} />
           </span>{' '}
           <Safe text={e.text} />
         </div>

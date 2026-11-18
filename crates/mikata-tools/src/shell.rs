@@ -14,7 +14,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use mikata_races::{OutwardKind, Race, ToolClass, check_class, check_post};
+use mikata_races::{OutwardKind, Race, ToolClass, check_post};
 use mikata_sandbox::Policy;
 /// The process's environment without its secrets, as every child of the harness gets it.
 pub use mikata_sandbox::scrubbed_env;
@@ -406,7 +406,7 @@ fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Ou
     let (class, why, outside, asked) = ruled(verdict, cx)?;
     let contained = cx.disposable() && pushes.is_empty() && stays_on_the_machine(&acts);
     if !contained {
-        check_class(cx.race(), class).map_err(Outcome::unheld)?;
+        cx.may(class).map_err(Outcome::unheld)?;
     }
     // A Kijin does only its post's outward acts: anything else is refused before the gate.
     if cx.race().base() == Race::Kijin {

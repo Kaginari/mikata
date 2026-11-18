@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chat, type ChatView, type Entry } from '../data/chat.ts';
 import { type Chats, startChat, useRun } from '../data/chats.ts';
 import { type Live, useLive } from '../data/live.ts';
+import { shownBody } from '../data/names';
 import { format } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { announce } from '../ui/Announcer.tsx';
@@ -154,7 +155,7 @@ function useAnnouncements(view: ChatView | undefined, asks: Live['asks']) {
       if (h.asks.has(a.id)) continue;
       h.asks.add(a.id);
       announce(
-        `An ask waits at the gate: ${a.ask.class} by ${a.ask.body}. The approval card is open.`,
+        `An ask waits at the gate: ${a.ask.class} by ${shownBody(a.ask.body)}. The approval card is open.`,
         true,
       );
     }
@@ -353,7 +354,7 @@ export function LiveChat({
   }, [busy, controller, interrupt]);
   useAnnouncements(view, live.asks);
   const [glyph, tone, word] = chip(live);
-  const me = hello?.body ?? '';
+  const me = shownBody(hello?.body ?? '');
   return (
     <div className="page page-chat">
       <header className="chat-head">
