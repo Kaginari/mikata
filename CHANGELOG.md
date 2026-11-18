@@ -11,6 +11,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Fixed
+
+- **A release's notes link into the repository.** The notes are the changelog's section, whose
+  links to the book are relative; on a release page they led nowhere. The release workflow now
+  writes each one whole, at the tag (1.0.0's were corrected by hand).
+- **Seven links in the book pointed at a heading that had moved,** six of them at the overview's
+  section on the modes.
+- **`mikata status` no longer says "summoner"** when the verify witness is broken: the message
+  named the body, though the break holds every verify line.
+
 ## [1.0.0] - 2026-11-18
 
 The first release of **Mikata** (味方, "ally": the one on your side), called Mnemorph while it was
@@ -201,7 +211,7 @@ collective-coding are kept as the lab, usable and frozen.
   of their part and the tests of the files they changed before they answer. Not measured on the
   chain yet.
 - The book says the three modes: which to use, how to start each and what each needs
-  ([overview](docs/01-overview.md#which-mode-and-how-to-start-it),
+  ([overview](docs/01-overview.md#the-modes),
   [the three modes](docs/experimental/races.md#the-three-modes)). The overview, order and client-protocol
   canvases are redrawn, and [lessons](docs/lessons.md) lists what our own bench measured.
 - A `tree` beat after every landed write hashes the files the ask has changed and says how

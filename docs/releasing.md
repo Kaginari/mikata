@@ -69,7 +69,8 @@ One archive per target, `mikata-<target>.tar.gz`, holding `mikata-<version>-<tar
    `git push origin vX.Y.Z`.
 4. The `release` workflow runs:
    - `prepare` refuses a tag that is not `vX.Y.Z`, that differs from `Cargo.toml`'s version, or
-     whose changelog section is missing or undated; the section becomes the draft's notes;
+     whose changelog section is missing or undated; the section becomes the draft's notes, each
+     link into the repository written whole at the tag (a release page has no files beside it);
    - `board` builds the board once, embedded by every `mikatad`;
    - `build` compiles each target with `--locked`, packages it (`tools/package-release.sh`), and
      on Linux runs `tools/rc-smoke.sh` on the archive and `tools/test-install.sh` with it;

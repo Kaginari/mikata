@@ -516,7 +516,7 @@ good health and is still recalled.
 ### Consolidation and forgetting
 
 The desk's distillation — when a creature's desk is distilled into a rule, a trait or a wrap-up
-([evolution](experimental/races.md#evolution-the-other-way-to-change)) — merges agreeing notes into one
+([evolution](experimental/races.md#evolution--the-other-way-to-change)) — merges agreeing notes into one
 schema note: $s = 0.8$, confidence the mean of the four most salient merged notes' confidence,
 capped at 0.95, and the two most salient originals stay active beside it, as in
 MIKATA-85. **Dissent is exempt:** no counter or

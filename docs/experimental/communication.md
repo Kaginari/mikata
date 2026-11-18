@@ -62,7 +62,7 @@ sequenceDiagram
 
 The picture is **structured-coding** at work. In light-coding, the default mode, there is no order
 at all:
-Summoner does the work itself ([which mode](../01-overview.md#which-mode-and-how-to-start-it)).
+Summoner does the work itself ([which mode](../01-overview.md#the-modes)).
 
 An order travels down one rank at a time, and each rank passes down only what the next one
 needs. In structured-coding Summoner never talks to a Slime, and an Elf never talks to another Elf
