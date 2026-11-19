@@ -109,10 +109,10 @@ real fix as truth ([the bench](../bench.md#what-did-not-help)):
   time, against 0.43 for one run, at three times the price. Where every run misreads the ask the
   same way, no sample holds the right answer; where most do, the majority is wrong.
 - **A model settles a disagreement wrongly one time in three.** Shown one case and the answers
-  the runs give, two models picked the right one 66% and 69% of the time; on the hardest ask, two
-  times in five.
+  the runs give, two models picked the right one 67% and 63% of the time; on the hardest ask, less
+  than half the time.
 - **A second reading of what one run changed** catches a limit the ask states and the work
-  crossed (63% to 70% of such cases, with 1 to 2% false alarms), and misses a wrong new value. It
+  crossed (57% to 67% of such cases, with 1 to 3% false alarms), and misses a wrong new value. It
   caught 8 and 9 of 16 failed runs, where we had asked for 10.
 
 So the pick is not built: a second head of the same kind shares the first one's reading, and what

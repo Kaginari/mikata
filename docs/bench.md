@@ -80,8 +80,8 @@ Measured, and left out of the product:
 | Statement rows: a script of the ask's claims, run after every write, saying which ones the change broke | 1 of 6, same as without |
 | Raising the step and context limits on small work | 27 and 28 of 30, against 30 and 30: more room, less checking |
 | Three runs of one prose ask and a picker (replayed from 25 kept runs, no model call) | at best 0.60 with a perfect picker, 0.50 picking by agreement, against 0.43 for one run, at three times the price |
-| A model settling the cases where those runs disagree | right 66% and 69% of the time (two models), where we asked for 80% |
-| A second reading: each answer a run's own commands print differently after its work, judged against the ask by a model | 8 and 9 of 16 failed runs caught, where we asked for 10; 1 to 2% false alarms |
+| A model settling the cases where those runs disagree | right 67% and 63% of the time (two models), where we asked for 80% |
+| A second reading: each answer a run's own commands print differently after its work, judged against the ask by a model | 8 and 9 of 16 failed runs caught, where we asked for 10; 1 to 3% false alarms |
 
 A prompt sentence does not fix a misreading. The failures that remain are the model deciding a
 case should change when the ask says it must stay.
@@ -90,8 +90,8 @@ case should change when the ask says it must stay.
 of the four prose asks. By code alone, a failed run's own commands show its mistake in 14 of 16
 runs, once their output on the starting code is set beside their output on the finished work. But
 a model asked to judge that list reads the ask as the coder did: it catches a stated limit the
-work crossed (63% to 70% of such cases) and takes a wrong new value for the right one (23 and 18
-times in 26). Another model reads a little better than the same one, at a fifteenth of the price,
+work crossed (57% to 67% of such cases) and takes a wrong new value for the right one (29 and 23
+times in 32). Another model reads a little better than the same one, at a fifteenth of the price,
 and not enough. What the ask leaves out, no reader puts back; with its examples the same four
 asks passed 15 of 16.
 
