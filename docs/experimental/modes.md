@@ -95,24 +95,32 @@ splits the ask by zone and summons the members it needs, which work at the same 
 code itself. Measured once against light-coding on multi-part fixes: 1 of 4 at $2.02 a run,
 against 3 of 8 at $0.62. Splitting work that fits one head only adds hand-offs.
 
-**What we want it to become: many paths, one gate.** A proposal, not built. Light-coding already
-weighs two or three ways before it starts, then keeps one. The collective would run several:
+**What we asked of it next: many paths, one gate.** Light-coding weighs two or three ways before
+it starts, then keeps one. The collective would run several: each member the same ask in its own
+copy of the repository, at the same time, and the pick made by the checks, never by a model's
+opinion. We said here it would pay only if it beat the plain alternative at the same budget:
+three independent light-coding runs, best of three by the checks.
 
-1. The Summoner writes the "done" list and three to five genuinely different paths.
-2. Each member gets the same ask, the same list and **one path**, in its own copy of the
-   repository. They run at the same time.
-3. Every result goes through the same gate and the same list. The pick is by the checks: most
-   lines passing, then fewest files changed, then cheapest. Never by a model's opinion.
-4. Everything is kept: each path's tree, journal, marks and cost.
+**What a replay of kept runs says of it.** Before building it we took 25 kept runs of the four
+prose asks and, by code, asked every run's tree the questions the other runs had asked, with the
+real fix as truth ([the bench](../bench.md#what-did-not-help)):
 
-It costs several times more. In return: a better answer when the first idea is wrong (the prose
-asks on our bench fail on one misreading, and different paths force different readings); a signal
-when paths pass their own checks but disagree, which means the ask is ambiguous and it is time to
-ask you; and data on which approaches work, which is what a learned judge of progress needs.
+- **Picking is capped by the samples.** Best of three with a perfect picker would pass 0.60 of the
+  time, against 0.43 for one run, at three times the price. Where every run misreads the ask the
+  same way, no sample holds the right answer; where most do, the majority is wrong.
+- **A model settles a disagreement wrongly one time in three.** Shown one case and the answers
+  the runs give, two models picked the right one 66% and 69% of the time; on the hardest ask, two
+  times in five.
+- **A second reading of what one run changed** catches a limit the ask states and the work
+  crossed (63% to 70% of such cases, with 1 to 2% false alarms), and misses a wrong new value. It
+  caught 8 and 9 of 16 failed runs, where we had asked for 10.
 
-It pays only if it beats the plain alternative at the same budget: three independent light-coding
-runs, best of three by the checks. If it does not, the paths add nothing over sampling, and we
-will say so here.
+So the pick is not built: a second head of the same kind shares the first one's reading, and what
+the ask leaves out no reader puts back. One thing the replay shows that no bench without a human
+can score: where two members' trees contradict each other on a concrete case, the ask is unclear
+exactly there. They contradicted each other in every group of two or three on the asks most runs
+failed. That case, with its candidate outputs, is a question to put to you, and with examples the
+same asks passed 15 of 16.
 
 ## Technical detail
 

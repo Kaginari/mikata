@@ -7574,3 +7574,18 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Step 22b, bar written first:** the five-project ask itself, 5 and 4 of 5 (mean 4.5), about 19 minutes and $1.72 a run. One body did 2.5 (3.5 with 400 steps); the chain 3.3. At the bar's "pays well" line.
 - **Dropped:** the "held, not shown" check lever. Light-coding's Done-when lines are run by the model, not the harness, so it would help only the frozen chain.
 - **Spent:** $6.27 on steps 22 and 22b.
+
+### [2026-11-18T23:30:00+00:00] aibo Summoner — Mikata 1.0.0 is published
+- **Since the last entry:** a piped check is read by its first stage's status (#438); Mnemorph is renamed Mikata, with the book split into Mikata's pages and the lab (#439, #440); in light-coding the body is Mikata and does its own outward acts, each put to the human first (#441); the release's changelog (#442).
+- **Released:** tag `v1.0.0` at d2e92bc, the same tree as main. The workflow built the four archives and `SHA256SUMS`. Checked from the outside before publishing: two archives against the sums, the binaries' versions, `mikata status` in a fresh world, and after publishing the installer, pinned and latest.
+- **Corrected by hand in the notes:** four links to the book were relative, and a release page has no files beside it. #443 makes the workflow write them whole at the tag, and fixes seven dead anchors in the book and a status message that still said "summoner".
+- **Done alone,** on the owner's word: "do all, don't wait for me".
+
+### [2026-11-19T00:11:00+00:00] aibo Summoner — a second reading does not close the terse gap
+- **Asked by** the owner: look again at the collective and structured-coding, read the research for ideas, work on one, and keep the lesson if it is bad.
+- **The idea,** from three research notes (a pick is worth its checker's precision; contradictions are kept and found by code; check the statement, not only the proof): the second head's use is a second reading of the ask, not a second pair of hands.
+- **Stage 1, no model call:** 25 kept runs of the four prose asks, each asked every other run's questions by code, the upstream fix as truth. Best of three with a perfect picker: 0.60, against 0.43 for one run. A failed run's own questions show its mistake in 14 of 16 once set beside the starter's answers. On one ask all seven runs share one misreading; on another six runs hold three and contradict each other in every group.
+- **Stage 2, bar written first, $1.27 of a $2 cap:** a model shown one changed case catches a broken "must stay" (63% qwen, 70% DeepSeek; 1 to 2% false alarms) and takes a wrong new value for right (23 and 18 times in 26). Failed runs caught: 8 and 9 of 16, bar 10. Disagreements settled right: 66% and 69%, bar 80%.
+- **By the bar:** not met, twice. Nothing is built; the stage that would have measured repair did not run.
+- **Learned:** the same mind in another body shares its reading, and what an ask leaves out no reader puts back. The collective's "many paths, one gate" is capped by its samples. What is left is for the human: the short list of what a body's own commands print before and after, and the one case where two bodies disagree.
+- **Kept:** the tools, the data and the report in the bench repository (PR 43); the bench page, the lab page and the roadmap say it.
