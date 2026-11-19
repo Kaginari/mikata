@@ -753,8 +753,9 @@ When a light-coding answer lands and files changed, the harness runs the body's 
   that does not print the same twice, one that runs only on the finished work (it uses what the
   work added), one not reached in the step's 60 seconds.
 
-You see one line that counts, then the newest check that differs, at most 16 lines of it. Every
-check that differs is written whole, with its command, to `.mikata/tmp/what-changed.md`. The
+You see one line that counts, then the places the checks differ, the newest check first and each
+place once, at most 20 lines; how many changed lines did not fit is said. Every check that
+differs is written whole, with its command, to `.mikata/tmp/what-changed.md`. The
 `changes` event carries the text to every surface; the journal's `changes` beat keeps the counts.
 
 No model reads it, and nothing of it goes back to the body: it changes what you see, never what

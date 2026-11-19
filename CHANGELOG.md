@@ -16,7 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - **What changed, by Mikata's own checks.** When a light-coding answer lands, the harness runs the
   body's last checks again (the `python3 -c` and its kin that it asked its code questions with),
   on a copy of the finished work and on a copy of the code as the ask found it, and shows you
-  where they print differently: one line that counts, then the newest check's lines, `- ` before
+  where they print differently: one line that counts, then the places they differ, `- ` before
   and `+ ` now. Every check that differs is written whole to `.mikata/tmp/what-changed.md`. No
   model reads it and nothing of it goes back to the body. In the terminal app, `mikata run`, the
   board and the protocol (a `changes` event). `gate.changes = false` in your own configuration

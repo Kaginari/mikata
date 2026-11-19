@@ -34,8 +34,8 @@ const BUDGET: Duration = Duration::from_secs(60);
 /// The largest world copied for it, in bytes and in files.
 const COPY_BYTES: u64 = 256 * 1024 * 1024;
 const COPY_FILES: u32 = 40_000;
-/// The most lines of one check shown to the human; the whole of it is in the file.
-const SHOWN: usize = 16;
+/// The most lines of the checks' outputs shown to the human; the whole of it is in the file.
+const SHOWN: usize = 20;
 /// The lines of an output set side by side; a longer one is compared whole and shown cut.
 const DIFFED: usize = 400;
 /// Where the whole of it is written, beneath the world.
@@ -422,9 +422,30 @@ fn lines<'a>(before: &'a str, now: &'a str) -> Vec<Line<'a>> {
     out
 }
 
-/// The changed lines of one check with the two lines above each change, which most often say
-/// what was asked: at most `most` lines, and how many changed lines were left out.
-fn shown(before: &str, now: &str, most: usize) -> (Vec<String>, usize) {
+/// One place a check prints differently: its changed lines, with the two lines above the first
+/// of them, which most often say what was asked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Place {
+    /// The lines, each with its sign: two spaces, `- ` or `+ `.
+    lines: Vec<String>,
+    /// How many of them changed.
+    changed: usize,
+}
+
+impl Place {
+    /// What makes two places the same one: their changed lines, whatever stood above them.
+    fn key(&self) -> String {
+        self.lines
+            .iter()
+            .filter(|l| !l.starts_with("  "))
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
+/// The places `before` and `now` differ, in the order they were printed.
+fn places(before: &str, now: &str) -> Vec<Place> {
     let all = lines(before, now);
     let changed: Vec<bool> = all.iter().map(|l| !matches!(l, Line::Both(_))).collect();
     let mut keep = vec![false; all.len()];
@@ -435,29 +456,35 @@ fn shown(before: &str, now: &str, most: usize) -> (Vec<String>, usize) {
             }
         }
     }
-    let mut out = Vec::new();
-    let mut left = 0;
+    let mut out: Vec<Place> = Vec::new();
     let mut last: Option<usize> = None;
     for (i, line) in all.iter().enumerate() {
         if !keep[i] {
             continue;
         }
-        if out.len() >= most {
-            left += usize::from(changed[i]);
-            continue;
-        }
-        // A blank line between two places that are not next to each other.
-        if last.is_some_and(|l| l + 1 != i) && !out.last().is_some_and(String::is_empty) {
-            out.push(String::new());
+        // Lines next to each other are one place.
+        if last.is_none_or(|l| l + 1 != i) {
+            out.push(Place {
+                lines: Vec::new(),
+                changed: 0,
+            });
         }
         last = Some(i);
-        out.push(match line {
+        let place = out.last_mut().expect("a place was just opened");
+        place.changed += usize::from(changed[i]);
+        place.lines.push(match line {
             Line::Both(l) => format!("  {l}"),
             Line::Gone(l) => format!("- {l}"),
             Line::New(l) => format!("+ {l}"),
         });
     }
-    (out, left)
+    // A blank line above a change says nothing of it.
+    for place in &mut out {
+        while place.lines.first().is_some_and(|l| l.trim().is_empty()) {
+            place.lines.remove(0);
+        }
+    }
+    out
 }
 
 fn plural(n: usize, one: &str, many: &str) -> String {
@@ -494,9 +521,9 @@ fn left_out(r: &Report) -> Option<String> {
     (!said.is_empty()).then(|| said.join(", "))
 }
 
-/// What the human is shown: one line that counts, then the lines of the newest check that
-/// prints differently, then where the rest is. `None` when there is nothing to say: no check
-/// was taken.
+/// What the human is shown: one line that counts, then the places the checks print differently,
+/// the newest check first and each place once, until [`SHOWN`] lines are used, then where the
+/// whole of it is. `None` when there is nothing to say: no check was taken.
 #[must_use]
 pub fn said(r: &Report, who: &str) -> Option<String> {
     if r.taken == 0 {
@@ -520,38 +547,43 @@ pub fn said(r: &Report, who: &str) -> Option<String> {
     if let Some(left) = left_out(r) {
         let _ = write!(s, " ({left})");
     }
-    let Some(first) = r.differ.first() else {
+    if r.differ.is_empty() {
         return Some(s);
-    };
-    let (shown, more) = shown(&first.before, &first.now, SHOWN);
-    s.push_str(if r.differ.len() == 1 {
-        ":\n"
-    } else {
-        ". The last of them:\n"
-    });
-    for line in &shown {
-        s.push('\n');
-        s.push_str(line);
     }
-    let mut rest = Vec::new();
-    if more > 0 {
-        rest.push(format!(
-            "{} in this check",
-            plural(more, "more changed line", "more changed lines")
-        ));
-    }
-    if r.differ.len() > 1 {
-        rest.push(plural(r.differ.len() - 1, "more check", "more checks"));
-    }
-    let _ = write!(
-        s,
-        "\n\n{}{FILE}",
-        if rest.is_empty() {
-            "whole: ".to_owned()
-        } else {
-            format!("{}: ", rest.join(", "))
+    s.push(':');
+    let mut seen = std::collections::BTreeSet::new();
+    let (mut used, mut more) = (0, 0);
+    for d in &r.differ {
+        for place in places(&d.before, &d.now) {
+            // The same change printed by two checks is said once.
+            if !seen.insert(place.key()) {
+                continue;
+            }
+            if used > 0 && used + place.lines.len() + 1 > SHOWN {
+                more += place.changed;
+                continue;
+            }
+            s.push('\n');
+            for line in &place.lines {
+                s.push('\n');
+                s.push_str(line);
+            }
+            used += place.lines.len() + 1;
         }
+    }
+    let whole = format!(
+        "the {} whole: {FILE}",
+        plural(r.differ.len(), "check", "checks")
     );
+    if more > 0 {
+        let _ = write!(
+            s,
+            "\n\n{} not shown; {whole}",
+            plural(more, "more changed line", "more changed lines")
+        );
+    } else {
+        let _ = write!(s, "\n\n{whole}");
+    }
     Some(s)
 }
 
@@ -580,9 +612,13 @@ pub fn written(r: &Report, who: &str) -> String {
             n + 1,
             d.command.trim_end()
         );
-        let (all, _) = shown(&d.before, &d.now, usize::MAX);
-        for line in all {
-            let _ = writeln!(s, "{line}");
+        for (i, place) in places(&d.before, &d.now).iter().enumerate() {
+            if i > 0 {
+                s.push('\n');
+            }
+            for line in &place.lines {
+                let _ = writeln!(s, "{line}");
+            }
         }
         s.push_str("```\n\n");
     }
@@ -645,17 +681,20 @@ mod tests {
         let before =
             "Tests\n\nOne:\n  Input:  a\n  Output: 1\n\nTwo:\n  Input:  b\n  Output: 2\n\ndone";
         let now =
-            "Tests\n\nOne:\n  Input:  a\n  Output: 1\n\nTwo:\n  Input:  b\n  Output: 3\n\ndone";
-        let (shown, more) = shown(before, now, 16);
+            "Tests\n\nOne:\n  Input:  a\n  Output: 9\n\nTwo:\n  Input:  b\n  Output: 3\n\ndone";
+        let found = places(before, now);
         assert_eq!(
-            shown,
+            found.len(),
+            2,
+            "two places, not next to each other: {found:?}"
+        );
+        assert_eq!(
+            found[1].lines,
             ["  Two:", "    Input:  b", "-   Output: 2", "+   Output: 3"]
         );
-        assert_eq!(more, 0);
-        // Cut at the most lines, the changed lines left out counted.
-        let (shown, more) = super::shown("a\nb\nc", "x\ny\nz", 2);
-        assert_eq!(shown, ["- a", "- b"]);
-        assert_eq!(more, 4);
+        assert_eq!(found[1].changed, 2);
+        assert_eq!(found[1].key(), "-   Output: 2\n+   Output: 3");
+        assert_eq!(places("same\n", "same\n"), Vec::new());
     }
 
     fn differ(before: &str, now: &str) -> Differ {
@@ -685,7 +724,14 @@ mod tests {
         let r = Report {
             taken: 5,
             same: 1,
-            differ: vec![differ("in: a\nout: 1", "in: a\nout: 2"), differ("p", "q")],
+            // The newest check first; the second prints the first's change again, and one more.
+            differ: vec![
+                differ("in: a\nout: 1", "in: a\nout: 2"),
+                differ(
+                    "in: a\nout: 1\n\n\nin: b\nout: 5",
+                    "in: a\nout: 2\n\n\nin: b\nout: 6",
+                ),
+            ],
             only_now: 1,
             unsteady: 1,
             ..Report::default()
@@ -693,8 +739,27 @@ mod tests {
         assert_eq!(
             said(&r, "Mikata").unwrap(),
             "what changed: of Mikata's last 5 checks, 2 print differently than on the code you gave it \
-             (1 runs only on the finished work, 1 does not print the same twice). The last of them:\n\n  \
-             in: a\n- out: 1\n+ out: 2\n\n1 more check: .mikata/tmp/what-changed.md"
+             (1 runs only on the finished work, 1 does not print the same twice):\n\n  \
+             in: a\n- out: 1\n+ out: 2\n\n  in: b\n- out: 5\n+ out: 6\n\n\
+             the 2 checks whole: .mikata/tmp/what-changed.md"
+        );
+        // Past the lines shown, what is left is counted.
+        let mut many = String::new();
+        for i in 0..30 {
+            let _ = write!(many, "k{i}: old\n\n\n\n");
+        }
+        let long = Report {
+            taken: 1,
+            differ: vec![differ(&many, &many.replace("old", "new"))],
+            ..Report::default()
+        };
+        let text = said(&long, "Mikata").unwrap();
+        assert!(text.lines().count() <= SHOWN + 6, "{text}");
+        assert!(
+            text.ends_with(
+                "more changed lines not shown; the 1 check whole: .mikata/tmp/what-changed.md"
+            ),
+            "{text}"
         );
         let none = Report {
             taken: 2,

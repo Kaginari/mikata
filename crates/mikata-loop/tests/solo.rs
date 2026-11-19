@@ -932,7 +932,7 @@ async fn a_landed_answer_is_followed_by_what_changed_by_the_bodys_own_checks() {
     assert_eq!(
         text,
         "what changed: of Mikata's last 1 check, 1 prints differently than on the code you gave \
-         it:\n\n- f(1) = 2\n+ f(1) = 3\n\nwhole: .mikata/tmp/what-changed.md"
+         it:\n\n- f(1) = 2\n+ f(1) = 3\n\nthe 1 check whole: .mikata/tmp/what-changed.md"
     );
     let whole = fs::read_to_string(w.world().join(".mikata/tmp/what-changed.md")).unwrap();
     assert!(
