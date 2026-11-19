@@ -740,3 +740,152 @@ fn a_snapshot_exports_into_a_copy() {
         "the attic's own index still sees the world"
     );
 }
+
+// ── a command that puts a file back ─────────────────────────────────────────
+
+/// A world under git with one commit, and a session that has edited `src/a.rs`.
+fn edited(name: &str) -> (Ground, Context) {
+    let g = Ground::new(name);
+    git(&g.world(), &["init", "-q"]);
+    git(&g.world(), &["add", "-A"]);
+    git(&g.world(), &["commit", "-qm", "first"]);
+    let mut cx = g.cx();
+    let o = call(
+        &registry(),
+        "write",
+        r#"{"path": "src/a.rs", "content": "fn a() { work() }\n"}"#,
+        &mut cx,
+    );
+    assert!(!o.is_error, "{o:?}");
+    (g, cx)
+}
+
+fn kept_copies(g: &Ground) -> Vec<PathBuf> {
+    walk(&g.world().join(".mikata/tmp/kept"))
+}
+
+/// The run this is for: a `git checkout -- file` took a session's twenty edits, nothing said so,
+/// and the body wrote them again from memory until its steps ran out.
+#[test]
+fn a_command_that_puts_a_file_back_says_so_and_keeps_what_it_replaced() {
+    let (g, mut cx) = edited("putback");
+    let o = bash(&mut cx, "git checkout -- src/a.rs");
+    assert!(!o.is_error, "{o:?}");
+    assert!(
+        o.content.contains(
+            "put 1 file(s) back as the session found it, without this session's changes: src/a.rs"
+        ),
+        "{o:?}"
+    );
+    assert_eq!(
+        read(&g, "src/a.rs"),
+        "fn a() {}\n",
+        "the command did what it did"
+    );
+    let kept = kept_copies(&g);
+    assert_eq!(kept.len(), 1, "{kept:?}");
+    assert!(kept[0].ends_with("src/a.rs"), "{kept:?}");
+    assert_eq!(fs::read_to_string(&kept[0]).unwrap(), "fn a() { work() }\n");
+    // The note names the place, relative to the world, and a plain copy brings the work back.
+    let at = kept[0]
+        .strip_prefix(g.world())
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    assert!(
+        o.content.contains(at.trim_end_matches("/src/a.rs")),
+        "{o:?}"
+    );
+    let o = bash(&mut cx, &format!("cp {at} src/a.rs"));
+    assert!(
+        !o.is_error && !o.content.contains("back as the session found"),
+        "{o:?}"
+    );
+    assert_eq!(read(&g, "src/a.rs"), "fn a() { work() }\n");
+}
+
+/// It is read from the files, never from the command's words: the same loss with no `checkout`
+/// in sight, and in a world that is no repository at all.
+#[test]
+fn a_file_put_back_is_seen_whatever_the_command_says() {
+    let (g, mut cx) = edited("putback-words");
+    let o = bash(&mut cx, "git show HEAD:src/a.rs > src/a.rs");
+    assert!(o.content.contains("put 1 file(s) back"), "{o:?}");
+
+    let g2 = Ground::new("putback-nogit");
+    fs::write(g2.world().join("a.orig"), "fn a() {}\n").unwrap();
+    let mut cx = g2.cx();
+    let o = call(
+        &registry(),
+        "write",
+        r#"{"path": "src/a.rs", "content": "fn a() { work() }\n"}"#,
+        &mut cx,
+    );
+    assert!(!o.is_error, "{o:?}");
+    let o = bash(&mut cx, "cp a.orig src/a.rs");
+    assert!(o.content.contains("put 1 file(s) back"), "{o:?}");
+    assert_eq!(kept_copies(&g2).len(), 1);
+    drop(g);
+}
+
+/// A stash holds what it took: the body pops it, and nothing is said.
+#[test]
+fn a_stash_is_the_bodys_to_pop_and_nothing_is_said() {
+    let (g, mut cx) = edited("putback-stash");
+    let o = bash(&mut cx, "git stash -q");
+    assert!(
+        !o.is_error && !o.content.contains("back as the session found"),
+        "{o:?}"
+    );
+    assert_eq!(read(&g, "src/a.rs"), "fn a() {}\n");
+    let o = bash(&mut cx, "git stash pop -q");
+    assert!(
+        !o.is_error && !o.content.contains("back as the session found"),
+        "{o:?}"
+    );
+    assert_eq!(read(&g, "src/a.rs"), "fn a() { work() }\n");
+    assert_eq!(kept_copies(&g), Vec::<PathBuf>::new());
+    // With the stash gone, the same checkout is a loss again.
+    let o = bash(&mut cx, "git checkout -- src/a.rs");
+    assert!(o.content.contains("put 1 file(s) back"), "{o:?}");
+}
+
+/// A command that changes a file to something new, or leaves the session's work alone, is not
+/// one that put anything back.
+#[test]
+fn only_a_file_put_back_is_named() {
+    let (g, mut cx) = edited("putback-only");
+    let o = bash(
+        &mut cx,
+        "echo '// more' >> src/a.rs && git checkout -- src/b.rs",
+    );
+    assert!(!o.content.contains("back as the session found"), "{o:?}");
+    assert_eq!(kept_copies(&g), Vec::<PathBuf>::new());
+    // And before the session has changed anything, there is nothing to lose.
+    let g2 = Ground::new("putback-clean");
+    git(&g2.world(), &["init", "-q"]);
+    git(&g2.world(), &["add", "-A"]);
+    git(&g2.world(), &["commit", "-qm", "first"]);
+    let mut cx = g2.cx();
+    let o = bash(&mut cx, "git checkout -- .");
+    assert!(!o.content.contains("back as the session found"), "{o:?}");
+}
+
+/// The copy is written beneath the world following no link: a scratch folder swapped for a link
+/// out of the world gets nothing, and the note names the attic's snapshot instead.
+#[test]
+fn the_kept_copy_is_never_written_through_a_link() {
+    let (g, mut cx) = edited("putback-link");
+    let outside = g.root.join("outside");
+    fs::create_dir_all(&outside).unwrap();
+    fs::create_dir_all(g.world().join(".mikata/tmp")).unwrap();
+    std::os::unix::fs::symlink(&outside, g.world().join(".mikata/tmp/kept")).unwrap();
+    let o = bash(&mut cx, "git checkout -- src/a.rs");
+    assert!(o.content.contains("put 1 file(s) back"), "{o:?}");
+    assert!(o.content.contains("kept in the attic, snapshot "), "{o:?}");
+    assert_eq!(
+        walk(&outside),
+        Vec::<PathBuf>::new(),
+        "nothing was written through the link"
+    );
+}

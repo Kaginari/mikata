@@ -11,6 +11,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Added
+
+- **A command that undoes the body's own edits says so, and the edits are kept in reach.** When a
+  command puts a file back as the session found it (a `git checkout -- file`, a copy laid over
+  it), its result names the file and where the version it replaced is kept:
+  `.mikata/tmp/kept/<snapshot>/<path>`, which a plain `cp` brings back. Read from the files, not
+  from the command's words; nothing is said when the command's own stash holds the work. On our
+  bench a body lost twenty edits to a checkout inside a script and wrote them again from memory
+  until its steps ran out.
+
 ### Fixed
 
 - **A release's notes link into the repository.** The notes are the changelog's section, whose
