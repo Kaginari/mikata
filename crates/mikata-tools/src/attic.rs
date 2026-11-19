@@ -30,6 +30,8 @@ pub struct Attic {
     world: PathBuf,
     keep_secs: u64,
     max_bytes: u64,
+    /// The first snapshot taken through this attic: the tree before this session changed it.
+    first: std::sync::OnceLock<Snapshot>,
 }
 
 /// How long snapshots are kept, by default.
@@ -229,6 +231,7 @@ impl Attic {
             world: world.to_path_buf(),
             keep_secs: KEEP_DAYS * 24 * 60 * 60,
             max_bytes: MAX_MB * 1024 * 1024,
+            first: std::sync::OnceLock::new(),
         })
     }
 
@@ -393,7 +396,115 @@ impl Attic {
             .map_err(|e| format!("attic log: {e}"))?;
         let _ = writeln!(log, "{now} {tree} {}", why.replace('\n', " "));
         self.prune_when_due(now);
-        Ok(Snapshot { tree, skipped })
+        let snap = Snapshot { tree, skipped };
+        // The first one is the session's start: what a later command may put a file back to.
+        let _ = self.first.set(snap.clone());
+        Ok(snap)
+    }
+
+    /// The first snapshot taken through this attic: the tree as this session found it.
+    #[must_use]
+    pub fn first(&self) -> Option<&Snapshot> {
+        self.first.get()
+    }
+
+    /// The files a command put back: `before`, taken as the command started, held this session's
+    /// changes to them, and the world now holds each as the session's first snapshot did. The
+    /// file is still there, so nothing else says the work went: a `git checkout -- file`, or a
+    /// copy laid over it. A file gone from the world is a deletion ([`Attic::deleted_since`]).
+    #[must_use]
+    pub fn put_back_since(&self, before: &Snapshot) -> Vec<String> {
+        let Some(first) = self.first().filter(|f| f.tree != before.tree) else {
+            return Vec::new();
+        };
+        // What the session had changed when the command started: each path, and the blob it
+        // began as.
+        let Ok(out) = self.git(&[
+            "diff-tree",
+            "-r",
+            "--raw",
+            "-z",
+            "--no-renames",
+            "--no-abbrev",
+            &first.tree,
+            &before.tree,
+        ]) else {
+            return Vec::new();
+        };
+        let raw = String::from_utf8_lossy(&out.stdout);
+        let mut fields = raw.split('\0');
+        let mut changed: Vec<(String, String)> = Vec::new();
+        while let (Some(meta), Some(path)) = (fields.next(), fields.next()) {
+            let mut meta = meta.split(' ');
+            let (began, status) = (meta.nth(2), meta.nth(1));
+            // A file the session made is not one it can be put back to; a path that holds a line
+            // break cannot be named to git one a line.
+            if let (Some(began), Some("M" | "T")) = (began, status)
+                && !path.contains('\n')
+                && self
+                    .world
+                    .join(path)
+                    .symlink_metadata()
+                    .is_ok_and(|m| m.is_file())
+            {
+                changed.push((path.to_owned(), began.to_owned()));
+            }
+        }
+        if changed.is_empty() {
+            return Vec::new();
+        }
+        // Each one hashed as the attic would keep it now, the store untouched.
+        let Ok(mut child) = self
+            .command(&["hash-object", "--stdin-paths"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+        else {
+            return Vec::new();
+        };
+        if let Some(mut stdin) = child.stdin.take() {
+            let names: Vec<&str> = changed.iter().map(|(p, _)| p.as_str()).collect();
+            let _ = stdin.write_all((names.join("\n") + "\n").as_bytes());
+        }
+        let Ok(out) = child.wait_with_output() else {
+            return Vec::new();
+        };
+        let now = String::from_utf8_lossy(&out.stdout);
+        let now: Vec<&str> = now.lines().collect();
+        if !out.status.success() || now.len() != changed.len() {
+            return Vec::new();
+        }
+        changed
+            .into_iter()
+            .zip(now)
+            .filter(|((_, began), now)| began == now)
+            .map(|((path, _), _)| path)
+            .collect()
+    }
+
+    /// The file `rel` as `snap` holds it.
+    ///
+    /// # Errors
+    ///
+    /// The snapshot does not hold it, or it is over `most` bytes.
+    pub fn kept_file(&self, snap: &Snapshot, rel: &str, most: u64) -> Result<Vec<u8>, String> {
+        let name = format!("{}:{rel}", snap.tree);
+        let size: u64 = self
+            .ok(&["cat-file", "-s", &name])?
+            .parse()
+            .map_err(|_| format!("the attic gave no size for `{rel}`"))?;
+        if size > most {
+            return Err(format!("`{rel}` is {size} bytes"));
+        }
+        let out = self
+            .git(&["cat-file", "blob", &name])
+            .map_err(|e| format!("git: {e}"))?;
+        if out.status.success() {
+            Ok(out.stdout)
+        } else {
+            Err(String::from_utf8_lossy(&out.stderr).trim().to_owned())
+        }
     }
 
     /// Resets every file a snapshot covers under `into` to the tree `tree` holds: each written as

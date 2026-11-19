@@ -266,6 +266,7 @@ fn attempt(
     let kept = cx
         .attic()
         .map(|attic| attic.snapshot(&format!("before bash: {line}")));
+    let stash = stash_tip(cx.world());
     let bound = plan.as_ref().map(|plan| (plan, made.as_slice()));
     let ran = match run(
         command,
@@ -315,6 +316,12 @@ fn attempt(
     }
     let tripped = before.restore();
     let attic_note = attic_note(cx, kept.as_ref(), class);
+    // A stash the command pushed holds what it took from the tree: that work is the body's to
+    // pop, and nothing is said of it.
+    let put_back = match stash_tip(cx.world()) {
+        Some(tip) if stash.as_deref() != Some(tip.as_str()) => None,
+        _ => put_back_note(cx, kept.as_ref()),
+    };
     let mut out = Outcome::ok(ran.render(), class);
     out.is_error = ran.timed_out || ran.interrupted || ran.code != Some(0);
     out.meta.exit = ran.code;
@@ -330,6 +337,9 @@ fn attempt(
         );
     }
     if let Some(note) = attic_note {
+        let _ = write!(out.content, "\n[{note}]");
+    }
+    if let Some(note) = put_back {
         let _ = write!(out.content, "\n[{note}]");
     }
     if !tripped.is_empty() {
@@ -473,6 +483,97 @@ fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Ou
         outside,
         plan: Some(plan),
     })
+}
+
+/// The most files a command put back whose replaced versions are copied to the scratch.
+const KEPT_FILES: usize = 12;
+/// The largest replaced version copied to the scratch.
+const KEPT_BYTES: u64 = 1024 * 1024;
+
+/// The stash's tip as git keeps it on disk, read without running git in the world: a command
+/// that pushes a stash moves it.
+fn stash_tip(world: &Path) -> Option<String> {
+    let dot = world.join(".git");
+    let dir = if dot.is_dir() {
+        dot
+    } else {
+        // A linked worktree: `.git` is a file naming its own directory, and `commondir` there
+        // names the one the stash lives in.
+        let named = fs::read_to_string(&dot).ok()?;
+        let own = PathBuf::from(named.strip_prefix("gitdir:")?.trim());
+        let own = if own.is_absolute() {
+            own
+        } else {
+            world.join(own)
+        };
+        match fs::read_to_string(own.join("commondir")) {
+            Ok(common) => own.join(common.trim()),
+            Err(_) => own,
+        }
+    };
+    fs::read_to_string(dir.join("refs/stash"))
+        .ok()
+        .map(|tip| tip.trim().to_owned())
+}
+
+/// What is said when a command put files back to what they were when the session started,
+/// taking this session's changes to them with no trace in the tree: which files, and where the
+/// version each one replaced is kept. That version is copied into the body's scratch, where its
+/// own commands reach it: the attic itself is out of every command's reach. Seen on our bench: a
+/// `git checkout -- file` inside a script took twenty edits, and the body wrote them again from
+/// memory until its steps ran out.
+fn put_back_note(
+    cx: &Context,
+    kept: Option<&Result<crate::attic::Snapshot, String>>,
+) -> Option<String> {
+    let attic = cx.attic()?;
+    let Ok(snap) = kept? else { return None };
+    let back = attic.put_back_since(snap);
+    if back.is_empty() {
+        return None;
+    }
+    let id = &snap.tree[..12.min(snap.tree.len())];
+    let nest = cx.scratch().join("kept").join(id);
+    // Copied only beneath the world, where a path is opened following no link: a scratch
+    // elsewhere is the body's to rearrange, and the harness writes nothing through it.
+    let inside = nest.starts_with(cx.world());
+    let mut copied = 0;
+    for rel in back.iter().take(KEPT_FILES) {
+        if inside
+            && let Ok(bytes) = attic.kept_file(snap, rel, KEPT_BYTES)
+            && crate::beneath::write(cx.world(), &nest.join(rel), &bytes).is_ok()
+        {
+            copied += 1;
+        }
+    }
+    let named: Vec<&str> = back.iter().take(5).map(String::as_str).collect();
+    let mut note = format!(
+        "this command put {} file(s) back as the session found {}, without this session's changes: {}{}",
+        back.len(),
+        if back.len() == 1 { "it" } else { "them" },
+        named.join(", "),
+        if back.len() > 5 { ", …" } else { "" }
+    );
+    if copied == back.len() {
+        let _ = write!(
+            note,
+            " — the version {} replaced is kept at `{}/<path>`",
+            if back.len() == 1 { "it" } else { "each" },
+            cx.shown(&nest)
+        );
+    } else if copied > 0 {
+        let _ = write!(
+            note,
+            " — the versions replaced are kept in the attic, snapshot {id}; {copied} of them are copied to `{}/<path>`",
+            cx.shown(&nest)
+        );
+    } else {
+        let _ = write!(
+            note,
+            " — the versions replaced are kept in the attic, snapshot {id}"
+        );
+    }
+    Some(note)
 }
 
 /// What the attic says after a command: the files it deleted and where they are kept, a

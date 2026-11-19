@@ -1786,7 +1786,13 @@ flowchart LR
   `index`, `intel`); a file that becomes ignored leaves the next snapshot. A file over 8 MiB is
   not kept, and the command's result names it. A command that deleted files is told how many
   and which snapshot holds them, so `rm -rf src` and a script that wipes a folder are both
-  undone by restoring from it. The world's `.git` is kept another way: its objects are
+  undone by restoring from it. A command that put files back is told too: when a file held this
+  session's changes as the command started and is, once it ends, as the session first found it,
+  the result names the file, and the version it replaced is copied into the scratch
+  (`.mikata/tmp/kept/<snapshot>/<path>`), where the body's own commands reach it and a plain copy
+  brings it back. A `git checkout -- file`, or a copy laid over a file, takes work and leaves no
+  trace in the tree; this is read from the files, never from the command's words. A stash the
+  command pushed holds what it took, so nothing is said of it. The world's `.git` is kept another way: its objects are
   hard-linked into the attic (copied, across devices) and its refs copied, so a command that
   deletes or breaks `.git` finds it put back after it ends. A hard link shares the file, so it
   survives a deletion, not a write in place: deleting or changing `.git` or the world's records
