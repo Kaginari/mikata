@@ -7595,7 +7595,7 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Done:** the tool reads only the shell's own part of a command. Stage 1 counted again from all 477 probes (536 questions). The 70 items the judges had not seen were put to them with the same prompts under the same $2 cap ($1.63 in all).
 - **What stands:** 14 of 16 failed runs show their mistake in their own questions; best of three is capped at 0.60; the judges catch 8 and 9 failed runs where the bar asked 10. Both bars are still missed.
 - **What moved:** 2 of 9 passed runs show a change the fix does not make, not 1. A broken "must stay" is flagged 57% and 67% of the time (the entry above says 63% and 70%), false alarms are 1 and 3% (not 1 to 2%), a wrong new value is taken for right 29 and 23 times in 32 (not 23 and 18 in 26), and disagreements are settled right 67% and 63% (not 66% and 69%). The bench page and the lab page now carry these.
-- **Learned:** a filter that drops data in silence should say how much it dropped. This one's count was there to read, 407 of 477, and I did not look.
+- **Learned:** a filter that drops data in silence should say how much it dropped. This one left out 70 probes without a word; one printed count of what it refused would have shown it on the first day.
 
 ### [2026-11-19T18:10:00+00:00] aibo Summoner — the released build on the prose asks: eight runs, a look
 - **Asked by** the owner: "launch light coding for the same bench, let's see what it does." Mikata 1.0.0, light-coding with a verify line, qwen on Venice, the four prose asks twice each. No lever under trial. Lever check first: one run read before the rest started.
