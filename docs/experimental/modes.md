@@ -133,7 +133,7 @@ same asks passed 15 of 16.
 
 A mode the world cannot give opens no session: it is refused with what is missing, before any key
 is asked for. `mikata status` says the mode and why. The rest is in the
-[overview](../01-overview.md#which-mode-and-how-to-start-it).
+[overview](../01-overview.md#the-modes).
 
 ### What carries over to light-coding
 

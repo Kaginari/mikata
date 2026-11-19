@@ -201,7 +201,7 @@ to resume is refused in plain text, before the terminal is taken. `mikatad runs`
 
 **The mode.** `--mode auto|light-coding|structured-coding|collective-coding` goes with the app, `resume`, `run` and
 `status`, and with `mikatad` for a program ([the three modes](experimental/races.md#the-three-modes);
-[which one, and when](01-overview.md#which-mode-and-how-to-start-it)). It is the command line's
+[which one, and when](01-overview.md#the-modes)). It is the command line's
 alone, as `--no-law` is: no configuration a world holds asks for a mode, and neither does a
 journal: a resumed run's mode is decided again, as a fresh session's is, and when that is not the
 mode it stopped in, the reason says so and names the option that goes on in the old one. The

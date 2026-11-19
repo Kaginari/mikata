@@ -396,8 +396,8 @@ pub fn trusted_in(
     let pins = match pins {
         Err(e) => {
             return Err(format!(
-                "{e}: no verify line of {creature} runs until the witness holds again — `mikatad \
-                 housekeep --verify` says where it breaks"
+                "{e}: no verify line runs until the witness holds again — `mikatad housekeep \
+                 --verify` says where it breaks"
             ));
         }
         Ok(None) if card.is_empty() => return Ok(Vec::new()),

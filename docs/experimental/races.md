@@ -88,7 +88,7 @@ anyone else's:
 The table is the chain at work. Most sessions never use it: **light-coding is the default mode**,
 one body with Summoner's voice and a Slime's hands. The chain is structured-coding, and
 collective-coding is the third
-([which mode, and how to start it](../01-overview.md#which-mode-and-how-to-start-it); the rules of
+([which mode, and how to start it](../01-overview.md#the-modes); the rules of
 each are [below](#the-three-modes)).
 
 A creature that keeps doing its job well **ascends**: the harness promotes it, with your

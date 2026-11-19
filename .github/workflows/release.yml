@@ -48,6 +48,10 @@ jobs:
           # changelog's link definitions so its [#n] references resolve.
           awk -v h="## [$version] - " 'index($0,h)==1{p=1;next} p&&(/^## \[/||/^\[[^]]+\]: /){exit} p' CHANGELOG.md > notes.md
           grep -q '[^[:space:]]' notes.md || { echo "::error::the $version section is empty"; exit 1; }
+          # A link into the repository is relative in the changelog. A release page has no files
+          # beside it, so each such link is written whole, at the tag.
+          BASE="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$TAG" \
+            perl -pi -e 's{\]\((?!https?://|#|mailto:)([^)\s]+)\)}{]($ENV{BASE}/$1)}g' notes.md
           grep -E '^\[#[0-9]+\]: ' CHANGELOG.md >> notes.md || true
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

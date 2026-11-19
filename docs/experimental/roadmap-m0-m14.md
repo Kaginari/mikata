@@ -242,7 +242,7 @@ Built since: decisions with Jev first and the LLM in its place
 ([System One decisions](../03-architecture.md#system-one-decisions)). Measured since: light-coding
 against collective-coding on the same multi-part tasks, and light-coding won, so it is the
 default mode and the other two are asked for
-([which mode, and how to start it](../01-overview.md#which-mode-and-how-to-start-it)).
+([which mode, and how to start it](../01-overview.md#the-modes)).
 Structured-coding, counted only after the fix each screen called for: once its gates stopped
 refusing a part for a line that needs another part too, its bodies land their parts, and it is
 still about seven times slower than light-coding on work that fits one context. And light-coding was measured on asks
