@@ -302,6 +302,53 @@ test('a past run reads from its journal, read-only, and resumes', async ({ page 
   await expect(page.getByRole('textbox')).toBeEnabled();
 });
 
+test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one measure is enough');
+  const b = new Bridge();
+  for (let i = 0; i < 1000; i++) {
+    b.emit('turnStarted', { text: `question ${i}` });
+    b.emit('assistant', {
+      text: `Answer ${i}: ${'a few words of prose to wrap '.repeat((i % 5) + 1)}`,
+      stop: 'end_turn',
+    });
+    b.emit('turnEnded', { ending: 'answered' });
+  }
+  await openChat(page, b);
+  const list = transcript(page);
+  await expect(list).toHaveAttribute('data-total', '2000');
+  await expect(page.locator('.msg-body').last()).toContainText('Answer 999');
+  // Only a window of rows is in the DOM.
+  const rows = Number(await list.getAttribute('data-rows'));
+  expect(rows).toBeGreaterThan(0);
+  expect(rows).toBeLessThan(120);
+  // Scrolled from the end to the start in steps, frame by frame: no frame stalls.
+  const frames = await list.evaluate(async (el) => {
+    const times: number[] = [];
+    let last = performance.now();
+    const steps = 60;
+    const from = el.scrollTop;
+    for (let i = 1; i <= steps; i++) {
+      el.scrollTop = from * (1 - i / steps);
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const now = performance.now();
+      times.push(now - last);
+      last = now;
+    }
+    // Let measurement settle at the top.
+    for (let i = 0; i < 10; i++) {
+      el.scrollTop = 0;
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    }
+    return times.sort((a, b) => a - b);
+  });
+  const p90 = frames[Math.floor(frames.length * 0.9)] ?? Infinity;
+  expect(p90, `frame times ${frames.map((t) => t.toFixed(0)).join(',')}`).toBeLessThan(50);
+  expect(Math.max(...frames)).toBeLessThan(250);
+  await expect(page.locator('.msg-user', { hasText: /^youquestion 0$/ })).toBeVisible();
+  expect(Number(await list.getAttribute('data-rows'))).toBeLessThan(120);
+  expect(RUN).toBeTruthy();
+});
+
 /** A turn that landed, followed by what changed: `last` is its text's last line. */
 function landedWithChanges(b: Bridge, last: string) {
   b.emit('turnStarted', { text: 'keep the one-string form of a fractional interval' });
@@ -356,51 +403,4 @@ test("a check's output is the code's own words: text, never markup", async ({ pa
   const block = page.locator('.line-changes');
   await expect(block).toContainText('<img src=x onerror=alert(1)>');
   await expect(block.locator('img')).toHaveCount(0);
-});
-
-test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
-  test.skip(info.project.name !== 'desktop', 'one measure is enough');
-  const b = new Bridge();
-  for (let i = 0; i < 1000; i++) {
-    b.emit('turnStarted', { text: `question ${i}` });
-    b.emit('assistant', {
-      text: `Answer ${i}: ${'a few words of prose to wrap '.repeat((i % 5) + 1)}`,
-      stop: 'end_turn',
-    });
-    b.emit('turnEnded', { ending: 'answered' });
-  }
-  await openChat(page, b);
-  const list = transcript(page);
-  await expect(list).toHaveAttribute('data-total', '2000');
-  await expect(page.locator('.msg-body').last()).toContainText('Answer 999');
-  // Only a window of rows is in the DOM.
-  const rows = Number(await list.getAttribute('data-rows'));
-  expect(rows).toBeGreaterThan(0);
-  expect(rows).toBeLessThan(120);
-  // Scrolled from the end to the start in steps, frame by frame: no frame stalls.
-  const frames = await list.evaluate(async (el) => {
-    const times: number[] = [];
-    let last = performance.now();
-    const steps = 60;
-    const from = el.scrollTop;
-    for (let i = 1; i <= steps; i++) {
-      el.scrollTop = from * (1 - i / steps);
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      const now = performance.now();
-      times.push(now - last);
-      last = now;
-    }
-    // Let measurement settle at the top.
-    for (let i = 0; i < 10; i++) {
-      el.scrollTop = 0;
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-    }
-    return times.sort((a, b) => a - b);
-  });
-  const p90 = frames[Math.floor(frames.length * 0.9)] ?? Infinity;
-  expect(p90, `frame times ${frames.map((t) => t.toFixed(0)).join(',')}`).toBeLessThan(50);
-  expect(Math.max(...frames)).toBeLessThan(250);
-  await expect(page.locator('.msg-user', { hasText: /^youquestion 0$/ })).toBeVisible();
-  expect(Number(await list.getAttribute('data-rows'))).toBeLessThan(120);
-  expect(RUN).toBeTruthy();
 });
