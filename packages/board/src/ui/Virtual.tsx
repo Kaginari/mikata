@@ -4,6 +4,11 @@
  * `ResizeObserver`) and estimated until then; a list scrolled to its end follows what is added,
  * one scrolled up stays where it is. The spacers' heights are set through the CSSOM — never a
  * style written as markup — so the board's CSP holds.
+ *
+ * Whether the list is at its end is known from scroll events, and a draw can come before the
+ * event of a scroll just made: a message arriving, a row measured. So each draw looks at the
+ * scroller itself first. One that is higher than the last draw left it, and off the end, was
+ * moved by the reader: it is not pulled back, and the event that follows says the rest.
  */
 import {
   type ReactNode,
@@ -54,6 +59,10 @@ export function Virtual<T>({
   const bottom = useRef<HTMLDivElement>(null);
   const heights = useRef(new Map<string, number>());
   const atEnd = useRef(true);
+  /** The reader has scrolled away from the end and the scroll's event has not come yet. */
+  const left = useRef(false);
+  /** Where the last draw or scroll event left the scroller. */
+  const lastTop = useRef(0);
   const view = useRef({ y: 0, h: 800 });
   const [, redraw] = useReducer((x: number) => x + 1, 0);
   const pending = useRef<number | undefined>(undefined);
@@ -78,8 +87,19 @@ export function Virtual<T>({
     offsets[i + 1] = (offsets[i] ?? 0) + (heights.current.get(keyOf(item)) ?? ESTIMATE);
   }
   const total = offsets[n] ?? 0;
-  const { y, h } = view.current;
-  const from = atEnd.current ? Math.max(0, total - h) : y;
+  const live = scroller.current;
+  if (
+    live &&
+    atEnd.current &&
+    lastTop.current - live.scrollTop > NEAR_END &&
+    live.scrollHeight - live.scrollTop - live.clientHeight > NEAR_END
+  ) {
+    left.current = true;
+  }
+  const pinned = atEnd.current && !left.current;
+  const h = view.current.h;
+  const y = left.current && live ? live.scrollTop : view.current.y;
+  const from = pinned ? Math.max(0, total - h) : y;
   const start = n === 0 ? 0 : find(offsets, Math.max(0, from - OVERSCAN));
   const end = n === 0 ? 0 : Math.min(n, find(offsets, from + h + OVERSCAN) + 1);
 
@@ -113,7 +133,8 @@ export function Virtual<T>({
     if (top.current) top.current.style.height = `${offsets[start] ?? 0}px`;
     if (bottom.current) bottom.current.style.height = `${total - (offsets[end] ?? total)}px`;
     const s = scroller.current;
-    if (s && atEnd.current) s.scrollTop = s.scrollHeight;
+    if (s && pinned) s.scrollTop = s.scrollHeight;
+    if (s) lastTop.current = s.scrollTop;
   });
 
   const onScroll = () => {
@@ -122,6 +143,8 @@ export function Virtual<T>({
     const end = s.scrollHeight - s.scrollTop - s.clientHeight < NEAR_END;
     if (end !== atEnd.current) setAway(!end);
     atEnd.current = end;
+    left.current = false;
+    lastTop.current = s.scrollTop;
     view.current = { y: s.scrollTop, h: s.clientHeight };
     later();
   };
@@ -172,6 +195,7 @@ export function Virtual<T>({
           className="v-jump"
           onClick={() => {
             atEnd.current = true;
+            left.current = false;
             setAway(false);
             toEnd(scroller.current);
             later();

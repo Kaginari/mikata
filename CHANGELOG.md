@@ -23,6 +23,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **The board's chat no longer pulls you back to the end while you scroll up.** The list knew it
+  was at its end from scroll events only, and a redraw that came before the event of a scroll
+  just made (a message arriving, a row measured) put it back at the end. Each draw now looks at
+  the scroller first: one the reader has moved up and off the end is left where it is. It showed
+  as a test that failed on main twice in two days and passed everywhere else.
 - **A release's notes link into the repository.** The notes are the changelog's section, whose
   links to the book are relative; on a release page they led nowhere. The release workflow now
   writes each one whole, at the tag (1.0.0's were corrected by hand).
