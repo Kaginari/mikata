@@ -302,6 +302,46 @@ test('a past run reads from its journal, read-only, and resumes', async ({ page 
   await expect(page.getByRole('textbox')).toBeEnabled();
 });
 
+test('a scroll up is kept when a redraw comes before its scroll event', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one measure is enough');
+  const b = new Bridge();
+  for (let i = 0; i < 200; i++) {
+    b.emit('turnStarted', { text: `question ${i}` });
+    b.emit('assistant', { text: `Answer ${i}: a few words of prose`, stop: 'end_turn' });
+    b.emit('turnEnded', { ending: 'answered' });
+  }
+  await openChat(page, b);
+  const list = transcript(page);
+  await expect(list).toHaveAttribute('data-total', '400');
+  await expect(page.locator('.msg-body').last()).toContainText('Answer 199');
+  // The list follows its end from a flag only a scroll event refreshes. A redraw that runs after
+  // the reader has scrolled and before that scroll's event must not take the flag's word: here
+  // the order is fixed by the frames themselves, where a slow machine only makes it likely.
+  const left = await list.evaluate(async (el) => {
+    const frame = () => new Promise((r) => requestAnimationFrame(() => r(null)));
+    const kept: number[] = [];
+    // Several rounds: the order below is likely, not certain, on any one of them.
+    for (let round = 0; round < 8; round++) {
+      el.scrollTop = el.scrollHeight;
+      for (let i = 0; i < 3; i++) await frame();
+      // One pixel, still at the end: its scroll event comes with the next frame and asks for a
+      // redraw, which runs after this script's own turn in that frame.
+      el.scrollTop = el.scrollHeight - el.clientHeight - 1;
+      await frame();
+      // The reader scrolls up, in the turn before that redraw.
+      el.scrollTop -= 3000;
+      for (let i = 0; i < 4; i++) await frame();
+      kept.push(el.scrollHeight - el.scrollTop - el.clientHeight);
+    }
+    return kept;
+  });
+  expect(
+    Math.min(...left),
+    `how far from the end each round was left: ${left.join(', ')}`,
+  ).toBeGreaterThan(2000);
+  await expect(page.getByRole('button', { name: '↓ Latest' })).toBeVisible();
+});
+
 test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'one measure is enough');
   const b = new Bridge();
