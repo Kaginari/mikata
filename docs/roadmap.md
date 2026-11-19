@@ -22,8 +22,13 @@ picker, a model settling their disagreements, and a model auditing what one run 
 missed the bars we wrote for them. Two things held. By code alone, the list of what a body's own
 commands print before and after its work shows the mistake in 14 of 16 failed runs. And where two
 runs contradict each other on a case, the ask is unclear there. Both are things to show you, not
-things a model can settle: the next try puts that short list, or that one case, in front of the
-human who wrote the ask.
+things a model can settle.
+
+**Built: the list.** A landed answer is followed by what changed, by the body's own checks
+([the loop](02-loop.md#what-changed-by-its-own-checks)). No bench without a human scores it, so
+it is on by your word, not by a number: in 21 of 25 failed runs the mistake is in those lines.
+**Not built: the one case.** Two bodies that contradict each other on a case, put to you as a
+question, costs a second run; it waits until the list has been lived with.
 
 ## Then: a fold for long runs
 

@@ -67,6 +67,9 @@ pub struct Limits {
     pub compactions: u32,
     /// Recall's weights, floor and saturations, from the human's `recall.*` keys.
     pub weights: mikata_memory::Weights,
+    /// Whether a landed answer is followed by what changed, by the body's own checks
+    /// (`gate.changes`).
+    pub changes: bool,
 }
 
 impl Limits {
@@ -83,6 +86,7 @@ impl Limits {
             max_tokens: 8192,
             budget_wt: None,
             budget_cap: None,
+            changes: true,
         }
     }
 }
@@ -304,6 +308,10 @@ pub struct Run {
     started: Instant,
     gate: Option<EndGate>,
     before: Option<Tree>,
+    /// The tree as this ask found it, kept in the attic: what its checks are run on again.
+    start: Option<mikata_tools::Snapshot>,
+    /// The checks the body ran in this ask ([`crate::changes`]).
+    checks: crate::changes::Checks,
     interrupt: Arc<Interrupt>,
     folded_upto: usize,
     /// The recall row for the ask being opened, journaled after it.
@@ -500,6 +508,8 @@ impl Run {
             started: Instant::now(),
             gate: None,
             before: None,
+            start: None,
+            checks: crate::changes::Checks::default(),
             interrupt,
             folded_upto: 0,
             recalled: None,
@@ -1558,6 +1568,55 @@ impl Run {
         }
         self.gate = Some(gate);
         self.before = Some(snapshot(self.cx.world()));
+        // Light-coding keeps the tree itself too: its checks are run on it again at the end.
+        self.checks = crate::changes::Checks::default();
+        self.start = (self.shows_changes())
+            .then(|| {
+                self.cx
+                    .attic()
+                    .and_then(|a| a.snapshot("before the ask").ok())
+            })
+            .flatten();
+    }
+
+    /// Whether this run says what changed when an answer lands: light-coding's own body, with
+    /// the human's `gate.changes` on.
+    fn shows_changes(&self) -> bool {
+        self.limits.changes && self.mode == Some("light-coding") && self.commissioner.is_none()
+    }
+
+    /// What changed, by the body's own checks, said to the human once the answer has landed.
+    /// Nothing of it goes back to the body.
+    fn say_what_changed(&mut self) {
+        let (Some(start), false) = (self.start.take(), self.checks.is_empty()) else {
+            return;
+        };
+        let Some(attic) = self.cx.attic().cloned() else {
+            return;
+        };
+        let world = self.cx.world().to_path_buf();
+        let newest = self.checks.newest(crate::changes::MOST);
+        let report =
+            crate::changes::compare(&world, &self.cx, &attic, &start, &newest, &self.tools);
+        let who = "Mikata";
+        let Some(text) = crate::changes::said(&report, who) else {
+            return;
+        };
+        if !report.differ.is_empty() {
+            let _ = mikata_tools::write_beneath(
+                &world,
+                &crate::changes::file(&world),
+                crate::changes::written(&report, who).as_bytes(),
+            );
+        }
+        self.record(&Beat::Changes {
+            text,
+            taken: report.taken,
+            same: report.same,
+            differ: report.differ.len(),
+            left_out: report.failed_now + report.unsteady + report.only_now + report.not_reached,
+            ms: report.ms,
+        });
     }
 
     /// Hand the body `text` and run until it answers or stops; `on` sees text and tool starts as
@@ -1738,6 +1797,9 @@ impl Run {
                 *retried = true;
                 self.hand_back(open_note(&verdict.open));
                 return None;
+            }
+            if !verdict.changed.is_empty() {
+                self.say_what_changed();
             }
             return Some(Ending::Answered(answer));
         }
@@ -3934,6 +3996,7 @@ impl Run {
                         .and_then(serde_json::Value::as_str)
                         .map(str::to_owned)
                 });
+            self.checks.saw(command.as_deref());
             let read = match command.as_deref() {
                 // An Esc that stopped the command is not followed by a decision about it, and a
                 // run the shell saw fail — a non-zero exit, a kill at the deadline — is never

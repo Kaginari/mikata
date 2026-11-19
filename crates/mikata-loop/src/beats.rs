@@ -102,6 +102,23 @@ pub enum Beat {
         #[serde(default)]
         occupancy: u64,
     },
+    /// What changed, by the body's own checks, said to the human when an answer landed
+    /// ([`crate::changes`]): never fed back to the model.
+    Changes {
+        /// What the human is shown.
+        text: String,
+        /// The checks run again.
+        taken: usize,
+        /// Those that print the same on the code as the ask found it and on the finished work.
+        same: usize,
+        /// Those that print differently.
+        differ: usize,
+        /// Those left out: failing or unsteady on the finished work, running only there, or not
+        /// reached in time.
+        left_out: usize,
+        /// How long the step took, in milliseconds.
+        ms: u64,
+    },
     /// What recall gave a turn: the anchors it showed the body, and how many it cut above the
     /// floor — the turn's journal row a run-ending failure reconsolidates by.
     Recall {
@@ -403,6 +420,7 @@ pub fn conversation(beats: &[Beat]) -> Vec<Message> {
             }
             Beat::Gate { .. }
             | Beat::Warning { .. }
+            | Beat::Changes { .. }
             | Beat::Guts { .. }
             | Beat::Tree { .. }
             | Beat::Recall { .. }

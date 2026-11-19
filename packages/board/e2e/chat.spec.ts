@@ -388,3 +388,59 @@ test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
   expect(Number(await list.getAttribute('data-rows'))).toBeLessThan(120);
   expect(RUN).toBeTruthy();
 });
+
+/** A turn that landed, followed by what changed: `last` is its text's last line. */
+function landedWithChanges(b: Bridge, last: string) {
+  b.emit('turnStarted', { text: 'keep the one-string form of a fractional interval' });
+  b.emit('assistant', { text: 'Fixed.', stop: 'end_turn' });
+  b.emit('gateVerdict', {
+    passed: true,
+    verdict: 'PASS',
+    changed: ['sqlglot/generators/duckdb.py'],
+    failures: [],
+    unverified: [],
+  });
+  b.emit('changes', {
+    text: [
+      "what changed: of Mikata's last 12 checks, 5 print differently than on the code you gave it. The last of them:",
+      '',
+      '  Fractional two-string:',
+      "    Input:  SELECT INTERVAL '1.5' DAY",
+      "-   Output: SELECT INTERVAL '1.5' DAY",
+      "+   Output: SELECT INTERVAL '1.5 DAY'",
+      '',
+      last,
+    ].join('\n'),
+  });
+  b.emit('turnEnded', { ending: 'answered' });
+}
+
+for (const theme of ['dark', 'light'] as const) {
+  test(`what changed is drawn under the gate, a check's lines kept as printed (${theme})`, async ({
+    page,
+  }, info) => {
+    await page.emulateMedia({ colorScheme: theme });
+    const b = new Bridge();
+    landedWithChanges(b, '4 more checks: .mikata/tmp/what-changed.md');
+    await openChat(page, b);
+    const block = page.locator('.line-changes');
+    await expect(block).toContainText("of Mikata's last 12 checks, 5 print differently");
+    await expect(block.locator('.changes-gone')).toHaveText(
+      "-   Output: SELECT INTERVAL '1.5' DAY",
+    );
+    await expect(block.locator('.changes-now')).toHaveText("+   Output: SELECT INTERVAL '1.5 DAY'");
+    await expect(block).toContainText('4 more checks: .mikata/tmp/what-changed.md');
+    await page.screenshot({ path: screen(`${info.project.name}-${theme}-changes`) });
+    expect(await lowContrast(page)).toEqual([]);
+    expect(await violations(page)).toEqual([]);
+  });
+}
+
+test("a check's output is the code's own words: text, never markup", async ({ page }) => {
+  const b = new Bridge();
+  landedWithChanges(b, '+ <img src=x onerror=alert(1)>');
+  await openChat(page, b);
+  const block = page.locator('.line-changes');
+  await expect(block).toContainText('<img src=x onerror=alert(1)>');
+  await expect(block.locator('img')).toHaveCount(0);
+});

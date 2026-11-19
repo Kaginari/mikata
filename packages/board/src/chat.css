@@ -426,6 +426,23 @@
 .line-alarm {
   color: var(--mn-alarm);
 }
+.line-changes .line-mark {
+  color: var(--mn-holo);
+}
+/* A check's lines as it printed them: their spaces kept, a long one wrapped. */
+.changes-lines {
+  margin-top: 6px;
+  font-family: var(--mn-font-mono);
+  font-size: 12.5px;
+  color: var(--mn-text);
+  white-space: pre-wrap;
+}
+.changes-gone {
+  background: color-mix(in srgb, var(--mn-alarm) 13%, transparent);
+}
+.changes-now {
+  background: color-mix(in srgb, var(--mn-race-elf) 16%, transparent);
+}
 
 .verdict {
   padding-left: 17px;

@@ -96,6 +96,7 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
             t.muted().add_modifier(Modifier::ITALIC),
         )),
         Entry::Warning(text) => out.extend(note("! ", text, w, t.gold())),
+        Entry::Changes(text) => out.extend(changes(text, w, t)),
         Entry::Ending(ending) => {
             let style = if ending == "interrupted" {
                 t.muted()
@@ -122,6 +123,40 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
             let lines = wrap_text(&one_line(text), w.saturating_sub(pad), style);
             out.extend(prefixed(lines, &first, &[Span::raw(" ".repeat(pad))]));
         }
+    }
+    out
+}
+
+/// What changed, by the body's own checks: its first line under the gate's mark, then a
+/// check's lines as they were printed, a `- ` line (before) in the alarm colour and a `+ ` line
+/// (now) in the interface's. Each line is kept whole and wrapped, never cut: the human reads it
+/// against their ask.
+fn changes(text: &str, w: usize, t: &Theme) -> Lines {
+    let mut out = Lines::new();
+    for (i, line) in text.lines().enumerate() {
+        if i == 0 {
+            out.extend(note("◆ ", line, w, t.holo()));
+            continue;
+        }
+        let style = if line.starts_with("- ") {
+            t.alarm()
+        } else if line.starts_with("+ ") {
+            t.holo()
+        } else if line.starts_with("  ") {
+            t.text()
+        } else {
+            t.muted()
+        };
+        if line.is_empty() {
+            out.push(Line::default());
+            continue;
+        }
+        let lines = wrap_text(&clean(line), w.saturating_sub(6), style);
+        out.extend(prefixed(
+            lines,
+            &[Span::raw("    ")],
+            &[Span::raw("      ")],
+        ));
     }
     out
 }

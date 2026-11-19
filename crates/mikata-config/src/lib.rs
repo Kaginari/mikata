@@ -73,6 +73,7 @@ const DEFAULTS: &str = r#"
 enabled = true
 timeout_secs = 300
 verify_secs = 120
+changes = true
 
 [tools.read]
 range_over = 400
@@ -240,6 +241,7 @@ fn refused_in_a_world(key: &str, layer: Layer) -> Option<&'static str> {
 /// loosens the human gate.
 const LOOSENING: &[&str] = &[
     "gate.enabled",
+    "gate.changes",
     "gate.challenge_reviewers",
     "gate.ask_rules",
     "gate.approve",
@@ -282,6 +284,7 @@ const SCHEMA: &[(&str, Kind)] = &[
     ("gate.enabled", Kind::Bool),
     ("gate.timeout_secs", Kind::Int),
     ("gate.verify_secs", Kind::Int),
+    ("gate.changes", Kind::Bool),
     ("gate.challenge_reviewers", Kind::Int),
     ("gate.ask_rules", Kind::StrList),
     ("gate.approve", Kind::StrList),
@@ -1036,6 +1039,16 @@ impl Config {
     #[must_use]
     pub fn verify_secs(&self) -> u64 {
         self.int("gate.verify_secs").unwrap_or(VERIFY_SECS)
+    }
+
+    /// Whether a landed answer is followed by what changed, by the body's own checks
+    /// (`gate.changes`): on unless the human's own file turns it off. A world's file cannot: it
+    /// is the human who is shown it, and a repository must not choose that they are not.
+    #[must_use]
+    pub fn show_changes(&self) -> bool {
+        self.get("gate.changes")
+            .and_then(|l| l.value.as_bool())
+            .unwrap_or(true)
     }
 
     /// How many Dark Elf reviewers one landing's challenge commissions at once; the rest wait

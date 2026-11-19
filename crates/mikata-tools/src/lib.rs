@@ -37,8 +37,22 @@ pub use mikata_sandbox::harden_self;
 /// Whether an environment variable is a secret the harness keeps from its children.
 pub use mikata_sandbox::is_secret;
 pub use pinned::remove_created;
-pub use shell::model_call;
+pub use shell::{model_call, stdout_of};
 pub use tool::{
     Context, Grant, Meta, Outcome, OwnerOf, ReadOf, ReadSpan, Tool, call, ignored, registry,
 };
 pub use tripwire::{kijin_witness, queue_witness, usage_witness};
+
+/// Write a file beneath `world` whole or not at all, following no symlink on the way: for what
+/// the harness itself leaves in a world's scratch, where a body's commands may have put a link.
+///
+/// # Errors
+///
+/// The path leaves the world, crosses a link, or cannot be written.
+pub fn write_beneath(
+    world: &std::path::Path,
+    path: &std::path::Path,
+    content: &[u8],
+) -> std::io::Result<()> {
+    beneath::write(world, path, content)
+}

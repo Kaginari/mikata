@@ -444,6 +444,16 @@ fn mine(event: &Event, p: &mut Progress, err: &mut dyn Write) {
             newline(p, err);
             let _ = writeln!(err, "! {}", one_line(text));
         }
+        Event::Changes { text } => {
+            newline(p, err);
+            for (i, line) in text.lines().enumerate() {
+                let _ = if i == 0 {
+                    writeln!(err, "◆ {}", one_line(line))
+                } else {
+                    writeln!(err, "    {}", clean(line))
+                };
+            }
+        }
         Event::GateVerdict {
             verdict,
             failures,

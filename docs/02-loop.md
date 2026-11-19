@@ -67,6 +67,11 @@ start, every output the ask states, and the tests for the files it changed. A di
 test means it is not done. The gate checks what the human pinned; the list checks what the ask
 said.
 
+And when the answer has landed, the harness does one thing for you: it runs the body's own last
+checks again, on the code as your ask found it and on the finished work, and shows you where they
+print differently. The body's checks hold the body's reading of your ask; you are the one who
+knows whether a line that changed should have.
+
 ## Technical detail
 
 The loop is one function for every body Mikata runs. Where a rule below names a race, a commission
@@ -718,3 +723,41 @@ be fixed does not count), and the files every one of them changed — and an ord
 those files again — as a word of the order, `./` and a `:line` dropped — is refused with the three
 routes, and a held order on the queue naming one waits instead of being claimed; an order rewritten without them goes through,
 and one `PASS` clears the streak.
+
+### What changed, by its own checks
+
+A body asks its code questions as it works: a line of Python that prints what a call returns. It
+reads the answer and takes it for right, and on an ask stated in prose that is where a misreading
+hides: the check passes because it holds the same misreading. On our bench a model asked to judge
+those answers against the ask caught half the failed runs; with the starting code beside them,
+the answers themselves show the mistake in 21 of 25 ([the bench](bench.md#what-did-not-help)). So
+they are shown to you.
+
+When a light-coding answer lands and files changed, the harness runs the body's checks again:
+
+- **A check** is a command whose first program is an interpreter handed its code on the command
+  line or through a here-document (`python3 -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`, a
+  `python3 - <<EOF`), after a `cd … &&` if any. A test runner is not one: the end gate judges
+  those. The body's last 12, each once.
+- **Two copies, never the world.** Each check runs in a copy of the finished work, twice, and in
+  a second copy put back to the tree as the ask found it, which the attic kept when the ask
+  began. The copies leave out `.git`, `.mikata`, `target`, `node_modules` and caches; what the
+  world ignores otherwise (a virtual environment) is copied, so a check finds its dependencies.
+  The commands run in the body's sandbox, with no gate to ask. Nothing is run in the world and
+  nothing is written there but the file below.
+- **What is set side by side** is what each check printed on its standard output. One that prints
+  the same on both trees is counted. One that prints differently is shown: the lines that
+  changed, `- ` before a line it printed on the starting code and `+ ` before one it prints now,
+  with the two lines above each change, which most often say what was asked.
+- **What is left out is said, by count and by why:** a check that fails on the finished work, one
+  that does not print the same twice, one that runs only on the finished work (it uses what the
+  work added), one not reached in the step's 60 seconds.
+
+You see one line that counts, then the places the checks differ, the newest check first and each
+place once, at most 20 lines; how many changed lines did not fit is said. Every check that
+differs is written whole, with its command, to `.mikata/tmp/what-changed.md`. The
+`changes` event carries the text to every surface; the journal's `changes` beat keeps the counts.
+
+No model reads it, and nothing of it goes back to the body: it changes what you see, never what
+the body does. A world over 256 MiB or 40,000 files is not copied, and the line says so.
+`gate.changes = false` in your own configuration turns it off.

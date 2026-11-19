@@ -31,6 +31,11 @@ repositories in one ask: one body fixed 2.5 of 5 on average; one body a project,
 runs in a sandbox, and an act that leaves your machine (a push, a pull request, a publish) is put to
 you first, every time.
 
+**It shows you what changed, by its own checks.** When an answer lands, Mikata's last checks are
+run again on the code as you gave it and on the finished work, and you see where they print
+differently. Its checks hold its reading of your ask; you are the one who knows whether a line
+that changed should have.
+
 | Read | For |
 |---|---|
 | [Overview](docs/01-overview.md) | what Mikata does with an ask, in one picture |

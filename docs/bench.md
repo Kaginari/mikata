@@ -93,7 +93,10 @@ a model asked to judge that list reads the ask as the coder did: it catches a st
 work crossed (57% to 67% of such cases) and takes a wrong new value for the right one (29 and 23
 times in 32). Another model reads a little better than the same one, at a fifteenth of the price,
 and not enough. What the ask leaves out, no reader puts back; with its examples the same four
-asks passed 15 of 16.
+asks passed 15 of 16. So that list is now shown to the one reader who can judge it, you
+([the loop](02-loop.md#what-changed-by-its-own-checks)). On sixteen more runs of the released
+build it held: 7 of 9 failed runs show their mistake there, and none of the 7 whose tests pass
+shows a change the fix does not make.
 
 ### The modes against each other
 

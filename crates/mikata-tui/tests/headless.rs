@@ -380,3 +380,52 @@ fn pin(world: &std::path::Path, creature: &str, lines: &[&str]) {
     )
     .unwrap();
 }
+
+/// A landed answer is followed, on stderr, by what changed by the body's own checks: the line
+/// that counts under the gate's mark, then a check's lines as it printed them. Stdout stays the
+/// answer alone.
+#[test]
+fn what_changed_is_said_after_the_gate() {
+    if !std::process::Command::new("python3")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        eprintln!("no python3 here: skipped");
+        return;
+    }
+    let w = World::new("changes");
+    fs::write(w.0.join("lib.py"), "def f(x):\n    return x + 1\n").unwrap();
+    let check = r#"python3 -c "import lib; print('asked: f(1)'); print('f(1) =', lib.f(1))""#;
+    let (code, out, err) = w.run(
+        ScriptedModel::new([
+            ScriptedModel::tool(
+                "w1",
+                "write",
+                json!({"path": "lib.py", "content": "def f(x):\n    return x + 2\n"}),
+            ),
+            ScriptedModel::tool("c1", "bash", json!({"command": check})),
+            write!("w2", "fixed\n"),
+            ScriptedModel::text("f adds two now."),
+        ]),
+        false,
+    );
+    assert_eq!(code, 0, "{err}");
+    assert_eq!(out, "f adds two now.\n", "the answer alone on stdout");
+    let at = err.find("◆ end gate PASS").expect("the gate's line");
+    let after = &err[at..];
+    assert!(
+        after.contains(
+            "◆ what changed: of Mikata's last 1 check, 1 prints differently than on the code you gave it:"
+        ),
+        "{err}"
+    );
+    assert!(
+        after.contains("      asked: f(1)\n    - f(1) = 2\n    + f(1) = 3\n"),
+        "a check's lines, as printed: {err}"
+    );
+    assert!(
+        after.contains("whole: .mikata/tmp/what-changed.md"),
+        "{err}"
+    );
+}

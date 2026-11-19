@@ -345,6 +345,7 @@ fn beat_events(beat: &Beat) -> Vec<Event> {
         }
         Beat::Note { text } => vec![Event::Note { text: text.clone() }],
         Beat::Warning { text } => vec![Event::Warning { text: text.clone() }],
+        Beat::Changes { text, .. } => vec![Event::Changes { text: text.clone() }],
         Beat::Gate {
             changed,
             failures,

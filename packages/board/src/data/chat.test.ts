@@ -14,6 +14,27 @@ function turn(chat: Chat, events: Arrived[], now?: number) {
 }
 
 describe('the transcript', () => {
+  it('keeps what changed as its own entry, after the gate', () => {
+    const chat = new Chat('summoner');
+    const text =
+      "what changed: of Mikata's last 2 checks, 1 prints differently than on the code you gave it:\n\n  in: a\n- out: 1\n+ out: 2";
+    const v = turn(chat, [
+      ev('turnStarted', { text: 'make f add two' }),
+      ev('assistant', { text: 'Done.', stop: 'end_turn' }),
+      ev('gateVerdict', {
+        passed: true,
+        verdict: 'PASS',
+        changed: ['lib.py'],
+        failures: [],
+        unverified: [],
+      }),
+      ev('changes', { text }),
+      ev('turnEnded', { ending: 'answered' }),
+    ]);
+    expect(v.entries.map((e) => e.kind)).toEqual(['user', 'assistant', 'verdict', 'changes']);
+    expect(v.entries.at(-1)).toMatchObject({ kind: 'changes', text });
+  });
+
   it('folds a turn in the TUI grammar: the line, the answer, the cards, the gate', () => {
     const chat = new Chat('summoner');
     const v = turn(chat, [
