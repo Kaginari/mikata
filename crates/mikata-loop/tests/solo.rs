@@ -864,3 +864,133 @@ async fn an_ask_naming_one_project_runs_one_body() {
     run.ask("Fix the parser in alpha/.", &mut |_| {}).await;
     assert_eq!(model.requests().len(), 1);
 }
+
+fn changes_beats(w: &World) -> Vec<(String, usize, usize, usize)> {
+    w.journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Changes {
+                text,
+                taken,
+                same,
+                differ,
+                ..
+            } => Some((text, taken, same, differ)),
+            _ => None,
+        })
+        .collect()
+}
+
+fn python() -> bool {
+    std::process::Command::new("python3")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success())
+}
+
+/// A landed light-coding answer is followed by what changed: the body's own check, run again by
+/// the harness on the code as the ask found it and on the finished work. It is journaled for the
+/// human and written whole to the scratch; the body is told nothing of it.
+#[tokio::test]
+async fn a_landed_answer_is_followed_by_what_changed_by_the_bodys_own_checks() {
+    if !python() {
+        eprintln!("no python3 here: skipped");
+        return;
+    }
+    let w = World::new("changes");
+    fs::write(w.world().join("lib.py"), "def f(x):\n    return x + 1\n").unwrap();
+    let check = r#"python3 -c "import lib; print('f(1) =', lib.f(1))""#;
+    let model = Arc::new(ScriptedModel::new([
+        tool("t1", "bash", json!({"command": check})),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "lib.py", "content": "def f(x):\n    return x + 2\n"}),
+        ),
+        tool("t3", "bash", json!({"command": check})),
+        tool("t4", "bash", json!({"command": "ls"})),
+        answer("f adds two now"),
+    ]));
+    let mut run = w
+        .run(Arc::clone(&model), &["grep -q 'x + 2' lib.py"])
+        .with_mode("light-coding");
+    assert_eq!(
+        ask(&mut run, "make f add two").await,
+        Ending::Answered("f adds two now".into())
+    );
+    let said = changes_beats(&w);
+    assert_eq!(said.len(), 1, "{said:?}");
+    let (text, taken, same, differ) = &said[0];
+    assert_eq!(
+        (*taken, *same, *differ),
+        (1, 0, 1),
+        "the check counts once, `ls` not at all"
+    );
+    assert_eq!(
+        text,
+        "what changed: of Mikata's last 1 check, 1 prints differently than on the code you gave \
+         it:\n\n- f(1) = 2\n+ f(1) = 3\n\nwhole: .mikata/tmp/what-changed.md"
+    );
+    let whole = fs::read_to_string(w.world().join(".mikata/tmp/what-changed.md")).unwrap();
+    assert!(
+        whole.contains(check) && whole.contains("- f(1) = 2\n+ f(1) = 3"),
+        "{whole}"
+    );
+    // Nothing of it went to the model: five calls, and no later message holds the words.
+    assert_eq!(model.requests().len(), 5);
+    assert!(
+        !model
+            .requests()
+            .iter()
+            .any(|r| format!("{r:?}").contains("what changed")),
+        "the body is told nothing of it"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("lib.py")).unwrap(),
+        "def f(x):\n    return x + 2\n"
+    );
+}
+
+/// Outside light-coding, with `gate.changes` off, or when the answer changed no file, nothing is
+/// run again and nothing is said.
+#[tokio::test]
+async fn what_changed_is_light_codings_and_the_humans_to_turn_off() {
+    if !python() {
+        eprintln!("no python3 here: skipped");
+        return;
+    }
+    let script = || {
+        Arc::new(ScriptedModel::new([
+            tool(
+                "t1",
+                "write",
+                json!({"path": "lib.py", "content": "def f(x):\n    return x + 2\n"}),
+            ),
+            tool(
+                "t2",
+                "bash",
+                json!({"command": r#"python3 -c "import lib; print(lib.f(1))""#}),
+            ),
+            answer("done"),
+        ]))
+    };
+    // No mode: a run that is not light-coding's.
+    let w = World::new("changes-mode");
+    fs::write(w.world().join("lib.py"), "def f(x):\n    return x + 1\n").unwrap();
+    let mut run = w.run(script(), &[]);
+    assert_eq!(ask(&mut run, "x").await, Ending::Answered("done".into()));
+    assert_eq!(changes_beats(&w), vec![]);
+    // Turned off by the human.
+    let w = World::new("changes-off");
+    fs::write(w.world().join("lib.py"), "def f(x):\n    return x + 1\n").unwrap();
+    let mut limits = Limits::for_race(Race::Summoner);
+    limits.changes = false;
+    let mut run = w
+        .run_under(script(), &[], Arc::new(mikata_tools::NoHuman), limits)
+        .with_mode("light-coding");
+    assert_eq!(ask(&mut run, "x").await, Ending::Answered("done".into()));
+    assert_eq!(changes_beats(&w), vec![]);
+}

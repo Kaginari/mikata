@@ -188,6 +188,14 @@ pub enum Event {
         /// The text.
         text: String,
     },
+    /// What changed, by the body's own checks, once an answer has landed: for the human, never
+    /// shown to the model. Its first line counts; the lines after it are a check's output set
+    /// side by side, `- ` before a line it printed on the code as the ask found it and `+ `
+    /// before one it prints now.
+    Changes {
+        /// The text.
+        text: String,
+    },
     /// The end gate's verdict on an answer.
     GateVerdict {
         /// Whether it passed: every check ran and held.
@@ -235,6 +243,7 @@ impl Event {
             Event::Usage { .. } => "usage",
             Event::Note { .. } => "note",
             Event::Warning { .. } => "warning",
+            Event::Changes { .. } => "changes",
             Event::GateVerdict { .. } => "gateVerdict",
             Event::TurnEnded { .. } => "turnEnded",
             Event::Held { .. } => "held",

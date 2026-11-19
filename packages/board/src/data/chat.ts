@@ -42,6 +42,8 @@ export type Entry =
   | { kind: 'thought'; key: string; began: number; took?: number | undefined }
   | { kind: 'note'; key: string; text: string }
   | { kind: 'warning'; key: string; text: string }
+  /** What changed, by the body's own checks: a line that counts, then a check's lines. */
+  | { kind: 'changes'; key: string; text: string }
   | {
       kind: 'verdict';
       key: string;
@@ -362,6 +364,9 @@ export class Chat {
         return;
       case 'warning':
         this.push({ kind: 'warning', key: '', text: event.text });
+        return;
+      case 'changes':
+        this.push({ kind: 'changes', key: '', text: event.text });
         return;
       case 'gateVerdict':
         for (const p of event.changed) if (!this.files.has(p)) this.files.set(p, 'M');

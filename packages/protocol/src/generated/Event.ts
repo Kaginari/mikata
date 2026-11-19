@@ -105,6 +105,10 @@ text: string, } | { "type": "warning",
 /**
  * The text.
  */
+text: string, } | { "type": "changes", 
+/**
+ * The text.
+ */
 text: string, } | { "type": "gateVerdict", 
 /**
  * Whether it passed: every check ran and held.

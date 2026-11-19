@@ -963,7 +963,7 @@ a run whose beats disagree mixed arms.
 
 `--json` writes every event to stdout as a JSON line — the protocol's event, named by `type`
 (`turnStarted`, `textDelta`, `toolCall`, `toolResult`, `note`, `warning`, `usage`,
-`gateVerdict`, `turnEnded`, …), with `session`, `run`, `body` (a commissioned body's own name and
+`gateVerdict`, `changes`, `turnEnded`, …), with `session`, `run`, `body` (a commissioned body's own name and
 run for its events) and `seq` — and then one `result` line:
 
 ```json
@@ -1901,6 +1901,10 @@ an empty list or table never overrides a lower layer:
   key goes. Nothing else feeds them: no environment variable and no flag.
   `gate.verify_secs`, how long each of the end gate's verify commands may run, is the project's
   to set: a longer limit loosens no guard, and a command killed at it grounds nothing.
+  `gate.changes` (on) says whether a landed light-coding answer is followed by what changed, by
+  the body's own checks ([the loop](02-loop.md#what-changed-by-its-own-checks)). It is the human's
+  alone to turn off: they are the one shown it, and a repository must not choose that they are
+  not.
   `gate.challenge_reviewers`, how many Dark Elf reviewers one landing's challenge commissions at
   once (3; 1 to 7), is the human's alone: fewer reviewers delay a review.
   `collective.on`, which opens every session in collective-coding where a creature reports to

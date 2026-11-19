@@ -722,6 +722,32 @@ impl Captured {
     }
 }
 
+/// What a command printed on its standard output, out of its result as the body reads it
+/// ([`Ran::render`]): the text before the `[stderr]` part and before the bracketed line that says
+/// how it ended. For a harness step that sets two runs of one command side by side.
+#[must_use]
+pub fn stdout_of(content: &str) -> &str {
+    if content == "[no output]" {
+        return "";
+    }
+    let mut end = content.len();
+    for mark in [
+        "\n[stderr]\n",
+        "\n[exit ",
+        "\n[killed after ",
+        "\n[interrupted by ",
+        "\n[ended by a signal]",
+    ] {
+        if let Some(at) = content.find(mark) {
+            end = end.min(at + 1);
+        }
+    }
+    if content.starts_with("[stderr]\n") {
+        end = 0;
+    }
+    &content[..end]
+}
+
 impl Ran {
     fn render(&self) -> String {
         let mut s = self.stdout.text("output");
@@ -983,4 +1009,23 @@ fn drain(pipe: Option<impl std::io::Read + Send + 'static>) -> mpsc::Receiver<Ca
         let _ = tx.send(got);
     });
     rx
+}
+
+#[cfg(test)]
+mod stdout_tests {
+    use super::stdout_of;
+
+    #[test]
+    fn the_standard_output_is_what_comes_before_the_rest() {
+        assert_eq!(stdout_of("a\nb\n"), "a\nb\n");
+        assert_eq!(stdout_of("a\nb\n[stderr]\nwarn\n"), "a\nb\n");
+        assert_eq!(stdout_of("a\n[stderr]\nwarn\n[exit 1]"), "a\n");
+        assert_eq!(stdout_of("a\n[exit 2]"), "a\n");
+        assert_eq!(stdout_of("[stderr]\nonly errors\n[exit 1]"), "");
+        assert_eq!(stdout_of("[no output]"), "");
+        assert_eq!(
+            stdout_of("a\n[killed after 2.0s: the command and everything it started]"),
+            "a\n"
+        );
+    }
 }

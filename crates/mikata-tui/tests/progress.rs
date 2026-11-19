@@ -1119,3 +1119,40 @@ fn two_working_children_leave_the_newest_as_the_actor_until_none_works() {
     );
     assert_eq!(activity::actor(&m), ("summoner".into(), Race::Summoner));
 }
+
+/// What changed is drawn under the gate's mark: the line that counts, then a check's lines kept
+/// as printed, each whole.
+#[test]
+fn what_changed_is_drawn_line_by_line() {
+    let mut m = model();
+    send(&mut m, "fix");
+    ev(&mut m, Event::TurnStarted { text: "fix".into() });
+    ev(
+        &mut m,
+        Event::Changes {
+            text: "what changed: of Mikata's last 2 checks, 1 prints differently than on the code \
+                   you gave it:\n\n  Fractional two-string:\n    Input:  SELECT INTERVAL '1.5' DAY\n\
+                   -   Output: SELECT INTERVAL '1.5' DAY\n+   Output: SELECT INTERVAL '1.5 DAY'\n\n\
+                   whole: .mikata/tmp/what-changed.md"
+                .into(),
+        },
+    );
+    let scr = screen(&mut m, 120, 32);
+    assert!(
+        scr.contains("◆ what changed: of Mikata's last 2 checks, 1 prints differently"),
+        "{scr}"
+    );
+    assert!(scr.contains("      Fractional two-string:"), "{scr}");
+    assert!(
+        scr.contains("    -   Output: SELECT INTERVAL '1.5' DAY"),
+        "{scr}"
+    );
+    assert!(
+        scr.contains("    +   Output: SELECT INTERVAL '1.5 DAY'"),
+        "{scr}"
+    );
+    assert!(
+        scr.contains("    whole: .mikata/tmp/what-changed.md"),
+        "{scr}"
+    );
+}

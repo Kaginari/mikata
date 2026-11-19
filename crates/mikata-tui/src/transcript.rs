@@ -172,6 +172,8 @@ pub enum Entry {
     Note(String),
     /// A warning for the human.
     Warning(String),
+    /// What changed, by the body's own checks: a line that counts, then a check's lines.
+    Changes(String),
     /// The end gate's verdict.
     Verdict {
         /// PASS, FAIL or `NOT_VERIFIED`.
@@ -589,6 +591,7 @@ impl Transcript {
             Event::Usage { .. } => self.usage(event, false),
             Event::Note { text } => self.push(Entry::Note(text.clone())),
             Event::Warning { text } => self.push(Entry::Warning(text.clone())),
+            Event::Changes { text } => self.push(Entry::Changes(text.clone())),
             Event::GateVerdict {
                 verdict,
                 changed,

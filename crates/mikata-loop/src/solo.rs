@@ -185,6 +185,7 @@ pub fn configure(
     limits.stress_tokens = config.context_stress_tokens();
     limits.max_tokens = config.reply_tokens();
     limits.deadline = config.session_clock();
+    limits.changes = config.show_changes();
     limits.weights = recall_weights(config);
     (cx, limits)
 }

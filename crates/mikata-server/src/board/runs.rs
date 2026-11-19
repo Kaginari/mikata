@@ -366,6 +366,7 @@ pub fn events(beats: &[Beat]) -> Vec<Event> {
             }
             Beat::Note { text: t } => out.push(Event::Note { text: text(t) }),
             Beat::Warning { text: t } => out.push(Event::Warning { text: text(t) }),
+            Beat::Changes { text: t, .. } => out.push(Event::Changes { text: text(t) }),
             Beat::Gate {
                 changed,
                 failures,

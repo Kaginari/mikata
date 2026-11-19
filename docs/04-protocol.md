@@ -69,7 +69,7 @@ says yes, and an unanswered ask is a no.
 |---|---|---|
 | requests (client → core) | `initialize`, `session/prompt`, `session/send`, `session/interrupt`, `session/events {since}`, `shutdown` | `session/resume`, `queue/list`, `queue/move`, `world/status`, `ledger/query`, `config/explain` |
 | requests (core → client) | `gate/ask` — the human gate, the only call the core blocks on | |
-| events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `turnEnded`, `held` | `dispatch`, `report`, `ascension`, `evolution` |
+| events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `changes`, `turnEnded`, `held` | `dispatch`, `report`, `ascension`, `evolution` |
 
 Each message is one line of JSON. `initialize` opens the session and answers `{protocol, version,
 world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}`:

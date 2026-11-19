@@ -312,6 +312,35 @@ function GroupCard({
   );
 }
 
+/**
+ * What changed, by the body's own checks: the line that counts, then a check's output as it was
+ * printed, a `- ` line (before) and a `+ ` line (now) marked as the diff of an edit is. The sign
+ * is in the text itself, so the colour is never the only word.
+ */
+function Changes({ text }: { text: string }) {
+  const [head = '', ...rest] = text.split('\n');
+  return (
+    <div className="line line-changes">
+      <span className="line-mark">◆</span> <Safe text={head} />
+      {rest.length > 0 && (
+        <div className="changes-lines">
+          {rest.map((l, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: the lines of one text never reorder
+              key={i}
+              className={
+                l.startsWith('- ') ? 'changes-gone' : l.startsWith('+ ') ? 'changes-now' : undefined
+              }
+            >
+              <Safe text={l === '' ? ' ' : l} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Verdict({ e }: { e: Extract<Entry, { kind: 'verdict' }> }) {
   const [mark, word, tone] =
     e.verdict === 'PASS'
@@ -398,6 +427,8 @@ export const EntryView = memo(function EntryView({
           <span className="line-mark">⚠ warning</span> <Safe text={e.text} lines />
         </div>
       );
+    case 'changes':
+      return <Changes text={e.text} />;
     case 'verdict':
       return <Verdict e={e} />;
     case 'ending':

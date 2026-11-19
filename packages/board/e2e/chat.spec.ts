@@ -302,6 +302,50 @@ test('a past run reads from its journal, read-only, and resumes', async ({ page 
   await expect(page.getByRole('textbox')).toBeEnabled();
 });
 
+for (const theme of ['dark', 'light'] as const) {
+  test(`what changed is drawn under the gate, a check's lines kept as printed (${theme})`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: theme });
+    const b = new Bridge();
+    b.emit('turnStarted', { text: 'keep the one-string form of a fractional interval' });
+    b.emit('assistant', { text: 'Fixed.', stop: 'end_turn' });
+    b.emit('gateVerdict', {
+      passed: true,
+      verdict: 'PASS',
+      changed: ['sqlglot/generators/duckdb.py'],
+      failures: [],
+      unverified: [],
+    });
+    b.emit('changes', {
+      text: [
+        "what changed: of Mikata's last 12 checks, 5 print differently than on the code you gave it. The last of them:",
+        '',
+        '  Fractional two-string:',
+        "    Input:  SELECT INTERVAL '1.5' DAY",
+        "-   Output: SELECT INTERVAL '1.5' DAY",
+        "+   Output: SELECT INTERVAL '1.5 DAY'",
+        '',
+        '4 more checks: .mikata/tmp/what-changed.md',
+        '<img src=x onerror=alert(1)>',
+      ].join('\n'),
+    });
+    b.emit('turnEnded', { ending: 'answered' });
+    await openChat(page, b);
+    const block = page.locator('.line-changes');
+    await expect(block).toContainText("of Mikata's last 12 checks, 5 print differently");
+    await expect(block.locator('.changes-gone')).toHaveText(
+      "-   Output: SELECT INTERVAL '1.5' DAY",
+    );
+    await expect(block.locator('.changes-now')).toHaveText("+   Output: SELECT INTERVAL '1.5 DAY'");
+    // A check's output is the code's own words: text, never markup.
+    await expect(block).toContainText('<img src=x onerror=alert(1)>');
+    await expect(block.locator('img')).toHaveCount(0);
+    expect(await lowContrast(page)).toEqual([]);
+    expect(await violations(page)).toEqual([]);
+  });
+}
+
 test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'one measure is enough');
   const b = new Bridge();

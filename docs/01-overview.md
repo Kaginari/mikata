@@ -64,6 +64,11 @@ works through it over your whole repository, the way a careful engineer would:
 5. **The end gate judges every file it changed:** your verify line runs green, and no test was
    deleted or skipped.
 
+6. **You are shown what changed, by its own checks:** when the answer has landed, its last
+   checks are run again on the code as you gave it and on the finished work, and you see where
+   they print differently ([the loop](02-loop.md#what-changed-by-its-own-checks)). No model reads
+   that list. You do.
+
 That habit, writing "done" down and checking it, is what put Mikata ahead of OpenCode and Maki on
 our bench, at the lowest price per pass ([the bench](bench.md)). It needs nothing set up.
 
@@ -90,6 +95,10 @@ in 8, at the same price. Without examples the body writes its own checks from it
 the ask, and a wrong reading passes them: one task failed 4 times in 4 on a case the ask said, in
 words, must stay as it was. One example of what must change and one of what must not is worth more
 than a paragraph.
+
+When you did write prose, read the last lines Mikata shows you: what its own checks print now and
+printed before. In 21 of the 25 runs that failed on our prose asks, the mistake is in those lines,
+and it is quicker to see there than in a diff.
 
 ### The modes
 
