@@ -17,6 +17,14 @@ the same ask as one paragraph of prose, 4 times in 8. The failure is a misreadin
 its own reading of the ask into its checks, they pass, and it answers done. Four lines added to the
 prompt did not help (2 of 8), so the next try changes what the body does, not what it is told.
 
+A second head does not close it either ([the bench](bench.md#what-did-not-help)): three runs and a
+picker, a model settling their disagreements, and a model auditing what one run changed all
+missed the bars we wrote for them. Two things held. By code alone, the list of what a body's own
+commands print before and after its work shows the mistake in 14 of 16 failed runs. And where two
+runs contradict each other on a case, the ask is unclear there. Both are things to show you, not
+things a model can settle: the next try puts that short list, or that one case, in front of the
+human who wrote the ask.
+
 ## Then: a fold for long runs
 
 When a run's context fills, Mikata today summarises the whole history, at most twice, and then
