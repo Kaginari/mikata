@@ -82,7 +82,7 @@ fn each_check_is_sorted_by_what_it_prints_on_the_two_trees() {
         (
             r.taken,
             r.same,
-            r.only_now,
+            r.only_now.len(),
             r.unsteady,
             r.failed_now,
             r.not_reached
@@ -94,11 +94,19 @@ fn each_check_is_sorted_by_what_it_prints_on_the_two_trees() {
     assert_eq!(r.differ[0].command, differs);
     assert_eq!(r.differ[0].before, "asked: f(1)\nf(1) = 2");
     assert_eq!(r.differ[0].now, "asked: f(1)\nf(1) = 3");
+    // The check that names what the work added fails on the code as it was: nothing printed
+    // there, and what it prints now is new.
+    assert_eq!(r.only_now.len(), 1, "{r:?}");
+    assert_eq!(
+        (r.only_now[0].before.as_str(), r.only_now[0].now.as_str()),
+        ("", "new")
+    );
     assert_eq!(
         changes::said(&r, "Mikata").unwrap(),
         "what changed: of Mikata's last 5 checks, 1 prints differently than on the code you gave it \
-         (1 runs only on the finished work, 1 fails on the finished work, 1 does not print the same \
-         twice):\n\n  asked: f(1)\n- f(1) = 2\n+ f(1) = 3\n\nthe 1 check whole: .mikata/tmp/what-changed.md"
+         and 1 runs only on the finished work (1 fails on the finished work, 1 does not print the \
+         same twice):\n\n  asked: f(1)\n- f(1) = 2\n+ f(1) = 3\n\n+ new\n\n\
+         the 2 checks whole: .mikata/tmp/what-changed.md"
     );
 }
 
@@ -216,7 +224,8 @@ fn a_change_of_the_same_size_within_the_second_is_still_seen() {
 /// For a study: `MIKATA_REPLAY_MOST` takes that many checks; `MIKATA_REPLAY_OUT` is written all
 /// of it as JSON, with every check of the run and what it does on the finished work, on the
 /// starting tree, and on each folder `MIKATA_REPLAY_GOLD` names (`:` between them), which hold
-/// the code as it should have become.
+/// the code as it should have become; with `MIKATA_REPLAY_BRIEF` set, the report and its words
+/// alone.
 #[test]
 #[ignore = "needs a kept run: see its comment"]
 fn replay_what_a_kept_run_would_have_been_shown() {
@@ -266,7 +275,7 @@ fn replay_what_a_kept_run_would_have_been_shown() {
         r.taken,
         r.same,
         r.differ.len(),
-        r.only_now,
+        r.only_now.len(),
         r.failed_now,
         r.unsteady,
         r.not_reached,
@@ -276,8 +285,18 @@ fn replay_what_a_kept_run_would_have_been_shown() {
     // For a study: every check of the run, newest first, and what it does on each tree. The
     // finished work twice, the starting tree, then each reference tree.
     if let Some(out) = opt("MIKATA_REPLAY_OUT") {
-        let every = checks.newest(usize::MAX);
-        let on = |tree: &Path| changes::printed(tree, &world, &cx, &every, &registry()).unwrap();
+        // `MIKATA_REPLAY_BRIEF`: the report and its words alone, no check run again for the study.
+        let every = if opt("MIKATA_REPLAY_BRIEF").is_some() {
+            Vec::new()
+        } else {
+            checks.newest(usize::MAX)
+        };
+        let on = |tree: &Path| {
+            if every.is_empty() {
+                return Vec::new();
+            }
+            changes::printed(tree, &world, &cx, &every, &registry()).unwrap()
+        };
         let said_json =
             |s: &changes::Said| serde_json::json!({"ok": s.ok, "out": s.out, "err": s.err});
         let (now, again) = (on(&world), on(&world));
@@ -304,8 +323,8 @@ fn replay_what_a_kept_run_would_have_been_shown() {
             .map(|d| serde_json::json!({"command": d.command, "before": d.before, "now": d.now}))
             .collect();
         let all = serde_json::json!({
-            "checks": every.len(), "taken": r.taken, "same": r.same,
-            "only_now": r.only_now, "failed_now": r.failed_now, "unsteady": r.unsteady,
+            "checks": checks.newest(usize::MAX).len(), "taken": r.taken, "same": r.same,
+            "only_now": r.only_now.len(), "failed_now": r.failed_now, "unsteady": r.unsteady,
             "not_reached": r.not_reached, "why_not": r.why_not, "ms": r.ms, "said": said,
             "differ": differ, "each": each,
         });
