@@ -25,8 +25,13 @@ runs contradict each other on a case, the ask is unclear there. Both are things 
 things a model can settle.
 
 **Built: the list.** A landed answer is followed by what changed, by the body's own checks
-([the loop](02-loop.md#what-changed-by-its-own-checks)). No bench without a human scores it, so
-it is on by your word, not by a number: in 21 of 25 failed runs the mistake is in those lines.
+([the loop](02-loop.md#what-changed-by-its-own-checks)). **Measured**
+([the bench](bench.md#what-changed-measured)): a wrong value is in its twenty lines in 18 of 26
+failed runs, and in one passed run in four it shows a break the tests missed. A stand-in human
+pointing at one wrong line got the work passing in 6 of 18 runs, where a second try alone got 0:
+under the bar we wrote, so the list stays what it is, a thing to read, and no loop is built on
+it. Open: it is silent when a run stops with no answer, and on an ask that adds a syntax the
+failed runs show no wrong value in twenty lines by any order we tried.
 **Not built: the one case.** Two bodies that contradict each other on a case, put to you as a
 question, costs a second run; it waits until the list has been lived with.
 

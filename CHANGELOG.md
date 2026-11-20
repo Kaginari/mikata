@@ -25,7 +25,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   the terminal app, `mikata run`, the board and the protocol (a `changes` event).
   `gate.changes = false` in your own configuration turns it off; a repository's file cannot. On
   42 kept runs of our bench a wrong value is in those twenty lines in 18 of 26 failed runs, where
-  a model reading the same answers caught half ([the bench](docs/bench.md#what-changed-measured)).
+  a model reading the same answers caught half, and one passed run in four shows a break its
+  tests missed ([the bench](docs/bench.md#what-changed-measured)).
 - **A command that undoes the body's own edits says so, and the edits are kept in reach.** When a
   command puts a file back as the session found it (a `git checkout -- file`, a copy laid over
   it), its result names the file and where the version it replaced is kept:
