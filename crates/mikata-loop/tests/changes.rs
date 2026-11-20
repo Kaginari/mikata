@@ -2,7 +2,7 @@
 //! on the same copy put back to the tree as the ask found it. The world itself is never run in.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use mikata_loop::changes;
@@ -82,7 +82,7 @@ fn each_check_is_sorted_by_what_it_prints_on_the_two_trees() {
         (
             r.taken,
             r.same,
-            r.only_now,
+            r.only_now.len(),
             r.unsteady,
             r.failed_now,
             r.not_reached
@@ -94,11 +94,19 @@ fn each_check_is_sorted_by_what_it_prints_on_the_two_trees() {
     assert_eq!(r.differ[0].command, differs);
     assert_eq!(r.differ[0].before, "asked: f(1)\nf(1) = 2");
     assert_eq!(r.differ[0].now, "asked: f(1)\nf(1) = 3");
+    // The check that names what the work added fails on the code as it was: nothing printed
+    // there, and what it prints now is new.
+    assert_eq!(r.only_now.len(), 1, "{r:?}");
+    assert_eq!(
+        (r.only_now[0].before.as_str(), r.only_now[0].now.as_str()),
+        ("", "new")
+    );
     assert_eq!(
         changes::said(&r, "Mikata").unwrap(),
         "what changed: of Mikata's last 5 checks, 1 prints differently than on the code you gave it \
-         (1 runs only on the finished work, 1 fails on the finished work, 1 does not print the same \
-         twice):\n\n  asked: f(1)\n- f(1) = 2\n+ f(1) = 3\n\nthe 1 check whole: .mikata/tmp/what-changed.md"
+         and 1 runs only on the finished work (1 fails on the finished work, 1 does not print the \
+         same twice):\n\n  asked: f(1)\n- f(1) = 2\n+ f(1) = 3\n\n+ new\n\n\
+         the 2 checks whole: .mikata/tmp/what-changed.md"
     );
 }
 
@@ -201,24 +209,45 @@ fn a_change_of_the_same_size_within_the_second_is_still_seen() {
     );
 }
 
-/// A kept run, asked again what it would have been shown: its world as it was left, its attic,
-/// the tree its ask began on, and its journal, whose shell commands are sorted as the loop sorts
-/// them. No model call. Run by hand, with the four paths named in the environment:
+/// A kept run, asked again what it would have been shown, with no model call: its world as it
+/// was left, the tree its ask began on, and its journal, whose shell commands are sorted as the
+/// loop sorts them. Run by hand, the paths named in the environment:
 ///
 /// ```sh
-/// MIKATA_REPLAY_WORLD=… MIKATA_REPLAY_ATTIC=… MIKATA_REPLAY_START=<tree> MIKATA_REPLAY_JOURNAL=… \
+/// MIKATA_REPLAY_WORLD=… MIKATA_REPLAY_JOURNAL=… \
+///   MIKATA_REPLAY_ATTIC=… MIKATA_REPLAY_START=<tree> \   # the run's own attic and start, or
+///   MIKATA_REPLAY_STARTER=<a folder holding the starting tree> \
 ///   tools/test-env.sh cargo nextest run -p mikata-loop --test changes --run-ignored only \
 ///   --no-capture replay
 /// ```
+///
+/// For a study: `MIKATA_REPLAY_MOST` takes that many checks; `MIKATA_REPLAY_OUT` is written all
+/// of it as JSON, with every check of the run and what it does on the finished work, on the
+/// starting tree, and on each folder `MIKATA_REPLAY_GOLD` names (`:` between them), which hold
+/// the code as it should have become; with `MIKATA_REPLAY_BRIEF` set, the report and its words
+/// alone.
 #[test]
 #[ignore = "needs a kept run: see its comment"]
 fn replay_what_a_kept_run_would_have_been_shown() {
     let var = |name: &str| std::env::var(name).unwrap_or_else(|_| panic!("set {name}"));
+    let opt = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
     let world = PathBuf::from(var("MIKATA_REPLAY_WORLD"));
-    let attic = Attic::at(&PathBuf::from(var("MIKATA_REPLAY_ATTIC")), &world).expect("git");
-    let start = mikata_tools::Snapshot {
-        tree: var("MIKATA_REPLAY_START"),
-        skipped: Vec::new(),
+    let scratch = std::env::temp_dir().join(format!("mikata-replay-attic-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&scratch);
+    let (attic, start) = match opt("MIKATA_REPLAY_STARTER") {
+        // The starting tree in a folder: kept in an attic of its own, for its tree's name.
+        Some(starter) => {
+            let attic = Attic::at(&scratch, &PathBuf::from(starter)).expect("git");
+            let start = attic.snapshot("the starter").unwrap();
+            (attic, start)
+        }
+        None => (
+            Attic::at(&PathBuf::from(var("MIKATA_REPLAY_ATTIC")), &world).expect("git"),
+            mikata_tools::Snapshot {
+                tree: var("MIKATA_REPLAY_START"),
+                skipped: Vec::new(),
+            },
+        ),
     };
     let mut checks = changes::Checks::default();
     for line in fs::read_to_string(var("MIKATA_REPLAY_JOURNAL"))
@@ -237,18 +266,69 @@ fn replay_what_a_kept_run_would_have_been_shown() {
     let cx = Context::new(Race::Slime, &world, &["."])
         .with_sandbox(Sandbox::None("a replay by hand runs unguarded".into()))
         .with_unguarded(true);
-    let newest = checks.newest(changes::MOST);
+    let most = opt("MIKATA_REPLAY_MOST").map_or(changes::MOST, |n| n.parse().unwrap());
+    let newest = checks.newest(most);
     let r = changes::compare(&world, &cx, &attic, &start, &newest, &registry());
+    let said = changes::said(&r, "Mikata").unwrap_or_default();
     println!(
         "taken {} same {} differ {} only_now {} failed_now {} unsteady {} not_reached {} in {} ms\n",
         r.taken,
         r.same,
         r.differ.len(),
-        r.only_now,
+        r.only_now.len(),
         r.failed_now,
         r.unsteady,
         r.not_reached,
         r.ms
     );
-    println!("{}", changes::said(&r, "Mikata").unwrap_or_default());
+    println!("{said}");
+    // For a study: every check of the run, newest first, and what it does on each tree. The
+    // finished work twice, the starting tree, then each reference tree.
+    if let Some(out) = opt("MIKATA_REPLAY_OUT") {
+        // `MIKATA_REPLAY_BRIEF`: the report and its words alone, no check run again for the study.
+        let every = if opt("MIKATA_REPLAY_BRIEF").is_some() {
+            Vec::new()
+        } else {
+            checks.newest(usize::MAX)
+        };
+        let on = |tree: &Path| {
+            if every.is_empty() {
+                return Vec::new();
+            }
+            changes::printed(tree, &world, &cx, &every, &registry()).unwrap()
+        };
+        let said_json =
+            |s: &changes::Said| serde_json::json!({"ok": s.ok, "out": s.out, "err": s.err});
+        let (now, again) = (on(&world), on(&world));
+        let before = opt("MIKATA_REPLAY_STARTER").map(|dir| on(Path::new(&dir)));
+        let refs: Vec<Vec<changes::Said>> = opt("MIKATA_REPLAY_GOLD")
+            .map(|all| all.split(':').map(|dir| on(Path::new(dir))).collect())
+            .unwrap_or_default();
+        let each: Vec<serde_json::Value> = every
+            .iter()
+            .enumerate()
+            .map(|(i, command)| {
+                serde_json::json!({
+                    "command": command,
+                    "now": said_json(&now[i]),
+                    "again": said_json(&again[i]),
+                    "before": before.as_ref().map(|b| said_json(&b[i])),
+                    "refs": refs.iter().map(|r| said_json(&r[i])).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        let differ: Vec<serde_json::Value> = r
+            .differ
+            .iter()
+            .map(|d| serde_json::json!({"command": d.command, "before": d.before, "now": d.now}))
+            .collect();
+        let all = serde_json::json!({
+            "checks": checks.newest(usize::MAX).len(), "taken": r.taken, "same": r.same,
+            "only_now": r.only_now.len(), "failed_now": r.failed_now, "unsteady": r.unsteady,
+            "not_reached": r.not_reached, "why_not": r.why_not, "ms": r.ms, "said": said,
+            "differ": differ, "each": each,
+        });
+        fs::write(out, serde_json::to_string(&all).unwrap()).unwrap();
+    }
+    let _ = fs::remove_dir_all(&scratch);
 }

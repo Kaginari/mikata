@@ -1602,7 +1602,7 @@ impl Run {
         let Some(text) = crate::changes::said(&report, who) else {
             return;
         };
-        if !report.differ.is_empty() {
+        if !(report.differ.is_empty() && report.only_now.is_empty()) {
             let _ = mikata_tools::write_beneath(
                 &world,
                 &crate::changes::file(&world),
@@ -1614,7 +1614,8 @@ impl Run {
             taken: report.taken,
             same: report.same,
             differ: report.differ.len(),
-            left_out: report.failed_now + report.unsteady + report.only_now + report.not_reached,
+            only_now: report.only_now.len(),
+            left_out: report.failed_now + report.unsteady + report.not_reached,
             ms: report.ms,
         });
     }

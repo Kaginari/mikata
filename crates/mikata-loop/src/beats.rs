@@ -113,8 +113,11 @@ pub enum Beat {
         same: usize,
         /// Those that print differently.
         differ: usize,
-        /// Those left out: failing or unsteady on the finished work, running only there, or not
-        /// reached in time.
+        /// Those that run only on the finished work, shown as new. A journal written before they
+        /// were shown counted them in `left_out`.
+        #[serde(default)]
+        only_now: usize,
+        /// Those left out: failing or unsteady on the finished work, or not reached in time.
         left_out: usize,
         /// How long the step took, in milliseconds.
         ms: u64,

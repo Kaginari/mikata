@@ -30,6 +30,10 @@ task once per harness, November 2026:
 - **Asks with examples pass twice as often.** The same four tasks: 4 of 4 with the ask's examples
   and expected output, 4 of 8 as one paragraph of prose, at the same price. Without examples the
   model checks against its own reading, and a wrong reading passes its own checks.
+- **The list of what changed is worth reading.** On those prose asks a wrong value is in its
+  twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
+  the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask
+  again without pointing: never ([measured](#what-changed-measured)).
 - **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
   light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
   a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
@@ -94,9 +98,60 @@ work crossed (57% to 67% of such cases) and takes a wrong new value for the righ
 times in 32). Another model reads a little better than the same one, at a fifteenth of the price,
 and not enough. What the ask leaves out, no reader puts back; with its examples the same four
 asks passed 15 of 16. So that list is now shown to the one reader who can judge it, you
-([the loop](02-loop.md#what-changed-by-its-own-checks)). On sixteen more runs of the released
-build it held: 7 of 9 failed runs show their mistake there, and none of the 7 whose tests pass
-shows a change the fix does not make.
+([the loop](02-loop.md#what-changed-by-its-own-checks)), and it was measured next.
+
+### What changed, measured
+
+The list of what changed moves no pass rate: it is for you. So it was measured two ways.
+
+**Is the mistake in what you are shown?** The code replayed with no model call over 42 kept runs
+of the four prose asks, every check of each run again on the finished work, the starting code,
+the upstream fix and three runs that passed. A wrong value is a new line the fix does not print
+in its place, that is not the same line with the body's own mark flipped, and that holds
+something to judge. 26 of the runs failed their hidden tests, 16 passed.
+
+| A wrong value is | failed runs (26) | passed runs (16) |
+|---|---|---|
+| somewhere in the newest 12 checks that differ | 22 | 7 |
+| in the twenty lines, as first built | 14 | 4 |
+| in the twenty lines, a value before a mark | **18** | 4 |
+| and the checks that run only on the finished work, shown after | **18** | 5 |
+
+Where a body grades itself (`FAIL` turned `PASS`, "All tests passed!"), those lines took the list
+and the value that gives the mistake away sat just past the twentieth line: so a value comes
+first. Nothing else by code helped. Each kind of change once, the rarest first, the checks taking
+turns, one line above instead of two, 24 checks, every check, 30 lines: tuned on the 25 older
+runs, and the rule taken there gained nothing on the 17 newer ones. On 44 more runs that no rule
+was chosen on, the order taken shows a wrong value in 11 of 36 failed runs against 9. The first
+build also broke its own limit, 59 lines in one run; a place is now cut.
+
+**The passed runs it flags are mostly right to be flagged.** In four of the five, every reference
+refuses the line: a MySQL `ALTER TABLE` with several actions that parsed before and is an opaque
+command now, `excluding` as a column no longer written in a named window, a slice with a step
+rewritten, a node of another type than the ask named. The hidden tests cover none of them. One
+run in four that passes its tests holds a departure only this list shows.
+
+**Does Mikata repair what you point at?** No bench here has a human, so it was given a stand-in
+that knows what was wanted and speaks only through what the list shows: the first wrong line,
+word for word, and what it should be. In the trees of the 18 failed runs whose list shows a
+wrong value, one fresh run each:
+
+| | passes | the line pointed at now right |
+|---|---|---|
+| the stand-in points at one line | **6 of 18** | 12 of 18 |
+| told only that an earlier attempt left its work | **0 of 18** | 0 of 18 |
+
+The bar written first asked 9 of 18, and 7 more than the control: **missed**. The pointer works
+on the line, two times in three, and never happens without it: fourteen of the control's
+eighteen runs fail exactly where the first run did. But half the repairs do not finish the work.
+One wrong line is seldom the whole mistake, and on the interval ask three runs made the pointed
+case right by giving up the case the ask was about. Pointing at every wrong line and saying the
+rest stays did no better (2 of 8, where one line gave 3).
+
+So the list does what it is for: you see a wrong answer before you use it, in 18 of 26 failed
+runs here, and in one passed run in four you see what the tests missed. Whether Mikata then puts
+it right in one more ask is the model's to do, one time in three. $6.63, and nothing of it
+changed what the body is told.
 
 ### The modes against each other
 

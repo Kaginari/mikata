@@ -17,11 +17,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   body's last checks again (the `python3 -c` and its kin that it asked its code questions with),
   on a copy of the finished work and on a copy of the code as the ask found it, and shows you
   where they print differently: one line that counts, then the places they differ, `- ` before
-  and `+ ` now. Every check that differs is written whole to `.mikata/tmp/what-changed.md`. No
-  model reads it and nothing of it goes back to the body. In the terminal app, `mikata run`, the
-  board and the protocol (a `changes` event). `gate.changes = false` in your own configuration
-  turns it off; a repository's file cannot. On our bench the mistake of a failed run is in those
-  lines 21 times in 25, where a model reading them caught half.
+  and `+ ` now, at most 20 lines. A place that prints another value comes before one that only
+  flips the body's own mark (`FAIL` to `PASS`, "All tests passed!"); a check that runs only on
+  the finished work is shown as new, after the ones that ran on both; a place too long for the
+  list is cut and says by how much. Every check that differs or runs only now is written whole
+  to `.mikata/tmp/what-changed.md`. No model reads it and nothing of it goes back to the body. In
+  the terminal app, `mikata run`, the board and the protocol (a `changes` event).
+  `gate.changes = false` in your own configuration turns it off; a repository's file cannot. On
+  42 kept runs of our bench a wrong value is in those twenty lines in 18 of 26 failed runs, where
+  a model reading the same answers caught half, and one passed run in four shows a break its
+  tests missed ([the bench](docs/bench.md#what-changed-measured)).
 - **A command that undoes the body's own edits says so, and the edits are kept in reach.** When a
   command puts a file back as the session found it (a `git checkout -- file`, a copy laid over
   it), its result names the file and where the version it replaced is kept:

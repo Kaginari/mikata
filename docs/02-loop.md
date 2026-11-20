@@ -729,16 +729,18 @@ and one `PASS` clears the streak.
 A body asks its code questions as it works: a line of Python that prints what a call returns. It
 reads the answer and takes it for right, and on an ask stated in prose that is where a misreading
 hides: the check passes because it holds the same misreading. On our bench a model asked to judge
-those answers against the ask caught half the failed runs; with the starting code beside them,
-the answers themselves show the mistake in 21 of 25 ([the bench](bench.md#what-did-not-help)). So
-they are shown to you.
+those answers against the ask caught half the failed runs; with the starting code beside them, a
+wrong value is in the answers themselves in 22 of 26 failed runs
+([the bench](bench.md#what-changed-measured)). So they are shown to you.
 
 When a light-coding answer lands and files changed, the harness runs the body's checks again:
 
 - **A check** is a command whose first program is an interpreter handed its code on the command
   line or through a here-document (`python3 -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`, a
-  `python3 - <<EOF`), after a `cd … &&` if any. A test runner is not one: the end gate judges
-  those. The body's last 12, each once.
+  `python3 - <<EOF`), after a `cd … &&` if any. A test runner is not one, whether started by
+  name or driven from the code handed over (`import unittest`, `pytest.main`): the end gate
+  judges those, and what a runner prints is names, marks and how long it took, which no two runs
+  print alike. The body's last 12, each once.
 - **Two copies, never the world.** Each check runs in a copy of the finished work, twice, and in
   a second copy put back to the tree as the ask found it, which the attic kept when the ask
   began. The copies leave out `.git`, `.mikata`, `target`, `node_modules` and caches; what the
@@ -748,14 +750,31 @@ When a light-coding answer lands and files changed, the harness runs the body's 
 - **What is set side by side** is what each check printed on its standard output. One that prints
   the same on both trees is counted. One that prints differently is shown: the lines that
   changed, `- ` before a line it printed on the starting code and `+ ` before one it prints now,
-  with the two lines above each change, which most often say what was asked.
+  with the two lines above each change, which most often say what was asked. One that fails on
+  the starting code (it uses what the work added) has nothing to stand beside there: what it
+  prints now is shown as new, beside whatever it printed before it failed.
 - **What is left out is said, by count and by why:** a check that fails on the finished work, one
-  that does not print the same twice, one that runs only on the finished work (it uses what the
-  work added), one not reached in the step's 60 seconds.
+  that does not print the same twice (it prints where an object lives, or a random thing), one
+  not reached in the step's 60 seconds.
 
-You see one line that counts, then the places the checks differ, the newest check first and each
-place once, at most 20 lines; how many changed lines did not fit is said. Every check that
-differs is written whole, with its command, to `.mikata/tmp/what-changed.md`. The
+You see one line that counts, then the places the checks differ, each place once, at most 20
+lines:
+
+- the checks that ran on both trees first, the newest first, then the ones that run only on the
+  finished work;
+- of all of those, **a place that prints another value before a place that only flips the body's
+  own mark.** `FAIL` turned `PASS` is the body's opinion of its work; the value beside it is what
+  you can judge. A new line is a mark when it is a line that is gone but for a word such as pass,
+  fail, ok, true or false, or a tick or a cross, or when it is a verdict in plain words ("All
+  tests passed!"), with nothing on it to judge: no number, nothing quoted or bracketed, no word
+  after a colon;
+- a place too long for the list is cut, and says by how much; how many changed lines did not fit
+  is said.
+
+On 42 kept runs of our bench this order shows a wrong value in 18 of 26 failed runs. The newest
+place first, as the list was first built, showed one in 14, and no other order by code did better
+([the bench](bench.md#what-changed-measured)). Every check that differs or runs only on the
+finished work is written whole, with its command, to `.mikata/tmp/what-changed.md`. The
 `changes` event carries the text to every surface; the journal's `changes` beat keeps the counts.
 
 No model reads it, and nothing of it goes back to the body: it changes what you see, never what

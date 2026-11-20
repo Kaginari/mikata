@@ -11,6 +11,13 @@
 //! prints differently, the human is shown the lines. Code decides what is shown. No model reads
 //! it, and nothing of it goes back to the body.
 //!
+//! What is shown first is what a human can judge: a place that prints another value. A place that
+//! only flips the body's own mark (`FAIL` to `PASS`) is the body's opinion of its work and comes
+//! last. A check that fails on the code as the ask found it has nothing to stand beside there; what
+//! it prints now is shown as new, after the checks that ran on both. On 42 kept runs of our bench
+//! that order shows a wrong value in 18 of 26 failed runs, where the newest place first showed it
+//! in 14, and no other order by code did better.
+//!
 //! Two copies, never one put back in between: a check leaves caches where it ran (compiled
 //! Python beside its source), and a file put back at the same size within the same second is
 //! read from the cache of the other tree. For the same reason no cache is copied.
@@ -66,11 +73,22 @@ const BEFORE: &[&str] = &[
     "--",
 ];
 
+/// The test runners a body drives from a line of code. What such a run prints is the runner's:
+/// names, marks, and how long it took, which no two runs print alike.
+const RUNNERS: [&str; 2] = ["unittest", "pytest"];
+
 /// Whether `command` is a check: its first program is an interpreter handed its code on the
 /// command line or through a here-document. A test runner is not one (the end gate judges
-/// those), nor is a look at a file, nor a command that does something else first.
+/// those), whether started by name or driven from the code handed over; nor is a look at a file,
+/// nor a command that does something else first.
 #[must_use]
 pub fn is_check(command: &str) -> bool {
+    if command
+        .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .any(|word| RUNNERS.contains(&word))
+    {
+        return false;
+    }
     let mut rest = command.trim_start();
     // `cd <dir> &&` first, as bodies write it.
     while let Some(after) = rest.strip_prefix("cd ") {
@@ -150,7 +168,7 @@ impl Checks {
 pub struct Differ {
     /// The command, as the body wrote it.
     pub command: String,
-    /// What it printed on the code as the ask found it.
+    /// What it printed on the code as the ask found it: as far as it got, when it failed there.
     pub before: String,
     /// What it prints on the finished work.
     pub now: String,
@@ -169,9 +187,10 @@ pub struct Report {
     pub failed_now: usize,
     /// Those that did not print the same twice on the finished work.
     pub unsteady: usize,
-    /// Those that run only on the finished work: on the code as the ask found it they fail (a
-    /// name the work added, an assertion the work makes true).
-    pub only_now: usize,
+    /// Those that run only on the finished work, the body's newest first: on the code as the ask
+    /// found it they fail (a name the work added, an assertion the work makes true). `before` is
+    /// what each printed there before it failed.
+    pub only_now: Vec<Differ>,
     /// Those the step's time ran out before.
     pub not_reached: usize,
     /// Why nothing could be compared at all, when so.
@@ -200,11 +219,7 @@ pub fn compare(
     if checks.is_empty() {
         return report;
     }
-    let root = std::env::temp_dir().join(format!(
-        "mikata-changes-{}-{}",
-        std::process::id(),
-        began.elapsed().as_nanos() ^ u128::from(std::process::id())
-    ));
+    let root = scratch_root();
     let _ = fs::remove_dir_all(&root);
     report.why_not =
         run_in_copies(world, &root, from, attic, start, checks, tools, &mut report).err();
@@ -213,35 +228,125 @@ pub fn compare(
     report
 }
 
-/// A copy of `world` under `root/<tree>`, with the context its commands run in.
-fn copy_of(
-    world: &Path,
-    root: &Path,
-    tree: &str,
-    from: &Context,
-) -> Result<(PathBuf, Context), String> {
-    let copy = root
-        .join(tree)
-        .join(world.file_name().unwrap_or_else(|| "world".as_ref()));
-    let (mut bytes, mut files) = (COPY_BYTES, COPY_FILES);
-    match copy_capped(world, &copy, true, &mut bytes, &mut files) {
-        Ok(true) => {}
-        Ok(false) => {
-            return Err(format!(
-                "the world is too large to copy (over {} MiB or {COPY_FILES} files)",
-                COPY_BYTES / (1024 * 1024)
-            ));
+/// What a check did on one tree.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Said {
+    /// Whether it ran to its end and left with 0.
+    pub ok: bool,
+    /// What it printed on its standard output, as far as it got.
+    pub out: String,
+    /// The last line of what it said besides: its error, when it failed.
+    pub err: String,
+}
+
+/// A copy of a tree, and what runs a check in it.
+struct Copied {
+    at: PathBuf,
+    cx: Context,
+    /// The paths a command may name its world by: each is this copy's here.
+    names: Vec<String>,
+}
+
+impl Copied {
+    /// A copy of `tree` under `root/<name>`. Its commands run in `from`'s sandbox; `written_in` is the
+    /// world the body's commands were written in, whose path they name in full more often than
+    /// not.
+    fn of(
+        tree: &Path,
+        written_in: &Path,
+        root: &Path,
+        name: &str,
+        from: &Context,
+    ) -> Result<Self, String> {
+        let copy = root
+            .join(name)
+            .join(written_in.file_name().unwrap_or_else(|| "world".as_ref()));
+        let (mut bytes, mut files) = (COPY_BYTES, COPY_FILES);
+        match copy_capped(tree, &copy, true, &mut bytes, &mut files) {
+            Ok(true) => {}
+            Ok(false) => {
+                return Err(format!(
+                    "the world is too large to copy (over {} MiB or {COPY_FILES} files)",
+                    COPY_BYTES / (1024 * 1024)
+                ));
+            }
+            Err(e) => return Err(format!("the world could not be copied: {e}")),
         }
-        Err(e) => return Err(format!("the world could not be copied: {e}")),
+        let at = copy
+            .canonicalize()
+            .map_err(|e| format!("the copy could not be read: {e}"))?;
+        let cx = Context::new(Race::Slime, &at, &["."])
+            .with_sandbox(from.sandbox().clone())
+            .with_unguarded(from.allows_unguarded())
+            .with_home(from.home());
+        let mut names = vec![written_in.display().to_string()];
+        if let Ok(real) = written_in.canonicalize() {
+            let real = real.display().to_string();
+            if !names.contains(&real) {
+                names.push(real);
+            }
+        }
+        Ok(Self { at, cx, names })
     }
-    let copy = copy
-        .canonicalize()
-        .map_err(|e| format!("the copy could not be read: {e}"))?;
-    let cx = Context::new(Race::Slime, &copy, &["."])
-        .with_sandbox(from.sandbox().clone())
-        .with_unguarded(from.allows_unguarded())
-        .with_home(from.home());
-    Ok((copy, cx))
+
+    /// What `command` does here, this copy's own path written `<world>`.
+    fn says(&mut self, command: &str, tools: &[Box<dyn Tool>]) -> Said {
+        let here = self.at.display().to_string();
+        let mut command = command.to_owned();
+        for name in &self.names {
+            command = command.replace(name.as_str(), &here);
+        }
+        let args = json!({
+            "command": command,
+            "timeout_ms": u64::try_from(EACH.as_millis()).unwrap_or(20_000),
+        });
+        let o = call(tools, "bash", &args.to_string(), &mut self.cx);
+        let out = stdout_of(&o.content);
+        // What it said besides: the last line of it, which is where an error names itself.
+        let err = o.content[out.len()..]
+            .lines()
+            .rev()
+            .map(str::trim)
+            .find(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+            .unwrap_or_default();
+        Said {
+            ok: !o.is_error,
+            out: out.replace(&here, "<world>").trim_end().to_owned(),
+            err: err.replace(&here, "<world>"),
+        }
+    }
+}
+
+/// A folder for a step's copies, its own each time.
+fn scratch_root() -> PathBuf {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    std::env::temp_dir().join(format!(
+        "mikata-changes-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ))
+}
+
+/// What each of `checks` does in a copy of `tree`, once. `named` is the world the checks were
+/// written in. For a study that sets a third tree beside the two [`compare`] runs: the code as it
+/// should have become.
+///
+/// # Errors
+///
+/// The tree cannot be copied.
+pub fn printed(
+    tree: &Path,
+    named: &Path,
+    from: &Context,
+    checks: &[&str],
+    tools: &[Box<dyn Tool>],
+) -> Result<Vec<Said>, String> {
+    let root = scratch_root();
+    let _ = fs::remove_dir_all(&root);
+    let out = Copied::of(tree, named, &root, "tree", from)
+        .map(|mut copy| checks.iter().map(|check| copy.says(check, tools)).collect());
+    let _ = fs::remove_dir_all(&root);
+    out
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -255,42 +360,16 @@ fn run_in_copies(
     tools: &[Box<dyn Tool>],
     report: &mut Report,
 ) -> Result<(), String> {
-    let (now_at, mut now_cx) = copy_of(world, root, "now", from)?;
-    let (before_at, mut before_cx) = copy_of(world, root, "before", from)?;
+    let mut now = Copied::of(world, world, root, "now", from)?;
+    let mut before = Copied::of(world, world, root, "before", from)?;
     // The second copy, put back to the tree as the ask found it: what the world ignores (its
     // dependencies) stays as it is, so a check finds them there as it did.
     attic
-        .export_into(&start.tree, &before_at)
+        .export_into(&start.tree, &before.at)
         .map_err(|e| format!("the code as the ask found it could not be laid out: {e}"))?;
     let until = Instant::now() + BUDGET;
-    now_cx.set_deadline(Some(until));
-    before_cx.set_deadline(Some(until));
-    // A command names its world in full more often than not: each such path is the copy's there.
-    let mut names = vec![world.display().to_string()];
-    if let Ok(real) = world.canonicalize() {
-        let real = real.display().to_string();
-        if !names.contains(&real) {
-            names.push(real);
-        }
-    }
-    let run = |cx: &mut Context, at: &Path, command: &str| -> Option<String> {
-        let here = at.display().to_string();
-        let mut command = command.to_owned();
-        for name in &names {
-            command = command.replace(name.as_str(), &here);
-        }
-        let args = json!({
-            "command": command,
-            "timeout_ms": u64::try_from(EACH.as_millis()).unwrap_or(20_000),
-        });
-        let o = call(tools, "bash", &args.to_string(), cx);
-        (!o.is_error).then(|| {
-            stdout_of(&o.content)
-                .replace(&here, "<world>")
-                .trim_end()
-                .to_owned()
-        })
-    };
+    now.cx.set_deadline(Some(until));
+    before.cx.set_deadline(Some(until));
     for (i, check) in checks.iter().enumerate() {
         if Instant::now() >= until {
             report.not_reached += checks.len() - i;
@@ -298,28 +377,30 @@ fn run_in_copies(
         }
         // The finished work, twice: a check that will not print the same twice says nothing by
         // printing differently on another tree.
-        let after = match (
-            run(&mut now_cx, &now_at, check),
-            run(&mut now_cx, &now_at, check),
-        ) {
-            (Some(a), Some(b)) if a == b => a,
-            (Some(_), Some(_)) => {
-                report.unsteady += 1;
-                continue;
-            }
-            _ => {
-                report.failed_now += 1;
-                continue;
-            }
+        let (first, second) = (now.says(check, tools), now.says(check, tools));
+        if !(first.ok && second.ok) {
+            report.failed_now += 1;
+            continue;
+        }
+        if first.out != second.out {
+            report.unsteady += 1;
+            continue;
+        }
+        let was = before.says(check, tools);
+        if was.ok && was.out == first.out {
+            report.same += 1;
+            continue;
+        }
+        let ran_before = was.ok;
+        let differ = Differ {
+            command: (*check).to_owned(),
+            before: was.out,
+            now: first.out,
         };
-        match run(&mut before_cx, &before_at, check) {
-            Some(before) if before == after => report.same += 1,
-            Some(before) => report.differ.push(Differ {
-                command: (*check).to_owned(),
-                before,
-                now: after,
-            }),
-            None => report.only_now += 1,
+        if ran_before {
+            report.differ.push(differ);
+        } else {
+            report.only_now.push(differ);
         }
     }
     Ok(())
@@ -444,6 +525,101 @@ impl Place {
     }
 }
 
+/// The body's own marks on its checks, and the words a verdict line is made of ("All tests
+/// passed", "Pass: True"). `true` and `false` can be values: taking them for marks only ever
+/// counts a value as a mark, which puts a place later, never hides it.
+const MARKS: [&str; 23] = [
+    "pass",
+    "passed",
+    "passes",
+    "passing",
+    "fail",
+    "failed",
+    "fails",
+    "failing",
+    "ok",
+    "error",
+    "errors",
+    "true",
+    "false",
+    "yes",
+    "no",
+    "all",
+    "some",
+    "success",
+    "successful",
+    "successfully",
+    "correct",
+    "incorrect",
+    "wrong",
+];
+/// The same said with a sign.
+const SIGNS: [char; 6] = ['✓', '✗', '✔', '✘', '✅', '❌'];
+
+/// A line with each mark put as `#`: two lines equal so differ only by a mark.
+fn masked(line: &str) -> String {
+    fn close(word: &mut String, out: &mut String) {
+        if MARKS.contains(&word.to_lowercase().as_str()) {
+            out.push('#');
+        } else {
+            out.push_str(word);
+        }
+        word.clear();
+    }
+    let mut out = String::with_capacity(line.len());
+    let mut word = String::new();
+    for c in line.chars() {
+        if c.is_alphanumeric() || c == '_' {
+            word.push(c);
+            continue;
+        }
+        close(&mut word, &mut out);
+        out.push(if SIGNS.contains(&c) { '#' } else { c });
+    }
+    close(&mut word, &mut out);
+    out
+}
+
+/// Whether a line, its marks aside, holds anything a reader could judge: a number, a quoted or
+/// bracketed thing, or a word after a colon or an equals sign. A verdict in plain words ("All
+/// comprehensive tests passed!") holds none, however it is worded.
+fn says_something(line: &str) -> bool {
+    let line: Vec<char> = masked(line).chars().collect();
+    line.iter().enumerate().any(|(i, c)| {
+        c.is_ascii_digit()
+            || "'\"`()[]{}<>".contains(*c)
+            || (matches!(c, ':' | '=')
+                && line[i + 1..]
+                    .iter()
+                    .find(|next| !next.is_whitespace())
+                    .is_some_and(|next| !matches!(next, '#' | '=')))
+    })
+}
+
+impl Place {
+    /// Whether none of its new lines holds a value: each is a mark flipped (the line, marks
+    /// aside, is a line of it that is gone) or a verdict in plain words. A place with no new
+    /// line (lines gone and nothing in their stead) is not one.
+    fn marks_only(&self) -> bool {
+        let gone: std::collections::BTreeSet<String> = self
+            .lines
+            .iter()
+            .filter_map(|l| l.strip_prefix("- "))
+            .map(masked)
+            .collect();
+        let mut new = self
+            .lines
+            .iter()
+            .filter_map(|l| l.strip_prefix("+ "))
+            .peekable();
+        new.peek().is_some()
+            && new.all(|line| {
+                let aside = masked(line);
+                (aside.contains('#') && gone.contains(&aside)) || !says_something(line)
+            })
+    }
+}
+
 /// The places `before` and `now` differ, in the order they were printed.
 fn places(before: &str, now: &str) -> Vec<Place> {
     let all = lines(before, now);
@@ -494,12 +670,6 @@ fn plural(n: usize, one: &str, many: &str) -> String {
 /// What is left out of the comparison, said by count and by why: `None` when nothing is.
 fn left_out(r: &Report) -> Option<String> {
     let mut said = Vec::new();
-    if r.only_now > 0 {
-        said.push(format!(
-            "{} only on the finished work",
-            plural(r.only_now, "runs", "run")
-        ));
-    }
     if r.failed_now > 0 {
         said.push(format!(
             "{} on the finished work",
@@ -521,59 +691,105 @@ fn left_out(r: &Report) -> Option<String> {
     (!said.is_empty()).then(|| said.join(", "))
 }
 
-/// What the human is shown: one line that counts, then the places the checks print differently,
-/// the newest check first and each place once, until [`SHOWN`] lines are used, then where the
-/// whole of it is. `None` when there is nothing to say: no check was taken.
+/// The line that counts: how many of the checks print differently, the same, or only now.
+fn counted(r: &Report, who: &str) -> String {
+    let of = format!("of {who}'s last {}", plural(r.taken, "check", "checks"));
+    let differently = format!(
+        "{} differently than on the code you gave it",
+        plural(r.differ.len(), "prints", "print")
+    );
+    let the_same = format!(
+        "{} the same as on the code you gave it",
+        plural(r.same, "prints", "print")
+    );
+    let only_now = format!(
+        "{} only on the finished work",
+        plural(r.only_now.len(), "runs", "run")
+    );
+    let mut s = match (r.differ.is_empty(), r.only_now.is_empty(), r.same == 0) {
+        (true, true, true) => {
+            format!("what changed: none {of} could be set beside the code you gave it")
+        }
+        (true, true, false) => format!("what changed: {of}, {the_same}"),
+        (true, false, true) => format!("what changed: {of}, {only_now}"),
+        (true, false, false) => format!("what changed: {of}, {the_same} and {only_now}"),
+        (false, true, _) => format!("what changed: {of}, {differently}"),
+        (false, false, _) => format!("what changed: {of}, {differently} and {only_now}"),
+    };
+    if let Some(left) = left_out(r) {
+        let _ = write!(s, " ({left})");
+    }
+    s
+}
+
+/// The places to show, in order: those of the checks that print differently, the body's newest
+/// check first, then those of the checks that run only now; and of all of them, the places that
+/// print a value before the ones that only flip a mark.
+fn ordered(r: &Report) -> Vec<Place> {
+    let (values, marks): (Vec<Place>, Vec<Place>) = r
+        .differ
+        .iter()
+        .chain(&r.only_now)
+        .flat_map(|d| places(&d.before, &d.now))
+        .partition(|place| !place.marks_only());
+    values.into_iter().chain(marks).collect()
+}
+
+/// What the human is shown: one line that counts, then the places the checks print differently
+/// ([`ordered`]), each once, until [`SHOWN`] lines are used, then where the whole of it is. A
+/// place too long for the list is cut, and says by how much. `None` when there is nothing to say:
+/// no check was taken.
 #[must_use]
 pub fn said(r: &Report, who: &str) -> Option<String> {
     if r.taken == 0 {
         return None;
     }
-    let of = format!("of {who}'s last {}", plural(r.taken, "check", "checks"));
     if let Some(why) = &r.why_not {
         return Some(format!("what changed: not looked at, {why}"));
     }
-    let compared = r.same + r.differ.len();
-    let mut s = if compared == 0 {
-        format!("what changed: none {of} could be set beside the code you gave it")
-    } else if r.differ.is_empty() {
-        format!("what changed: {of}, {compared} print the same as on the code you gave it")
-    } else {
-        format!(
-            "what changed: {of}, {} differently than on the code you gave it",
-            plural(r.differ.len(), "prints", "print")
-        )
-    };
-    if let Some(left) = left_out(r) {
-        let _ = write!(s, " ({left})");
-    }
-    if r.differ.is_empty() {
+    let mut s = counted(r, who);
+    if r.differ.is_empty() && r.only_now.is_empty() {
         return Some(s);
     }
     s.push(':');
     let mut seen = std::collections::BTreeSet::new();
     let (mut used, mut more) = (0, 0);
-    for d in &r.differ {
-        for place in places(&d.before, &d.now) {
-            // The same change printed by two checks is said once.
-            if !seen.insert(place.key()) {
-                continue;
-            }
-            if used > 0 && used + place.lines.len() + 1 > SHOWN {
-                more += place.changed;
-                continue;
-            }
-            s.push('\n');
-            for line in &place.lines {
-                s.push('\n');
-                s.push_str(line);
-            }
-            used += place.lines.len() + 1;
+    for place in ordered(r) {
+        // The same change printed by two checks is said once.
+        if !seen.insert(place.key()) {
+            continue;
         }
+        // A place that with its blank line would pass the list's lines is shown two short of
+        // them, then one line that says how much more of it there is.
+        let cut = place.lines.len() + 1 > SHOWN;
+        let (shown, cost) = if cut {
+            (SHOWN - 2, SHOWN - 1)
+        } else {
+            (place.lines.len(), place.lines.len())
+        };
+        if used > 0 && used + cost + 1 > SHOWN {
+            more += place.changed;
+            continue;
+        }
+        s.push('\n');
+        for line in &place.lines[..shown] {
+            s.push('\n');
+            s.push_str(line);
+        }
+        if cut {
+            let rest = &place.lines[shown..];
+            more += rest.iter().filter(|l| !l.starts_with("  ")).count();
+            let _ = write!(
+                s,
+                "\n  … {} of this place",
+                plural(rest.len(), "more line", "more lines")
+            );
+        }
+        used += cost + 1;
     }
     let whole = format!(
         "the {} whole: {FILE}",
-        plural(r.differ.len(), "check", "checks")
+        plural(r.differ.len() + r.only_now.len(), "check", "checks")
     );
     if more > 0 {
         let _ = write!(
@@ -587,7 +803,8 @@ pub fn said(r: &Report, who: &str) -> Option<String> {
     Some(s)
 }
 
-/// The whole of it, for the file: every check that prints differently, with its command.
+/// The whole of it, for the file: every check that prints differently or runs only now, with its
+/// command.
 #[must_use]
 pub fn written(r: &Report, who: &str) -> String {
     let mut s = String::from("# What changed, by the checks\n\n");
@@ -598,21 +815,41 @@ pub fn written(r: &Report, who: &str) -> String {
     );
     let _ = writeln!(
         s,
-        "{} differently, {} the same.{}\n",
+        "{} differently, {} the same, {} only on the finished work.{}\n",
         plural(r.differ.len(), "prints", "print"),
         plural(r.same, "prints", "print"),
+        plural(r.only_now.len(), "runs", "run"),
         left_out(r)
             .map(|l| format!(" Left out: {l}."))
             .unwrap_or_default()
     );
-    for (n, d) in r.differ.iter().enumerate() {
+    let only_now = r.only_now.iter().map(|d| (d, true));
+    for (n, (d, new)) in r
+        .differ
+        .iter()
+        .map(|d| (d, false))
+        .chain(only_now)
+        .enumerate()
+    {
         let _ = writeln!(
             s,
-            "## {}\n\n```sh\n{}\n```\n\n```diff",
+            "## {}{}\n\n```sh\n{}\n```\n",
             n + 1,
+            if new {
+                ": runs only on the finished work"
+            } else {
+                ""
+            },
             d.command.trim_end()
         );
-        for (i, place) in places(&d.before, &d.now).iter().enumerate() {
+        let found = places(&d.before, &d.now);
+        if found.is_empty() {
+            // It failed on the code as the ask found it after printing all it prints now.
+            s.push_str("It prints the same lines on both.\n\n");
+            continue;
+        }
+        s.push_str("```diff\n");
+        for (i, place) in found.iter().enumerate() {
             if i > 0 {
                 s.push('\n');
             }
@@ -659,10 +896,17 @@ mod tests {
             "cd /w && git diff",
             "cargo test",
             "ls; python3 -c 'print(1)'",
+            // A runner driven from the code handed over is a test run all the same.
+            "python3 -c \"import unittest; from tests.test_a import A; unittest.TextTestRunner().run(unittest.makeSuite(A))\"",
+            "cd /w && python3 -c 'import pytest; pytest.main([\"-x\", \"tests\"])'",
             "",
         ] {
             assert!(!is_check(no), "{no}");
         }
+        // A word that only holds a runner's name names none.
+        assert!(is_check(
+            "python3 -c 'import my_unittest_helpers as h; print(h.f())'"
+        ));
     }
 
     #[test]
@@ -732,16 +976,17 @@ mod tests {
                     "in: a\nout: 2\n\n\nin: b\nout: 6",
                 ),
             ],
-            only_now: 1,
+            // One more fails on the code as it was: what it prints now is new, and comes after.
+            only_now: vec![differ("", "made: 7")],
             unsteady: 1,
             ..Report::default()
         };
         assert_eq!(
             said(&r, "Mikata").unwrap(),
             "what changed: of Mikata's last 5 checks, 2 print differently than on the code you gave it \
-             (1 runs only on the finished work, 1 does not print the same twice):\n\n  \
-             in: a\n- out: 1\n+ out: 2\n\n  in: b\n- out: 5\n+ out: 6\n\n\
-             the 2 checks whole: .mikata/tmp/what-changed.md"
+             and 1 runs only on the finished work (1 does not print the same twice):\n\n  \
+             in: a\n- out: 1\n+ out: 2\n\n  in: b\n- out: 5\n+ out: 6\n\n+ made: 7\n\n\
+             the 3 checks whole: .mikata/tmp/what-changed.md"
         );
         // Past the lines shown, what is left is counted.
         let mut many = String::new();
@@ -761,15 +1006,28 @@ mod tests {
             ),
             "{text}"
         );
+        // An ask that adds what the code could not do: every check fails on the code as it was.
+        let new = Report {
+            taken: 3,
+            same: 1,
+            only_now: vec![differ("", "made: 7"), differ("", "made: 7\nkept: 2")],
+            ..Report::default()
+        };
+        assert_eq!(
+            said(&new, "Mikata").unwrap(),
+            "what changed: of Mikata's last 3 checks, 1 prints the same as on the code you gave it \
+             and 2 run only on the finished work:\n\n+ made: 7\n\n+ made: 7\n+ kept: 2\n\n\
+             the 2 checks whole: .mikata/tmp/what-changed.md"
+        );
         let none = Report {
             taken: 2,
-            only_now: 2,
+            failed_now: 2,
             ..Report::default()
         };
         assert_eq!(
             said(&none, "Mikata").unwrap(),
             "what changed: none of Mikata's last 2 checks could be set beside the code you gave it \
-             (2 run only on the finished work)"
+             (2 fail on the finished work)"
         );
         let cannot = Report {
             taken: 2,
@@ -784,18 +1042,134 @@ mod tests {
     }
 
     #[test]
-    fn the_file_holds_every_check_that_differs_with_its_command() {
+    fn a_mark_is_told_from_a_value() {
+        for (line, aside, says) in [
+            (
+                "  Output: SELECT INTERVAL '1.5 HOURS'",
+                "  Output: SELECT INTERVAL '1.5 HOURS'",
+                true,
+            ),
+            ("D1: PASS", "D1: #", true),
+            (
+                "✓ duckdb -> spark: SLICE(arr, 1, 6)",
+                "# duckdb -> spark: SLICE(arr, 1, 6)",
+                true,
+            ),
+            ("tables type: Identifier", "tables type: Identifier", true),
+            ("num tables: 3", "num tables: 3", true),
+            (
+                "All comprehensive tests passed!",
+                "# comprehensive tests #!",
+                false,
+            ),
+            ("=== ALL TESTS PASSED ===", "=== # TESTS # ===", false),
+            ("Some tests failed!", "# tests #!", false),
+            ("OVERALL: ALL TESTS PASSED", "OVERALL: # TESTS #", false),
+            (
+                "Fractional preserved: True",
+                "Fractional preserved: #",
+                false,
+            ),
+            // A word that only holds a mark is no mark.
+            ("bypass_all: skipped", "bypass_all: skipped", true),
+        ] {
+            assert_eq!(masked(line), aside, "{line}");
+            assert_eq!(says_something(line), says, "{line}");
+        }
+    }
+
+    #[test]
+    fn a_place_that_prints_a_value_comes_before_one_that_only_flips_a_mark() {
+        // The newest check grades itself; the older one prints what the code returns.
+        let graded = differ(
+            "D1: FAIL\n  Expected: 6\n  Got: 5\n\n\n\nSome tests failed!",
+            "D1: PASS\n\n\n\nAll comprehensive tests passed!",
+        );
+        let printed = differ("in: a\nout: 1", "in: a\nout: 2");
+        let found = places(&graded.before, &graded.now);
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert!(found.iter().all(Place::marks_only), "{found:?}");
+        assert!(!places(&printed.before, &printed.now)[0].marks_only());
+        // Lines gone with nothing in their stead are no mark flipped.
+        assert!(!places("a: 1\nb: 2", "a: 1")[0].marks_only());
         let r = Report {
             taken: 2,
+            differ: vec![graded, printed],
+            ..Report::default()
+        };
+        assert_eq!(
+            said(&r, "Mikata").unwrap(),
+            "what changed: of Mikata's last 2 checks, 2 print differently than on the code you gave it:\n\n  \
+             in: a\n- out: 1\n+ out: 2\n\n\
+             - D1: FAIL\n-   Expected: 6\n-   Got: 5\n+ D1: PASS\n\n\
+             - Some tests failed!\n+ All comprehensive tests passed!\n\n\
+             the 2 checks whole: .mikata/tmp/what-changed.md"
+        );
+    }
+
+    #[test]
+    fn a_place_too_long_for_the_list_is_cut_and_says_by_how_much() {
+        let old = |n: usize| (0..n).fold(String::new(), |s, i| s + &format!("k{i}: old\n"));
+        let before = old(30);
+        let r = Report {
+            taken: 2,
+            // The long place is the newest check's; a short one of an older check still fits no
+            // more, and is counted.
+            differ: vec![
+                differ(&before, &before.replace("old", "new")),
+                differ("in: a\nout: 1", "in: a\nout: 2"),
+            ],
+            ..Report::default()
+        };
+        let text = said(&r, "Mikata").unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        // The line that counts, a blank, eighteen lines of the place, the line that says how many
+        // more, a blank, and where the whole is.
+        assert_eq!(lines.len(), 1 + 1 + (SHOWN - 2) + 1 + 1 + 1, "{text}");
+        assert_eq!(lines[2], "- k0: old");
+        assert_eq!(lines[SHOWN], "  … 42 more lines of this place");
+        assert_eq!(
+            lines[SHOWN + 2],
+            "44 more changed lines not shown; the 2 checks whole: .mikata/tmp/what-changed.md"
+        );
+        // One line short of the list, a place is shown whole.
+        let before = old(9);
+        let whole = Report {
+            taken: 1,
+            differ: vec![differ(
+                &format!("top\n{before}"),
+                &format!("top\n{}", before.replace("old", "new")),
+            )],
+            ..Report::default()
+        };
+        let text = said(&whole, "Mikata").unwrap();
+        assert_eq!(text.lines().count(), 1 + 1 + (SHOWN - 1) + 1 + 1, "{text}");
+        assert!(!text.contains("of this place"), "{text}");
+    }
+
+    #[test]
+    fn the_file_holds_every_check_that_differs_with_its_command() {
+        let r = Report {
+            taken: 4,
             differ: vec![differ("a\nb", "a\nc")],
             same: 1,
+            only_now: vec![differ("", "made: 7"), differ("made: 7", "made: 7")],
             ..Report::default()
         };
         let w = written(&r, "Mikata");
-        assert!(w.contains("```sh\npython3 -c 'x'\n```"), "{w}");
+        assert!(w.contains("## 1\n\n```sh\npython3 -c 'x'\n```"), "{w}");
         assert!(w.contains("```diff\n  a\n- b\n+ c\n```"), "{w}");
         assert!(
-            w.contains("1 prints differently, 1 prints the same."),
+            w.contains("1 prints differently, 1 prints the same, 2 run only on the finished work."),
+            "{w}"
+        );
+        assert!(
+            w.contains("## 2: runs only on the finished work\n\n```sh\npython3 -c 'x'\n```\n\n```diff\n+ made: 7\n```"),
+            "{w}"
+        );
+        // It printed all of it before it failed there.
+        assert!(
+            w.contains("## 3: runs only on the finished work\n\n```sh\npython3 -c 'x'\n```\n\nIt prints the same lines on both."),
             "{w}"
         );
     }
