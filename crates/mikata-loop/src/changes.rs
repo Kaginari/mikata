@@ -200,11 +200,7 @@ pub fn compare(
     if checks.is_empty() {
         return report;
     }
-    let root = std::env::temp_dir().join(format!(
-        "mikata-changes-{}-{}",
-        std::process::id(),
-        began.elapsed().as_nanos() ^ u128::from(std::process::id())
-    ));
+    let root = scratch_root();
     let _ = fs::remove_dir_all(&root);
     report.why_not =
         run_in_copies(world, &root, from, attic, start, checks, tools, &mut report).err();
@@ -213,35 +209,125 @@ pub fn compare(
     report
 }
 
-/// A copy of `world` under `root/<tree>`, with the context its commands run in.
-fn copy_of(
-    world: &Path,
-    root: &Path,
-    tree: &str,
-    from: &Context,
-) -> Result<(PathBuf, Context), String> {
-    let copy = root
-        .join(tree)
-        .join(world.file_name().unwrap_or_else(|| "world".as_ref()));
-    let (mut bytes, mut files) = (COPY_BYTES, COPY_FILES);
-    match copy_capped(world, &copy, true, &mut bytes, &mut files) {
-        Ok(true) => {}
-        Ok(false) => {
-            return Err(format!(
-                "the world is too large to copy (over {} MiB or {COPY_FILES} files)",
-                COPY_BYTES / (1024 * 1024)
-            ));
+/// What a check did on one tree.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Said {
+    /// Whether it ran to its end and left with 0.
+    pub ok: bool,
+    /// What it printed on its standard output, as far as it got.
+    pub out: String,
+    /// The last line of what it said besides: its error, when it failed.
+    pub err: String,
+}
+
+/// A copy of a tree, and what runs a check in it.
+struct Copied {
+    at: PathBuf,
+    cx: Context,
+    /// The paths a command may name its world by: each is this copy's here.
+    names: Vec<String>,
+}
+
+impl Copied {
+    /// A copy of `tree` under `root/<name>`. Its commands run in `from`'s sandbox; `written_in` is the
+    /// world the body's commands were written in, whose path they name in full more often than
+    /// not.
+    fn of(
+        tree: &Path,
+        written_in: &Path,
+        root: &Path,
+        name: &str,
+        from: &Context,
+    ) -> Result<Self, String> {
+        let copy = root
+            .join(name)
+            .join(written_in.file_name().unwrap_or_else(|| "world".as_ref()));
+        let (mut bytes, mut files) = (COPY_BYTES, COPY_FILES);
+        match copy_capped(tree, &copy, true, &mut bytes, &mut files) {
+            Ok(true) => {}
+            Ok(false) => {
+                return Err(format!(
+                    "the world is too large to copy (over {} MiB or {COPY_FILES} files)",
+                    COPY_BYTES / (1024 * 1024)
+                ));
+            }
+            Err(e) => return Err(format!("the world could not be copied: {e}")),
         }
-        Err(e) => return Err(format!("the world could not be copied: {e}")),
+        let at = copy
+            .canonicalize()
+            .map_err(|e| format!("the copy could not be read: {e}"))?;
+        let cx = Context::new(Race::Slime, &at, &["."])
+            .with_sandbox(from.sandbox().clone())
+            .with_unguarded(from.allows_unguarded())
+            .with_home(from.home());
+        let mut names = vec![written_in.display().to_string()];
+        if let Ok(real) = written_in.canonicalize() {
+            let real = real.display().to_string();
+            if !names.contains(&real) {
+                names.push(real);
+            }
+        }
+        Ok(Self { at, cx, names })
     }
-    let copy = copy
-        .canonicalize()
-        .map_err(|e| format!("the copy could not be read: {e}"))?;
-    let cx = Context::new(Race::Slime, &copy, &["."])
-        .with_sandbox(from.sandbox().clone())
-        .with_unguarded(from.allows_unguarded())
-        .with_home(from.home());
-    Ok((copy, cx))
+
+    /// What `command` does here, this copy's own path written `<world>`.
+    fn says(&mut self, command: &str, tools: &[Box<dyn Tool>]) -> Said {
+        let here = self.at.display().to_string();
+        let mut command = command.to_owned();
+        for name in &self.names {
+            command = command.replace(name.as_str(), &here);
+        }
+        let args = json!({
+            "command": command,
+            "timeout_ms": u64::try_from(EACH.as_millis()).unwrap_or(20_000),
+        });
+        let o = call(tools, "bash", &args.to_string(), &mut self.cx);
+        let out = stdout_of(&o.content);
+        // What it said besides: the last line of it, which is where an error names itself.
+        let err = o.content[out.len()..]
+            .lines()
+            .rev()
+            .map(str::trim)
+            .find(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+            .unwrap_or_default();
+        Said {
+            ok: !o.is_error,
+            out: out.replace(&here, "<world>").trim_end().to_owned(),
+            err: err.replace(&here, "<world>"),
+        }
+    }
+}
+
+/// A folder for a step's copies, its own each time.
+fn scratch_root() -> PathBuf {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    std::env::temp_dir().join(format!(
+        "mikata-changes-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ))
+}
+
+/// What each of `checks` does in a copy of `tree`, once. `named` is the world the checks were
+/// written in. For a study that sets a third tree beside the two [`compare`] runs: the code as it
+/// should have become.
+///
+/// # Errors
+///
+/// The tree cannot be copied.
+pub fn printed(
+    tree: &Path,
+    named: &Path,
+    from: &Context,
+    checks: &[&str],
+    tools: &[Box<dyn Tool>],
+) -> Result<Vec<Said>, String> {
+    let root = scratch_root();
+    let _ = fs::remove_dir_all(&root);
+    let out = Copied::of(tree, named, &root, "tree", from)
+        .map(|mut copy| checks.iter().map(|check| copy.says(check, tools)).collect());
+    let _ = fs::remove_dir_all(&root);
+    out
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -255,42 +341,16 @@ fn run_in_copies(
     tools: &[Box<dyn Tool>],
     report: &mut Report,
 ) -> Result<(), String> {
-    let (now_at, mut now_cx) = copy_of(world, root, "now", from)?;
-    let (before_at, mut before_cx) = copy_of(world, root, "before", from)?;
+    let mut now = Copied::of(world, world, root, "now", from)?;
+    let mut before = Copied::of(world, world, root, "before", from)?;
     // The second copy, put back to the tree as the ask found it: what the world ignores (its
     // dependencies) stays as it is, so a check finds them there as it did.
     attic
-        .export_into(&start.tree, &before_at)
+        .export_into(&start.tree, &before.at)
         .map_err(|e| format!("the code as the ask found it could not be laid out: {e}"))?;
     let until = Instant::now() + BUDGET;
-    now_cx.set_deadline(Some(until));
-    before_cx.set_deadline(Some(until));
-    // A command names its world in full more often than not: each such path is the copy's there.
-    let mut names = vec![world.display().to_string()];
-    if let Ok(real) = world.canonicalize() {
-        let real = real.display().to_string();
-        if !names.contains(&real) {
-            names.push(real);
-        }
-    }
-    let run = |cx: &mut Context, at: &Path, command: &str| -> Option<String> {
-        let here = at.display().to_string();
-        let mut command = command.to_owned();
-        for name in &names {
-            command = command.replace(name.as_str(), &here);
-        }
-        let args = json!({
-            "command": command,
-            "timeout_ms": u64::try_from(EACH.as_millis()).unwrap_or(20_000),
-        });
-        let o = call(tools, "bash", &args.to_string(), cx);
-        (!o.is_error).then(|| {
-            stdout_of(&o.content)
-                .replace(&here, "<world>")
-                .trim_end()
-                .to_owned()
-        })
-    };
+    now.cx.set_deadline(Some(until));
+    before.cx.set_deadline(Some(until));
     for (i, check) in checks.iter().enumerate() {
         if Instant::now() >= until {
             report.not_reached += checks.len() - i;
@@ -298,28 +358,26 @@ fn run_in_copies(
         }
         // The finished work, twice: a check that will not print the same twice says nothing by
         // printing differently on another tree.
-        let after = match (
-            run(&mut now_cx, &now_at, check),
-            run(&mut now_cx, &now_at, check),
-        ) {
-            (Some(a), Some(b)) if a == b => a,
-            (Some(_), Some(_)) => {
-                report.unsteady += 1;
-                continue;
-            }
-            _ => {
-                report.failed_now += 1;
-                continue;
-            }
-        };
-        match run(&mut before_cx, &before_at, check) {
-            Some(before) if before == after => report.same += 1,
-            Some(before) => report.differ.push(Differ {
+        let (first, second) = (now.says(check, tools), now.says(check, tools));
+        if !(first.ok && second.ok) {
+            report.failed_now += 1;
+            continue;
+        }
+        if first.out != second.out {
+            report.unsteady += 1;
+            continue;
+        }
+        let was = before.says(check, tools);
+        if !was.ok {
+            report.only_now += 1;
+        } else if was.out == first.out {
+            report.same += 1;
+        } else {
+            report.differ.push(Differ {
                 command: (*check).to_owned(),
-                before,
-                now: after,
-            }),
-            None => report.only_now += 1,
+                before: was.out,
+                now: first.out,
+            });
         }
     }
     Ok(())
