@@ -208,6 +208,14 @@ impl Interrupt {
 }
 
 /// What one model call came to.
+/// Why a call apart from the conversation gave no answer ([`Run::call_apart`]).
+enum Apart {
+    /// It did not answer in time: what it is estimated to have cost, in weighted tokens.
+    Late(u64),
+    /// The provider failed it.
+    Failed(String),
+}
+
 enum Called {
     /// The model answered.
     Answered(mikata_provider::Response),
@@ -316,6 +324,11 @@ pub struct Run {
     done: crate::done::List,
     /// The landings answered again because only that list failed ([`crate::done::ROUNDS`]).
     done_rounds: u32,
+    /// The model that reads each ask apart and writes what done means for it (`models.reader`):
+    /// none unless the human names one ([`crate::done`]).
+    reader: Option<String>,
+    /// What a reader wrote for the ask being opened ([`Run::read_apart`]), until it is opened.
+    read: Vec<String>,
     interrupt: Arc<Interrupt>,
     folded_upto: usize,
     /// The recall row for the ask being opened, journaled after it.
@@ -516,6 +529,8 @@ impl Run {
             checks: crate::changes::Checks::default(),
             done: crate::done::List::default(),
             done_rounds: 0,
+            reader: None,
+            read: Vec::new(),
             interrupt,
             folded_upto: 0,
             recalled: None,
@@ -1019,6 +1034,13 @@ impl Run {
         self
     }
 
+    /// Read each ask apart with `reader`, before the body works on it ([`Run::read_apart`]).
+    #[must_use]
+    pub fn with_reader(mut self, reader: Option<String>) -> Self {
+        self.reader = reader;
+        self
+    }
+
     /// The mode the session opened in ([`crate::open::Mode`]), journaled with the law before the
     /// first request. It records what was built; it changes no prompt.
     #[must_use]
@@ -1298,32 +1320,70 @@ impl Run {
         if let Some(names) = mcp.reranked(&key) {
             return Ok((names, 0, true));
         }
+        let said = self
+            .call_apart(
+                model,
+                rerank::SYSTEM,
+                prompt,
+                rerank::MAX_TOKENS,
+                RERANK_WAIT,
+                RERANK,
+            )
+            .await;
+        let (text, wt) = match said {
+            Ok(said) => said,
+            Err(Apart::Late(wt)) => {
+                return Err((
+                    "the fast tier did not answer in time; estimated".to_owned(),
+                    wt,
+                ));
+            }
+            Err(Apart::Failed(e)) => return Err((format!("the fast tier failed: {e}"), 0)),
+        };
+        let names = rerank::pick(&text, shortlist, mcp.settings().top_k);
+        if !names.is_empty() {
+            mcp.keep_reranked(key, names.clone());
+        }
+        Ok((names, wt, false))
+    }
+
+    /// One call apart from the conversation: `system` and one text to `model`, no tool, priced in
+    /// the ledger as `purpose`. Its answer and the weighted tokens spent. A call not answered
+    /// within `wait` may still be billed: the ledger then holds an estimate, the whole prompt in
+    /// and the whole ceiling out, marked as one.
+    async fn call_apart(
+        &mut self,
+        model: &str,
+        system: &str,
+        said: String,
+        max_tokens: u32,
+        wait: Duration,
+        purpose: &str,
+    ) -> Result<(String, u64), Apart> {
+        let sent = system.len() + said.len();
         let request = Request {
             model: model.to_owned(),
             system: vec![Block::Text {
-                text: rerank::SYSTEM.to_owned(),
+                text: system.to_owned(),
                 cache: false,
             }],
             tools: Vec::new(),
             messages: vec![Message {
                 role: Role::User,
                 content: vec![Block::Text {
-                    text: prompt,
+                    text: said,
                     cache: false,
                 }],
             }],
-            max_tokens: rerank::MAX_TOKENS,
+            max_tokens,
             effort: None,
             temperature: None,
             top_p: None,
         };
         let mut quiet = |_: Event| {};
         let Ok(answered) =
-            tokio::time::timeout(RERANK_WAIT, self.model.complete(&request, &mut quiet)).await
+            tokio::time::timeout(wait, self.model.complete(&request, &mut quiet)).await
         else {
-            // The provider may bill a call it never answered: the ledger holds an estimate — the
-            // whole prompt in, the whole ceiling out — marked as one.
-            let sent = rerank::SYSTEM.len() + request_text(&request).len();
             let row = UsageRow {
                 ts: Timestamp::now(),
                 session: self.caller.session.clone(),
@@ -1335,7 +1395,7 @@ impl Run {
                 provider: self.model.provider().to_owned(),
                 usage: mikata_ledger::Usage {
                     input: u64::try_from(sent.div_ceil(4)).unwrap_or(u64::MAX),
-                    output: u64::from(rerank::MAX_TOKENS),
+                    output: u64::from(max_tokens),
                     cache_read: 0,
                     cache_write: 0,
                 },
@@ -1347,17 +1407,14 @@ impl Run {
                 message_id: None,
                 estimated: false,
                 envelope: None,
-                purpose: Some(format!("{RERANK} (timed out, estimated)")),
+                purpose: Some(format!("{purpose} (timed out, estimated)")),
             }
             .priced(&self.prices);
             let wt = row.wt;
             self.spend(&row);
-            return Err((
-                "the fast tier did not answer in time; estimated".to_owned(),
-                wt,
-            ));
+            return Err(Apart::Late(wt));
         };
-        let r = answered.map_err(|e| (format!("the fast tier failed: {e}"), 0))?;
+        let r = answered.map_err(|e| Apart::Failed(e.to_string()))?;
         let mut row = usage_row(
             &r,
             &self.caller,
@@ -1365,14 +1422,57 @@ impl Run {
             &self.prices,
             Timestamp::now(),
         );
-        row.purpose = Some(RERANK.to_owned());
+        row.purpose = Some(purpose.to_owned());
         let wt = row.wt;
         self.spend(&row);
-        let names = rerank::pick(&text_of(&r.content), shortlist, mcp.settings().top_k);
-        if !names.is_empty() {
-            mcp.keep_reranked(key, names.clone());
+        Ok((text_of(&r.content), wt))
+    }
+
+    /// What done means for `ask`, read apart ([`crate::done::READER`]): one call to the reader
+    /// the human named, which is shown the ask alone. Its lines, for the harness to hold: none
+    /// when no reader is named, when this body holds no `check` tool, when the ask carries a list
+    /// of its own, or when the reader gives none. The human is told either way, with the cost.
+    async fn read_apart(&mut self, ask: &str) -> Vec<String> {
+        let Some(model) = self.reader.clone() else {
+            return Vec::new();
+        };
+        if ask.trim().is_empty()
+            || !self.tools.iter().any(|t| t.name() == crate::done::CHECK)
+            || !crate::lines::list(ask).is_empty()
+        {
+            return Vec::new();
         }
-        Ok((names, wt, false))
+        let said = self
+            .call_apart(
+                &model,
+                crate::done::READER,
+                ask.to_owned(),
+                crate::done::READER_TOKENS,
+                crate::done::READER_WAIT,
+                crate::done::READ,
+            )
+            .await;
+        let (lines, outcome, wt) = match said {
+            Ok((text, wt)) => {
+                let lines = crate::done::read_lines(&text);
+                let outcome = match lines.len() {
+                    0 => "no list".to_owned(),
+                    1 => "1 line of a Done when list".to_owned(),
+                    n => format!("{n} lines of a Done when list"),
+                };
+                (lines, outcome, wt)
+            }
+            Err(Apart::Late(wt)) => (
+                Vec::new(),
+                "no list: it did not answer in time; estimated".to_owned(),
+                wt,
+            ),
+            Err(Apart::Failed(e)) => (Vec::new(), format!("no list: it failed: {e}"), 0),
+        };
+        self.record(&Beat::Warning {
+            text: format!("read apart by {model}: {outcome}, {wt} wt"),
+        });
+        lines
     }
 
     fn end(&self, ending: Ending) -> Ending {
@@ -2829,6 +2929,7 @@ impl Run {
     async fn begin(&mut self, text: &str) -> String {
         self.ride();
         self.choose_mcp(text).await;
+        self.read = self.read_apart(text).await;
         self.open_ask(text)
     }
 
@@ -2841,9 +2942,16 @@ impl Run {
         self.failed_in_ask = None;
         self.acceptable.clear();
         self.landed_in_ask = None;
-        // A list the ask carries is the harness's to hold, where the body holds the tool for it.
+        // A list the ask carries is the harness's to hold, where the body holds the tool for it:
+        // the ask's own, or else the one a reader wrote for it.
+        let read = std::mem::take(&mut self.read);
         self.done = if self.tools.iter().any(|t| t.name() == crate::done::CHECK) {
-            crate::done::List::of(text)
+            let own = crate::done::List::of(text);
+            if own.is_empty() {
+                crate::done::List::read(&read)
+            } else {
+                own
+            }
         } else {
             crate::done::List::default()
         };
@@ -2864,9 +2972,9 @@ impl Run {
         text.clone_into(&mut self.asked);
         self.unheld = None;
         let woken = std::mem::take(&mut self.woken);
-        // How the harness holds the ask's own list is said with the ask, after it.
-        let told = match self.done.note() {
-            Some(note) => format!("{text}\n\n{note}"),
+        // A reader's list, and how the harness holds a list, are said with the ask, after it.
+        let told = match self.done.after_the_ask() {
+            Some(more) => format!("{text}\n\n{more}"),
             None => text.to_owned(),
         };
         let asked = if woken.is_empty() {
@@ -4616,15 +4724,6 @@ fn strip_where(messages: &mut [Message], gone: impl Fn(&str) -> bool) -> usize {
         }
     }
     stripped
-}
-
-/// Every text block a request's messages carry, joined: what a call that never answered sent.
-fn request_text(request: &Request) -> String {
-    request
-        .messages
-        .iter()
-        .map(|m| text_of(&m.content))
-        .collect()
 }
 
 fn text_of(content: &[Block]) -> String {

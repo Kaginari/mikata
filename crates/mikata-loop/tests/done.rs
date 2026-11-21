@@ -4,10 +4,83 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use mikata_loop::done::List;
+use mikata_loop::open::{Bound, open_with};
+use mikata_loop::{Config, Paths, ScriptedModel};
+use mikata_provider::Block;
 use mikata_races::Race;
 use mikata_tools::{Context, Sandbox, registry};
+
+/// Every text the model was sent in its request number `i`, as one.
+fn sent(model: &ScriptedModel, i: usize) -> String {
+    model.requests()[i]
+        .messages
+        .iter()
+        .flat_map(|m| &m.content)
+        .filter_map(|b| match b {
+            Block::Text { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// A session opened as the human opens one is light-coding's: its body holds the `check` tool,
+/// and a reader named in the human's own file reads each ask apart before the body sees it. Its
+/// list goes after the ask, with how the harness holds it.
+#[tokio::test]
+async fn a_light_coding_session_holds_the_check_tool_and_the_humans_reader() {
+    let root = std::env::temp_dir().join(format!("mikata-done-open-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let w = root.join("world");
+    fs::create_dir_all(w.join(".mikata")).unwrap();
+    fs::write(w.join("total.sh"), "echo 3\n").unwrap();
+    fs::write(
+        root.join("global.toml"),
+        "[models]\nreader = \"a-strong-reader\"\n",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::text("D1: `sh total.sh` must stay as it is today"),
+        ScriptedModel::text("it is as you want it"),
+    ]));
+    let config = Config::load(&Paths::with_global(root.join("global.toml"), &w)).unwrap();
+    assert_eq!(config.reader().as_deref(), Some("a-strong-reader"));
+    let attic = root.join("attic");
+    let mut opened = open_with(
+        &w,
+        &config,
+        Bound {
+            model: model.clone(),
+            model_id: "scripted-model",
+            attic: Some(&attic),
+        },
+        Arc::new(mikata_tools::NoHuman),
+        Arc::new(|_: &mikata_loop::Seen| {}),
+        |_| None,
+    )
+    .unwrap();
+    opened
+        .session
+        .run()
+        .ask("Leave total.sh alone.", &mut |_| {})
+        .await;
+    let requests = model.requests();
+    assert_eq!(requests[0].model, "a-strong-reader");
+    assert!(requests[0].tools.is_empty());
+    assert_eq!(sent(&model, 0), "Leave total.sh alone.");
+    assert!(requests[1].tools.iter().any(|t| t.name == "check"));
+    let told = sent(&model, 1);
+    assert!(
+        told.contains(
+            "Leave total.sh alone.\n\n## Done when\nD1: `sh total.sh` must stay as it is today\n\nThe ask holds a `## Done when` list (D1)"
+        ),
+        "{told}"
+    );
+    let _ = fs::remove_dir_all(&root);
+}
 
 fn unguarded(world: &PathBuf) -> Context {
     Context::new(Race::Slime, world, &["."])

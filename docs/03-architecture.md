@@ -1958,7 +1958,11 @@ an empty list or table never overrides a lower layer:
   `models.race.<race>` (the race's model at its default tier), else `models.tier.<the race's
   tier>` — and `models.default` is one model for everything: every tier the human's own files did
   not set rides it, so a cloned repository's tiers do not override it.
-  `models.fallback.<model>` names the next model to try when a model is not found. The tracked
+  `models.fallback.<model>` names the next model to try when a model is not found.
+  `models.reader` names the model that reads each light-coding ask apart and writes what done
+  means for it ([the loop](02-loop.md#a-done-when-list-in-the-ask)): none unless the human's own
+  file, global or local, names one. From the tracked file it is a hole: a reader is a second
+  model, called and paid for on every ask. The tracked
   file may name models — a team picks the models its world uses — but neither a provider nor a
   model's backend, so a model it names resolves only through the backend the human chose, at the
   human's prices; whether a body is routed, and how sure a decision must be, stay the human's.

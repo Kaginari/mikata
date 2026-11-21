@@ -147,6 +147,14 @@ describe('the transcript', () => {
     expect(v.queued).toEqual(['two']);
     v = turn(chat, [ev('turnEnded', { ending: 'answered' }), ev('turnStarted', { text: 'two' })]);
     expect(v.queued).toEqual([]);
+    // The harness may say more before the line and after it: the line is still that turn's.
+    v = turn(chat, [ev('queued', { text: 'three' })]);
+    expect(v.queued).toEqual(['three']);
+    v = turn(chat, [
+      ev('turnEnded', { ending: 'answered' }),
+      ev('turnStarted', { text: 'Recalled: a note\n\nthree\n\nThe ask holds a `## Done when` list (D1)' }),
+    ]);
+    expect(v.queued).toEqual([]);
   });
 
   it('times calls and a long wait only when seen live', () => {

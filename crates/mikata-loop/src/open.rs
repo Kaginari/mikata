@@ -785,6 +785,12 @@ fn build(
     );
     // The journal says the mode the session opened in, beside the law.
     let run = run.with_mode(mode.word());
+    // Light-coding's asks are read apart, when the human names a reader.
+    let run = if mode == Mode::Light {
+        run.with_reader(config.reader())
+    } else {
+        run
+    };
     Ok(Opened {
         session: hold.into_iter().fold(Session::new(run), Session::holding),
         world: world.to_path_buf(),

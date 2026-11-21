@@ -315,8 +315,10 @@ export class Chat {
     }
     switch (event.type) {
       case 'turnStarted': {
+        // The ask as the body was given it holds the human's line, with what the harness says
+        // before it (what it recalled) and after it (a `Done when` list, and how one is held).
         const q = this.queued[0];
-        if (q !== undefined && (q === event.text || event.text.endsWith(q))) this.queued.shift();
+        if (q !== undefined && event.text.includes(q)) this.queued.shift();
         this.streaming = '';
         this.flushed = '';
         this.headed = false;

@@ -19,6 +19,13 @@
 //! it printed. Nothing here reads prose: the list's two phrases decide a line's kind, and equal
 //! text decides a pass.
 //!
+//! **Who writes the list.** The human, in the ask. Or a reader: a model the human names
+//! (`models.reader`), asked once an ask, shown the ask alone and never the code, and asked only
+//! for these lines ([`READER`]). Its list is put after the ask and held the same way. A reader
+//! must be a model that reads better than the body: on our bench a strong one's lines were right
+//! in every list, and the body's own model, asked apart, wrote one wrong by a letter that three
+//! runs in three then built to.
+//!
 //! Equal, for a line that must stay, is exact: its truth was read from the code. For a line that
 //! states its output, letter case and blanks are set aside. Whoever wrote the list seldom knows
 //! how the code spells what it prints: a reader shown one of our asks wrote `'1.5 day'` where the
@@ -53,6 +60,36 @@ const SHOWN: usize = 400;
 /// The words that make a line one that must stay as it is, and one that states its output.
 const STAYS: &str = "must stay";
 const GIVES: &str = "must give";
+
+/// What a reader's call is journaled and priced as.
+pub const READ: &str = "reader";
+/// The most a reader may answer, in tokens, and how long it is waited for.
+pub const READER_TOKENS: u32 = 6000;
+/// See [`READER_TOKENS`].
+pub const READER_WAIT: Duration = Duration::from_secs(90);
+/// The most lines of a reader's list that are kept.
+const READER_LINES: usize = 30;
+/// What a reader is told. It names no language and no tool: the lines are for any codebase.
+pub const READER: &str = "\
+You are handed a request for a change to a codebase, before anyone works on it. You see the \
+request alone, never the code. Write what done means for it, as cases a tester could run.
+
+One case a line, named D1, D2, and so on, and nothing else. A case is one of two kinds:
+
+D1: <the input, exactly, and where it applies> must give `<the exact output>`
+D2: <the input, exactly, and where it applies> must stay as it is today
+
+- `must give` only where the request fixes the output exactly. Write inputs and outputs in the \
+request's own notation, in backticks.
+- `must stay` for what the request says must keep working or must not change, and for the inputs \
+nearest the change that it does not ask to change. Never write what such a case gives: the tester \
+reads that from the code as it is today.
+- Cover the rule the request states. Vary each number or part it names and include each boundary \
+it draws. Choose inputs that tell the rule from its nearest misreading: an input on which two \
+readings agree tells nothing.
+- Where the request names several targets (dialects, platforms, commands), write each case for \
+each of them.
+- At most 30 lines. If the request asks for no change to code, write NONE.";
 
 /// The `check` tool as the model sees it. The loop runs the call; this body only describes it.
 pub struct CheckTool;
@@ -147,6 +184,9 @@ pub struct List {
     lines: Vec<Line>,
     checks: Vec<Check>,
     refused: u32,
+    /// Whether a reader wrote the lines, and not the ask itself: they are then said after the
+    /// ask, which did not hold them.
+    read: bool,
 }
 
 impl List {
@@ -159,10 +199,41 @@ impl List {
         }
     }
 
-    /// Whether the ask carries no list.
+    /// The list a reader wrote for an ask that carried none: its lines ([`read_lines`]), named
+    /// in order.
+    #[must_use]
+    pub fn read(lines: &[String]) -> Self {
+        Self {
+            lines: lines
+                .iter()
+                .enumerate()
+                .map(|(i, text)| (format!("D{}", i + 1), text.clone()))
+                .collect(),
+            read: !lines.is_empty(),
+            ..Self::default()
+        }
+    }
+
+    /// Whether the ask carries no list, its own or a reader's.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.lines.is_empty()
+    }
+
+    /// What goes after the ask when a list is held: a reader's list itself, which the ask did
+    /// not carry, then how the harness holds it ([`List::note`]). Nothing for an ask with no
+    /// list.
+    #[must_use]
+    pub fn after_the_ask(&self) -> Option<String> {
+        let note = self.note()?;
+        if !self.read {
+            return Some(note);
+        }
+        let mut said = "## Done when".to_owned();
+        for (name, text) in &self.lines {
+            let _ = write!(said, "\n{name}: {text}");
+        }
+        Some(format!("{said}\n\n{note}"))
     }
 
     /// Whether any check was handed in.
@@ -379,6 +450,8 @@ prints `{}` on your work",
         let late = self.checks.iter().filter(|c| c.late).count();
         let whose = if self.is_empty() {
             "Mikata's own"
+        } else if self.read {
+            "the reader's"
         } else {
             "the ask's"
         };
@@ -413,6 +486,24 @@ pub struct Judged {
     pub hold: usize,
     /// Those of them that state an output and hold only with letter case or blanks set aside.
     pub loosely: usize,
+}
+
+/// A reader's lines out of its reply: each line named `D1`, `D2`, … that says what it must give
+/// or that it must stay, without its name, in order, at most [`READER_LINES`]. Anything else in
+/// the reply is dropped: a heading, a remark, a line of neither kind.
+#[must_use]
+pub fn read_lines(reply: &str) -> Vec<String> {
+    reply
+        .lines()
+        .filter_map(|line| {
+            let t = line.trim().trim_start_matches(['-', '*']).trim_start();
+            let (name, text) = t.split_once([':', '.'])?;
+            let text = text.trim();
+            (crate::lines::is_name(name.trim()) && kind(text) != Kind::Free)
+                .then(|| text.to_owned())
+        })
+        .take(READER_LINES)
+        .collect()
 }
 
 /// What a check for `line` is held to, and whether that is what it prints on the code as the ask
@@ -563,7 +654,9 @@ fn steady(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Result<St
 
 #[cfg(test)]
 mod tests {
-    use super::{CHECK, CheckTool, Kind, List, SAID, and, clipped, kind, loose, stated};
+    use super::{
+        CHECK, CheckTool, Kind, List, READER, SAID, and, clipped, kind, loose, read_lines, stated,
+    };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
 
@@ -841,6 +934,41 @@ mod tests {
                 && judged.failures[0].contains("prints `interval '1.5 day'` on your work"),
             "{judged:?}"
         );
+    }
+
+    /// A reader's reply is read for its lines alone, and its list is said after the ask it was
+    /// written for, then held like the ask's own.
+    #[test]
+    fn a_readers_lines_are_put_after_the_ask_and_held() {
+        let reply = "Here is what done means:\n\nD1: `f(1)` must give `2`\n- D2: `f(0)` must stay as it is today\nD3. `f(-1)` MUST STAY as it is today\nD4: the code is clean\nNote: none.\n";
+        let lines = read_lines(reply);
+        assert_eq!(
+            lines,
+            [
+                "`f(1)` must give `2`",
+                "`f(0)` must stay as it is today",
+                "`f(-1)` MUST STAY as it is today"
+            ]
+        );
+        assert_eq!(read_lines("NONE"), [] as [String; 0]);
+        let many = (1..=40).fold(String::new(), |all, i| {
+            all + &format!("D{i}: `g({i})` must stay\n")
+        });
+        assert_eq!(read_lines(&many).len(), 30);
+        let list = List::read(&lines);
+        let after = list.after_the_ask().unwrap();
+        assert!(
+            after.starts_with("## Done when\nD1: `f(1)` must give `2`\nD2: `f(0)` must stay as it is today\nD3: `f(-1)` MUST STAY as it is today\n\nThe ask holds a `## Done when` list (D1 to D3)"),
+            "{after}"
+        );
+        assert_eq!(list.missing(), ["D1", "D2", "D3"]);
+        // The ask's own list is only told of; no list, nothing.
+        let own = List::of(ASK).after_the_ask().unwrap();
+        assert!(own.starts_with("The ask holds"), "{own}");
+        assert!(List::read(&[]).after_the_ask().is_none());
+        assert!(List::read(&[]).is_empty());
+        // What the reader is asked names both phrases the harness reads a line by.
+        assert!(READER.contains("must give") && READER.contains("must stay"));
     }
 
     /// A check that cannot say what must stay is refused: one that fails on the code as found,

@@ -542,10 +542,13 @@ impl Transcript {
         }
         match event {
             Event::TurnStarted { text } => {
+                // The ask as the body was given it holds the human's line, with what the
+                // harness says before it (what it recalled) and after it (a `Done when` list a
+                // reader wrote, and how a list is held).
                 if self
                     .queued
                     .front()
-                    .is_some_and(|q| q == text || text.ends_with(q.as_str()))
+                    .is_some_and(|q| text.contains(q.as_str()))
                 {
                     self.queued.pop_front();
                 }
@@ -1080,6 +1083,21 @@ mod tests {
         t.fold(
             &Event::TurnStarted {
                 text: "next".into(),
+            },
+            None,
+        );
+        assert!(t.queued.is_empty());
+        // The harness may say more before the line and after it: the line is still that turn's.
+        t.fold(
+            &Event::Queued {
+                text: "then this".into(),
+            },
+            None,
+        );
+        t.fold(
+            &Event::TurnStarted {
+                text: "Recalled: a note\n\nthen this\n\nThe ask holds a `## Done when` list (D1)"
+                    .into(),
             },
             None,
         );
