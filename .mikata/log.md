@@ -7659,3 +7659,6 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **What the third showed:** the reader wrote that any other function called with a blank must stay as it is. `mean` calls `total`, so the fix made it work. Nothing refused that, and the body still added a check to `mean` to keep it failing. A line that failed and no longer does refuses nothing, and a wrong one is obeyed all the same: the list decides, and a human should read the one a reader writes.
 - **Changed after it, not measured:** the words that tell a body a failure has moved now say never to add code only to keep it failing; what checked a landing is said inside one pair of brackets; and the `check` tool's own words say what the harness does with letter case, where they said "that exact output" in every counted run.
 - **What the fourth showed,** with those words: a failure moved from the blank to another item, the body was told once, answered that it follows from the ask and left it, and the gate's line named it for the human.
+
+### [2026-11-21T02:20:00+00:00] aibo Summoner — correction: the two entries above carry times I guessed, both ahead of the clock
+- **By their commits:** the first was written at 01:59 UTC, not 02:10, and the second at 02:18 UTC, not 03:20. Their words stand.
