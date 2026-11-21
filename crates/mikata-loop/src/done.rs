@@ -548,7 +548,8 @@ and {did} on your work",
     /// case; and a body builds the code to the line's letters all the same, told or not: on our
     /// bench one run in three of a list in small letters did, and a sentence at the hand-in
     /// changed nothing. A failed landing is what this body acts on. The harness cannot know that
-    /// the ask did not ask for other letters, so it is said once and then the landing stands.
+    /// the ask did not ask for other letters, so a landing is failed for them once and the next
+    /// stands; the body is not told so, or it leaves them.
     pub fn letters_once(&mut self, judged: &mut Judged) {
         if judged.respelled.is_empty() || self.respelled >= LETTER_ROUNDS {
             return;
@@ -919,11 +920,14 @@ fn respelled(check: &Check, now: &str) -> Option<String> {
         return None;
     }
     let bent: Vec<&str> = bent.iter().map(String::as_str).collect();
+    // No way out is offered here. The first wording said "unless the ask itself asks for other
+    // letters" and that the landing would stand if left: on our bench the body read the list as
+    // the ask, found its own reason there, and left the letters.
     Some(format!(
-        "{} holds, but on your work `{}` prints {} on the code as you found it. Letter case is \
-set aside for the line: it holds with the code's own letters too. Unless the ask itself asks for \
-other letters, make the code print its own again. Said once: left as it is, the landing stands \
-and the human is told.",
+        "{} holds, but on your work `{}` prints {} on the code as you found it. The letters a \
+line is written in are never part of what it asks: its output is held whatever the letter case, \
+and whoever wrote the line may never have seen the code. Keep the code's own letters: make it \
+print them again.",
         check.line,
         clipped(&check.command),
         and(&bent)
@@ -1513,7 +1517,8 @@ its output on the code you gave it)"
                     "D1 holds, but on your work `sh unit.sh` prints `day` where it printed `DAY` \
 on the code as you found it"
                 )
-                && judged.failures[0].contains("Said once"),
+                && judged.failures[0].contains("Keep the code's own letters")
+                && !judged.failures[0].contains("nless"),
             "{judged:?}"
         );
         // Left as it is, the next landing stands, and the pass names the line.
