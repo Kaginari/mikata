@@ -337,18 +337,58 @@ pub(crate) fn said_of(o: &mikata_tools::Outcome, names: &[String]) -> Said {
         })
     };
     let out = stdout_of(&o.content);
-    // What it said besides: the last line of it, which is where an error names itself.
-    let err = o.content[out.len()..]
-        .lines()
-        .rev()
-        .map(str::trim)
-        .find(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+    // What it said besides its output: the line of it where an error names itself. A command
+    // that sends both down one pipe (`2>&1`) and fails said it in the output.
+    let err = named_error(&o.content[out.len()..])
+        .or_else(|| o.is_error.then(|| named_error(out)).flatten())
         .unwrap_or_default();
     Said {
         ok: !o.is_error,
         out: placed(out).trim_end().to_owned(),
         err: placed(err),
     }
+}
+
+/// The line of what a failed command said where the error names itself. The last line that
+/// begins with an error's name (`ValueError: …`, `Error [ERR_MODULE_NOT_FOUND]: …`, `error[E0308]:
+/// …`, `fatal: …`) or tells of a panic; failing that, the last line that is not a runtime's
+/// closing line (Node's `Node.js v22.1.0`, the brace that ends the error it printed, Rust's note
+/// on `RUST_BACKTRACE`, Go's `exit status 2`); failing that, the last line. `None` when it said
+/// nothing. Python and a shell end on the error itself; Node, Rust and Go do not, and there the
+/// last line is the same for every failure.
+fn named_error(said: &str) -> Option<&str> {
+    let lines: Vec<&str> = said
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+        .collect();
+    let last = |keep: fn(&str) -> bool| lines.iter().rev().copied().find(|l| keep(l));
+    last(names_an_error)
+        .or_else(|| last(|l| !closes(l)))
+        .or(lines.last().copied())
+}
+
+/// Whether a line begins with an error's name, or tells of a panic.
+fn names_an_error(line: &str) -> bool {
+    let first = line
+        .split(|c: char| c.is_whitespace() || c == ':' || c == '[')
+        .next()
+        .unwrap_or_default();
+    let name = first
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '.');
+    (name && (first.ends_with("Error") || first.ends_with("Exception")))
+        || matches!(first, "error" | "fatal" | "panic")
+        || line.contains(" panicked at ")
+}
+
+/// Whether a line is one a runtime ends every failure with, whatever failed.
+fn closes(line: &str) -> bool {
+    line.strip_prefix("Node.js v")
+        .is_some_and(|v| v.starts_with(|c: char| c.is_ascii_digit()))
+        || line.starts_with("note: run with `RUST_BACKTRACE")
+        || line.starts_with("exit status ")
+        || line.chars().all(|c| "{}[]();,".contains(c))
 }
 
 /// What a command does on a tree, from two runs of it there: the one thing it did, when it did
@@ -997,6 +1037,70 @@ pub fn file(world: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A failed command's error is the line where it names itself, whatever the runtime prints
+    /// after it, and whichever pipe it came down.
+    #[test]
+    fn a_failed_commands_error_is_the_line_that_names_it() {
+        // Python and a shell end on the error.
+        let python = "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nValueError: bad unit";
+        assert_eq!(named_error(python), Some("ValueError: bad unit"));
+        assert_eq!(
+            named_error("sh: 1: nope: not found"),
+            Some("sh: 1: nope: not found")
+        );
+        assert_eq!(named_error("not a number: x\n"), Some("not a number: x"));
+        // Node ends on its version, after the error it printed as an object.
+        let node = "node:internal/modules/esm/resolve:275\n    throw new ERR_MODULE_NOT_FOUND(\n          ^\n\n\
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<world>/src/entry/gen.js' imported from <world>/src/entry/main.js\n\
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)\n\
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {\n  code: 'ERR_MODULE_NOT_FOUND',\n  url: 'file:///x'\n}\n\nNode.js v22.23.4\n";
+        assert_eq!(
+            named_error(node),
+            Some(
+                "Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<world>/src/entry/gen.js' imported from <world>/src/entry/main.js"
+            )
+        );
+        let thrown = "file:///w/x.mjs:1\nthrow 1\n^\n1\n(Use `node --trace-uncaught ...` to show where the exception was thrown)\n\nNode.js v22.23.4";
+        assert_eq!(
+            named_error(thrown),
+            Some("(Use `node --trace-uncaught ...` to show where the exception was thrown)")
+        );
+        // Rust and Go.
+        let rust = "thread 'main' panicked at src/main.rs:2:5:\nno such unit\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace";
+        assert_eq!(
+            named_error(rust),
+            Some("thread 'main' panicked at src/main.rs:2:5:")
+        );
+        assert_eq!(
+            named_error("error[E0308]: mismatched types\n --> src/main.rs:2:5\n"),
+            Some("error[E0308]: mismatched types")
+        );
+        assert_eq!(
+            named_error(
+                "panic: no such unit\n\ngoroutine 1 [running]:\nmain.main()\nexit status 2"
+            ),
+            Some("panic: no such unit")
+        );
+        // The harness's own lines are no part of it; a killed command says so.
+        assert_eq!(named_error("[stderr]\n[exit 1]"), None);
+        assert_eq!(named_error(""), None);
+        assert_eq!(
+            named_error(
+                "[stderr]\nstarting\n[killed after 20.0s: the command and everything it started]"
+            ),
+            Some("[killed after 20.0s: the command and everything it started]")
+        );
+        // Down one pipe: a failed command's error is found in its output, a command that ran
+        // has none.
+        let failed = mikata_tools::Outcome::error("ValueError: bad unit\n[exit 1]".to_owned());
+        assert_eq!(said_of(&failed, &[]).err, "ValueError: bad unit");
+        let ran = mikata_tools::Outcome::ok(
+            "Error: not one, a line it printed\n".to_owned(),
+            mikata_races::ToolClass::Read,
+        );
+        assert_eq!(said_of(&ran, &[]).err, "");
+    }
 
     /// A dependency folder is lent as a folder of links: a package leads to the world's own, a
     /// scope is opened one level down, a tool's cache is left out, and a link the world keeps

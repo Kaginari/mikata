@@ -775,7 +775,12 @@ stay was tried before, and failed. So the harness holds the list, by code:
   command failed holds while it fails the same way. When it no longer does, the harness cannot
   know whether the ask asked for that (asks are for making something work) or the work reached
   too far: the landing stands, the body is told once, never to add code only to keep a failure,
-  and the pass names the line for you.
+  and the pass names the line for you. The way a command failed is one line of what it said:
+  the last that begins with an error's name (`ValueError: ...`, `Error [ERR_MODULE_NOT_FOUND]:
+  ...`, `error[E0308]: ...`) or tells of a panic, wherever a runtime's own closing lines come
+  after it (Node ends every failure on its version), and whichever pipe it came down: a check
+  written with `2>&1` says its error in its output. The body is told that line when a check
+  fails, at the hand-in and at the gate.
 - The same line and command handed in again asks how the line stands now. The check is kept as
   it came in.
 - A line with neither phrase takes either form.

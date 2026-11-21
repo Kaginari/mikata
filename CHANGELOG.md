@@ -23,6 +23,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   commands may read and never write. Found on the first run of our bench on a second codebase
   (mathjs): of the 70 checks of ten runs, 8 ran in the copies and none could be compared. With
   the fix 61 run, and both runs that failed their tests show a wrong value in the list.
+- **A check that fails is told how, whichever pipe the error came down and whatever the runtime
+  prints after it.** The harness took a failure's last line of standard error for the error. A
+  check written with `2>&1` has none there, so Mikata was told "it said nothing" of a command
+  that had printed why. And Node ends every uncaught error on its own version, so every failure
+  of a Node check read the same. Both also made a `must stay` line held to a failure hold for
+  any failure at all. The error is now the last line that begins with an error's name or tells
+  of a panic, found in the output too when the command failed. Seen in a run that fixed the
+  code, could not make its own checks run, and spent its steps on them.
 
 ## [1.1.0] - 2026-11-21
 

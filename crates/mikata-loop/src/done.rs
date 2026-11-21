@@ -1628,6 +1628,61 @@ you gave it; 1 check handed in after the code had changed)"
         );
     }
 
+    /// A check that sends its error down the same pipe as its output (`2>&1`) is still told how
+    /// it failed, and a line held to a failure is held to that failure, not to any failure: the
+    /// error is the line that names itself, whatever a runtime prints after it.
+    #[test]
+    fn a_failing_check_is_told_its_error_whichever_pipe_it_came_down() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        // As Node ends an uncaught error: the error, its stack, then its own version.
+        let node = |what: &str| {
+            format!(
+                "echo 'Error [ERR_MODULE_NOT_FOUND]: Cannot find module {what}' >&2\necho '    at resolve (node:internal:1:1)' >&2\necho 'Node.js v22.0.0' >&2\nexit 1\n"
+            )
+        };
+        script(&node("gen.js"));
+        let ask =
+            "Be kinder.\n\n## Done when\nD1: `x` must give `5`\nD2: `y` must stay as it is today\n";
+        let mut list = List::of(ask);
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x 2>&1", "gives": "5"}"#,
+            true,
+        );
+        assert!(
+            o.content.contains(
+                "Now the command fails (Error [ERR_MODULE_NOT_FOUND]: Cannot find module gen.js)"
+            ),
+            "{}",
+            o.content
+        );
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D2", "command": "sh strict.sh y 2>&1"}"#,
+            true,
+        );
+        assert!(
+            o.content.contains(
+                "your command fails:\nError [ERR_MODULE_NOT_FOUND]: Cannot find module gen.js\n"
+            ),
+            "{}",
+            o.content
+        );
+        // Failing another way is not the failure the line was held to.
+        script(&node("other.js"));
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.moved.iter().any(|(line, said)| line == "D2"
+                && said.contains(
+                    "fails (Error [ERR_MODULE_NOT_FOUND]: Cannot find module other.js) on your work"
+                )),
+            "{judged:?}"
+        );
+    }
+
     /// A write is refused while a line has no check, twice, and then goes through: the gate
     /// says what is missing, and a body is never left with no way on.
     #[test]
