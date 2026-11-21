@@ -243,7 +243,12 @@ pub fn summary(name: &str, input: &Value) -> String {
     }
     let get = |k: &str| input.get(k).and_then(Value::as_str);
     if let Some(cmd) = get("command") {
-        return one_line(cmd.lines().next().unwrap_or(""));
+        let cmd = one_line(cmd.lines().next().unwrap_or(""));
+        // A check is for a line of the `Done when` list: the line's name leads.
+        return match get("line").filter(|_| name == "check") {
+            Some(line) => format!("{}  {cmd}", one_line(line)),
+            None => cmd,
+        };
     }
     if let Some(path) = get("path") {
         let path = one_line(path);
@@ -873,6 +878,14 @@ fn change_lines(c: &Change, input: &Value, inner: usize, t: &Theme, open: bool) 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A check's card says which line of the `Done when` list it is for, then its command.
+    #[test]
+    fn a_check_leads_with_the_line_it_is_for() {
+        let input = serde_json::json!({"line": "D5", "command": "python3 -c 'print(1)'\nmore"});
+        assert_eq!(summary("check", &input), "D5  python3 -c 'print(1)'");
+        assert_eq!(summary("bash", &input), "python3 -c 'print(1)'");
+    }
 
     #[test]
     fn a_streaming_input_shows_its_summary_as_far_as_it_came() {

@@ -152,7 +152,9 @@ describe('the transcript', () => {
     expect(v.queued).toEqual(['three']);
     v = turn(chat, [
       ev('turnEnded', { ending: 'answered' }),
-      ev('turnStarted', { text: 'Recalled: a note\n\nthree\n\nThe ask holds a `## Done when` list (D1)' }),
+      ev('turnStarted', {
+        text: 'Recalled: a note\n\nthree\n\nThe ask holds a `## Done when` list (D1)',
+      }),
     ]);
     expect(v.queued).toEqual([]);
   });
