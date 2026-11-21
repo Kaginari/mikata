@@ -7,29 +7,39 @@ bench, with the bar written down before the money was spent, the failures includ
 
 Ten real fixes in [sqlglot](https://github.com/tobymao/sqlglot), a large Python SQL library. The
 same small open model in every harness, `qwen3.5-35b-a3b`, through the same provider host. Each
-task once per harness, November 2026:
+task once per harness, twice a week apart, each harness at its version of the day, November 2026:
 
-| Harness | Passed | Spent | Per pass |
-|---|---|---|---|
-| **Mikata, light-coding** (main 19fa71d, 13 November) | **9 of 10** | $3.87 | **$0.43** |
-| Maki 0.7.1 | 8 of 10 | $7.73 | $0.97 |
-| OpenCode 1.19.5 | 7 of 10 | $4.72 | $0.67 |
-| Mikata before the "done" list (1ec6f80, 12 November) | 5 of 10 | $3.97 | $0.79 |
+| Harness | 13 November | 20 November | Both | Per pass |
+|---|---|---|---|---|
+| **Mikata, light-coding** | 9 of 10 (main 19fa71d) | 7 of 10 (main b43cbdd) | **16 of 20** | **$0.50** |
+| Maki | 8 of 10 (0.7.1) | 7 of 10 (0.7.3) | 15 of 20 | $0.91 |
+| OpenCode | 7 of 10 (1.19.5) | 7 of 10 (1.19.6) | 14 of 20 | $0.87 |
+
+Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
 
 ## In plain words
 
-- **Light-coding passed the most and paid the least.** Same model, same tasks, same host: the
-  harness is the only difference.
-- **Read the count as "8 or 9".** Task 10 passes about one run in five with this model; it passed
-  in this run. One run a task means a difference of one or two tasks between harnesses is inside
-  the noise. The price per pass is not: it held in every screen.
+- **On passes the three harnesses are level. Mikata pays about half.** Same model, same tasks,
+  same host: the harness is the only difference. By the bar written before each screen (ahead at
+  three tasks of ten) no difference is shown, either time. The price a pass is the steadier
+  number, and it held in every screen.
+- **A count moves by one or two between runs.** Mikata passed 9, then 7. Two tasks fail for all
+  three harnesses on the second screen, and the step limit is not why: the others took more
+  calls on them and failed too.
 - **What moved us from 5 to 9 is one habit:** write down what "done" means before any code, and
   check every line of it before answering. The earlier build answered "done" one check short;
   where OpenCode passed and it did not, OpenCode had re-run the tests after its last edit. Now
   light-coding does that every time, from its list.
 - **Asks with examples pass twice as often.** The same four tasks: 4 of 4 with the ask's examples
   and expected output, 4 of 8 as one paragraph of prose, at the same price. Without examples the
-  model checks against its own reading, and a wrong reading passes its own checks.
+  model checks against its own reading, and a wrong reading passes its own checks. That is the
+  model's, in any harness: on those prose asks, three runs each, Mikata passed 6 of 12, OpenCode
+  5, Maki 3, and on one ask all eight failures of the three break the same line.
+- **A list of what done means, held by the harness, closes that gap where we measured it.** On
+  the two prose asks that fail nearly always: 1 of 6 plain; 2 of 6 with a stronger model's lines
+  handed over as a note; **6 of 6 with the same lines held by the harness.** The lines say what
+  must come out and what must stay; the harness reads what must stay from the code itself, so the
+  body is never the one who says what "today" is ([measured](#the-list-held)).
 - **The list of what changed is worth reading.** On those prose asks a wrong value is in its
   twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
   the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask
@@ -64,11 +74,14 @@ task once per harness, November 2026:
 
 | Screen | What changed | Result |
 |---|---|---|
-| Ten single fixes (above) | the shipped build against Maki and OpenCode | 9 of 10, $0.43 a pass |
+| Ten single fixes, 13 November | the build of the day against Maki and OpenCode | 9 of 10, $0.43 a pass |
 | Five of those fixes, twice each | the end gate runs the project's tests; then the "done" list too | 5 of 10, then **8 of 10**, cheaper |
 | Thirty small projects in one ask | one repository, thirty folders, one problem each | **30 of 30**, twice, about 3.5 minutes and $0.10 |
 | Four fixes, asked as prose | no examples, no expected output | 4 of 8 (4 of 4 with examples) |
 | Five whole repositories in one ask | one sqlglot copy per folder, more than 200 steps of work | 3 and 2 of 5 as shipped, about 12 minutes, $0.75; 4 and 3 of 5 with 400 steps |
+| Ten single fixes again, 20 November | each harness at its version of the day | 7 of 10 each; $0.59 a pass, against $0.84 and $1.06 |
+| Four fixes as prose, three harnesses | three runs each, nobody told how to run the tests | 6 of 12, against 5 and 3; $0.59 a pass, against $1.10 and $1.17 |
+| The two prose asks that fail nearly always | a `Done when` list in the ask, held by the harness | **6 of 6**, with two lists (plain: 1 of 6) |
 
 On the largest work the single body never filled its context: no run was compacted. It ran out of
 steps, not memory, and with more steps it finished on its own.
@@ -86,6 +99,9 @@ Measured, and left out of the product:
 | Three runs of one prose ask and a picker (replayed from 25 kept runs, no model call) | at best 0.60 with a perfect picker, 0.50 picking by agreement, against 0.43 for one run, at three times the price |
 | A model settling the cases where those runs disagree | right 67% and 63% of the time (two models), where we asked for 80% |
 | A second reading: each answer a run's own commands print differently after its work, judged against the ask by a model | 8 and 9 of 16 failed runs caught, where we asked for 10; 1 to 3% false alarms |
+| The body's own "done" list, its wrong lines corrected by a stand-in for you before the work | 1 of 6 (approved as it was: 0 of 3) |
+| A stronger model's cases, from the ask alone, handed to the body as a note | 2 of 6, against 1 of 6 |
+| The body's own model's cases, written in a call of its own, as a note | 0 of 3 |
 
 A prompt sentence does not fix a misreading. The failures that remain are the model deciding a
 case should change when the ask says it must stay.
@@ -152,6 +168,68 @@ So the list does what it is for: you see a wrong answer before you use it, in 18
 runs here, and in one passed run in four you see what the tests missed. Whether Mikata then puts
 it right in one more ask is the model's to do, one time in three. $6.63, and nothing of it
 changed what the body is told.
+
+### The list held
+
+Three steps, each with its bar written first, on the two prose asks that fail nearly always (one
+of them had passed once in the twenty-one kept runs of three harnesses).
+
+**The body's own list, corrected.** Every failed run's first "done" list held wrong lines. A
+stand-in for you corrected each wrong line before the work, by what the upstream fix does: 1 of
+6. Read by code, five of the six runs took every correction, and failed on an input their list
+did not hold: no list had the case that tells the rule from its nearest misreading. A body builds
+to the cases it holds, faithfully. The gap is in which cases those are.
+
+**Someone else's cases, as a note.** A model asked only for the cases, shown the ask alone:
+
+| Who wrote the cases | Lines right by the upstream fix | Given to the body as a note |
+|---|---|---|
+| a stronger model (Claude Sonnet 5.5), one call, 1 to 3 cents | every line, two prompts, four asks | 2 of 6 |
+| the body's own model, in a call of its own | one list wrong by a letter | 0 of 3: all three built to the wrong letter |
+
+In all six runs every line that says what must come out is right on the finished tree: 39 of 39.
+Two of the four failures broke lines the note said must stay. One read "must stay as it is today"
+as "must come out as it went in", wrote that down as the expected output, saw it fail on the
+untouched code, and changed the code until it passed. Neither ran such a line on the code before
+changing it, though the note asked for that. The other two failed on inputs no line held.
+
+**The same lines, held** ([the loop](02-loop.md#a-done-when-list-in-the-ask)). The harness reads
+each line that must stay from the code as the ask found it, tells the body what it prints today,
+and runs every line again when the answer lands:
+
+| | Passes | A run |
+|---|---|---|
+| plain light-coding | 1 of 6 | $0.26, 90 calls |
+| the lines as a note | 2 of 6 | $0.29, 94 calls |
+| **the same lines, held** | **6 of 6** | $0.30, 100 calls |
+| **the lines of the reader as the product asks it, held** | **6 of 6** | $0.39, 113 calls |
+
+The bar asked 4 of 6 for each, and the gate seen failing a landing for a line that must stay.
+All met. What the runs show beyond the count:
+
+- **It works mostly by coming first.** In all twelve runs every line's check was in the
+  harness's hands before the code changed, in ten of them after one write had been refused. Ten
+  of the twelve first landings passed. No run broke a line after the harness had read it and
+  said what it prints today.
+- **The misreading was tried again, and stopped.** One body saw its work had changed what a line
+  that must stay prints, and handed the line in again with the new output as what it "gives".
+  Refused, twice: what a line prints today is not the body's to say. The gate failed its landing;
+  it found the real cause, a check command that tested another case than its line, and passed.
+- **One run of the twelve never answered.** Same trap, and the body did not find the command in
+  its 200 steps. Its tree passes the hidden tests; you would have had no answer, and the line
+  and its two outputs on your screen.
+
+**What is not closed.** An input no line names. A check whose command does not test what its
+line says: the harness cannot tell. And a reader's spelling: it never saw the code, so it wrote a
+unit in small letters where the code prints capitals. The harness holds a stated output with
+letter case and blanks set aside, so it no longer forces the wrong letters, but on the build as
+it ships one run of two made the code print them anyway, and failed. The first live reading, on a
+four-line function, also held one wrong line of thirteen: an input the ask itself changes, listed
+as one that must stay. So a line whose command failed on the code as found, and no longer does,
+is said once and refuses nothing.
+
+Six runs an arm, two asks, one codebase. $10.69 for the three steps. Nothing here says what a
+list does to an ask that already passes.
 
 ### The modes against each other
 

@@ -35,6 +35,26 @@ failed runs show no wrong value in twenty lines by any order we tried.
 **Not built: the one case.** Two bodies that contradict each other on a case, put to you as a
 question, costs a second run; it waits until the list has been lived with.
 
+**Built: what done means, held by the harness.** An ask may carry its own `## Done when` list,
+yours or one a reader you name writes from the ask alone, and the harness holds the work to it
+([the loop](02-loop.md#a-done-when-list-in-the-ask)). **Measured**
+([the bench](bench.md#the-list-held)): on the two prose asks that fail nearly always, 1 of 6
+plain, 2 of 6 with the lines handed over as a note, 6 of 6 held, with each of two lists. The
+half a body does not hold is what must stay, and the harness can: it has the code as the ask
+found it. Open, and next:
+
+- **A reader's spelling.** It never saw the code, and a body may bend the code to its letters:
+  one run of two on the build as it ships. To try: say in the harness's note that a stated
+  output holds whatever its letter case.
+- **A check that tests another case than its line.** Twice the gate held a landing for it; one
+  body found the command, one ran out of steps. To try: say in the gate's note that two lines
+  which cannot both hold mean one command is wrong.
+- **An ask that already passes.** Nothing measured says what a list costs or gives there, and
+  each line is a call before the work begins.
+- **The same model as its own reader** wrote a list wrong by a letter, and with the reader's
+  prompt gave no line at all in 8,000 tokens of thought. A reader has to read better than the
+  body.
+
 ## Then: a fold for long runs
 
 When a run's context fills, Mikata today summarises the whole history, at most twice, and then
