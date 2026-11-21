@@ -19,6 +19,16 @@
 //! it printed. Nothing here reads prose: the list's two phrases decide a line's kind, and equal
 //! text decides a pass.
 //!
+//! **What must stay is whatever the command does today.** It may print, print nothing, or fail:
+//! "everything else must keep working as it does today" covers the input that raises today too,
+//! and a reader writes such lines. A line whose command ran is held to what it printed: breaking
+//! what worked is refused. A line whose command failed holds while it fails the same way; when
+//! it no longer does, the harness cannot know whether the ask asked for that (asks are for making
+//! something work) or the work reached too far. So that is said to the body once, and to the
+//! human, and refuses nothing. The first live run of this, on a four-line function, had a strong
+//! reader list an input the ask itself changes as one that must stay: held hard, a wrong line of
+//! that kind leaves a body no honest way through.
+//!
 //! **Who writes the list.** The human, in the ask. Or a reader: a model the human names
 //! (`models.reader`), asked once an ask, shown the ask alone and never the code, and asked only
 //! for these lines ([`READER`]). Its list is put after the ask and held the same way. A reader
@@ -145,13 +155,30 @@ pub struct Check {
     pub line: String,
     /// The command, as the body wrote it.
     pub command: String,
-    /// What it must print.
-    pub must: String,
-    /// Whether that is what it printed on the code as the ask found it, and not an output the
-    /// line states.
-    pub stays: bool,
+    /// What the command must do when the answer lands.
+    pub must: Must,
     /// Whether it was handed in, or handed in again, after the body had changed the code.
     pub late: bool,
+}
+
+/// What a check's command must do on the work.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Must {
+    /// Print an output the line states, letter case and blanks set aside.
+    Give(String),
+    /// Print what it printed on the code as the ask found it, exactly: it ran there.
+    Print(String),
+    /// Fail as it failed on the code as the ask found it: the last line of what it said there.
+    /// A line that no longer does is said once and refuses nothing.
+    Fail(String),
+}
+
+impl Must {
+    /// Whether this is read from the code as the ask found it, and not an output a line states.
+    #[must_use]
+    pub fn stays(&self) -> bool {
+        !matches!(self, Must::Give(_))
+    }
 }
 
 /// What a line of the list is, by its own words.
@@ -187,6 +214,8 @@ pub struct List {
     /// Whether a reader wrote the lines, and not the ask itself: they are then said after the
     /// ask, which did not hold them.
     read: bool,
+    /// The lines the body was told no longer fail as they did ([`Judged::moved`]): said once.
+    told: Vec<String>,
 }
 
 impl List {
@@ -329,14 +358,14 @@ from the code as you found it: hand it in before the first change.",
     }
 
     /// One `check` call. `pristine` says whether the code is still as the ask found it; when it
-    /// is not, `before` reads what a command prints on that code some other way, or says why it
+    /// is not, `before` reads what a command does on that code some other way, or says why it
     /// cannot. The check's own runs go through `bash`, classified and guarded like any command
     /// of the body.
     pub fn hand_in(
         &mut self,
         input: &str,
         pristine: bool,
-        before: impl FnOnce(&str) -> Result<String, String>,
+        before: impl FnOnce(&str) -> Result<Said, String>,
         tools: &[Box<dyn Tool>],
         cx: &mut Context,
     ) -> Outcome {
@@ -355,9 +384,24 @@ from the code as you found it: hand it in before the first change.",
             Ok(text) => text,
             Err(refusal) => return Outcome::error(refusal),
         };
+        // The same line and command again asks how the line stands now: the check is kept as it
+        // is, with what it was held to when it came in.
+        if let Some(held) = self.checks.iter().find(|c| {
+            c.line == line
+                && c.command == command
+                && match (&c.must, &gives) {
+                    (Must::Give(must), Some(gives)) => must == gives,
+                    (must, None) => must.stays(),
+                    _ => false,
+                }
+        }) {
+            let said = format!("{}{}", stands(held, tools, cx), self.left());
+            return Outcome::ok(said, ToolClass::Read);
+        }
         let today = |command: &str, cx: &mut Context| {
             if pristine {
-                steady(command, tools, cx)
+                let (first, second) = (run(command, tools, cx), run(command, tools, cx));
+                crate::changes::same_twice(first, &second)
             } else {
                 before(command)
             }
@@ -369,32 +413,37 @@ from the code as you found it: hand it in before the first change.",
         let check = Check {
             line: line.clone(),
             command,
-            stays: must.1,
-            must: must.0,
+            must,
             late: !pristine,
         };
-        let mut said = said_of(&check, tools, cx);
+        let said = said_of(&check, tools, cx);
         self.checks.retain(|c| c.line != line);
+        self.told.retain(|t| *t != line);
         self.checks.push(check);
-        if !self.is_empty() {
-            let left = self.missing();
-            if left.is_empty() {
-                said.push_str("\nEvery line of the ask's list has its check.");
-            } else {
-                let _ = write!(said, "\nStill with no check: {}.", and(&left));
-            }
-        }
-        Outcome::ok(said, ToolClass::Read)
+        Outcome::ok(format!("{said}{}", self.left()), ToolClass::Read)
     }
 
-    /// The list judged over the work as it stands: what fails, one line each and each beginning
-    /// [`SAID`], and how many lines hold. Every check is run once, through `bash`.
+    /// What ends a `check` call's answer for an ask that carries a list: the lines with no check
+    /// yet, or that every line has one.
+    fn left(&self) -> String {
+        if self.is_empty() {
+            return String::new();
+        }
+        let left = self.missing();
+        if left.is_empty() {
+            "\nEvery line of the ask's list has its check.".to_owned()
+        } else {
+            format!("\nStill with no check: {}.", and(&left))
+        }
+    }
+
+    /// The list judged over the work as it stands ([`Judged`]). Every check is run once, through
+    /// `bash`.
     pub fn judge(&self, tools: &[Box<dyn Tool>], cx: &mut Context) -> Judged {
-        let mut failures = Vec::new();
-        let (mut hold, mut loosely) = (0, 0);
+        let mut judged = Judged::default();
         let missing = self.missing();
         if !missing.is_empty() {
-            failures.push(format!(
+            judged.failures.push(format!(
                 "{SAID} {} {} no check: hand one in for each with the `{CHECK}` tool",
                 and(&missing),
                 if missing.len() == 1 { "has" } else { "have" }
@@ -402,49 +451,58 @@ from the code as you found it: hand it in before the first change.",
         }
         for c in &self.checks {
             let now = run(&c.command, tools, cx);
-            let command = clipped(&c.command);
-            if !now.ok {
-                failures.push(format!(
-                    "{SAID} {}: `{command}` fails on your work: {}",
-                    c.line,
-                    if now.err.is_empty() {
-                        "it gave no result"
-                    } else {
-                        now.err.as_str()
-                    }
-                ));
-            } else if now.out == c.must {
-                hold += 1;
-            } else if !c.stays && loose(&now.out) == loose(&c.must) {
-                hold += 1;
-                loosely += 1;
-            } else if c.stays {
-                failures.push(format!(
-                    "{SAID} {} must stay: `{command}` printed `{}` on the code as you found it and \
-prints `{}` on your work",
-                    c.line,
-                    clipped(&c.must),
-                    clipped(&now.out)
-                ));
+            let (line, command) = (&c.line, clipped(&c.command));
+            let did = if now.ok {
+                format!("prints `{}`", clipped(&now.out))
             } else {
-                failures.push(format!(
-                    "{SAID} {} must give `{}`: `{command}` prints `{}` on your work",
-                    c.line,
-                    clipped(&c.must),
-                    clipped(&now.out)
-                ));
+                format!("fails ({})", failure(&now.err))
+            };
+            match &c.must {
+                Must::Give(must) if now.ok && now.out == *must => judged.hold += 1,
+                Must::Give(must) if now.ok && loose(&now.out) == loose(must) => {
+                    judged.hold += 1;
+                    judged.loosely += 1;
+                }
+                Must::Give(must) => judged.failures.push(format!(
+                    "{SAID} {line} must give `{}`: `{command}` {did} on your work",
+                    clipped(must)
+                )),
+                Must::Print(must) if now.ok && now.out == *must => judged.hold += 1,
+                Must::Print(must) => judged.failures.push(format!(
+                    "{SAID} {line} must stay: `{command}` printed `{}` on the code as you found it \
+and {did} on your work",
+                    clipped(must)
+                )),
+                Must::Fail(must) if !now.ok && now.err == *must => judged.hold += 1,
+                Must::Fail(must) => judged.moved.push((
+                    line.clone(),
+                    format!(
+                        "{line} must stay: `{command}` failed on the code as you found it ({}) \
+and {did} on your work",
+                        failure(must)
+                    ),
+                )),
             }
         }
-        Judged {
-            failures,
-            hold,
-            loosely,
-        }
+        judged
+    }
+
+    /// What of `judged` the body has not been told yet: the lines that no longer fail as they
+    /// did, each said once ([`moved_note`]). Telling them is the caller's; this marks them told.
+    pub fn news(&mut self, judged: &Judged) -> Vec<String> {
+        let news: Vec<(String, String)> = judged
+            .moved
+            .iter()
+            .filter(|(line, _)| !self.told.contains(line))
+            .cloned()
+            .collect();
+        self.told.extend(news.iter().map(|(line, _)| line.clone()));
+        news.into_iter().map(|(_, said)| said).collect()
     }
 
     /// What checked a landing the list passed, for the gate's word: the list, by how many lines,
-    /// how many of them hold only with letter case or blanks set aside, and how many of its
-    /// checks came in after the code had changed.
+    /// how many of them hold only with letter case or blanks set aside, which no longer fail as
+    /// they did, and how many of its checks came in after the code had changed.
     #[must_use]
     pub fn by(&self, judged: &Judged) -> String {
         let late = self.checks.iter().filter(|c| c.late).count();
@@ -467,6 +525,15 @@ prints `{}` on your work",
                 judged.loosely
             );
         }
+        if !judged.moved.is_empty() {
+            let lines: Vec<&str> = judged.moved.iter().map(|(line, _)| line.as_str()).collect();
+            let _ = write!(
+                by,
+                ", {} no longer {} as on the code you gave it",
+                and(&lines),
+                if lines.len() == 1 { "fails" } else { "fail" }
+            );
+        }
         if late > 0 {
             let _ = write!(
                 by,
@@ -486,6 +553,34 @@ pub struct Judged {
     pub hold: usize,
     /// Those of them that state an output and hold only with letter case or blanks set aside.
     pub loosely: usize,
+    /// The lines that must stay whose command failed on the code as the ask found it and no
+    /// longer fails that way: each by name, with what it did then and does now. They refuse
+    /// nothing: a failure that is gone is what an ask is for, or a reach too far, and the
+    /// harness cannot tell which.
+    pub moved: Vec<(String, String)>,
+}
+
+/// What the body is told, once, of lines that no longer fail as they did ([`List::news`]). Its
+/// landing stands either way.
+#[must_use]
+pub fn moved_note(news: &[String]) -> String {
+    format!(
+        "The lines the harness holds all hold. One thing more, said once: on the code as you \
+found it {} failed, and {} said to stay as it is.\n- {}\nIf the ask asks for that change, leave \
+it and say so in your answer. If it does not, put it back. Then answer again: this refuses no \
+landing.",
+        if news.len() == 1 {
+            "this command"
+        } else {
+            "these commands"
+        },
+        if news.len() == 1 {
+            "its line is"
+        } else {
+            "their lines are"
+        },
+        news.join("\n- ")
+    )
 }
 
 /// A reader's lines out of its reply: each line named `D1`, `D2`, … that says what it must give
@@ -506,20 +601,21 @@ pub fn read_lines(reply: &str) -> Vec<String> {
         .collect()
 }
 
-/// What a check for `line` is held to, and whether that is what it prints on the code as the ask
-/// found it (`today` reads it) and not an output the line states. `text` is the line on the ask's
-/// list, when it is on one: its two phrases say which it must be.
+/// What a check for `line` is held to. `text` is the line on the ask's list, when it is on one:
+/// its two phrases say which kind it must be. `today` reads what the command does on the code as
+/// the ask found it, for a line that must stay.
 ///
 /// # Errors
 ///
 /// The refusal: an output given for a line that must stay, none for a line that states one, an
-/// output the line does not state, or a command that says nothing of the code as found.
+/// output the line does not state, or a command that does not do the same thing twice on the
+/// code as found.
 fn held_to(
     line: &str,
     text: Option<&str>,
     gives: Option<String>,
-    today: impl FnOnce() -> Result<String, String>,
-) -> Result<(String, bool), String> {
+    today: impl FnOnce() -> Result<Said, String>,
+) -> Result<Must, String> {
     match (text.map_or(Kind::Free, kind), gives) {
         (Kind::Stays, Some(_)) => Err(format!(
             "refused: {line} says it {STAYS}: it states no output, and what it prints today is \
@@ -537,41 +633,66 @@ states, as the line writes it.",
                 clipped(text),
                 clipped(&gives)
             )),
-            _ => Ok((gives, false)),
+            _ => Ok(Must::Give(gives)),
         },
-        (_, None) => today().map(|today| (today, true)).map_err(|why| {
-            format!(
-                "refused: {line} must stay, so its check has to run on the code as you found it, \
-and {why}. Hand in a command that prints what the line is about there."
-            )
-        }),
+        (_, None) => match today() {
+            Ok(today) if today.ok => Ok(Must::Print(today.out)),
+            Ok(today) => Ok(Must::Fail(today.err)),
+            Err(why) => Err(format!(
+                "refused: {line} must stay, so its check is read from the code as you found it, \
+and {why}. Hand in a command that does the same thing each time it runs."
+            )),
+        },
+    }
+}
+
+/// How a command failed, as it is said: the last line of what it said, or that it said nothing.
+fn failure(err: &str) -> &str {
+    if err.is_empty() {
+        "it said nothing"
+    } else {
+        err
     }
 }
 
 /// What the body is told of a check just taken: what it is held to, and for a stated output,
-/// what its command prints on the world as it stands.
+/// what its command does on the world as it stands.
 fn said_of(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> String {
     let line = &check.line;
-    if check.stays {
-        return format!(
-            "{line} is held. On the code as you found it, your command prints:\n{}\nYour work \
-must print the same.",
-            clipped(&check.must)
-        );
-    }
+    let must = match &check.must {
+        Must::Print(must) if must.is_empty() => {
+            return format!(
+                "{line} is held. On the code as you found it, your command prints nothing and \
+succeeds. Your work must do the same."
+            );
+        }
+        Must::Print(must) => {
+            return format!(
+                "{line} is held. On the code as you found it, your command prints:\n{}\nYour \
+work must print the same.",
+                clipped(must)
+            );
+        }
+        Must::Fail(must) => {
+            return format!(
+                "{line} is held. On the code as you found it, your command fails:\n{}\nThat is \
+what stays: while it fails that way the line holds. If your work makes it run, or fail another \
+way, you are told once, and it refuses nothing. If the failure is in the command itself and not \
+what the line is about, hand the line in again.",
+                failure(must)
+            );
+        }
+        Must::Give(must) => must,
+    };
     let now = run(&check.command, tools, cx);
     let state = if !now.ok {
         format!(
             "Now the command fails ({}): it must print that when you are done.",
-            if now.err.is_empty() {
-                "no output"
-            } else {
-                now.err.as_str()
-            }
+            failure(&now.err)
         )
-    } else if now.out == check.must {
+    } else if now.out == *must {
         "It prints that now.".to_owned()
-    } else if loose(&now.out) == loose(&check.must) {
+    } else if loose(&now.out) == loose(must) {
         format!(
             "It prints that now, but for letter case or blanks, which are set aside:\n{}",
             clipped(&now.out)
@@ -581,7 +702,48 @@ must print the same.",
     };
     format!(
         "{line} is held: your command must print:\n{}\n{state}",
-        clipped(&check.must)
+        clipped(must)
+    )
+}
+
+/// How a check already held stands on the world as it is: what a body asks by handing the same
+/// line and command in again.
+fn stands(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> String {
+    let line = &check.line;
+    let (must, failed) = match &check.must {
+        Must::Give(_) => return said_of(check, tools, cx),
+        Must::Print(must) => (must, false),
+        Must::Fail(must) => (must, true),
+    };
+    let now = run(&check.command, tools, cx);
+    let did = if now.ok {
+        format!("prints `{}`", clipped(&now.out))
+    } else {
+        format!("fails ({})", failure(&now.err))
+    };
+    if failed {
+        let state = if !now.ok && now.err == *must {
+            "It fails that way now: the line holds.".to_owned()
+        } else {
+            format!("Now it {did}: that is said once when you answer, and refuses nothing.")
+        };
+        return format!(
+            "{line} is held as before. On the code as you found it, your command fails:\n{}\n{state}",
+            failure(must)
+        );
+    }
+    let state = if now.ok && now.out == *must {
+        "Your work does the same now: the line holds.".to_owned()
+    } else {
+        format!("Now it {did}: the line does not hold.")
+    };
+    format!(
+        "{line} is held as before. On the code as you found it, your command prints:\n{}\n{state}",
+        if must.is_empty() {
+            "(nothing)".to_owned()
+        } else {
+            clipped(must)
+        }
     )
 }
 
@@ -646,16 +808,11 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
     crate::changes::said_of(&o, &names)
 }
 
-/// What `command` prints on the world as it stands, when it runs and prints the same twice.
-fn steady(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Result<String, String> {
-    let (first, second) = (run(command, tools, cx), run(command, tools, cx));
-    crate::changes::one_of(&first, &second)
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
-        CHECK, CheckTool, Kind, List, READER, SAID, and, clipped, kind, loose, read_lines, stated,
+        CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, loose, moved_note,
+        read_lines, stated,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -766,7 +923,7 @@ mod tests {
             "{}",
             o.content
         );
-        assert!(list.checks()[0].stays && !list.checks()[0].late);
+        assert!(list.checks()[0].must.stays() && !list.checks()[0].late);
         // The work changes what the line prints: the landing fails, with both outputs.
         std::fs::write(dir.path().join("calc.sh"), "echo 5\n").unwrap();
         let judged = list.judge(&registry(), &mut cx);
@@ -971,23 +1128,13 @@ mod tests {
         assert!(READER.contains("must give") && READER.contains("must stay"));
     }
 
-    /// A check that cannot say what must stay is refused: one that fails on the code as found,
-    /// one that prints nothing, and one handed in after the code changed with no way back to it.
+    /// What must stay is whatever the command does on the code as found: it may print nothing,
+    /// and it may fail. Only a command that does not do the same thing twice says nothing, and
+    /// one handed in after the code changed with no way back to that code.
     #[test]
-    fn a_check_that_cannot_be_read_today_is_refused() {
+    fn what_must_stay_is_whatever_the_command_does_today() {
         let (_dir, mut cx) = world();
         let mut list = List::of(ASK);
-        let o = call_in(
-            &mut list,
-            &mut cx,
-            r#"{"line": "D2", "command": "sh nothing.sh"}"#,
-            true,
-        );
-        assert!(
-            o.is_error && o.content.contains("it fails there"),
-            "{}",
-            o.content
-        );
         let o = call_in(
             &mut list,
             &mut cx,
@@ -995,7 +1142,19 @@ mod tests {
             true,
         );
         assert!(
-            o.is_error && o.content.contains("prints nothing"),
+            !o.is_error && o.content.contains("prints nothing and succeeds"),
+            "{}",
+            o.content
+        );
+        assert_eq!(list.checks()[0].must, Must::Print(String::new()));
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D2", "command": "date +%s%N"}"#,
+            true,
+        );
+        assert!(
+            o.is_error && o.content.contains("does not do the same twice"),
             "{}",
             o.content
         );
@@ -1010,7 +1169,137 @@ mod tests {
             "{}",
             o.content
         );
-        assert!(!list.any());
+        assert_eq!(list.checks().len(), 1, "a refused check replaces none");
+    }
+
+    /// The same line and command handed in again asks how the line stands now. The check is
+    /// kept as it came in: nothing is read again from the code as found, and it is not late.
+    #[test]
+    fn the_same_check_again_says_how_the_line_stands_now() {
+        let (dir, mut cx) = world();
+        let mut list = List::of(ASK);
+        let d2 = r#"{"line": "D2", "command": "sh calc.sh 4"}"#;
+        let d1 = r#"{"line": "D1", "command": "sh calc.sh 1 2", "gives": "3"}"#;
+        assert!(!call_in(&mut list, &mut cx, d2, true).is_error);
+        assert!(!call_in(&mut list, &mut cx, d1, true).is_error);
+        // The work breaks D2. Asked again after the change, with no way back to the code as
+        // found: the check is not read again, so nothing is refused, and it is told as it is.
+        std::fs::write(dir.path().join("calc.sh"), "echo 3\n").unwrap();
+        let o = call_in(&mut list, &mut cx, d2, false);
+        assert!(
+            !o.is_error
+                && o.content.contains("D2 is held as before")
+                && o.content.contains("your command prints:\n4\n")
+                && o.content
+                    .contains("Now it prints `3`: the line does not hold."),
+            "{}",
+            o.content
+        );
+        let o = call_in(&mut list, &mut cx, d1, false);
+        assert!(
+            !o.is_error && o.content.contains("It prints that now."),
+            "{}",
+            o.content
+        );
+        assert!(list.checks().iter().all(|c| !c.late), "{:?}", list.checks());
+        std::fs::write(dir.path().join("calc.sh"), "echo 4\n").unwrap();
+        let o = call_in(&mut list, &mut cx, d2, false);
+        assert!(o.content.contains("the line holds"), "{}", o.content);
+        // Another command for the line is another check: it is read again, and here it cannot be.
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D2", "command": "sh calc.sh 4 0"}"#,
+            false,
+        );
+        assert!(
+            o.is_error && o.content.contains("is not kept"),
+            "{}",
+            o.content
+        );
+    }
+
+    /// A line that must stay and fails on the code as found holds while it fails the same way.
+    /// When the work makes it run, or fail another way, nothing is refused: asks are for making
+    /// things work, and the harness cannot know this one was not asked for. It is said once.
+    #[test]
+    fn a_line_that_failed_holds_while_it_fails_and_is_said_once_when_it_does_not() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        script("echo 'not a number: x' >&2\nexit 2\n");
+        let mut list = List::of("Be kinder.\n\n## Done when\nD1: `x` must stay as it is today\n");
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x"}"#,
+            true,
+        );
+        assert!(
+            !o.is_error
+                && o.content.contains("your command fails:\nnot a number: x\n")
+                && o.content.contains("it refuses nothing"),
+            "{}",
+            o.content
+        );
+        assert_eq!(list.checks()[0].must, Must::Fail("not a number: x".into()));
+        // It fails the same way: the line holds.
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!(
+            (judged.failures.len(), judged.hold, judged.moved.len()),
+            (0, 1, 0),
+            "{judged:?}"
+        );
+        assert_eq!(list.news(&judged), [] as [String; 0]);
+        // The work makes it run: no failure, said once, and the pass names the line.
+        script("echo 0\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!((judged.failures.len(), judged.hold), (0, 0), "{judged:?}");
+        let news = list.news(&judged);
+        assert_eq!(news.len(), 1);
+        assert!(
+            news[0].contains("D1 must stay: `sh strict.sh x` failed on the code as you found it (not a number: x) and prints `0` on your work"),
+            "{news:?}"
+        );
+        let note = moved_note(&news);
+        assert!(
+            note.contains("said once") && note.contains("this refuses no landing"),
+            "{note}"
+        );
+        assert_eq!(list.news(&judged), [] as [String; 0], "said once");
+        assert_eq!(
+            list.by(&judged),
+            "the ask's Done when list (0 lines), D1 no longer fails as on the code you gave it"
+        );
+        // Failing another way is the same: not what it did, and not refused.
+        script("echo 'no such unit' >&2\nexit 3\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!(
+            (judged.failures.len(), judged.moved.len()),
+            (0, 1),
+            "{judged:?}"
+        );
+        assert!(
+            judged.moved[0]
+                .1
+                .contains("fails (no such unit) on your work"),
+            "{judged:?}"
+        );
+        // A line that ran and now fails is a break, and refused.
+        script("echo 5\n");
+        let mut list = List::of("Be kinder.\n\n## Done when\nD1: `x` must stay as it is today\n");
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x"}"#,
+            true,
+        );
+        assert!(!o.is_error, "{}", o.content);
+        script("exit 1\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.failures[0].contains("D1 must stay: `sh strict.sh x` printed `5` on the code as you found it and fails (it said nothing) on your work"),
+            "{judged:?}"
+        );
     }
 
     /// A write is refused while a line has no check, twice, and then goes through: the gate

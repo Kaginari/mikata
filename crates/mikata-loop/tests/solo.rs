@@ -1383,7 +1383,7 @@ async fn a_reader_the_human_names_writes_the_list_the_harness_holds() {
     let requests = model.requests();
     // The reader: its own model, no tool, the ask alone.
     assert_eq!(requests[0].model, "a-strong-reader");
-    assert!(requests[0].tools.is_empty());
+    assert!(requests[0].tools.is_empty(), "a reader holds no tool");
     assert_eq!(told_after(&model, 0), wanted);
     assert!(
         format!("{:?}", requests[0].system).contains("You see the request alone, never the code"),
@@ -1515,4 +1515,75 @@ async fn a_reader_is_not_asked_twice_and_may_give_nothing() {
         Ending::Answered("doubled".into())
     );
     assert_eq!(model.requests().len(), 2);
+}
+
+/// A script that refuses what is not a number, and sums the rest.
+const STRICT: &str = "n=0\nfor a in \"$@\"; do\n  case $a in *[!0-9]*) echo \"not a number: $a\" >&2; exit 2;; esac\n  n=$((n + a))\ndone\necho $n\n";
+/// Doubles, and takes anything for 0: more than the ask asked.
+const LAX: &str = "n=0\nfor a in \"$@\"; do\n  case $a in *[!0-9]*) a=0;; esac\n  n=$((n + a))\ndone\necho $((n * 2))\n";
+const STRICT_ASK: &str = "Make total.sh print twice the sum.\n\n## Done when\nD1: `sh total.sh 1 2` must give `6`\nD2: `sh total.sh x` must stay as it is today\n";
+
+/// What must stay may be a failure: the line holds while its command fails as it did on the code
+/// as the ask found it. When the work makes it run, the harness cannot know whether the ask asked
+/// for that: the landing stands, the body is told once, and the pass names the line for the
+/// human. And what a check leaves behind (a cache) is no change to the code: the next line is
+/// still read from the world, not from a copy.
+#[tokio::test]
+async fn a_line_that_failed_and_no_longer_does_is_said_once_and_refuses_nothing() {
+    let w = World::new("listed-moved");
+    fs::write(w.world().join("total.sh"), STRICT).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        // This check leaves a cache behind, as an interpreter does.
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "mkdir -p __pycache__ && : > __pycache__/total.pyc && sh total.sh 1 2", "gives": "6"}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh x"}),
+        ),
+        tool("t3", "write", json!({"path": "total.sh", "content": LAX})),
+        answer("doubled"),
+        answer("doubled; x now counts as 0, which the ask did not ask for"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, STRICT_ASK).await,
+        Ending::Answered("doubled; x now counts as 0, which the ask did not ask for".into())
+    );
+    let said = results(&w);
+    assert!(
+        !said[1].1 && said[1].0.contains("your command fails:\nnot a number: x\n"),
+        "{said:?}"
+    );
+    // Both landings pass: nothing is refused.
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(gates[0].is_empty() && gates[1].is_empty(), "{gates:?}");
+    // The body is told once, between them.
+    let told = told_after(&model, 4);
+    assert!(
+        told.contains("One thing more, said once")
+            && told.contains("D2 must stay: `sh total.sh x` failed on the code as you found it (not a number: x) and prints `0` on your work"),
+        "{told}"
+    );
+    assert_eq!(model.requests().len(), 5, "told once, not twice");
+    // The pass names the line, and no check came late: the cache was no change to the code.
+    let by = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .rev()
+        .find_map(|b| match b {
+            Beat::Gate { verified_by, .. } => Some(verified_by),
+            _ => None,
+        });
+    assert_eq!(
+        by.unwrap(),
+        ["the ask's Done when list (1 line), D2 no longer fails as on the code you gave it"]
+    );
 }

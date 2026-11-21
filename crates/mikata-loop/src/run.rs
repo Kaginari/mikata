@@ -324,6 +324,8 @@ pub struct Run {
     done: crate::done::List,
     /// The landings answered again because only that list failed ([`crate::done::ROUNDS`]).
     done_rounds: u32,
+    /// The list as the last landing was judged by it.
+    done_judged: crate::done::Judged,
     /// The model that reads each ask apart and writes what done means for it (`models.reader`):
     /// none unless the human names one ([`crate::done`]).
     reader: Option<String>,
@@ -529,6 +531,7 @@ impl Run {
             checks: crate::changes::Checks::default(),
             done: crate::done::List::default(),
             done_rounds: 0,
+            done_judged: crate::done::Judged::default(),
             reader: None,
             read: Vec::new(),
             interrupt,
@@ -1861,13 +1864,18 @@ impl Run {
         let mut verdict = gate.judge(before, answer, &self.tools, &mut self.cx);
         // The list is run over the work as it stands. An answer that changed nothing and handed
         // in no check is an answer, or a question back: not judged.
+        self.done_judged = crate::done::Judged::default();
         if !verdict.changed.is_empty() || self.done.any() {
-            let judged = self.done.judge(&self.tools, &mut self.cx);
+            let mut judged = self.done.judge(&self.tools, &mut self.cx);
             if judged.failures.is_empty() && judged.hold > 0 {
                 verdict.listed = judged.hold;
                 verdict.verified_by.push(self.done.by(&judged));
             }
-            verdict.failures.extend(judged.failures);
+            verdict.failures.append(&mut judged.failures);
+            for (_, said) in &mut judged.moved {
+                *said = shown(said);
+            }
+            self.done_judged = judged;
         }
         // A failure names paths the model chose: escaped once, here, before any channel shows it —
         // the journal, the CLI, the note handed back, the ending, the human's approval card.
@@ -1880,6 +1888,18 @@ impl Run {
             *f = shown(f);
         }
         Some(verdict)
+    }
+
+    /// Tell the body, once, of each line that must stay whose command failed on the code as the
+    /// ask found it and no longer fails that way ([`crate::done::Judged::moved`]): whether there
+    /// was anything to tell. The landing stands whatever the body answers next.
+    fn said_what_moved(&mut self) -> bool {
+        let news = self.done.news(&self.done_judged);
+        if news.is_empty() {
+            return false;
+        }
+        self.hand_back(crate::done::moved_note(&news));
+        true
     }
 
     /// The end gate on an answer: the answer, a failure, or — the first time it fails — `None`,
@@ -1923,6 +1943,9 @@ impl Run {
             if !verdict.open.is_empty() && !*retried {
                 *retried = true;
                 self.hand_back(open_note(&verdict.open));
+                return None;
+            }
+            if self.said_what_moved() {
                 return None;
             }
             if !verdict.changed.is_empty() {
@@ -2956,6 +2979,7 @@ impl Run {
             crate::done::List::default()
         };
         self.done_rounds = 0;
+        self.done_judged = crate::done::Judged::default();
         let text = self.preface(text);
         self.record(&Beat::Ask { text: text.clone() });
         self.compactions = 0;
@@ -3628,10 +3652,12 @@ impl Run {
     /// is as the ask found it, and from a copy put back to that once the body has changed it.
     fn hand_in(&mut self, input: &str) -> mikata_tools::Outcome {
         let world = self.cx.world().to_path_buf();
-        let pristine = self
-            .before
-            .as_ref()
-            .is_some_and(|before| crate::gate::changed(before, &world).is_empty());
+        // As the ask found it, but for what a check leaves behind: a cache is no change.
+        let pristine = self.before.as_ref().is_some_and(|before| {
+            crate::gate::changed(before, &world)
+                .iter()
+                .all(|p| mikata_world::report::is_leftover(p))
+        });
         let (attic, start) = (self.cx.attic().cloned(), self.start.clone());
         // The copy's commands run as the body's do: its sandbox, its home, its word on a guard.
         let from = Context::new(Race::Slime, &world, &["."])
@@ -3641,7 +3667,7 @@ impl Run {
         let tools = &self.tools;
         let before = |command: &str| match (&attic, &start) {
             (Some(attic), Some(start)) => {
-                crate::changes::printed_before(&world, &from, attic, start, command, tools)
+                crate::changes::did_before(&world, &from, attic, start, command, tools)
                     .map_err(|why| format!("you have changed the code already, and {why}"))
             }
             _ => Err(

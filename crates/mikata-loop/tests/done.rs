@@ -69,7 +69,7 @@ async fn a_light_coding_session_holds_the_check_tool_and_the_humans_reader() {
         .await;
     let requests = model.requests();
     assert_eq!(requests[0].model, "a-strong-reader");
-    assert!(requests[0].tools.is_empty());
+    assert!(requests[0].tools.is_empty(), "a reader holds no tool");
     assert_eq!(sent(&model, 0), "Leave total.sh alone.");
     assert!(requests[1].tools.iter().any(|t| t.name == "check"));
     let told = sent(&model, 1);

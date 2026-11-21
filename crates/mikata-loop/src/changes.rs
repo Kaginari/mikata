@@ -328,41 +328,31 @@ pub(crate) fn said_of(o: &mikata_tools::Outcome, names: &[String]) -> Said {
     }
 }
 
-/// What a command prints, from two runs of it on one tree: its output when it ran both times and
-/// printed the same, something, twice. Otherwise why it says nothing about that tree, in words
-/// that go after "and".
-pub(crate) fn one_of(first: &Said, second: &Said) -> Result<String, String> {
-    if !first.ok {
-        return Err(if first.err.is_empty() {
-            "it fails there".to_owned()
-        } else {
-            format!("it fails there ({})", first.err)
-        });
+/// What a command does on a tree, from two runs of it there: the one thing it did, when it did
+/// the same twice (ran or failed, what it printed, how it failed). Otherwise why it says nothing
+/// of that tree, in words that go after "and".
+pub(crate) fn same_twice(first: Said, second: &Said) -> Result<Said, String> {
+    if first == *second {
+        Ok(first)
+    } else {
+        Err("it does not do the same twice there".to_owned())
     }
-    if !second.ok || first.out != second.out {
-        return Err("it does not print the same twice there".to_owned());
-    }
-    if first.out.is_empty() {
-        return Err("it prints nothing there".to_owned());
-    }
-    Ok(first.out.clone())
 }
 
-/// What `command` prints on the code as the ask found it, once the world has moved on: run twice
+/// What `command` does on the code as the ask found it, once the world has moved on: run twice
 /// in a copy of the world put back to `start`.
 ///
 /// # Errors
 ///
-/// Why it could not be read, in words that go after "and": the copy, a run that fails, two runs
-/// that differ, or nothing printed.
-pub(crate) fn printed_before(
+/// Why it could not be read, in words that go after "and": the copy, or two runs that differ.
+pub(crate) fn did_before(
     world: &Path,
     from: &Context,
     attic: &Attic,
     start: &Snapshot,
     command: &str,
     tools: &[Box<dyn Tool>],
-) -> Result<String, String> {
+) -> Result<Said, String> {
     let root = scratch_root();
     let _ = fs::remove_dir_all(&root);
     let read = (|| {
@@ -372,7 +362,7 @@ pub(crate) fn printed_before(
             .map_err(|e| format!("the code as you found it could not be laid out: {e}"))?;
         before.cx.set_deadline(Some(Instant::now() + BUDGET));
         let (first, second) = (before.says(command, tools), before.says(command, tools));
-        one_of(&first, &second)
+        same_twice(first, &second)
     })();
     let _ = fs::remove_dir_all(&root);
     read

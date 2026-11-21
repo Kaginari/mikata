@@ -24,6 +24,30 @@ pub const LEFTOVERS: &[&str] = &[
     ".ruff_cache/",
 ];
 
+/// Whether `rel`, a path relative to the world, is one of [`LEFTOVERS`]: a folder of that name
+/// anywhere on the path, or for a line anchored with `/`, that file or folder at the root. What
+/// a check left behind is no change to the code.
+#[must_use]
+pub fn is_leftover(rel: &Path) -> bool {
+    let parts: Vec<&str> = rel
+        .components()
+        .filter_map(|c| c.as_os_str().to_str())
+        .collect();
+    LEFTOVERS.iter().any(|line| {
+        let name = line.trim_matches('/');
+        // Anchored at the root: the path is it, or lies in it.
+        if line.starts_with('/') {
+            return parts.first().is_some_and(|first| *first == name);
+        }
+        // `.mikata/report/` is a path of its own, not one name.
+        if name.contains('/') {
+            return rel.starts_with(name);
+        }
+        // A folder of that name anywhere above the file.
+        parts[..parts.len().saturating_sub(1)].contains(&name)
+    })
+}
+
 /// Make the report folder and ignore it and the common test leftovers locally. Lines already in
 /// git's exclude file are not added twice; a world with no git, or whose git files are links, gets
 /// the folder only.
@@ -74,4 +98,39 @@ pub fn prepare(world: &Path) -> std::io::Result<()> {
         .open(&temp)
         .and_then(|mut f| std::io::Write::write_all(&mut f, next.as_bytes()))
         .and_then(|()| fs::rename(&temp, &exclude))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_leftover;
+    use std::path::Path;
+
+    /// What a check leaves behind is told from the code by where it lies: a cache folder
+    /// anywhere, a coverage file or folder at the root only.
+    #[test]
+    fn a_leftover_is_told_from_the_code() {
+        for left in [
+            "__pycache__/calc.cpython-312.pyc",
+            "pkg/sub/__pycache__/m.pyc",
+            ".pytest_cache/v/cache/lastfailed",
+            ".mypy_cache/3.12/a.json",
+            ".coverage",
+            "htmlcov/index.html",
+            "coverage/lcov.info",
+            ".nyc_output/x.json",
+            ".mikata/report/junit.xml",
+        ] {
+            assert!(is_leftover(Path::new(left)), "{left}");
+        }
+        for code in [
+            "calc.py",
+            "src/coverage/report.py",
+            "docs/__pycache__",
+            "pkg/.coverage",
+            ".mikata/tmp/plan.md",
+            "htmlcov.py",
+        ] {
+            assert!(!is_leftover(Path::new(code)), "{code}");
+        }
+    }
 }
