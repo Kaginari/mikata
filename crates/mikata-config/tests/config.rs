@@ -982,6 +982,41 @@ fn decisions_are_on_when_the_human_switches_them_on_with_or_without_a_classifier
     );
 }
 
+/// A reader is a second model, called and paid for on every light-coding ask: the human's own
+/// files name it, global or local, and a cloned repository cannot.
+#[test]
+fn a_reader_is_named_by_the_human_and_never_by_the_repository() {
+    let g = Ground::new("reader-none");
+    assert_eq!(g.load().unwrap().reader(), None);
+
+    let g = Ground::new("reader-global");
+    g.global("[models]\nreader = \"anthropic/claude-sonnet-5.5\"\n");
+    assert_eq!(
+        g.load().unwrap().reader().as_deref(),
+        Some("anthropic/claude-sonnet-5.5")
+    );
+
+    let g = Ground::new("reader-local");
+    g.local("[models]\nreader = \" strong-reader \"\n");
+    assert_eq!(g.load().unwrap().reader().as_deref(), Some("strong-reader"));
+
+    let g = Ground::new("reader-blank");
+    g.global("[models]\nreader = \"\"\n");
+    assert_eq!(g.load().unwrap().reader(), None, "an empty name is none");
+
+    let g = Ground::new("reader-tracked");
+    g.tracked("[models]\nreader = \"some/costly-model\"\n");
+    let c = g.load().unwrap();
+    assert_eq!(c.reader(), None);
+    assert!(
+        c.holes()
+            .iter()
+            .any(|h| h.key == "models.reader" && h.why.contains("paid for on every ask")),
+        "{:?}",
+        c.holes()
+    );
+}
+
 /// A cloned repository cannot send a model to another of the human's backends by naming one,
 /// from any key; a `:` that names no backend is part of the id. And the human's one model beats
 /// the repository's tiers.

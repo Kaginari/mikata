@@ -69,8 +69,17 @@ works through it over your whole repository, the way a careful engineer would:
    they print differently ([the loop](02-loop.md#what-changed-by-its-own-checks)). No model reads
    that list. You do.
 
-That habit, writing "done" down and checking it, is what put Mikata ahead of OpenCode and Maki on
-our bench, at the lowest price per pass ([the bench](bench.md)). It needs nothing set up.
+That habit, writing "done" down and checking it, took Mikata from 5 of 10 to level with OpenCode
+and Maki on our bench, at about half their price per pass ([the bench](bench.md)). It needs
+nothing set up.
+
+**You can write the list yourself, or have a reader write it.** Lines under `## Done when` in your
+ask (`D1: ... must give ...`, `D2: ... must stay as it is today`) are held by the harness, not
+by Mikata's word: it hands in one command a line, the harness reads what must stay from your
+code before anything changes, and runs every line when the answer lands
+([the loop](02-loop.md#a-done-when-list-in-the-ask)). Name a model as `models.reader` and it
+writes those lines for each ask, from the ask alone. On the two asks our bench fails most, that
+is the difference between 1 pass in 6 and 6 in 6.
 
 **An ask that names several projects is split by itself.** When the ask names two or more folders
 at the root of your repository that each hold a project file of their own (`pyproject.toml`,

@@ -207,6 +207,14 @@ impl Interrupt {
     }
 }
 
+/// Why a call apart from the conversation gave no answer ([`Run::call_apart`]).
+enum Apart {
+    /// It did not answer in time: what it is estimated to have cost, in weighted tokens.
+    Late(u64),
+    /// The provider failed it.
+    Failed(String),
+}
+
 /// What one model call came to.
 enum Called {
     /// The model answered.
@@ -312,6 +320,17 @@ pub struct Run {
     start: Option<mikata_tools::Snapshot>,
     /// The checks the body ran in this ask ([`crate::changes`]).
     checks: crate::changes::Checks,
+    /// The ask's own `## Done when` list and the checks handed in for it ([`crate::done`]).
+    done: crate::done::List,
+    /// The landings answered again because only that list failed ([`crate::done::ROUNDS`]).
+    done_rounds: u32,
+    /// The list as the last landing was judged by it.
+    done_judged: crate::done::Judged,
+    /// The model that reads each ask apart and writes what done means for it (`models.reader`):
+    /// none unless the human names one ([`crate::done`]).
+    reader: Option<String>,
+    /// What a reader wrote for the ask being opened ([`Run::read_apart`]), until it is opened.
+    read: Vec<String>,
     interrupt: Arc<Interrupt>,
     folded_upto: usize,
     /// The recall row for the ask being opened, journaled after it.
@@ -510,6 +529,11 @@ impl Run {
             before: None,
             start: None,
             checks: crate::changes::Checks::default(),
+            done: crate::done::List::default(),
+            done_rounds: 0,
+            done_judged: crate::done::Judged::default(),
+            reader: None,
+            read: Vec::new(),
             interrupt,
             folded_upto: 0,
             recalled: None,
@@ -1013,6 +1037,13 @@ impl Run {
         self
     }
 
+    /// Read each ask apart with `reader`, before the body works on it ([`Run::read_apart`]).
+    #[must_use]
+    pub fn with_reader(mut self, reader: Option<String>) -> Self {
+        self.reader = reader;
+        self
+    }
+
     /// The mode the session opened in ([`crate::open::Mode`]), journaled with the law before the
     /// first request. It records what was built; it changes no prompt.
     #[must_use]
@@ -1292,32 +1323,70 @@ impl Run {
         if let Some(names) = mcp.reranked(&key) {
             return Ok((names, 0, true));
         }
+        let said = self
+            .call_apart(
+                model,
+                rerank::SYSTEM,
+                prompt,
+                rerank::MAX_TOKENS,
+                RERANK_WAIT,
+                RERANK,
+            )
+            .await;
+        let (text, wt) = match said {
+            Ok(said) => said,
+            Err(Apart::Late(wt)) => {
+                return Err((
+                    "the fast tier did not answer in time; estimated".to_owned(),
+                    wt,
+                ));
+            }
+            Err(Apart::Failed(e)) => return Err((format!("the fast tier failed: {e}"), 0)),
+        };
+        let names = rerank::pick(&text, shortlist, mcp.settings().top_k);
+        if !names.is_empty() {
+            mcp.keep_reranked(key, names.clone());
+        }
+        Ok((names, wt, false))
+    }
+
+    /// One call apart from the conversation: `system` and one text to `model`, no tool, priced in
+    /// the ledger as `purpose`. Its answer and the weighted tokens spent. A call not answered
+    /// within `wait` may still be billed: the ledger then holds an estimate, the whole prompt in
+    /// and the whole ceiling out, marked as one.
+    async fn call_apart(
+        &mut self,
+        model: &str,
+        system: &str,
+        said: String,
+        max_tokens: u32,
+        wait: Duration,
+        purpose: &str,
+    ) -> Result<(String, u64), Apart> {
+        let sent = system.len() + said.len();
         let request = Request {
             model: model.to_owned(),
             system: vec![Block::Text {
-                text: rerank::SYSTEM.to_owned(),
+                text: system.to_owned(),
                 cache: false,
             }],
             tools: Vec::new(),
             messages: vec![Message {
                 role: Role::User,
                 content: vec![Block::Text {
-                    text: prompt,
+                    text: said,
                     cache: false,
                 }],
             }],
-            max_tokens: rerank::MAX_TOKENS,
+            max_tokens,
             effort: None,
             temperature: None,
             top_p: None,
         };
         let mut quiet = |_: Event| {};
         let Ok(answered) =
-            tokio::time::timeout(RERANK_WAIT, self.model.complete(&request, &mut quiet)).await
+            tokio::time::timeout(wait, self.model.complete(&request, &mut quiet)).await
         else {
-            // The provider may bill a call it never answered: the ledger holds an estimate — the
-            // whole prompt in, the whole ceiling out — marked as one.
-            let sent = rerank::SYSTEM.len() + request_text(&request).len();
             let row = UsageRow {
                 ts: Timestamp::now(),
                 session: self.caller.session.clone(),
@@ -1329,7 +1398,7 @@ impl Run {
                 provider: self.model.provider().to_owned(),
                 usage: mikata_ledger::Usage {
                     input: u64::try_from(sent.div_ceil(4)).unwrap_or(u64::MAX),
-                    output: u64::from(rerank::MAX_TOKENS),
+                    output: u64::from(max_tokens),
                     cache_read: 0,
                     cache_write: 0,
                 },
@@ -1341,17 +1410,14 @@ impl Run {
                 message_id: None,
                 estimated: false,
                 envelope: None,
-                purpose: Some(format!("{RERANK} (timed out, estimated)")),
+                purpose: Some(format!("{purpose} (timed out, estimated)")),
             }
             .priced(&self.prices);
             let wt = row.wt;
             self.spend(&row);
-            return Err((
-                "the fast tier did not answer in time; estimated".to_owned(),
-                wt,
-            ));
+            return Err(Apart::Late(wt));
         };
-        let r = answered.map_err(|e| (format!("the fast tier failed: {e}"), 0))?;
+        let r = answered.map_err(|e| Apart::Failed(e.to_string()))?;
         let mut row = usage_row(
             &r,
             &self.caller,
@@ -1359,14 +1425,57 @@ impl Run {
             &self.prices,
             Timestamp::now(),
         );
-        row.purpose = Some(RERANK.to_owned());
+        row.purpose = Some(purpose.to_owned());
         let wt = row.wt;
         self.spend(&row);
-        let names = rerank::pick(&text_of(&r.content), shortlist, mcp.settings().top_k);
-        if !names.is_empty() {
-            mcp.keep_reranked(key, names.clone());
+        Ok((text_of(&r.content), wt))
+    }
+
+    /// What done means for `ask`, read apart ([`crate::done::READER`]): one call to the reader
+    /// the human named, which is shown the ask alone. Its lines, for the harness to hold: none
+    /// when no reader is named, when this body holds no `check` tool, when the ask carries a list
+    /// of its own, or when the reader gives none. The human is told either way, with the cost.
+    async fn read_apart(&mut self, ask: &str) -> Vec<String> {
+        let Some(model) = self.reader.clone() else {
+            return Vec::new();
+        };
+        if ask.trim().is_empty()
+            || !self.tools.iter().any(|t| t.name() == crate::done::CHECK)
+            || !crate::lines::list(ask).is_empty()
+        {
+            return Vec::new();
         }
-        Ok((names, wt, false))
+        let said = self
+            .call_apart(
+                &model,
+                crate::done::READER,
+                ask.to_owned(),
+                crate::done::READER_TOKENS,
+                crate::done::READER_WAIT,
+                crate::done::READ,
+            )
+            .await;
+        let (lines, outcome, wt) = match said {
+            Ok((text, wt)) => {
+                let lines = crate::done::read_lines(&text);
+                let outcome = match lines.len() {
+                    0 => "no list".to_owned(),
+                    1 => "1 line of a Done when list".to_owned(),
+                    n => format!("{n} lines of a Done when list"),
+                };
+                (lines, outcome, wt)
+            }
+            Err(Apart::Late(wt)) => (
+                Vec::new(),
+                "no list: it did not answer in time; estimated".to_owned(),
+                wt,
+            ),
+            Err(Apart::Failed(e)) => (Vec::new(), format!("no list: it failed: {e}"), 0),
+        };
+        self.record(&Beat::Warning {
+            text: format!("read apart by {model}: {outcome}, {wt} wt"),
+        });
+        lines
     }
 
     fn end(&self, ending: Ending) -> Ending {
@@ -1568,9 +1677,10 @@ impl Run {
         }
         self.gate = Some(gate);
         self.before = Some(snapshot(self.cx.world()));
-        // Light-coding keeps the tree itself too: its checks are run on it again at the end.
+        // Light-coding keeps the tree itself too: its checks are run on it again at the end, and
+        // a line that must stay is read from it when its check comes in late.
         self.checks = crate::changes::Checks::default();
-        self.start = (self.shows_changes())
+        self.start = (self.shows_changes() || !self.done.is_empty())
             .then(|| {
                 self.cx
                     .attic()
@@ -1745,13 +1855,28 @@ impl Run {
         );
     }
 
-    /// The end gate on an answer: the answer, a failure, or — the first time it fails — `None`,
-    /// with the failure handed back to the body to fix.
-    fn judge(&mut self, answer: String, retried: &mut bool) -> Option<Ending> {
+    /// The gate's verdict on an answer, the `Done when` list the harness holds judged with it;
+    /// `None` for a run with no gate.
+    fn verdict_on(&mut self, answer: &str) -> Option<crate::gate::GateVerdict> {
         let (Some(gate), Some(before)) = (&self.gate, &self.before) else {
-            return Some(Ending::Answered(answer));
+            return None;
         };
-        let mut verdict = gate.judge(before, &answer, &self.tools, &mut self.cx);
+        let mut verdict = gate.judge(before, answer, &self.tools, &mut self.cx);
+        // The list is run over the work as it stands. An answer that changed nothing and handed
+        // in no check is an answer, or a question back: not judged.
+        self.done_judged = crate::done::Judged::default();
+        if !verdict.changed.is_empty() || self.done.any() {
+            let mut judged = self.done.judge(&self.tools, &mut self.cx);
+            if judged.failures.is_empty() && judged.hold > 0 {
+                verdict.listed = judged.hold;
+                verdict.verified_by.push(self.done.by(&judged));
+            }
+            verdict.failures.append(&mut judged.failures);
+            for (_, said) in &mut judged.moved {
+                *said = shown(said);
+            }
+            self.done_judged = judged;
+        }
         // A failure names paths the model chose: escaped once, here, before any channel shows it —
         // the journal, the CLI, the note handed back, the ending, the human's approval card.
         for f in verdict
@@ -1762,6 +1887,27 @@ impl Run {
         {
             *f = shown(f);
         }
+        Some(verdict)
+    }
+
+    /// Tell the body, once, of each line that must stay whose command failed on the code as the
+    /// ask found it and no longer fails that way ([`crate::done::Judged::moved`]): whether there
+    /// was anything to tell. The landing stands whatever the body answers next.
+    fn said_what_moved(&mut self) -> bool {
+        let news = self.done.news(&self.done_judged);
+        if news.is_empty() {
+            return false;
+        }
+        self.hand_back(crate::done::moved_note(&news));
+        true
+    }
+
+    /// The end gate on an answer: the answer, a failure, or — the first time it fails — `None`,
+    /// with the failure handed back to the body to fix.
+    fn judge(&mut self, answer: String, retried: &mut bool) -> Option<Ending> {
+        let Some(verdict) = self.verdict_on(&answer) else {
+            return Some(Ending::Answered(answer));
+        };
         // Every verdict is kept, failing ones too: the marks an order's report carries are read
         // from them, line by line.
         self.verdicts.push(verdict.clone());
@@ -1782,7 +1928,7 @@ impl Run {
             verified_by: verdict.verified_by.clone(),
             open: verdict.open.clone(),
         });
-        let solo = gate.author.is_none();
+        let solo = self.gate.as_ref().is_some_and(|g| g.author.is_none());
         self.saw_landing(&verdict);
         // A pass on a Dark Elf surface opens the landing's challenge: it waits on it.
         let held = if verdict.passed() {
@@ -1797,6 +1943,9 @@ impl Run {
             if !verdict.open.is_empty() && !*retried {
                 *retried = true;
                 self.hand_back(open_note(&verdict.open));
+                return None;
+            }
+            if self.said_what_moved() {
                 return None;
             }
             if !verdict.changed.is_empty() {
@@ -1848,6 +1997,18 @@ impl Run {
         } else {
             "failed"
         };
+        // Only the list fails: its note names each line and what it printed, so the body may
+        // answer again more than once, and the one chance the other checks give is not spent.
+        let listed_only = verdict.unverified.is_empty()
+            && verdict
+                .failures
+                .iter()
+                .all(|f| f.starts_with(crate::done::SAID));
+        if listed_only && self.done_rounds < crate::done::ROUNDS {
+            self.done_rounds += 1;
+            self.hand_back(retry_note(how, &said, !solo, &verdict.failures));
+            return None;
+        }
         if *retried {
             // The last chance spent after a FAIL: what the ask recalled is reconsolidated, once.
             // A first failure writes nothing; a check that wrote, or that gave no result, says
@@ -2791,6 +2952,7 @@ impl Run {
     async fn begin(&mut self, text: &str) -> String {
         self.ride();
         self.choose_mcp(text).await;
+        self.read = self.read_apart(text).await;
         self.open_ask(text)
     }
 
@@ -2803,6 +2965,21 @@ impl Run {
         self.failed_in_ask = None;
         self.acceptable.clear();
         self.landed_in_ask = None;
+        // A list the ask carries is the harness's to hold, where the body holds the tool for it:
+        // the ask's own, or else the one a reader wrote for it.
+        let read = std::mem::take(&mut self.read);
+        self.done = if self.tools.iter().any(|t| t.name() == crate::done::CHECK) {
+            let own = crate::done::List::of(text);
+            if own.is_empty() {
+                crate::done::List::read(&read)
+            } else {
+                own
+            }
+        } else {
+            crate::done::List::default()
+        };
+        self.done_rounds = 0;
+        self.done_judged = crate::done::Judged::default();
         let text = self.preface(text);
         self.record(&Beat::Ask { text: text.clone() });
         self.compactions = 0;
@@ -2819,11 +2996,16 @@ impl Run {
         text.clone_into(&mut self.asked);
         self.unheld = None;
         let woken = std::mem::take(&mut self.woken);
+        // A reader's list, and how the harness holds a list, are said with the ask, after it.
+        let told = match self.done.after_the_ask() {
+            Some(more) => format!("{text}\n\n{more}"),
+            None => text.to_owned(),
+        };
         let asked = if woken.is_empty() {
-            text.to_owned()
+            told
         } else {
             format!(
-                "While you waited, the shared queue ran:\n- {}\n\n{text}",
+                "While you waited, the shared queue ran:\n- {}\n\n{told}",
                 woken.join("\n- ")
             )
         };
@@ -3437,6 +3619,66 @@ impl Run {
         )
     }
 
+    /// One call of the body's own: a write waits while the ask's list waits for its checks, and
+    /// a write that runs is watched for a return to an earlier tree.
+    async fn call_own(&mut self, name: &str, input: &str) -> mikata_tools::Outcome {
+        if let Some(why) = self.write_waits(name, input) {
+            return mikata_tools::Outcome::error(why);
+        }
+        if WRITE_TOOLS.contains(&name) {
+            let world = self.cx.world().to_path_buf();
+            self.returns.before(&world, name, input);
+        }
+        self.call_one(name, input).await
+    }
+
+    /// Why a write is refused for now, when it is ([`crate::done::List::refuses`]): the ask
+    /// carries a `Done when` list and a line of it has no check yet. The body's own notes
+    /// (`.mikata/`, its plan) are never held back.
+    fn write_waits(&mut self, name: &str, input: &str) -> Option<String> {
+        if self.done.is_empty() || !WRITE_TOOLS.contains(&name) {
+            return None;
+        }
+        let args: serde_json::Value = serde_json::from_str(input).ok()?;
+        let paths = changed_paths(name, &args);
+        let notes = |p: &String| p.starts_with(".mikata/") || p.contains("/.mikata/");
+        if !paths.is_empty() && paths.iter().all(notes) {
+            return None;
+        }
+        self.done.refuses()
+    }
+
+    /// One `check` call ([`crate::done`]): a line that must stay is read from the world while it
+    /// is as the ask found it, and from a copy put back to that once the body has changed it.
+    fn hand_in(&mut self, input: &str) -> mikata_tools::Outcome {
+        let world = self.cx.world().to_path_buf();
+        // As the ask found it, but for what a check leaves behind: a cache is no change.
+        let pristine = self.before.as_ref().is_some_and(|before| {
+            crate::gate::changed(before, &world)
+                .iter()
+                .all(|p| mikata_world::report::is_leftover(p))
+        });
+        let (attic, start) = (self.cx.attic().cloned(), self.start.clone());
+        // The copy's commands run as the body's do: its sandbox, its home, its word on a guard.
+        let from = Context::new(Race::Slime, &world, &["."])
+            .with_sandbox(self.cx.sandbox().clone())
+            .with_unguarded(self.cx.allows_unguarded())
+            .with_home(self.cx.home());
+        let tools = &self.tools;
+        let before = |command: &str| match (&attic, &start) {
+            (Some(attic), Some(start)) => {
+                crate::changes::did_before(&world, &from, attic, start, command, tools)
+                    .map_err(|why| format!("you have changed the code already, and {why}"))
+            }
+            _ => Err(
+                "you have changed the code already, and the code as you found it is not kept"
+                    .to_owned(),
+            ),
+        };
+        self.done
+            .hand_in(input, pristine, before, &self.tools, &mut self.cx)
+    }
+
     /// One call: a commission the loop runs, anything else the tool runs.
     async fn call_one(&mut self, name: &str, input: &str) -> mikata_tools::Outcome {
         // Arguments the model sent as no JSON: never run, answered so the model can resend them.
@@ -3470,6 +3712,10 @@ impl Run {
                 self.commissioner.is_some(),
                 room,
             );
+        }
+        // A check for a line of the `Done when` list is the harness's to hold.
+        if name == crate::done::CHECK && self.tools.iter().any(|t| t.name() == crate::done::CHECK) {
+            return self.hand_in(input);
         }
         // A Slime's verify line is the harness's to write, for the Orc it reports to.
         if name == crate::verify_tool::VERIFY
@@ -3968,11 +4214,7 @@ impl Run {
                 (o, None)
             } else {
                 let began = std::time::Instant::now();
-                if WRITE_TOOLS.contains(&name.as_str()) {
-                    let world = self.cx.world().to_path_buf();
-                    self.returns.before(&world, &name, &input);
-                }
-                let o = self.call_one(&name, &input).await;
+                let o = self.call_own(&name, &input).await;
                 (o, Some(millis(began.elapsed())))
             };
             self.note_unheld(&o, &name, &input);
@@ -4510,15 +4752,6 @@ fn strip_where(messages: &mut [Message], gone: impl Fn(&str) -> bool) -> usize {
     stripped
 }
 
-/// Every text block a request's messages carry, joined: what a call that never answered sent.
-fn request_text(request: &Request) -> String {
-    request
-        .messages
-        .iter()
-        .map(|m| text_of(&m.content))
-        .collect()
-}
-
 fn text_of(content: &[Block]) -> String {
     content
         .iter()
@@ -4714,9 +4947,11 @@ hands that part on. Do not write outside your zone.",
 /// for a way round it spends the run.
 fn retry_note(how: &str, said: &[&str], commissioned: bool, failures: &[String]) -> String {
     let orcs_line = commissioned && failures.iter().any(|f| f.starts_with("traits hold:"));
+    let listed = failures.iter().any(|f| f.starts_with(crate::done::SAID));
     format!(
-        "The end gate {how}:\n- {}\nFix it, then answer again.{}",
+        "The end gate {how}:\n- {}\nFix it, then answer again.{}{}",
         said.join("\n- "),
+        if listed { crate::done::TOGETHER } else { "" },
         if orcs_line {
             " A verify line is your Orc's, not yours to change: if it fails for a reason your \
              change cannot fix (an import, a path, the line itself), answer at once saying so, \

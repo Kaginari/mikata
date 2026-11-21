@@ -67,6 +67,13 @@ start, every output the ask states, and the tests for the files it changed. A di
 test means it is not done. The gate checks what the human pinned; the list checks what the ask
 said.
 
+When your ask says what done means in lines of its own (`D1: ... must give ...`, `D5: ... must
+stay as it is today`), or a reader you named wrote them for it, the harness holds the work to
+them itself. The body hands in one command a line. For a line that must stay, the harness runs
+it on the code as you gave it and keeps what it prints: the body is never the one who says what
+"today" is. When the answer lands every line is run again, and a line that changed fails the
+landing.
+
 And when the answer has landed, the harness does one thing for you: it runs the body's own last
 checks again, on the code as your ask found it and on the finished work, and shows you where they
 print differently. The body's checks hold the body's reading of your ask; you are the one who
@@ -723,6 +730,97 @@ be fixed does not count), and the files every one of them changed — and an ord
 those files again — as a word of the order, `./` and a `:line` dropped — is refused with the three
 routes, and a held order on the queue naming one waits instead of being claimed; an order rewritten without them goes through,
 and one `PASS` clears the streak.
+
+### A `Done when` list in the ask
+
+You can say what done means in the ask itself, in lines of your own, each named `D1`, `D2`, and
+so on:
+
+```markdown
+Make `total` skip blank entries.
+
+## Done when
+D1: `total(['1', '', '2'])` must give `3`
+D2: `total(['4'])` must stay as it is today
+```
+
+A light-coding body handed such lines builds to the ones that say what must come out. On our
+bench every run got every one of them right. What it does not hold is the other half, the lines
+that say what must stay: two failed runs in four broke lines their list named, and one of them
+read "must stay as it is today" as "must come out as it went in" and changed the code until that
+was true ([the bench](bench.md#the-list-held)). A prompt line asking a body to keep what must
+stay was tried before, and failed. So the harness holds the list, by code:
+
+- **The body is told with the ask,** after it, and holds a `check` tool. For each line it hands
+  in a command that prints what the line is about, and nothing else.
+- **A line that says `must give`** is held to an output the line states. One the line does not
+  state is refused: the list is yours, and the body does not add to it.
+- **A line that says `must stay`** states no output, and the body may not give one. The harness
+  runs the command on the code as the ask found it, twice, tells the body what it does today, and
+  holds the work to that. It may print, print nothing, or fail: "everything else must keep
+  working as it does today" covers the input that raises today too, and a reader writes such
+  lines. Only a command that does not do the same thing twice is refused. What the checks leave
+  behind (`__pycache__` and the other test leftovers the harness knows) is no change to the code.
+  Handed in after the code itself has changed, the line is read in a copy put back to the tree as
+  the ask found it, which the attic kept when the ask began.
+- **A line that ran is held hard; a line that failed is not.** A line whose command printed
+  something holds only while it prints the same: breaking what worked is refused. A line whose
+  command failed holds while it fails the same way. When it no longer does, the harness cannot
+  know whether the ask asked for that (asks are for making something work) or the work reached
+  too far: the landing stands, the body is told once, never to add code only to keep a failure,
+  and the pass names the line for you.
+- The same line and command handed in again asks how the line stands now. The check is kept as
+  it came in.
+- A line with neither phrase takes either form.
+- **A write to the code waits** until every line has its check: refused twice at most, then let
+  through, so a refusal is never the only way on. The body's own notes under `.mikata/` never
+  wait.
+- **When the answer lands, the harness runs every check on the work,** through the same
+  classified and guarded `bash` as any command, 60 seconds each. A line with no check, or a check
+  that prints something else, fails the landing. The note names each line, what it printed on the
+  code as the ask found it and what it prints now, and says that every line has to hold at once:
+  told one line, this model has made it true by giving up another. Only the list failing gives
+  the body two more tries than the one the other checks give.
+- **Equal is exact for a line that must stay:** its truth was read from the code. **For a line
+  that states its output, letter case and blanks are set aside.** Whoever wrote the list seldom
+  knows how the code spells what it prints: a reader shown one of our asks wrote `'1.5 day'`
+  where the code prints `'1.5 DAY'`, and held letter for letter the harness would have made the
+  body break the code to match. A line that holds only that way is counted, and you are told.
+- A landing the list passed says what checked it: `verified by the ask's Done when list (11
+  lines) only, not by a line the human pinned`, with how many lines held but for letter case or
+  blanks, which lines no longer fail as they did, and how many checks came in after the code had
+  changed. It is no verify line: no claim of memory cites it.
+
+With no list in the ask nothing changes: nothing is told and no write waits. The body may still
+hand in checks for lines of its own plan, and its landing is held to them the same way.
+
+**A reader can write the list for you.** Name a model in your own configuration, global or
+local:
+
+```toml
+[models]
+reader = "anthropic/claude-sonnet-5.5"
+```
+
+Then every light-coding ask that carries no list of its own is read apart first: one call to that
+model, through the session's provider, which is shown the ask alone, never the code, and asked
+only for these lines. What it writes is put after your ask as a `## Done when` list and held like
+your own; a line of neither kind, or anything else it says, is dropped, and at most 30 lines are
+kept. You see one line, `read apart by <model>: 18 lines of a Done when list`, with what it cost,
+and the list itself in the ask as the body was given it. A reader that gives no line, fails, or
+does not answer in 90 seconds leaves the ask as it was, and that is said. A repository's tracked
+file cannot name a reader: it is a second model, called and paid for on every ask.
+
+Name a reader that reads better than the body. On our bench a strong model's lists were right in
+every line, 80 of 80, at one to three cents an ask; the body's own model, asked apart, wrote a
+list wrong by a letter, and three runs in three built to the wrong letter.
+
+What this does not do. Nothing here reads prose: the two phrases decide a line's kind, and equal
+text decides a pass. The checks are the body's own commands: one that does not print what its
+line is about holds nothing, and the harness cannot tell. The list is held right or wrong: a
+wrong line that says what something must give, or that something which works must stay, is held
+as hard as a right one. And an input no line names is not covered: of four failed runs, two
+failed on one.
 
 ### What changed, by its own checks
 

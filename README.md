@@ -13,15 +13,23 @@ answers. Every change then passes the end gate: your verify line runs green, and
 deleted or skipped.
 
 On our bench, ten real fixes in a large Python library, with the same small open model in every
-harness ([the bench](docs/bench.md)):
+harness, run twice a week apart ([the bench](docs/bench.md)):
 
 | Harness | Passed | Per pass |
 |---|---|---|
-| **Mikata** | **9 of 10** | **$0.43** |
-| Maki 0.7.1 | 8 of 10 | $0.97 |
-| OpenCode 1.19.5 | 7 of 10 | $0.67 |
+| **Mikata** | **16 of 20** | **$0.50** |
+| Maki | 15 of 20 | $0.91 |
+| OpenCode | 14 of 20 | $0.87 |
 
-One run a task, so read ours as "8 or 9"; the price per pass held in every screen.
+On passes the three are level: by the bar we wrote first, no difference is shown. The price per
+pass held in every screen.
+
+**Say what done means, and the harness holds it.** Put lines under `## Done when` in your ask
+(`D1: ... must give ...`, `D2: ... must stay as it is today`), or name a reader, a model that
+writes them from the ask alone. Mikata hands the harness one command a line. The harness reads
+what must stay from your code before anything changes, and runs every line when the answer
+lands. On the two asks our bench fails most, stated as prose: 1 pass in 6 without a list, 6 in 6
+with one held.
 
 **An ask that spans several projects is split by itself.** Name two or more folders that each hold
 a project of their own, and Mikata runs one body a project, at once, then checks each. Five whole

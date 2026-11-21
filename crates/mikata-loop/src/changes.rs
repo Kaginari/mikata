@@ -301,20 +301,71 @@ impl Copied {
             "timeout_ms": u64::try_from(EACH.as_millis()).unwrap_or(20_000),
         });
         let o = call(tools, "bash", &args.to_string(), &mut self.cx);
-        let out = stdout_of(&o.content);
-        // What it said besides: the last line of it, which is where an error names itself.
-        let err = o.content[out.len()..]
-            .lines()
-            .rev()
-            .map(str::trim)
-            .find(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
-            .unwrap_or_default();
-        Said {
-            ok: !o.is_error,
-            out: out.replace(&here, "<world>").trim_end().to_owned(),
-            err: err.replace(&here, "<world>"),
-        }
+        said_of(&o, &[here])
     }
+}
+
+/// What a `bash` call did, as [`Said`]: `names` are the paths of the tree it ran in, each
+/// written `<world>`, so that two trees say the same thing in the same words.
+pub(crate) fn said_of(o: &mikata_tools::Outcome, names: &[String]) -> Said {
+    let placed = |text: &str| {
+        names.iter().fold(text.to_owned(), |t, name| {
+            t.replace(name.as_str(), "<world>")
+        })
+    };
+    let out = stdout_of(&o.content);
+    // What it said besides: the last line of it, which is where an error names itself.
+    let err = o.content[out.len()..]
+        .lines()
+        .rev()
+        .map(str::trim)
+        .find(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+        .unwrap_or_default();
+    Said {
+        ok: !o.is_error,
+        out: placed(out).trim_end().to_owned(),
+        err: placed(err),
+    }
+}
+
+/// What a command does on a tree, from two runs of it there: the one thing it did, when it did
+/// the same twice (ran or failed, what it printed, how it failed). Otherwise why it says nothing
+/// of that tree, in words that go after "and".
+pub(crate) fn same_twice(first: Said, second: &Said) -> Result<Said, String> {
+    if first == *second {
+        Ok(first)
+    } else {
+        Err("it does not do the same twice there".to_owned())
+    }
+}
+
+/// What `command` does on the code as the ask found it, once the world has moved on: run twice
+/// in a copy of the world put back to `start`.
+///
+/// # Errors
+///
+/// Why it could not be read, in words that go after "and": the copy, or two runs that differ.
+pub(crate) fn did_before(
+    world: &Path,
+    from: &Context,
+    attic: &Attic,
+    start: &Snapshot,
+    command: &str,
+    tools: &[Box<dyn Tool>],
+) -> Result<Said, String> {
+    let root = scratch_root();
+    let _ = fs::remove_dir_all(&root);
+    let read = (|| {
+        let mut before = Copied::of(world, world, &root, "before", from)?;
+        attic
+            .export_into(&start.tree, &before.at)
+            .map_err(|e| format!("the code as you found it could not be laid out: {e}"))?;
+        before.cx.set_deadline(Some(Instant::now() + BUDGET));
+        let (first, second) = (before.says(command, tools), before.says(command, tools));
+        same_twice(first, &second)
+    })();
+    let _ = fs::remove_dir_all(&root);
+    read
 }
 
 /// A folder for a step's copies, its own each time.

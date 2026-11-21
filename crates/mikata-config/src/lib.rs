@@ -337,6 +337,7 @@ const SCHEMA: &[(&str, Kind)] = &[
     ("refresh.scout_hours", Kind::Int),
     ("models.provider", Kind::Str),
     ("models.default", Kind::Str),
+    ("models.reader", Kind::Str),
     ("models.race.*", Kind::Str),
     ("models.tier.*", Kind::Str),
     ("models.office.*.*", Kind::Str),
@@ -756,6 +757,25 @@ impl Config {
         Ok(config)
     }
 
+    /// Why a `models.*` key from a repository's tracked file is not honoured, when it is not: it
+    /// names a backend, which decides where a model's requests and key go, or it names a reader,
+    /// a second model called and paid for on every ask.
+    fn tracked_model(&self, key: &str, value: &toml::Value) -> Option<&'static str> {
+        if key == "models.reader" {
+            return Some(
+                "a reader is a second model, called and paid for on every ask, so it is honoured only from the local or global file",
+            );
+        }
+        (key.starts_with("models.")
+            && value
+                .as_str()
+                .and_then(|v| v.split_once(':'))
+                .is_some_and(|(p, _)| self.human_providers.contains(p)))
+        .then_some(
+            "names a backend: where a model's requests and key go is honoured only from the local or global file",
+        )
+    }
+
     fn layer(&mut self, table: &Table, origin: &Origin) -> Result<(), String> {
         let mut leaves = Vec::new();
         flatten(table, "", &mut leaves);
@@ -810,16 +830,12 @@ impl Config {
                 continue;
             }
             if origin.layer == Layer::Tracked
-                && key.starts_with("models.")
-                && value
-                    .as_str()
-                    .and_then(|v| v.split_once(':'))
-                    .is_some_and(|(p, _)| self.human_providers.contains(p))
+                && let Some(why) = self.tracked_model(&key, &value)
             {
                 self.holes.push(Hole {
                     key,
                     origin: origin.clone(),
-                    why: "names a backend: where a model's requests and key go is honoured only from the local or global file".into(),
+                    why: why.into(),
                 });
                 continue;
             }
@@ -1049,6 +1065,17 @@ impl Config {
         self.get("gate.changes")
             .and_then(|l| l.value.as_bool())
             .unwrap_or(true)
+    }
+
+    /// The model that reads each light-coding ask apart and writes what done means for it
+    /// (`models.reader`): none unless the human's own file names one. It is a second model, paid
+    /// for on every ask, so a repository's tracked file cannot name it.
+    #[must_use]
+    pub fn reader(&self) -> Option<String> {
+        self.get("models.reader")
+            .filter(|l| matches!(l.origin.layer, Layer::Global | Layer::Local))
+            .and_then(|l| l.value.as_str().map(str::trim).map(str::to_owned))
+            .filter(|model| !model.is_empty())
     }
 
     /// How many Dark Elf reviewers one landing's challenge commissions at once; the rest wait

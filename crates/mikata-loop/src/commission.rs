@@ -2558,6 +2558,7 @@ mod write_rule_tests {
             verified_by: vec!["the human's pin".to_owned()],
             ran: lines.iter().map(|l| (*l).to_owned()).collect(),
             open: Vec::new(),
+            listed: 0,
         }
     }
 
@@ -2684,6 +2685,7 @@ mod write_rule_tests {
                 verified_by: vec!["the human's pin".to_owned()],
                 ran: vec!["cargo test".to_owned()],
                 open: Vec::new(),
+                listed: 0,
             };
             let heading = format!("[2026-10-26T12:{i:02}:00+02:00] slime-s — gate: PASS");
             let proof = (!caught)

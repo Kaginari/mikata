@@ -13,6 +13,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **A `Done when` list in your ask is held by the harness.** Say what done means in lines of your
+  own under `## Done when` (`D1: ... must give ...`, `D2: ... must stay as it is today`). Mikata
+  holds a new `check` tool and hands the harness one command a line. A line that must give is
+  held to an output the line states, letter case and blanks set aside. A line that must stay
+  states none: the harness runs its command on the code as your ask found it, tells Mikata what
+  it does today, and holds the work to that. A write to the code waits, twice at most, until
+  every line has its check. When the answer lands every check is run on the work: a line with no
+  check, or one that prints something else, fails the landing, and the note names the line and
+  both outputs. A line whose command failed before and no longer does is said once and refuses
+  nothing. A landing the list passed says so (`verified by the ask's Done when list (11 lines)`).
+  With no list in the ask, nothing changes.
+- **A reader can write that list: `models.reader`.** Name a model in your own configuration and
+  every light-coding ask that carries no list is read apart first: one call, shown the ask
+  alone, never the code. Its lines go after your ask and are held like your own; you see one
+  line with what it cost. Yours alone to set: a repository's tracked file cannot name a second
+  model you pay for on every ask. Name one that reads better than the body. On our bench the two
+  prose asks that fail nearly always passed 1 time in 6 plain, 2 in 6 with a strong reader's
+  lines handed over as a note, and 6 in 6 with the same lines held
+  ([the bench](docs/bench.md#the-list-held)).
 - **What changed, by Mikata's own checks.** When a light-coding answer lands, the harness runs the
   body's last checks again (the `python3 -c` and its kin that it asked its code questions with),
   on a copy of the finished work and on a copy of the code as the ask found it, and shows you
@@ -47,6 +66,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   writes each one whole, at the tag (1.0.0's were corrected by hand).
 - **Seven links in the book pointed at a heading that had moved,** six of them at the overview's
   section on the modes.
+- **The terminal app and the board take a queued line off the queue when its turn starts, whatever
+  the harness says after it.** Both looked for the line at the end of the ask as the body was
+  given it; the harness may now say more after the ask.
 - **`mikata status` no longer says "summoner"** when the verify witness is broken: the message
   named the body, though the break holds every verify line.
 

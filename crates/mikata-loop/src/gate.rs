@@ -359,6 +359,10 @@ pub struct GateVerdict {
     /// ([`EndGate::open_before`]): one line each, `traits open: ...`. They refuse no landing and
     /// are no pass: the mark for such a line is FAIL.
     pub open: Vec<String>,
+    /// The lines of a `Done when` list held by the harness ([`crate::done`]) whose checks ran
+    /// over the work and held: the ask's own list, or the body's. No verify line, and no claim
+    /// cites one; but a landing they held over was checked by something.
+    pub listed: usize,
 }
 
 /// The gate's word on a landing: three, never more.
@@ -390,7 +394,7 @@ impl GateVerdict {
     /// nothing, and is never counted as verified.
     #[must_use]
     pub fn unchecked(&self) -> bool {
-        !self.unpinned && self.held().is_empty() && !self.changed.is_empty()
+        !self.unpinned && self.held().is_empty() && self.listed == 0 && !self.changed.is_empty()
     }
 
     /// The verify lines that ran and held: [`GateVerdict::ran`] without the lines that stand
@@ -493,6 +497,7 @@ impl EndGate {
                 verified_by: Vec::new(),
                 ran: Vec::new(),
                 open: Vec::new(),
+                listed: 0,
             };
         }
         if answer.trim().is_empty() {
@@ -527,6 +532,7 @@ impl EndGate {
             verified_by: self.sources(),
             ran: self.verify.clone(),
             open,
+            listed: 0,
         }
     }
 
