@@ -372,7 +372,7 @@ calls, interrupts and queued lines at a session and checks every request it send
 
 | Instrument | Trigger | Response |
 |---|---|---|
-| **guts** | rolling act score over the last 5 acts falls below −2 (a landed write +2, a failed act or an unchanged re-read −1; a command that ran to its end and exited non-zero is a result and scores 0) | one warning inside the conversation; a new window starts |
+| **guts** | rolling act score over the last 5 acts falls below −2 (a landed write +2, a failed act or an unchanged re-read −1; a command that ran to its end and exited non-zero is a result and scores 0, and so does a call the harness corrected, such as a `check` handed in another form than its line asks) | one warning inside the conversation; a new window starts |
 | **doom checkpoint** | guts warned 3 windows running; one model turn is one warning at most, since its calls were all sent before the model read any | run stops; parent gets *retire / split / reshape* |
 | **escalation** | more than 2 turns in a row with a failed act: a refusal, a tool error, or a command killed at its limit or by a signal. A command that ran and exited non-zero is a result, not a failed act (an empty `grep`, a red test), and breaks the row; the guts scores it 0 | turn ends `ESCALATE`, one hop up; a body with no one above — answering the human — is told to change approach instead, and goes on |
 | **council** | strain (failed acts + re-asks + 1 per failed run) reaches 5 | the parent must answer as manager: `@INSTRUCT`, `@SPLIT` or `@ESCALATE`; at 7, relief splits or retires the creature |
@@ -754,7 +754,13 @@ stay was tried before, and failed. So the harness holds the list, by code:
 - **The body is told with the ask,** after it, and holds a `check` tool. For each line it hands
   in a command that prints what the line is about, and nothing else.
 - **A line that says `must give`** is held to an output the line states. One the line does not
-  state is refused: the list is yours, and the body does not add to it.
+  state is refused: the list is yours, and the body does not add to it. A line states an output
+  when it holds it, or when the output given holds the one the line names after `must give`: a
+  check may print the whole statement around the line's expression. Held word by word, so
+  `ARRAY_SLICE(x, 1, 1)` never passes for `SLICE(x, 1, 1)`. A line that names no output and
+  describes one (`must give a list holding exactly one ... node`) is held to the body's own
+  wording of it, when that wording holds the first thing the line names. That is weaker: write
+  the output itself where there is one.
 - **A line that says `must stay`** states no output, and the body may not give one. The harness
   runs the command on the code as the ask found it, twice, tells the body what it does today, and
   holds the work to that. It may print, print nothing, or fail: "everything else must keep
@@ -775,6 +781,17 @@ stay was tried before, and failed. So the harness holds the list, by code:
 - **A write to the code waits** until every line has its check: refused twice at most, then let
   through, so a refusal is never the only way on. The body's own notes under `.mikata/` never
   wait.
+- **A check not taken as it was made is a correction, not a failure.** It says how to make the
+  call, and neither it nor a write that waits counts as a failed act against the body
+  ([stress](#stress-in-four-instruments)). Read as failed acts, five to a turn before any write
+  may land, they stopped two runs on our bench at their thirty-seventh call with nothing done.
+- **A check that shows nothing of the work is named.** A command that only prints the words
+  (`echo "SLICE(x, 2, 3)"`) holds whatever the work is, and by code it looks like a case that
+  was right before the work: both give the line's output on the code as the ask found it. The
+  harness refuses neither, and the pass names every such line, so "verified" never covers a
+  check that showed nothing. On our bench three runs in twenty-eight handed in such commands,
+  one of them for each of its 28 lines ([the bench](bench.md#the-list-held)). A line that must
+  stay has no such sign: it prints the same before and after by what it is.
 - **When the answer lands, the harness runs every check on the work,** through the same
   classified and guarded `bash` as any command, 60 seconds each. A line with no check, or a check
   that prints something else, fails the landing. The note names each line, what it printed on the
@@ -788,8 +805,9 @@ stay was tried before, and failed. So the harness holds the list, by code:
   body break the code to match. A line that holds only that way is counted, and you are told.
 - A landing the list passed says what checked it: `verified by the ask's Done when list (11
   lines) only, not by a line the human pinned`, with how many lines held but for letter case or
-  blanks, which lines no longer fail as they did, and how many checks came in after the code had
-  changed. It is no verify line: no claim of memory cites it.
+  blanks, which lines no longer fail as they did, which already gave their output on the code as
+  the ask found it (`D1 to D4 already gave their output on the code you gave it`), and how many
+  checks came in after the code had changed. It is no verify line: no claim of memory cites it.
 
 With no list in the ask nothing changes: nothing is told and no write waits. The body may still
 hand in checks for lines of its own plan, and its landing is held to them the same way.

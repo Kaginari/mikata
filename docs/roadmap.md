@@ -41,8 +41,19 @@ yours or one a reader you name writes from the ask alone, and the harness holds 
 ([the bench](bench.md#the-list-held)): on the two prose asks that fail nearly always, 1 of 6
 plain, 2 of 6 with the lines handed over as a note, 6 of 6 held, with each of two lists. The
 half a body does not hold is what must stay, and the harness can: it has the code as the ask
-found it. Open, and next:
+found it. As it ships, a reader named and nothing added to the ask, the four prose asks passed
+12 of 12 against 6 of 12, at the same price a run; a list did not cost the asks that already
+passed (6 of 6, plain 5 of 6). Open, and next:
 
+- **A check that only prints the words.** Three runs in twenty-eight handed in commands that
+  never run the code, one of them an `echo` for each of its 28 lines, and passed the gate. The
+  pass now names every line whose check gave its output before the work; nothing refuses one,
+  and nothing names one for a line that must stay. To try, bar first: say at the hand-in that an
+  output printed before any change shows nothing, and run each check once with the code out of
+  reach, where a command that still prints the same cannot be reading it.
+- **A line that states no exact output.** A reader writes some lines as prose ("must give a
+  list holding exactly one ... node"), and the harness then holds the body's own wording. To
+  try: ask the reader for a command's exact output in every line that must give.
 - **A reader's spelling.** It never saw the code, and a body may bend the code to its letters:
   one run of two on the build as it ships. The `check` tool's own words now say that a stated
   output holds whatever its letter case, and to keep the code's spelling. They said "exact" in
@@ -50,8 +61,6 @@ found it. Open, and next:
 - **A check that tests another case than its line.** Twice the gate held a landing for it; one
   body found the command, one ran out of steps. To try: say in the gate's note that two lines
   which cannot both hold mean one command is wrong.
-- **An ask that already passes.** Nothing measured says what a list costs or gives there, and
-  each line is a call before the work begins.
 - **The same model as its own reader** wrote a list wrong by a letter, and with the reader's
   prompt gave no line at all in 8,000 tokens of thought. A reader has to read better than the
   body.

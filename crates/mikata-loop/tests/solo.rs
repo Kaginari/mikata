@@ -1664,3 +1664,59 @@ async fn checks_the_harness_corrects_do_not_stop_the_run() {
         .collect();
     assert_eq!(notes, [] as [String; 0], "no correction strains the body");
 }
+
+/// A check whose command only prints the words holds whatever the work is, and the harness
+/// cannot tell it from a case that was right before: it refuses nothing. The pass names every
+/// line whose check gave its output before any change, so "verified" never covers a check that
+/// showed nothing. On our bench one run handed in `echo` for each of its twenty-eight lines.
+#[tokio::test]
+async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
+    let w = World::new("listed-echo");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "echo 6", "gives": "6"}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled".into())
+    );
+    // The body is told what any check is told: nothing in its run changes.
+    let said = results(&w);
+    assert!(
+        !said[0].1 && said[0].0.contains("It prints that now."),
+        "{said:?}"
+    );
+    let by: Vec<Vec<String>> = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Gate { verified_by, .. } => Some(verified_by),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        by,
+        [[
+            "the ask's Done when list (2 lines; D1 already gave its output on the code you gave it)"
+        ]]
+    );
+}

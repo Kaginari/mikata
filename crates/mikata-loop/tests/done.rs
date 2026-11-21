@@ -92,7 +92,8 @@ fn unguarded(world: &PathBuf) -> Context {
 /// with its `## Done when` list; `MIKATA_HELD_CHECKS` a JSON file of the checks to hand in, each
 /// `{"line", "command"}` with `"gives"` where the line states its output; `MIKATA_HELD_START` the
 /// tree as the ask found it, where the checks are handed in; `MIKATA_HELD_TREES` the trees to
-/// judge, `:` between. Every tree is run in: hand it copies.
+/// judge, `:` between. Every tree is run in: hand it copies. A tree the list passes is printed
+/// with what the gate would say checked it.
 #[test]
 #[ignore = "a study's replay: it needs kept trees"]
 fn replay_a_list_over_kept_trees() {
@@ -144,6 +145,9 @@ fn replay_a_list_over_kept_trees() {
         );
         for f in &judged.failures {
             println!("  {f}");
+        }
+        if judged.failures.is_empty() {
+            println!("  verified by {}", list.by(&judged));
         }
     }
 }
