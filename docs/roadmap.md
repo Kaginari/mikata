@@ -54,12 +54,14 @@ next:
   struct of its own without the colon the code writes, the body changed the generator to match,
   and a task that passes plain failed. The harness sets letter case aside and the body builds to
   the letter all the same; a colon it cannot set aside. The `check` tool's own words already say
-  to keep the code's spelling, and did not prevent it. To try, bar first, cheapest first: at the
-  hand-in the harness has both spellings where the command runs today, what the line states and
-  what the code prints; say there which words differ by letter case only, and that the code's
-  stay (the test: the failed runs' own lists, held again, against 4 of 7). Then the reader's own
-  words: an output the request does not write is a guess at the code's spelling, and a case it
-  invents should say what must stay, or name the shape, not the letters.
+  to keep the code's spelling, and did not prevent it. **Tried, three ways, and none shipped**
+  ([the bench](bench.md#what-did-not-help)): a sentence at the hand-in naming the word (3 of 6,
+  against 4 of 6); a landing failed once for the list's letters with a way out offered (2 of 6);
+  the same with none offered (4 of 6 where we asked 5, the code's letters back every time). The
+  last is kept on a branch: if a whole build is screened again for another reason, it can stand
+  in that screen under that screen's bar. Not tried: the reader's own words, so that an output
+  the request does not write is not stated letter by letter; and the colon, where the command
+  does not run on the code as found and the harness has no spelling to compare.
 - **When a reader pays.** On four prose asks it took 6 of 12 to 10 of 12. On the ten single
   fixes, whose asks carry their examples, it changed nothing we can show (7 of 9 both ways), at
   a third more a run, and 47% more on the tasks that pass either way. Today the reader is called
