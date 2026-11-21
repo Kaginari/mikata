@@ -767,7 +767,8 @@ stay was tried before, and failed. So the harness holds the list, by code:
   something holds only while it prints the same: breaking what worked is refused. A line whose
   command failed holds while it fails the same way. When it no longer does, the harness cannot
   know whether the ask asked for that (asks are for making something work) or the work reached
-  too far: the landing stands, the body is told once, and the pass names the line for you.
+  too far: the landing stands, the body is told once, never to add code only to keep a failure,
+  and the pass names the line for you.
 - The same line and command handed in again asks how the line stands now. The check is kept as
   it came in.
 - A line with neither phrase takes either form.

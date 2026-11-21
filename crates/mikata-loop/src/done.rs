@@ -566,9 +566,10 @@ pub struct Judged {
 pub fn moved_note(news: &[String]) -> String {
     format!(
         "The lines the harness holds all hold. One thing more, said once: on the code as you \
-found it {} failed, and {} said to stay as it is.\n- {}\nIf the ask asks for that change, leave \
-it and say so in your answer. If it does not, put it back. Then answer again: this refuses no \
-landing.",
+found it {} failed, and {} said to stay as it is.\n- {}\nIf the ask asks for that change, or it \
+follows from what the ask asks, leave it and say so in your answer. If your work reached further \
+than the ask, undo the reach. Never add code only to make something fail as it did. Then answer \
+again: this refuses no landing.",
         if news.len() == 1 {
             "this command"
         } else {
@@ -677,8 +678,8 @@ work must print the same.",
             return format!(
                 "{line} is held. On the code as you found it, your command fails:\n{}\nThat is \
 what stays: while it fails that way the line holds. If your work makes it run, or fail another \
-way, you are told once, and it refuses nothing. If the failure is in the command itself and not \
-what the line is about, hand the line in again.",
+way, you are told once, and it refuses nothing: never add code only to keep it failing. If the \
+failure is in the command itself and not what the line is about, hand the line in again.",
                 failure(must)
             );
         }
@@ -725,7 +726,10 @@ fn stands(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> String {
         let state = if !now.ok && now.err == *must {
             "It fails that way now: the line holds.".to_owned()
         } else {
-            format!("Now it {did}: that is said once when you answer, and refuses nothing.")
+            format!(
+                "Now it {did}: that is said once when you answer, and refuses nothing. Never add \
+code only to keep it failing."
+            )
         };
         return format!(
             "{line} is held as before. On the code as you found it, your command fails:\n{}\n{state}",
