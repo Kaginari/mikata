@@ -671,6 +671,10 @@ fn build(
     let (caps, capped, unread, budget) = read_caps(config, &usage, &session_id)?;
     let mut tools = registry();
     tools.push(Box::new(crate::wear_tool::WearTool));
+    // Light-coding's body hands the harness its checks for a `Done when` list.
+    if mode == Mode::Light {
+        tools.push(Box::new(crate::done::CheckTool));
+    }
     if !lanes.is_empty() || !members.is_empty() {
         tools.push(Box::new(crate::commission::CommissionTool));
         tools.push(Box::new(crate::queue_tool::QueueTool));

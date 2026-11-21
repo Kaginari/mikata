@@ -244,6 +244,7 @@ mod tests {
             verified_by: vec!["orc-gen's pin".to_owned()],
             ran: ran.iter().map(|s| (*s).to_owned()).collect(),
             open: Vec::new(),
+            listed: 0,
         }
     }
 

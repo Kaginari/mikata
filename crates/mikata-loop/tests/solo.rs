@@ -66,6 +66,32 @@ impl World {
         human: Arc<dyn mikata_tools::Gate>,
         limits: Limits,
     ) -> Run {
+        self.run_holding(model, verify, human, limits, registry())
+    }
+
+    /// Light-coding as a session opens it: the `check` tool beside the others, no verify line.
+    fn run_light(&self, model: Arc<ScriptedModel>) -> Run {
+        let mut tools = registry();
+        tools.push(Box::new(mikata_loop::done::CheckTool));
+        self.run_holding(
+            model,
+            &[],
+            Arc::new(mikata_tools::NoHuman),
+            Limits::for_race(Race::Summoner),
+            tools,
+        )
+        .with_mode("light-coding")
+    }
+
+    /// [`Self::run_under`], holding `tools`.
+    fn run_holding(
+        &self,
+        model: Arc<ScriptedModel>,
+        verify: &[&str],
+        human: Arc<dyn mikata_tools::Gate>,
+        limits: Limits,
+        tools: Vec<Box<dyn mikata_tools::Tool>>,
+    ) -> Run {
         let (body, cx) = solo(&self.world(), "claude-sonnet-5-5");
         let cx = cx
             .with_gate(human)
@@ -76,7 +102,7 @@ impl World {
             );
         let setup = Setup {
             model,
-            tools: registry(),
+            tools,
             cx,
             journal: self.journal(),
             ledger: None,
@@ -993,4 +1019,312 @@ async fn what_changed_is_light_codings_and_the_humans_to_turn_off() {
         .with_mode("light-coding");
     assert_eq!(ask(&mut run, "x").await, Ending::Answered("done".into()));
     assert_eq!(changes_beats(&w), vec![]);
+}
+
+/// A script that sums its arguments, and an ask that says what done means in lines of its own.
+const TOTAL: &str = "n=0\nfor a in \"$@\"; do n=$((n + a)); done\necho $n\n";
+const DOUBLED: &str = "n=0\nfor a in \"$@\"; do n=$((n + a)); done\necho $((n * 2))\n";
+/// Doubles, and breaks what the ask said must stay: no argument printed `0`.
+const BROKEN: &str = "n=0\nfor a in \"$@\"; do n=$((n + a)); done\nif [ $# -eq 0 ]; then echo none; else echo $((n * 2)); fi\n";
+const LISTED: &str = "Make total.sh print twice the sum.\n\n## Done when\nD1: `sh total.sh 1 2` must give `6`\nD2: `sh total.sh` with no argument must stay as it is today\n";
+
+/// What the tool results of a run said, in order.
+fn results(w: &World) -> Vec<(String, bool)> {
+    w.journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Result {
+                content, is_error, ..
+            } => Some((content, is_error)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// What the body was told in the turn after its answer number `after`, as one text.
+fn told_after(model: &ScriptedModel, request: usize) -> String {
+    model.requests()[request]
+        .messages
+        .iter()
+        .flat_map(|m| &m.content)
+        .filter_map(|b| match b {
+            Block::Text { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// An ask that carries its own `## Done when` list is held to it by the harness. The body is
+/// told how with the ask; a write waits until every line has its check; a line that must stay is
+/// read from the code as the ask found it, by the harness; and a landing that breaks one is
+/// handed back with what it printed then and prints now. The pass says what checked it.
+#[tokio::test]
+async fn an_asks_own_done_when_list_is_held_by_the_harness() {
+    let w = World::new("listed");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        // A write before the list is in the harness's hands waits.
+        tool(
+            "t1",
+            "write",
+            json!({"path": "total.sh", "content": BROKEN}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "6"}),
+        ),
+        tool(
+            "t3",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t4",
+            "write",
+            json!({"path": "total.sh", "content": BROKEN}),
+        ),
+        answer("doubled"),
+        tool(
+            "t5",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled, and no argument still prints 0"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled, and no argument still prints 0".into())
+    );
+    // Told with the ask, after it.
+    let first = told_after(&model, 0);
+    assert!(
+        first.contains("The ask holds a `## Done when` list (D1 to D2)"),
+        "{first}"
+    );
+    let said = results(&w);
+    assert!(
+        said[0].1 && said[0].0.contains("D1 and D2 have no check"),
+        "{said:?}"
+    );
+    assert!(
+        !said[1].1 && said[1].0.contains("Now it prints:\n3"),
+        "{said:?}"
+    );
+    assert!(
+        !said[2].1
+            && said[2]
+                .0
+                .contains("On the code as you found it, your command prints:\n0\n")
+            && said[2]
+                .0
+                .contains("Every line of the ask's list has its check."),
+        "{said:?}"
+    );
+    assert!(!said[3].1, "the write goes through: {said:?}");
+    // The first landing gives D1 and breaks D2: said with both outputs, and the trade named.
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert_eq!(gates[0].len(), 1, "{gates:?}");
+    assert!(
+        gates[0][0].starts_with("done when: D2 must stay: `sh total.sh` printed `0` on the code as you found it and prints `none` on your work"),
+        "{gates:?}"
+    );
+    let handed = told_after(&model, 5);
+    assert!(
+        handed.contains("The end gate failed:\n- done when: D2 must stay")
+            && handed.contains("do not make one true by giving up another"),
+        "{handed}"
+    );
+    // The second holds both: checked by the ask's list, and said so.
+    assert!(gates[1].is_empty(), "{gates:?}");
+    let by: Vec<(bool, Vec<String>)> = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Gate {
+                unchecked,
+                verified_by,
+                ..
+            } => Some((unchecked, verified_by)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        by[1],
+        (false, vec!["the ask's Done when list (2 lines)".to_owned()])
+    );
+}
+
+/// A body that ignores the list is refused twice, then let through: the landing fails for the
+/// lines with no check. Handed in after the code changed, a line that must stay is still read
+/// from the code as the ask found it, in a copy put back to it; and the pass says the checks
+/// came late.
+#[tokio::test]
+async fn a_check_handed_in_late_is_read_from_the_code_as_the_ask_found_it() {
+    let w = World::new("listed-late");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let write = |id: &str| tool(id, "write", json!({"path": "total.sh", "content": DOUBLED}));
+    let model = Arc::new(ScriptedModel::new([
+        // Its own notes are never held back.
+        tool(
+            "t0",
+            "write",
+            json!({"path": ".mikata/tmp/plan.md", "content": "## Done when\n"}),
+        ),
+        write("t1"),
+        write("t2"),
+        write("t3"),
+        answer("doubled"),
+        tool(
+            "t4",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "`6`"}),
+        ),
+        tool(
+            "t5",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        answer("doubled, checked"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled, checked".into())
+    );
+    let said = results(&w);
+    assert!(!said[0].1, "the plan is written: {said:?}");
+    assert!(said[1].1 && said[2].1 && !said[3].1, "{said:?}");
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(
+        gates[0][0].starts_with("done when: D1 and D2 have no check"),
+        "{gates:?}"
+    );
+    // D2's command prints 0 on the doubled code too; what it is held to was read from a copy of
+    // the code as the ask found it.
+    assert!(
+        !said[5].1 && said[5].0.contains("your command prints:\n0\n"),
+        "{said:?}"
+    );
+    assert!(gates[1].is_empty(), "{gates:?}");
+    let last = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .rev()
+        .find_map(|b| match b {
+            Beat::Gate { verified_by, .. } => Some(verified_by),
+            _ => None,
+        });
+    assert_eq!(
+        last.unwrap(),
+        [
+            "the ask's Done when list (2 lines), 2 of its checks handed in after the code had changed"
+        ]
+    );
+}
+
+/// Only the list failing gives the body more than the one chance the other checks give, and
+/// then the landing fails with the line it broke.
+#[tokio::test]
+async fn a_list_that_keeps_failing_fails_the_landing_with_its_line() {
+    let w = World::new("listed-fails");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "6"}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "total.sh", "content": BROKEN}),
+        ),
+        answer("one"),
+        answer("two"),
+        answer("three"),
+        answer("four"),
+    ]));
+    let mut run = w.run_light(model);
+    let ending = ask(&mut run, LISTED).await;
+    assert!(
+        matches!(&ending, Ending::Failed(why) if why.starts_with("the end gate failed twice: done when: D2 must stay")),
+        "{ending:?}"
+    );
+    assert_eq!(gate_beats(&w).len(), 4);
+}
+
+/// An ask with no list is as it was: nothing is told, no write waits. A body may still hand in a
+/// check for a line of its own, and its landing is held to it.
+#[tokio::test]
+async fn an_ask_with_no_list_holds_only_what_the_body_hands_in() {
+    let w = World::new("unlisted");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "total.sh", "content": BROKEN}),
+        ),
+        answer("doubled"),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled again"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, "Make total.sh print twice the sum.").await,
+        Ending::Answered("doubled again".into())
+    );
+    assert!(!told_after(&model, 0).contains("Done when` list"));
+    let said = results(&w);
+    assert!(!said[0].1 && !said[1].1, "{said:?}");
+    let gates = gate_beats(&w);
+    assert!(
+        gates[0][0].starts_with("done when: D1 must stay") && gates[1].is_empty(),
+        "{gates:?}"
+    );
+    // A run that does not hold the tool reads no list from its ask.
+    let w = World::new("unlisted-tool");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "total.sh", "content": BROKEN}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run(Arc::clone(&model), &[]);
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled".into())
+    );
+    assert!(!told_after(&model, 0).contains("the harness holds your work"));
 }
