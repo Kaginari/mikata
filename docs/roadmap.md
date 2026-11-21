@@ -67,6 +67,16 @@ next:
   a third more a run, and 47% more on the tasks that pass either way. Today the reader is called
   on every ask that carries no list. To try: let it answer that the ask already fixes its
   outputs, and write only what must stay.
+- **A copy that cannot run the project.** A `must stay` line handed in late is read from a copy
+  of the world, and what changed is shown from two. Until a second codebase was run the copies
+  left `node_modules` out, and on a JavaScript project almost nothing ran in them: 8 checks of
+  70 over ten runs ([lessons](lessons.md#measured-on-mikatas-own-bench)). Fixed for that case: a
+  copy is lent the world's `node_modules`. The same gap is open wherever code needs what a copy
+  does not carry: build output that takes longer than a check's 20 seconds to make again
+  (`target`), a package installed in place from the world's own path, a tool that must write
+  beside its dependencies. To do before either feature is trusted on such a project: run both
+  there once. Until then a check that fails in a copy is counted as failing on the finished
+  work, and that may be the copy's doing.
 - **A check that only prints the words.** Five runs in twenty-six handed in commands that never
   run the code, one of them an `echo` for each of its 28 lines. Three passes of the first screen
   were held by them; none of the release's twelve, where the gate failed the one landing that

@@ -193,8 +193,8 @@ pub struct Policy {
     pub hidden: Vec<PathBuf>,
     /// Sockets allowed.
     pub network: bool,
-    /// Home toolchain rules left out because they resolve — through a link — onto, inside or
-    /// above a credential path.
+    /// Rules left out because they resolve — through a link — onto, inside or above a credential
+    /// path: a home toolchain's, or a loan's ([`Self::lend`]).
     pub refused: Vec<PathBuf>,
     /// The command is killed when the thread that started it ends (Linux): a long-lived process
     /// such as an MCP server never outlives the harness.
@@ -235,6 +235,23 @@ impl Policy {
             network,
             refused,
             die_with_parent: false,
+        }
+    }
+
+    /// Let the command read `path` besides, and never write it: a folder outside its world that
+    /// the harness lends it. Granted where it resolves, as a toolchain is: a loan that lands on,
+    /// inside or above a credential is left out, and kept in `refused`.
+    pub fn lend(&mut self, path: &Path) {
+        let at = resolve(path);
+        let credential = self
+            .hidden
+            .iter()
+            .flat_map(|c| [c.clone(), resolve(c)])
+            .any(|c| at.starts_with(&c) || c.starts_with(&at));
+        if credential {
+            self.refused.push(path.to_path_buf());
+        } else if !self.read.contains(&at) {
+            self.read.push(at);
         }
     }
 

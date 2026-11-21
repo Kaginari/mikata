@@ -359,6 +359,50 @@ fn no_new_namespaces() {
     );
 }
 
+/// A folder the harness lends a command is read and never written, and nothing beside it opens
+/// with it. A loan that leads onto a credential, or lies above one, is no loan.
+#[test]
+fn a_lent_folder_is_read_and_never_written() {
+    let g = Ground::new("lent");
+    let (lent, target) = (g.path("outside"), g.path("outside/target.txt"));
+    let read = format!("cat {}", target.display());
+    // Not lent, it is not read.
+    let (ok, out) = g.run(&g.policy(false), &read);
+    assert!(!ok && !out.contains("untouched"), "{out}");
+    let mut policy = g.policy(false);
+    policy.lend(&lent);
+    assert_eq!(g.run(&policy, &read), (true, "untouched\n".to_owned()));
+    // Read through a link in the world too, as a copy's dependencies are.
+    std::os::unix::fs::symlink(&lent, g.path("world/deps")).unwrap();
+    assert_eq!(
+        g.run(&policy, "cat deps/target.txt"),
+        (true, "untouched\n".to_owned())
+    );
+    for script in [
+        format!("echo pwned > {}", target.display()),
+        "echo pwned > deps/target.txt".to_owned(),
+        "echo new > deps/new.txt".to_owned(),
+        format!("rm {}", target.display()),
+    ] {
+        let (ok, out) = g.run(&policy, &script);
+        assert!(!ok, "{script} succeeded: {out}");
+    }
+    assert_eq!(fs::read_to_string(&target).unwrap(), "untouched\n");
+    assert!(!g.path("outside/new.txt").exists());
+    // The home beside it stays closed.
+    let (ok, out) = g.run(&policy, "cat ~/Documents/diary.txt");
+    assert!(!ok && !out.contains("dear diary"), "{out}");
+    // A loan of the keys, by their own path, through a link, or by the home above them.
+    std::os::unix::fs::symlink(g.path("home/.ssh"), g.path("outside/keys")).unwrap();
+    for loan in ["home/.ssh", "outside/keys", "home"] {
+        let mut policy = g.policy(false);
+        policy.lend(&g.path(loan));
+        assert_eq!(policy.refused, [g.path(loan)], "{loan}");
+        let (ok, out) = g.run(&policy, "cat ~/.ssh/id_ed25519");
+        assert!(!ok && !out.contains("PRIVATE KEY"), "{loan}: {out}");
+    }
+}
+
 /// Reads come from an allowlist: the home's ordinary files are as closed as its keys.
 #[test]
 fn the_home_is_closed_beyond_the_toolchains() {

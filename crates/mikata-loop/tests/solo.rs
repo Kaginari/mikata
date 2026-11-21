@@ -980,6 +980,61 @@ async fn a_landed_answer_is_followed_by_what_changed_by_the_bodys_own_checks() {
     );
 }
 
+/// A world whose code needs what is installed beside it: `node_modules`, which the world ignores
+/// and a copy does not carry. `lib.py` and `total.sh` both read from it.
+fn with_dependencies(w: &World) {
+    fs::create_dir_all(w.world().join("node_modules/dep")).unwrap();
+    fs::write(w.world().join(".gitignore"), "node_modules/\n").unwrap();
+    fs::write(w.world().join("node_modules/dep/base.py"), "BASE = 40\n").unwrap();
+    fs::write(w.world().join("node_modules/dep/zero.sh"), "ZERO=0\n").unwrap();
+}
+
+/// What changed is read on copies of the world, and a copy is lent the world's installed
+/// dependencies: a check that imports one runs there as it ran in the world, and is not counted
+/// as failing on the finished work.
+#[tokio::test]
+async fn what_changed_runs_a_check_that_needs_the_worlds_dependencies() {
+    if !python() {
+        eprintln!("no python3 here: skipped");
+        return;
+    }
+    let w = World::new("changes-deps");
+    with_dependencies(&w);
+    let lib = |add: u8| {
+        format!(
+            "import sys\nsys.path.insert(0, 'node_modules/dep')\nimport base\n\n\ndef f():\n    return base.BASE + {add}\n"
+        )
+    };
+    fs::write(w.world().join("lib.py"), lib(1)).unwrap();
+    let check = r#"PYTHONDONTWRITEBYTECODE=1 python3 -c "import lib; print('f() =', lib.f())""#;
+    let model = Arc::new(ScriptedModel::new([
+        tool("t1", "bash", json!({"command": check})),
+        tool("t2", "write", json!({"path": "lib.py", "content": lib(2)})),
+        tool("t3", "bash", json!({"command": check})),
+        answer("f adds two now"),
+    ]));
+    let mut run = w
+        .run(Arc::clone(&model), &["grep -q 'BASE + 2' lib.py"])
+        .with_mode("light-coding");
+    assert_eq!(
+        ask(&mut run, "make f add two").await,
+        Ending::Answered("f adds two now".into())
+    );
+    let said = changes_beats(&w);
+    assert_eq!(said.len(), 1, "{said:?}");
+    assert_eq!(
+        said[0].0,
+        "what changed: of Mikata's last 1 check, 1 prints differently than on the code you gave \
+         it:\n\n- f() = 41\n+ f() = 42\n\nthe 1 check whole: .mikata/tmp/what-changed.md"
+    );
+    // The world's dependencies are as they were: lent to be read.
+    let kept: Vec<String> = fs::read_dir(w.world().join("node_modules/dep"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(kept.len(), 2, "{kept:?}");
+}
+
 /// Outside light-coding, with `gate.changes` off, or when the answer changed no file, nothing is
 /// run again and nothing is said.
 #[tokio::test]
@@ -1232,6 +1287,52 @@ async fn a_check_handed_in_late_is_read_from_the_code_as_the_ask_found_it() {
         last.unwrap(),
         ["the ask's Done when list (2 lines; 2 checks handed in after the code had changed)"]
     );
+}
+
+/// The copy a late check is read from is lent the world's installed dependencies: a line that
+/// must stay is held to what its command printed on the code as the ask found it, not to the
+/// failure of a command that could not find what it imports.
+#[tokio::test]
+async fn a_late_check_that_needs_the_worlds_dependencies_is_read_with_them() {
+    let w = World::new("listed-late-deps");
+    with_dependencies(&w);
+    let sourced = |body: &str| format!(". ./node_modules/dep/zero.sh\nn=$ZERO\n{body}");
+    let total = sourced("for a in \"$@\"; do n=$((n + a)); done\necho $n\n");
+    let doubled = sourced("for a in \"$@\"; do n=$((n + a)); done\necho $((n * 2))\n");
+    fs::write(w.world().join("total.sh"), total).unwrap();
+    let write = |id: &str| tool(id, "write", json!({"path": "total.sh", "content": doubled}));
+    let model = Arc::new(ScriptedModel::new([
+        write("t1"),
+        write("t2"),
+        write("t3"),
+        answer("doubled"),
+        tool(
+            "t4",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "`6`"}),
+        ),
+        tool(
+            "t5",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        answer("doubled, checked"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled, checked".into())
+    );
+    let said = results(&w);
+    // D2's command printed 0 on the code as the ask found it, read in a copy that found the
+    // dependency; held to a failure there, the line would break on work that keeps it.
+    assert!(
+        !said[4].1 && said[4].0.contains("your command prints:\n0\n"),
+        "{said:?}"
+    );
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(gates[1].is_empty(), "{gates:?}");
 }
 
 /// Only the list failing gives the body more than the one chance the other checks give, and

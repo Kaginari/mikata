@@ -289,6 +289,29 @@ impl Copied {
         Ok(Self { at, cx, names })
     }
 
+    /// Lend this copy what `tree` keeps installed for its code ([`LENT`]): a folder of links in
+    /// the copy, and leave for the copy's commands to read where they lead, never to write
+    /// there. What the copy already holds under that name stays as it is, so this comes last:
+    /// after the copy was put back to another tree, which may hold that folder itself.
+    fn lend(&mut self, tree: &Path) {
+        for name in LENT {
+            let to = self.at.join(name);
+            // The tree's own folder only: a link standing in its place is not followed.
+            let Ok(from) = tree.join(name).canonicalize() else {
+                continue;
+            };
+            let own = fs::symlink_metadata(tree.join(name)).is_ok_and(|m| m.is_dir());
+            if !own || fs::symlink_metadata(&to).is_ok() {
+                continue;
+            }
+            if links(&from, &to, true).is_ok() {
+                self.cx.lend(&from);
+            } else {
+                let _ = fs::remove_dir_all(&to);
+            }
+        }
+    }
+
     /// What `command` does here, this copy's own path written `<world>`.
     fn says(&mut self, command: &str, tools: &[Box<dyn Tool>]) -> Said {
         let here = self.at.display().to_string();
@@ -360,6 +383,7 @@ pub(crate) fn did_before(
         attic
             .export_into(&start.tree, &before.at)
             .map_err(|e| format!("the code as you found it could not be laid out: {e}"))?;
+        before.lend(world);
         before.cx.set_deadline(Some(Instant::now() + BUDGET));
         let (first, second) = (before.says(command, tools), before.says(command, tools));
         same_twice(first, &second)
@@ -394,8 +418,10 @@ pub fn printed(
 ) -> Result<Vec<Said>, String> {
     let root = scratch_root();
     let _ = fs::remove_dir_all(&root);
-    let out = Copied::of(tree, named, &root, "tree", from)
-        .map(|mut copy| checks.iter().map(|check| copy.says(check, tools)).collect());
+    let out = Copied::of(tree, named, &root, "tree", from).map(|mut copy| {
+        copy.lend(tree);
+        checks.iter().map(|check| copy.says(check, tools)).collect()
+    });
     let _ = fs::remove_dir_all(&root);
     out
 }
@@ -418,6 +444,9 @@ fn run_in_copies(
     attic
         .export_into(&start.tree, &before.at)
         .map_err(|e| format!("the code as the ask found it could not be laid out: {e}"))?;
+    // And what neither copy could afford to carry, each is lent.
+    now.lend(world);
+    before.lend(world);
     let until = Instant::now() + BUDGET;
     now.cx.set_deadline(Some(until));
     before.cx.set_deadline(Some(until));
@@ -458,8 +487,14 @@ fn run_in_copies(
 }
 
 /// The directories a copy leaves out at the world's root: the repository and the harness's own
-/// records (a check needs neither), and build output, which rebuilds.
+/// records (a check needs neither), build output, which rebuilds, and installed dependencies,
+/// which it is lent instead ([`LENT`]).
 const UNCOPIED: [&str; 4] = [".git", ".mikata", "target", "node_modules"];
+/// The folders at a world's root that hold what its code needs to run and a copy cannot afford
+/// to carry: installed dependencies, often many times the size of the world. A copy is lent
+/// them ([`Copied::lend`]): without them a check that imports one fails in the copy, whatever
+/// the code does.
+const LENT: [&str; 1] = ["node_modules"];
 /// The caches a copy leaves out wherever they lie: each was written for another tree.
 const CACHES: [&str; 5] = [
     "__pycache__",
@@ -505,6 +540,46 @@ fn copy_capped(
         }
     }
     Ok(true)
+}
+
+/// A folder of links at `to`, one for each entry of `from`, each leading to the entry itself. An
+/// entry that is a link already is kept as the link it is: a workspace's own package, linked
+/// there by its relative path, then leads to the copy's code and never back to the world's. A
+/// scope's folder (`@scope`) is made the same way, one level down.
+///
+/// A hidden folder at the top is lent only when it is part of what was installed ([`INSTALLED`]).
+/// Any other is a cache some tool keeps there, written for another tree: it is left out, as
+/// every cache is, and the tool makes its own in the copy, where it may write.
+#[cfg(unix)]
+fn links(from: &Path, to: &Path, top: bool) -> io::Result<()> {
+    use std::os::unix::fs::symlink;
+    fs::create_dir_all(to)?;
+    for e in fs::read_dir(from)? {
+        let e = e?;
+        let (kind, name) = (e.file_type()?, e.file_name());
+        let (dest, named) = (to.join(&name), name.to_string_lossy());
+        let folder = top && kind.is_dir();
+        let cache = folder && named.starts_with('.') && !INSTALLED.iter().any(|i| *i == named);
+        if kind.is_symlink() {
+            symlink(fs::read_link(e.path())?, &dest)?;
+        } else if folder && named.starts_with('@') {
+            links(&e.path(), &dest, false)?;
+        } else if !cache {
+            symlink(e.path(), &dest)?;
+        }
+    }
+    Ok(())
+}
+
+/// The hidden folders of a dependency folder that are part of what was installed: the commands
+/// its packages bring, and the store a package manager links them from.
+#[cfg(unix)]
+const INSTALLED: [&str; 2] = [".bin", ".pnpm"];
+
+/// Where a folder cannot be lent by links, it is not lent.
+#[cfg(not(unix))]
+fn links(_: &Path, _: &Path, _: bool) -> io::Result<()> {
+    Err(io::Error::other("no links on this system"))
 }
 
 /// One line of two outputs set side by side.
@@ -922,6 +997,61 @@ pub fn file(world: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A dependency folder is lent as a folder of links: a package leads to the world's own, a
+    /// scope is opened one level down, a tool's cache is left out, and a link the world keeps
+    /// there (a workspace's own package) stays the relative link it is, so it leads into the
+    /// copy.
+    #[cfg(unix)]
+    #[test]
+    fn a_dependency_folder_is_lent_as_links_and_a_workspace_link_stays_in_the_copy() {
+        let root = std::env::temp_dir().join(format!("mikata-lent-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        for d in [
+            "world/node_modules/dep",
+            "world/node_modules/@scope/inner",
+            "world/node_modules/.bin",
+            "world/node_modules/.cache/tool",
+            "world/packages/mine",
+            "copy/packages/mine",
+        ] {
+            fs::create_dir_all(root.join(d)).unwrap();
+        }
+        let (world, copy) = (root.join("world"), root.join("copy"));
+        fs::write(world.join("node_modules/dep/index.js"), "dep").unwrap();
+        fs::write(world.join("node_modules/@scope/inner/index.js"), "inner").unwrap();
+        fs::write(world.join("node_modules/.bin/run"), "run").unwrap();
+        fs::write(world.join("node_modules/.package-lock.json"), "{}").unwrap();
+        fs::write(world.join("packages/mine/index.js"), "the world's").unwrap();
+        fs::write(copy.join("packages/mine/index.js"), "the copy's").unwrap();
+        std::os::unix::fs::symlink("../packages/mine", world.join("node_modules/mine")).unwrap();
+        let from = world.join("node_modules").canonicalize().unwrap();
+        links(&from, &copy.join("node_modules"), true).unwrap();
+        let read = |p: &str| fs::read_to_string(copy.join("node_modules").join(p)).unwrap();
+        assert_eq!(read("dep/index.js"), "dep");
+        assert_eq!(read("@scope/inner/index.js"), "inner");
+        assert_eq!(read(".bin/run"), "run");
+        assert_eq!(read(".package-lock.json"), "{}");
+        assert_eq!(read("mine/index.js"), "the copy's");
+        let kind = |p: &str| {
+            fs::symlink_metadata(copy.join("node_modules").join(p))
+                .unwrap()
+                .file_type()
+        };
+        // Links, never copies; the scope alone is a folder of the copy's own.
+        assert!(kind("dep").is_symlink() && kind(".bin").is_symlink());
+        assert!(kind("@scope").is_dir() && kind("@scope/inner").is_symlink());
+        // The cache is not lent, and the copy may make its own.
+        assert!(!copy.join("node_modules/.cache").exists());
+        fs::create_dir_all(copy.join("node_modules/.cache/tool")).unwrap();
+        assert!(
+            fs::read_dir(world.join("node_modules/.cache/tool"))
+                .unwrap()
+                .next()
+                .is_none()
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn a_check_is_an_interpreter_handed_its_code() {

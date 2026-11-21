@@ -11,6 +11,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Fixed
+
+- **In a JavaScript project, the harness's own copies of your code now find what is installed.**
+  "What changed" runs Mikata's checks again on two copies of the world, and a line of your list
+  that must stay, handed in after the code changed, is read from a copy as well. The copies left
+  `node_modules` out, so a check that imports a package failed there whatever the code did. Two
+  things followed, both wrong: every such check was counted as "fails on the finished work" and
+  nothing was shown; and a late `must stay` line was held to that failure, so a landing whose
+  lines held was failed. A copy is now lent the world's `node_modules`: a folder of links its
+  commands may read and never write. Found on the first run of our bench on a second codebase
+  (mathjs): of the 70 checks of ten runs, 8 ran in the copies and none could be compared. With
+  the fix 61 run, and both runs that failed their tests show a wrong value in the list.
+
 ## [1.1.0] - 2026-11-21
 
 Say what done means, and the harness holds it: a `## Done when` list in your ask, yours or one a

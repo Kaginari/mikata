@@ -768,7 +768,8 @@ stay was tried before, and failed. So the harness holds the list, by code:
   lines. Only a command that does not do the same thing twice is refused. What the checks leave
   behind (`__pycache__` and the other test leftovers the harness knows) is no change to the code.
   Handed in after the code itself has changed, the line is read in a copy put back to the tree as
-  the ask found it, which the attic kept when the ask began.
+  the ask found it, which the attic kept when the ask began; the copy is lent the world's
+  `node_modules`, as the copies of [what changed](#what-changed-by-its-own-checks) are.
 - **A line that ran is held hard; a line that failed is not.** A line whose command printed
   something holds only while it prints the same: breaking what worked is refused. A line whose
   command failed holds while it fails the same way. When it no longer does, the harness cannot
@@ -866,9 +867,13 @@ When a light-coding answer lands and files changed, the harness runs the body's 
   print alike. The body's last 12, each once.
 - **Two copies, never the world.** Each check runs in a copy of the finished work, twice, and in
   a second copy put back to the tree as the ask found it, which the attic kept when the ask
-  began. The copies leave out `.git`, `.mikata`, `target`, `node_modules` and caches; what the
-  world ignores otherwise (a virtual environment) is copied, so a check finds its dependencies.
-  The commands run in the body's sandbox, with no gate to ask. Nothing is run in the world and
+  began. The copies leave out `.git`, `.mikata`, `target` and caches; what the world ignores
+  otherwise (a virtual environment) is copied, so a check finds its dependencies. `node_modules`
+  at the world's root is too large to copy and is lent instead: the copy holds a folder of
+  links, one to each package the world installed, which its commands may read and never write.
+  A link the world keeps there to a package of its own (a workspace) leads to the copy's code; a
+  tool's cache there (`node_modules/.cache` and the like) is left out, as every cache is. The
+  commands run in the body's sandbox, with no gate to ask. Nothing is run in the world and
   nothing is written there but the file below.
 - **What is set side by side** is what each check printed on its standard output. One that prints
   the same on both trees is counted. One that prints differently is shown: the lines that
