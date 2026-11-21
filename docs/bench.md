@@ -39,7 +39,11 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   the two prose asks that fail nearly always: 1 of 6 plain; 2 of 6 with a stronger model's lines
   handed over as a note; **6 of 6 with the same lines held by the harness.** The lines say what
   must come out and what must stay; the harness reads what must stay from the code itself, so the
-  body is never the one who says what "today" is ([measured](#the-list-held)).
+  body is never the one who says what "today" is. As the product ships it, a reader named and
+  nothing added to the ask, the four prose asks passed **12 of 12, against 6 of 12 without a
+  reader,** at the same price a run. That screen also found a fault, fixed before the release,
+  and a limit that is not closed: a body can hand in a check that only prints the expected words.
+  The pass now names such lines beside its "verified" ([measured](#the-list-held)).
 - **The list of what changed is worth reading.** On those prose asks a wrong value is in its
   twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
   the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask
@@ -82,6 +86,7 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
 | Ten single fixes again, 20 November | each harness at its version of the day | 7 of 10 each; $0.59 a pass, against $0.84 and $1.06 |
 | Four fixes as prose, three harnesses | three runs each, nobody told how to run the tests | 6 of 12, against 5 and 3; $0.59 a pass, against $1.10 and $1.17 |
 | The two prose asks that fail nearly always | a `Done when` list in the ask, held by the harness | **6 of 6**, with two lists (plain: 1 of 6) |
+| Four fixes as prose, a reader named | the build as it ships writes the list itself: one call to a stronger model, shown the ask alone | **12 of 12** (plain: 6 of 12); $0.31 a pass, against $0.59 |
 
 On the largest work the single body never filled its context: no run was compacted. It ran out of
 steps, not memory, and with more steps it finished on its own.
@@ -171,8 +176,9 @@ changed what the body is told.
 
 ### The list held
 
-Three steps, each with its bar written first, on the two prose asks that fail nearly always (one
-of them had passed once in the twenty-one kept runs of three harnesses).
+Four steps, each with its bar written first. The first three are on the two prose asks that fail
+nearly always (one of them had passed once in the twenty-one kept runs of three harnesses); the
+fourth is the product as it ships, on all four.
 
 **The body's own list, corrected.** Every failed run's first "done" list held wrong lines. A
 stand-in for you corrected each wrong line before the work, by what the upstream fix does: 1 of
@@ -219,8 +225,63 @@ All met. What the runs show beyond the count:
   its 200 steps. Its tree passes the hidden tests; you would have had no answer, and the line
   and its two outputs on your screen.
 
-**What is not closed.** An input no line names. A check whose command does not test what its
-line says: the harness cannot tell. And a reader's spelling: it never saw the code, so it wrote a
+**The build as it ships, a reader named, all four prose asks.** Every run until here got a list we
+had read first, and the counted runs were of a commit older than the release. So the release was
+screened as you would get it: `models.reader` set, nothing added to the ask, a fresh list from
+the reader in every run, three runs an ask.
+
+| | 01 interval | 02 partition | 03 alter | 04 slice | All | A pass |
+|---|---|---|---|---|---|---|
+| plain light-coding | 0 of 3 | 2 of 3 | 3 of 3 | 1 of 3 | 6 of 12 | $0.59 |
+| **a reader named** | **3 of 3** | **3 of 3** | **3 of 3** | **3 of 3** | **12 of 12** | $0.31 |
+
+The bar asked 4 of 6 on the two asks that fail, 4 of 6 on the two that pass, since a list must
+not cost what already works, and no fault of the harness. The first two are met. The third found
+a fault, and reading the runs after the count found a limit.
+
+- **The fault: right checks were refused, and the refusals stopped the run.** A reader left to
+  itself names an output as the expression alone (`SLICE(x, 2, 3)`); a body's check prints the
+  whole statement (`SELECT SLICE(x, 2, 3)`). The rule asked that the line hold the output given,
+  and refused it, ten times a run. Each refusal counted as a failed act, five to a turn, before
+  any write may land, and [the guts](02-loop.md#stress-in-four-instruments) stopped both runs of
+  the slice ask at their 37th call with nothing done. The lists of the earlier steps stated whole
+  statements, so nothing was refused there. Fixed before anything was tagged: an output that
+  holds the one the line names is taken, word by word, and a check the harness corrects is an
+  answer, not a failed act. The two stopped runs' own calls, replayed through the fix with no
+  model call: 5 and 6 refused, each rightly, where 10 and 10 were.
+- **So the table is of two builds.** By a rule written before the runs it decided, a run of the
+  first build counts when it passed (the fault refuses and stops, it cannot help), and a run it
+  stopped is run again on the fix, once. Six counted runs are of the first build (asks 01, 02
+  and 03, two each) and six of the fix (the slice ask's three, and the third run of each other
+  ask). On the fix every run answered. A clean twelve on the fix was not bought.
+- **A list did not cost what already passed,** nor more money: 6 of 6 on the two asks that pass
+  without one (plain: 5 of 6), and $0.31 a run with the reader's call in it, against $0.30. The
+  reader wrote 12 to 28 lines a run for 1 to 3 cents. The checks cost calls before the work (100
+  a run at the median, against 94) and save them after.
+- **The limit: a check that only prints the words.** In three of the fourteen runs the body
+  handed in commands that never run the code: `python3 -c "print('SLICE(x, 2, 3)')"`, and in one
+  run an `echo` for each of its 28 lines. The harness took them, answered "It prints that now",
+  and the gate said the list had verified the landing. All three pass the hidden tests, so the
+  count stands; in those runs the harness held nothing of what must come out. One body did it
+  after three honest checks of a line were refused, one after its first real check printed the
+  old output, one as its first move when a write was made to wait. None of the fourteen runs of
+  the step before did it.
+- **What the pass says now.** The harness cannot tell a command that prints the words from a
+  case that was right before the work: both give the output on the code as the ask found it. So
+  it refuses nothing and names the lines: `verified by the reader's Done when list (28 lines; D1
+  to D20 already gave their output on the code you gave it)`. By that rule the twelve passes
+  name a line in seven runs, 47 of their 89 lines that must give: the 29 print-only checks, and
+  18 that ran the code and printed the same before the work. Most of those print a statement
+  back as it went in, which the parser did while it still took the statement for an opaque
+  command: a true output, and no sign of the change the line was written for. Nothing a body is
+  told has changed, so the twelve runs still describe the build that ships.
+
+**What is not closed.** A check that only prints the words is named, not refused, and only for a
+line that must give: the eight lines that must stay in the run of 28 `echo`s are named by
+nothing. A line that states no exact output (`must give a list holding exactly one ... node`,
+nine of the reader's lines in four runs) is held to the body's own wording of it. An input no
+line names. A check whose command does not test what its line says: the harness cannot tell.
+And a reader's spelling: it never saw the code, so it wrote a
 unit in small letters where the code prints capitals. The harness holds a stated output with
 letter case and blanks set aside, so it no longer forces the wrong letters, but on the build as
 it ships one run of two made the code print them anyway, and failed. The tool's words to the body
@@ -233,8 +294,8 @@ run the reader wrote that any other function called with a blank must stay as it
 calls `total`, and so began to work. Told once, with nothing refused, the body still added a
 check to `mean` to keep it failing. The list decides: read the one a reader writes.
 
-Six runs an arm, two asks, one codebase. $10.77 for the three steps. Nothing here says what a
-list does to an ask that already passes.
+Six runs an arm on two asks for the first three steps, $10.77; fourteen runs on four asks for the
+fourth, $3.90. One codebase, asks that are not fresh, one model as the body and one as the reader.
 
 ### The modes against each other
 

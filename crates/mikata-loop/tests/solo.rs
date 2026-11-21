@@ -1585,3 +1585,139 @@ async fn a_line_that_failed_and_no_longer_does_is_said_once_and_refuses_nothing(
         ["the ask's Done when list (1 line; D2 no longer fails as on the code you gave it)"]
     );
 }
+
+/// Checks handed in another form than their lines ask are corrected, not failed: fifteen of
+/// them over three turns, before any write may land, stop no run. On our bench two runs ended at
+/// their thirty-seventh call with nothing done, the guts having read each correction as a failed
+/// act; one had just found the form the harness takes.
+#[tokio::test]
+async fn checks_the_harness_corrects_do_not_stop_the_run() {
+    let w = World::new("listed-corrected");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    // Five checks a turn, each giving an output its line does not state.
+    let wrong = |turn: u32| {
+        let calls: Vec<(String, String, serde_json::Value)> = (0..5)
+            .map(|i| {
+                (
+                    format!("w{turn}-{i}"),
+                    "check".to_owned(),
+                    json!({"line": "D1", "command": "sh total.sh 1 2", "gives": format!("label {turn} {i}")}),
+                )
+            })
+            .collect();
+        let calls: Vec<(&str, &str, serde_json::Value)> = calls
+            .iter()
+            .map(|(id, name, input)| (id.as_str(), name.as_str(), input.clone()))
+            .collect();
+        ScriptedModel::tools(&calls)
+    };
+    let model = Arc::new(ScriptedModel::new([
+        wrong(0),
+        wrong(1),
+        wrong(2),
+        // The statement around the line's own output is a form the harness takes.
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "echo total: $(sh total.sh 1 2)", "gives": "total: 6"}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled".into())
+    );
+    let said = results(&w);
+    assert_eq!(
+        said.iter()
+            .filter(|(text, failed)| *failed && text.contains("It does not state `label"))
+            .count(),
+        15,
+        "{said:?}"
+    );
+    assert!(
+        said.iter()
+            .any(|(text, failed)| !failed && text.contains("D1 is held")),
+        "{said:?}"
+    );
+    let notes: Vec<String> = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Note { text } if text.starts_with("[guts]") => Some(text),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(notes, [] as [String; 0], "no correction strains the body");
+}
+
+/// A check whose command only prints the words holds whatever the work is, and the harness
+/// cannot tell it from a case that was right before: it refuses nothing. The pass names every
+/// line whose check gave its output before any change, so the human sees which of the lines it
+/// calls verified showed nothing. On our bench one run handed in `echo` for each of its
+/// twenty-eight lines.
+#[tokio::test]
+async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
+    let w = World::new("listed-echo");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "echo 6", "gives": "6"}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled".into())
+    );
+    // The body is told what any check is told: nothing in its run changes.
+    let said = results(&w);
+    assert!(
+        !said[0].1 && said[0].0.contains("It prints that now."),
+        "{said:?}"
+    );
+    let by: Vec<Vec<String>> = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Gate { verified_by, .. } => Some(verified_by),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        by,
+        [[
+            "the ask's Done when list (2 lines; D1 already gave its output on the code you gave it)"
+        ]]
+    );
+}

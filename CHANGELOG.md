@@ -11,26 +11,49 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-21
+
+Say what done means, and the harness holds it: a `## Done when` list in your ask, yours or one a
+reader you name writes from the ask alone. And when an answer lands, you are shown what changed,
+by Mikata's own checks.
+
+**What to expect, as measured on our own bench** (fixes in a large Python library, one small open
+model). Asked as one paragraph of prose with no examples, four fixes passed 6 times in 12; with a
+reader named, 12 in 12, at the same price a run. Six of those twelve runs are of the build before
+a fix the screen itself called for, which this release holds
+([the bench](docs/bench.md#the-list-held)). Read the list a reader writes: a wrong line is
+obeyed, and a body can still answer a line with a command that only prints the expected words,
+which the pass names and does not refuse. Against the two other harnesses run beside it, each at
+its version of the day, Mikata is level on passes at about half their price a pass: the 1.0.0
+notes said ahead, and by the bar we wrote first no difference is shown.
+
 ### Added
 
 - **A `Done when` list in your ask is held by the harness.** Say what done means in lines of your
   own under `## Done when` (`D1: ... must give ...`, `D2: ... must stay as it is today`). Mikata
   holds a new `check` tool and hands the harness one command a line. A line that must give is
-  held to an output the line states, letter case and blanks set aside. A line that must stay
-  states none: the harness runs its command on the code as your ask found it, tells Mikata what
-  it does today, and holds the work to that. A write to the code waits, twice at most, until
-  every line has its check. When the answer lands every check is run on the work: a line with no
-  check, or one that prints something else, fails the landing, and the note names the line and
-  both outputs. A line whose command failed before and no longer does is said once and refuses
-  nothing. A landing the list passed says so (`verified by the ask's Done when list (11 lines)`).
-  With no list in the ask, nothing changes.
+  held to an output the line states, letter case and blanks set aside; the check may print the
+  whole statement around it. A line that must stay states none: the harness runs its command on
+  the code as your ask found it, tells Mikata what it does today, and holds the work to that. A
+  write to the code waits, twice at most, until every line has its check. A check or a write the
+  harness sends back with how to make it is a correction, and never counts against the body as
+  a failed act. When the answer lands every check is run on the work: a line with no check, or
+  one that prints something else, fails the landing, and the note names the line and both
+  outputs. A line whose command failed before and no longer does is said once and refuses
+  nothing. A landing the list passed says so (`verified by the ask's Done when list (11 lines)`)
+  and names every line whose check already gave its output before the work (`D1 to D4 already
+  gave their output on the code you gave it`): a command that only prints the words holds
+  whatever the work is, and you are told which lines showed nothing. With no list in the ask,
+  nothing changes.
 - **A reader can write that list: `models.reader`.** Name a model in your own configuration and
   every light-coding ask that carries no list is read apart first: one call, shown the ask
   alone, never the code. Its lines go after your ask and are held like your own; you see one
   line with what it cost. Yours alone to set: a repository's tracked file cannot name a second
   model you pay for on every ask. Name one that reads better than the body. On our bench the two
   prose asks that fail nearly always passed 1 time in 6 plain, 2 in 6 with a strong reader's
-  lines handed over as a note, and 6 in 6 with the same lines held
+  lines handed over as a note, and 6 in 6 with the same lines held. As this release ships it, a
+  reader named and nothing added to the ask, four prose asks passed 12 times in 12, against 6 in
+  12 without a reader, for one to three cents a reading
   ([the bench](docs/bench.md#the-list-held)).
 - **What changed, by Mikata's own checks.** When a light-coding answer lands, the harness runs the
   body's last checks again (the `python3 -c` and its kin that it asked its code questions with),
@@ -689,7 +712,8 @@ collective-coding are kept as the lab, usable and frozen.
 - The canvases: each page's sketches drawn by tldraw's Mermaid converter as `.tldr` documents and
   light and dark SVGs in the pages, every canvas checked for script and outside links [#311].
 
-[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.0.0...main
+[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.1.0...main
+[1.1.0]: https://github.com/Kaginari/mikata/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Kaginari/mikata/releases/tag/v1.0.0
 [#31]: https://github.com/Kaginari/mikata/pull/31
 [#32]: https://github.com/Kaginari/mikata/pull/32
