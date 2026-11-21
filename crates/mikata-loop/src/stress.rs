@@ -376,8 +376,9 @@ impl Stress {
             self.rereads = 0;
             self.turns = 0;
         }
-        // A denial is the human's choice: it never strains the body.
-        self.failed += u32::from(o.is_error && !o.meta.denied);
+        // A denial is the human's choice, and a correction of a call is the harness's answer:
+        // neither strains the body.
+        self.failed += u32::from(o.is_error && !o.meta.denied && !o.meta.corrected);
         // The streak counts turns that failed, not results: three orders refused in one turn
         // ended an Elf before it had read the first refusal. And it counts acts that failed, not
         // commands that answered no: a probe that exits 1 is a result ([`failed_act`]).
@@ -525,7 +526,10 @@ impl Stress {
 }
 
 /// Whether an act failed, for the failed-turns streak: a refusal, a tool error, or a command
-/// killed at its limit or by a signal. A command that ran to its end and exited non-zero is a
+/// killed at its limit or by a signal. Not a call the harness corrected
+/// ([`mikata_tools::Meta::corrected`]): on our bench two runs were stopped at 37 calls with
+/// nothing done, each after ten checks handed in another form than their lines asked, five to a
+/// turn, before any write could land and clear the count. A command that ran to its end and exited non-zero is a
 /// result — an empty `grep`, a red test, a probe that says no — and a body that reads three of
 /// them in a row is working, not stuck: that rule ended a fifth of members' orders, most often on
 /// a plain `exit 1`. The guts' score reads it the same way: such a command scores 0, not -1. It
@@ -533,7 +537,7 @@ impl Stress {
 #[must_use]
 pub fn failed_act(o: &Outcome) -> bool {
     let answered_no = o.meta.exit.is_some_and(|code| code != 0) && !o.meta.timed_out;
-    o.is_error && !answered_no
+    o.is_error && !answered_no && !o.meta.corrected
 }
 
 #[cfg(test)]
@@ -696,6 +700,42 @@ mod tests {
             ));
         }
         assert!(warned(&signals), "refusals still warn: {signals:?}");
+    }
+
+    /// A call the harness corrected is an answer, with the way on: a check handed in another
+    /// form than its line asks, five to a turn for three turns, warns no one and escalates
+    /// nothing. As failed acts the same fifteen stopped a run that had just found the form.
+    #[test]
+    fn a_call_the_harness_corrected_never_warns_the_guts() {
+        let corrected = |i: u32| {
+            let mut o = Outcome::error(format!("refused: D{i} reads ... It does not state ..."));
+            o.meta.corrected = true;
+            o
+        };
+        let mut s = Stress::default();
+        let mut signals = Vec::new();
+        for turn in 0..3 {
+            s.turn();
+            for i in 0..5 {
+                signals.extend(s.act(&format!("check {turn} {i}"), None, &corrected(i)));
+                assert_eq!(s.last().score, 0, "a correction is no failure");
+            }
+        }
+        assert!(signals.is_empty(), "{signals:?}");
+        // The same calls as plain refusals are what stopped it: warned each turn, then doom.
+        let mut s = Stress::default();
+        let mut signals = Vec::new();
+        for turn in 0..3 {
+            s.turn();
+            for i in 0..5 {
+                let refused = Outcome::error(format!("refused: D{i}"));
+                signals.extend(s.act(&format!("check {turn} {i}"), None, &refused));
+            }
+        }
+        assert!(
+            signals.iter().any(|x| matches!(x, Signal::Doom)),
+            "{signals:?}"
+        );
     }
 
     /// Exploring re-reads as it goes: re-reads with other work between them never stall; only

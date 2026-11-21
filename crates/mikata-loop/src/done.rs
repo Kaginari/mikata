@@ -371,18 +371,18 @@ from the code as you found it: hand it in before the first change.",
     ) -> Outcome {
         let a: Args = match serde_json::from_str(input) {
             Ok(a) => a,
-            Err(e) => return Outcome::error(format!("{CHECK}: {e}")),
+            Err(e) => return corrected(format!("{CHECK}: {e}")),
         };
         let line = a.line.trim().trim_end_matches(':').to_owned();
         let command = a.command.trim().to_owned();
         if command.is_empty() {
-            return Outcome::error(format!("refused: {line} needs a command that prints it"));
+            return corrected(format!("refused: {line} needs a command that prints it"));
         }
         // A model on some hosts sends an optional string as an empty one: that is none.
         let gives = a.gives.as_deref().map(stated).filter(|g| !g.is_empty());
         let text = match self.text_of(&line) {
             Ok(text) => text,
-            Err(refusal) => return Outcome::error(refusal),
+            Err(refusal) => return corrected(refusal),
         };
         // The same line and command again asks how the line stands now: the check is kept as it
         // is, with what it was held to when it came in.
@@ -408,7 +408,7 @@ from the code as you found it: hand it in before the first change.",
         };
         let must = match held_to(&line, text.as_deref(), gives, || today(&command, cx)) {
             Ok(must) => must,
-            Err(refusal) => return Outcome::error(refusal),
+            Err(refusal) => return corrected(refusal),
         };
         let check = Check {
             line: line.clone(),
@@ -626,9 +626,11 @@ found it and tells you."
         (Kind::Gives, None) => Err(format!(
             "refused: {line} says what it {GIVES}: hand it in with that output as `gives`."
         )),
-        // An output the line does not state is the body's own: the list is the human's.
+        // An output the line does not state is the body's own: the list is the human's. The line
+        // states it when the line holds the output given, or the output given holds the one the
+        // line names after `must give`: a check that prints the whole statement around it.
         (_, Some(gives)) => match text {
-            Some(text) if !loose(text).contains(&loose(&gives)) => Err(format!(
+            Some(text) if !states(text, &gives) => Err(format!(
                 "refused: {line} reads `{}`. It does not state `{}`: give the output the line \
 states, as the line writes it.",
                 clipped(text),
@@ -645,6 +647,63 @@ and {why}. Hand in a command that does the same thing each time it runs."
             )),
         },
     }
+}
+
+/// Whether the line `text` states the output `gives`, letter case and blanks set aside: the line
+/// holds it, or it holds the output the line names in backticks after `must give`. Held word by
+/// word ([`words`]), so `ARRAY_SLICE(x, 1, 1)` never passes for `SLICE(x, 1, 1)`, nor `30` for
+/// `3`.
+fn states(text: &str, gives: &str) -> bool {
+    let (line, output) = (words(text), words(gives));
+    if within(&output, &line) {
+        return true;
+    }
+    // Searched and cut in one copy, made small first: making letters small can change a text's
+    // length, and the place found in one copy is no place in another.
+    let small = text.to_lowercase();
+    small
+        .find(GIVES)
+        .and_then(|at| small.get(at + GIVES.len()..))
+        .and_then(|after| after.split('`').nth(1))
+        .map(words)
+        .is_some_and(|named| within(&named, &output))
+}
+
+/// A text as its words, made small: each run of letters, digits and `_` one word, every other
+/// mark a word of its own, blanks none.
+fn words(text: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut open = false;
+    for c in text.chars().flat_map(char::to_lowercase) {
+        if c.is_alphanumeric() || c == '_' {
+            match out.last_mut().filter(|_| open) {
+                Some(word) => word.push(c),
+                None => out.push(c.to_string()),
+            }
+            open = true;
+        } else {
+            open = false;
+            if !c.is_whitespace() {
+                out.push(c.to_string());
+            }
+        }
+    }
+    out
+}
+
+/// Whether the words `part` stand together, in order, somewhere in `whole`. Never when `part`
+/// is empty: nothing states nothing.
+fn within(part: &[String], whole: &[String]) -> bool {
+    !part.is_empty() && whole.windows(part.len()).any(|at| at == part)
+}
+
+/// A `check` call the harness does not take as it was made, with how to make it: a correction,
+/// which the guts reads as an answer and never as a failed act.
+#[must_use]
+pub fn corrected(said: String) -> Outcome {
+    let mut o = Outcome::error(said);
+    o.meta.corrected = true;
+    o
 }
 
 /// How a command failed, as it is said: the last line of what it said, or that it said nothing.
@@ -816,7 +875,7 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
 mod tests {
     use super::{
         CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, loose, moved_note,
-        read_lines, stated,
+        read_lines, stated, states, words,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -1130,6 +1189,85 @@ mod tests {
         assert!(List::read(&[]).is_empty());
         // What the reader is asked names both phrases the harness reads a line by.
         assert!(READER.contains("must give") && READER.contains("must stay"));
+    }
+
+    /// A line states an output when it holds the output given, or when the output given holds
+    /// the one the line names after `must give`: a check that prints the whole statement around
+    /// the line's expression is a right check. On our bench that form was refused ten times a
+    /// run, and the refusals stopped two runs with nothing done.
+    #[test]
+    fn an_output_that_holds_the_lines_own_is_one_the_line_states() {
+        let line =
+            "`ARRAY_SLICE(x, 2, 4)` read as DuckDB, written for Spark, must give `SLICE(x, 2, 3)`";
+        assert!(states(line, "SLICE(x, 2, 3)"));
+        assert!(
+            states(line, "SELECT SLICE(x, 2, 3)"),
+            "the statement around it"
+        );
+        assert!(
+            states(line, "select slice(x,2,3)"),
+            "letter case and blanks aside"
+        );
+        assert!(!states(line, "SELECT SLICE(x, 2, 4)"), "another output");
+        assert!(
+            !states(line, "SELECT ARRAY_SLICE(x, 2, 4)"),
+            "the input, dressed up"
+        );
+        assert!(
+            !states(line, "D1: ARRAY_SLICE(x,2,4) from DuckDB to Spark"),
+            "a label"
+        );
+        // Word by word: a longer name that ends like the output is not the output.
+        let near = "`ARRAY_SLICE(x, 1, 1)` read as DuckDB must give `SLICE(x, 1, 1)`";
+        assert!(!states(near, "D2: ARRAY_SLICE(x,1,1) from DuckDB to Spark"));
+        assert!(states(near, "SELECT SLICE(x,1,1)"));
+        assert!(!states("`f(1)` must give `30`", "3") && states("`f(1)` must give `30`", "30"));
+        assert!(!states(line, ""), "nothing states nothing");
+        assert_eq!(words("a_b(X,  1)"), ["a_b", "(", "x", ",", "1", ")"]);
+        // A line that names no output in backticks after the phrase: only what it holds.
+        let plain = "the total of 1 and 2 Must Give 3";
+        assert!(states(plain, "3") && !states(plain, "SELECT 3"));
+        // Letters that change length when made small move no place in the line.
+        assert!(states("İ `a` must give `İb`", "x İb y"));
+
+        let (_dir, mut cx) = world();
+        let mut list = List::of(
+            "Sum.\n\n## Done when\nD1: `1 2` in calc must give `3`\nD2: `4` must stay as it is today\n",
+        );
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "echo total: $(sh calc.sh 1 2)", "gives": "total: 3"}"#,
+            true,
+        );
+        assert!(
+            !o.is_error && o.content.contains("It prints that now."),
+            "{}",
+            o.content
+        );
+    }
+
+    /// A check the harness does not take as it was made is a correction of the call: the body is
+    /// told how to make it, and the guts reads no failed act in it.
+    #[test]
+    fn a_check_not_taken_is_a_correction_and_no_failed_act() {
+        let (_dir, mut cx) = world();
+        let mut list = List::of(ASK);
+        for input in [
+            r#"{"line": "D2", "command": "sh calc.sh 4", "gives": "four"}"#,
+            r#"{"line": "D1", "command": "sh calc.sh 1 2"}"#,
+            r#"{"line": "D1", "command": "sh calc.sh 1 2", "gives": "4"}"#,
+            r#"{"line": "D9", "command": "true"}"#,
+            r#"{"line": "D1", "command": "  "}"#,
+            r#"{"line": "D1"}"#,
+        ] {
+            let o = call_in(&mut list, &mut cx, input, true);
+            assert!(o.is_error && o.meta.corrected, "{input}: {}", o.content);
+            assert!(!crate::stress::failed_act(&o), "{input}");
+        }
+        assert!(crate::stress::failed_act(&mikata_tools::Outcome::error(
+            "refused: outside your soil"
+        )));
     }
 
     /// What must stay is whatever the command does on the code as found: it may print nothing,

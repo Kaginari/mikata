@@ -117,6 +117,10 @@ pub struct Meta {
     /// The act was outward and no envelope of the Oni admitted it, and the human gate did not
     /// approve it: [`Meta::denied`] is set too.
     pub unenveloped: bool,
+    /// The harness did not take the call as it was made, and said how to make it: a correction of
+    /// the call with the way on, never a failure of the work. A check handed in another form than
+    /// its line asks, a write that waits for the checks. The guts reads it as an answer.
+    pub corrected: bool,
     /// The MCP tool the call reached, by the name a body calls it; the journal learns from
     /// [`Meta::mcp_touched`].
     pub mcp: Option<Box<str>>,

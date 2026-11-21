@@ -3623,7 +3623,7 @@ impl Run {
     /// a write that runs is watched for a return to an earlier tree.
     async fn call_own(&mut self, name: &str, input: &str) -> mikata_tools::Outcome {
         if let Some(why) = self.write_waits(name, input) {
-            return mikata_tools::Outcome::error(why);
+            return crate::done::corrected(why);
         }
         if WRITE_TOOLS.contains(&name) {
             let world = self.cx.world().to_path_buf();
