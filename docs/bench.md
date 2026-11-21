@@ -233,7 +233,7 @@ run the reader wrote that any other function called with a blank must stay as it
 calls `total`, and so began to work. Told once, with nothing refused, the body still added a
 check to `mean` to keep it failing. The list decides: read the one a reader writes.
 
-Six runs an arm, two asks, one codebase. $10.69 for the three steps. Nothing here says what a
+Six runs an arm, two asks, one codebase. $10.77 for the three steps. Nothing here says what a
 list does to an ask that already passes.
 
 ### The modes against each other
