@@ -46,6 +46,13 @@ every run counted: 10 of 12. Three of the four asks pass every time; the fourth 
 pass of that screen was held by a check that only prints the words
 ([the bench](docs/bench.md#the-list-held)).
 
+**Measured that evening: the same lists, handed to every harness.** The twelve lists the reader
+wrote for that screen, given as a plain note after the ask and held by nothing: Mikata 11 of 12,
+and 8 of 12 in each of the two other harnesses run beside it, where those passed 5 and 3
+without. So the list is the gain, and holding it is not shown to add a pass: held, the same
+lists passed 10, for about four dollars in ten more a run. What the hold gives is a pass that
+names what verified it ([the bench](docs/bench.md#the-list-held)).
+
 ### Added
 
 - **A `Done when` list in your ask is held by the harness.** Say what done means in lines of your

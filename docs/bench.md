@@ -35,17 +35,23 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   model checks against its own reading, and a wrong reading passes its own checks. That is the
   model's, in any harness: on those prose asks, three runs each, Mikata passed 6 of 12, OpenCode
   5, Maki 3, and on one ask all eight failures of the three break the same line.
-- **A list of what done means, held by the harness, closes that gap where we measured it.** On
-  the two prose asks that fail nearly always: 1 of 6 plain; 2 of 6 with a stronger model's lines
-  handed over as a note; **6 of 6 with the same lines held by the harness.** The lines say what
-  must come out and what must stay; the harness reads what must stay from the code itself, so the
-  body is never the one who says what "today" is. As the product ships it, a reader named and
-  nothing added to the ask, the four prose asks passed **10 of 12 on Mikata 1.1.0 as released,
-  against 6 of 12 without a reader** (12 of 12 on the screen before it, which mixed two builds).
-  Three of the four asks pass every time. The fourth turns on the letters the reader happens to
-  write: with a list that spells the unit in capitals, as the code prints it, 6 of 6; in small
-  letters, 4 of 7. Not closed either: a body can hand in a check that only prints the expected
-  words, which the pass now names beside its "verified" ([measured](#the-list-held)).
+- **A list of what done means closes that gap where we measured it.** The lines say what must
+  come out and what must stay. As the product ships it, a reader named and nothing added to the
+  ask, the four prose asks passed **10 of 12 on Mikata 1.1.0 as released, against 6 of 12
+  without a reader** (12 of 12 on the screen before it, which mixed two builds). Three of the
+  four asks pass every time. The fourth turns on the letters the reader happens to write: with a
+  list that spells the unit in capitals, as the code prints it, 6 of 6; in small letters, 4 of
+  7. Not closed either: a body can hand in a check that only prints the expected words, which
+  the pass now names beside its "verified" ([measured](#the-list-held)).
+- **The list is the gain, and any harness gets it. Holding the list is not shown to add.** The
+  same twelve lists, handed to each harness as a note after the ask and held by nothing: Mikata
+  **11 of 12**, OpenCode **8**, Maki **8**, where they passed 6, 5 and 3 without. So the 10 of 12
+  above against the others' 5 and 3 was a harness with a second model's help beside two with
+  none. Held by Mikata the same lists pass 10, for 42% more dollars a run than as a note. An
+  earlier, smaller screen had said the hold was what mattered (a note 2 of 6, the same lines
+  held 6 of 6); that note stood before the ask, in other words, on an earlier build. What the
+  hold still gives is a pass that names what verified it, and what must stay read from the code
+  itself. Neither changed a pass here ([measured](#the-list-held)).
 - **A reader is for an ask without examples.** On the ten single fixes, whose asks carry their
   examples, 1.1.0 with a reader passed 7 of the 9 tasks run, where plain passes 7 of the same
   nine: one task won, one lost to a wrong line of the reader, at a third more a run. Against
@@ -205,10 +211,11 @@ changed what the body is told.
 
 ### The list held
 
-Six steps, each with its bar written first. The first three are on the two prose asks that fail
-nearly always (one of them had passed once in the twenty-one kept runs of three harnesses); the
-fourth is the product as it ships, on all four; the fifth is the same twelve again on the release
-itself; the sixth is the release with a reader on the asks that carry their examples.
+Seven steps, each with its bar written first. The first three are on the two prose asks that
+fail nearly always (one of them had passed once in the twenty-one kept runs of three harnesses);
+the fourth is the product as it ships, on all four; the fifth is the same twelve again on the
+release itself; the sixth is the release with a reader on the asks that carry their examples; the
+seventh hands the release's own lists to every harness as a note.
 
 **The body's own list, corrected.** Every failed run's first "done" list held wrong lines. A
 stand-in for you corrected each wrong line before the work, by what the upstream fix does: 1 of
@@ -373,6 +380,40 @@ the runs cost more than counted on, and it is the task no harness has passed on 
 Three of the four runs a reader has lost on the release are one thing: **the reader states how
 the code spells its output, and it has not seen the code.** Twice a letter case, once a colon.
 
+**The same lists for every harness.** The release with a reader passes 10 of 12 where OpenCode
+passed 5 and Maki 3. That set a harness helped by a second model beside two that had none. So
+each harness was handed the very list the reader wrote for Mikata's run of the same ask and
+round, as a note after the ask: a heading, one sentence ("A second reader wrote these cases from
+the request alone, without seeing the code. The work is done when each of them holds."), the
+lines. Nothing holds it: in Mikata's twelve runs no `check` was called and every gate reads
+"checked by nothing". A difference was set at four runs of twelve.
+
+| | 01 | 02 | 03 | 04 | All | $ a run | $ a pass |
+|---|---|---|---|---|---|---|---|
+| Mikata 1.1.0, the lists held (the fifth step) | 1 of 3 | 3 of 3 | 3 of 3 | 3 of 3 | 10 of 12 | 0.37 | 0.45 |
+| **Mikata 1.1.0, the lists as a note** | 2 of 3 | 3 of 3 | 3 of 3 | 3 of 3 | **11 of 12** | 0.26 | 0.29 |
+| **OpenCode 1.19.6, the lists as a note** | 1 of 3 | 2 of 3 | 3 of 3 | 2 of 3 | **8 of 12** | 0.34 | 0.51 |
+| **Maki 0.7.3, the lists as a note** | 0 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | **8 of 12** | 0.38 | 0.56 |
+| Plain: Mikata, OpenCode, Maki | | | | | 6, 5 and 3 of 12 | 0.30, 0.46, 0.29 | 0.59, 1.10, 1.17 |
+
+- **The list is the gain, in every harness.** Mikata 6 to 11 and Maki 3 to 8 are differences.
+  OpenCode's 5 to 8 is under the bar.
+- **Holding is not shown to add:** 10 held, 11 as a note, at 42% more dollars a run and ten more
+  calls.
+- **Mikata holding the lists is not shown ahead of the others handed them:** 10 against 8 and 8.
+  Nor is Mikata's note, at 11.
+- **We had measured the opposite, and built on it.** In the second step above a note passed 2 of
+  6 where the same lines held passed 6 of 6; here the note passes 5 of 6 on those two asks. The
+  two notes differ in three ways and nothing here says which matters: the first stood before the
+  ask and asked the body to put the lines at the top of its own list, on the build of 20
+  November; this one stands after the ask, says who wrote the cases, on the release.
+- **The reader's small letters cost a run in every harness.** Of the 8 runs handed a list that
+  writes the unit in small letters, 5 were lost to it: both of Mikata's held, both of
+  OpenCode's, one of Maki's. Mikata's two as a note passed (one tree prints capitals, one keeps
+  the case it is given); that is two runs.
+
+36 runs, each counted on its first try.
+
 **What is not closed.** A check that only prints the words is named, not refused, and only for a
 line that must give: the eight lines that must stay in the run of 28 `echo`s are named by
 nothing. A line that states no exact output (`must give a list holding exactly one ... node`,
@@ -394,8 +435,9 @@ calls `total`, and so began to work. Told once, with nothing refused, the body s
 check to `mean` to keep it failing. The list decides: read the one a reader writes.
 
 Six runs an arm on two asks for the first three steps, $10.77; fourteen runs on four asks for the
-fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15. One codebase, asks that
-are not fresh, one model as the body and one as the reader.
+fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15; thirty-six for the
+seventh, $11.72. One codebase, asks that are not fresh, one model as the body and one as the
+reader.
 
 ### The modes against each other
 

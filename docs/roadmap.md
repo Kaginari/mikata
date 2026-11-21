@@ -62,6 +62,15 @@ next:
   in that screen under that screen's bar. Not tried: the reader's own words, so that an output
   the request does not write is not stated letter by letter; and the colon, where the command
   does not run on the code as found and the harness has no spelling to compare.
+- **What the hold earns.** The same twelve lists passed 10 of 12 held and 11 of 12 handed over
+  as a note that nothing holds, and the note cost less: $0.26 a run against $0.37
+  ([the bench](bench.md#the-list-held)). The hold was built on a smaller screen that said the
+  opposite. What it gives beyond passes is real and unmeasured: a pass that names what verified
+  it, and what must stay read from the code. What it costs is measured: dollars, calls, and a
+  reader's wrong letters made binding. To decide, bar first: a reader's list put in the ask as
+  a note by default, held only when you ask for it, against the release as it is, on fresh
+  lists and on a second codebase. Your own list stays held: you have seen the code and the
+  reader has not.
 - **When a reader pays.** On four prose asks it took 6 of 12 to 10 of 12. On the ten single
   fixes, whose asks carry their examples, it changed nothing we can show (7 of 9 both ways), at
   a third more a run, and 47% more on the tasks that pass either way. Today the reader is called

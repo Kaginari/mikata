@@ -30,7 +30,9 @@ writes them from the ask alone. Mikata hands the harness one command a line. The
 what must stay from your code before anything changes, and runs every line when the answer
 lands. On the two asks our bench fails most, stated as prose: 1 pass in 6 without a list, 6 in 6
 with one held. With a reader named and nothing added to the ask, four prose asks passed 10 times
-in 12 on the release, where they passed 6 without one.
+in 12 on the release, where they passed 6 without one. The list is what does it: handed the same
+lists as a plain note, Mikata passed 11, and OpenCode and Maki 8 each where they had passed 5 and
+3. What the hold adds is a pass that names what verified it; it is not shown to add passes.
 
 **An ask that spans several projects is split by itself.** Name two or more folders that each hold
 a project of their own, and Mikata runs one body a project, at once, then checks each. Five whole
