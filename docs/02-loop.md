@@ -834,6 +834,12 @@ Name a reader that reads better than the body. On our bench a strong model's lis
 every line, 80 of 80, at one to three cents an ask; the body's own model, asked apart, wrote a
 list wrong by a letter, and three runs in three built to the wrong letter.
 
+A reader pays on an ask stated without examples: four such asks went from 6 passes in 12 to 10.
+On asks that carry their examples and expected output it changed no count we can show, and cost
+about a third more a run ([the bench](bench.md#the-list-held)). It has not seen your code, so
+where it states how the code spells an output it is guessing: read its list before you trust a
+pass by it.
+
 What this does not do. Nothing here reads prose: the two phrases decide a line's kind, and equal
 text decides a pass. The checks are the body's own commands: one that does not print what its
 line is about holds nothing, and the harness cannot tell. The list is held right or wrong: a
