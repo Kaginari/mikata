@@ -207,7 +207,6 @@ impl Interrupt {
     }
 }
 
-/// What one model call came to.
 /// Why a call apart from the conversation gave no answer ([`Run::call_apart`]).
 enum Apart {
     /// It did not answer in time: what it is estimated to have cost, in weighted tokens.
@@ -216,6 +215,7 @@ enum Apart {
     Failed(String),
 }
 
+/// What one model call came to.
 enum Called {
     /// The model answered.
     Answered(mikata_provider::Response),

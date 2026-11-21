@@ -110,7 +110,7 @@ impl Tool for CheckTool {
     }
 
     fn description(&self) -> &'static str {
-        "Hand the harness a check for one line of the `Done when` list: a command that prints what the line is about, and nothing else. With `gives`, the harness holds your work to that exact output. Without it the line is one that must stay as it is: the harness runs the command on the code as you found it, tells you what it prints today, and holds your work to that, so hand such a line in before you change a file. When you answer, the harness runs every check on your work, and one that prints something else fails your landing. One check a line: handing a line in again replaces its check."
+        "Hand the harness a check for one line of the `Done when` list: a command that prints what the line is about, and nothing else. With `gives`, the harness holds your work to that output, letter case and blanks set aside: keep the code's own spelling of what it prints. Without it the line is one that must stay as it is: the harness runs the command on the code as you found it, tells you what it does today, and holds your work to that, so hand such a line in before you change a file. When you answer, the harness runs every check on your work, and one that prints something else fails your landing. One check a line: handing a line in again with another command replaces its check, and with the same command says how the line stands now."
     }
 
     fn schema(&self) -> Value {
@@ -119,7 +119,7 @@ impl Tool for CheckTool {
             "properties": {
                 "line": {"type": "string", "description": "The line, by name: `D5`."},
                 "command": {"type": "string", "description": "One shell command that prints the line's output and nothing else: `python3 -c \"import calc; print(calc.total([1, 2]))\"`."},
-                "gives": {"type": "string", "description": "The exact output the line states. Leave it out for a line that must stay as it is: the harness reads that from the code as you found it."}
+                "gives": {"type": "string", "description": "The output the line states. Leave it out for a line that must stay as it is: the harness reads that from the code as you found it."}
             },
             "required": ["line", "command"],
             "additionalProperties": false

@@ -44,8 +44,9 @@ half a body does not hold is what must stay, and the harness can: it has the cod
 found it. Open, and next:
 
 - **A reader's spelling.** It never saw the code, and a body may bend the code to its letters:
-  one run of two on the build as it ships. To try: say in the harness's note that a stated
-  output holds whatever its letter case.
+  one run of two on the build as it ships. The `check` tool's own words now say that a stated
+  output holds whatever its letter case, and to keep the code's spelling. They said "exact" in
+  the runs we counted: the new words are true, and not measured.
 - **A check that tests another case than its line.** Twice the gate held a landing for it; one
   body found the command, one ran out of steps. To try: say in the gate's note that two lines
   which cannot both hold mean one command is wrong.

@@ -223,7 +223,9 @@ All met. What the runs show beyond the count:
 line says: the harness cannot tell. And a reader's spelling: it never saw the code, so it wrote a
 unit in small letters where the code prints capitals. The harness holds a stated output with
 letter case and blanks set aside, so it no longer forces the wrong letters, but on the build as
-it ships one run of two made the code print them anyway, and failed. The first live reading, on a
+it ships one run of two made the code print them anyway, and failed. The tool's words to the body
+said "that exact output" in every run counted here; they now say what the harness does, and that
+is not measured. The first live reading, on a
 four-line function, also held one wrong line of thirteen: an input the ask itself changes, listed
 as one that must stay. So a line whose command failed on the code as found, and no longer does,
 is said once and refuses nothing.
