@@ -513,34 +513,34 @@ and {did} on your work",
         } else {
             "the ask's"
         };
-        let mut by = format!(
-            "{whose} Done when list ({} {})",
+        // One unit in brackets: what the gate's word says after it must still read.
+        let mut said = vec![format!(
+            "{} {}",
             judged.hold,
             if judged.hold == 1 { "line" } else { "lines" }
-        );
+        )];
         if judged.loosely > 0 {
             let _ = write!(
-                by,
-                ", {} of them but for letter case or blanks",
+                said[0],
+                ", {} but for letter case or blanks",
                 judged.loosely
             );
         }
         if !judged.moved.is_empty() {
             let lines: Vec<&str> = judged.moved.iter().map(|(line, _)| line.as_str()).collect();
-            let _ = write!(
-                by,
-                ", {} no longer {} as on the code you gave it",
+            said.push(format!(
+                "{} no longer {} as on the code you gave it",
                 and(&lines),
                 if lines.len() == 1 { "fails" } else { "fail" }
-            );
+            ));
         }
         if late > 0 {
-            let _ = write!(
-                by,
-                ", {late} of its checks handed in after the code had changed"
-            );
+            said.push(format!(
+                "{late} {} handed in after the code had changed",
+                if late == 1 { "check" } else { "checks" }
+            ));
         }
-        by
+        format!("{whose} Done when list ({})", said.join("; "))
     }
 }
 
@@ -1080,7 +1080,7 @@ mod tests {
         );
         assert_eq!(
             list.by(&judged),
-            "the ask's Done when list (2 lines), 1 of them but for letter case or blanks"
+            "the ask's Done when list (2 lines, 1 but for letter case or blanks)"
         );
         // The same change of letters breaks the line that must stay.
         std::fs::write(dir.path().join("unit.sh"), "echo \"interval '1.5 day'\"\n").unwrap();
@@ -1268,7 +1268,7 @@ mod tests {
         assert_eq!(list.news(&judged), [] as [String; 0], "said once");
         assert_eq!(
             list.by(&judged),
-            "the ask's Done when list (0 lines), D1 no longer fails as on the code you gave it"
+            "the ask's Done when list (0 lines; D1 no longer fails as on the code you gave it)"
         );
         // Failing another way is the same: not what it did, and not refused.
         script("echo 'no such unit' >&2\nexit 3\n");

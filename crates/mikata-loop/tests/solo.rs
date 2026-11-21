@@ -1230,9 +1230,7 @@ async fn a_check_handed_in_late_is_read_from_the_code_as_the_ask_found_it() {
         });
     assert_eq!(
         last.unwrap(),
-        [
-            "the ask's Done when list (2 lines), 2 of its checks handed in after the code had changed"
-        ]
+        ["the ask's Done when list (2 lines; 2 checks handed in after the code had changed)"]
     );
 }
 
@@ -1584,6 +1582,6 @@ async fn a_line_that_failed_and_no_longer_does_is_said_once_and_refuses_nothing(
         });
     assert_eq!(
         by.unwrap(),
-        ["the ask's Done when list (1 line), D2 no longer fails as on the code you gave it"]
+        ["the ask's Done when list (1 line; D2 no longer fails as on the code you gave it)"]
     );
 }

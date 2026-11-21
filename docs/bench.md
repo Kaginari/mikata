@@ -228,7 +228,10 @@ said "that exact output" in every run counted here; they now say what the harnes
 is not measured. The first live reading, on a
 four-line function, also held one wrong line of thirteen: an input the ask itself changes, listed
 as one that must stay. So a line whose command failed on the code as found, and no longer does,
-is said once and refuses nothing.
+is said once and refuses nothing. That does not make a wrong line harmless. On the third live
+run the reader wrote that any other function called with a blank must stay as it is; `mean`
+calls `total`, and so began to work. Told once, with nothing refused, the body still added a
+check to `mean` to keep it failing. The list decides: read the one a reader writes.
 
 Six runs an arm, two asks, one codebase. $10.69 for the three steps. Nothing here says what a
 list does to an ask that already passes.
