@@ -790,17 +790,75 @@ failure is in the command itself and not what the line is about, hand the line i
         "It prints that now.".to_owned()
     } else if loose(&now.out) == loose(must) {
         format!(
-            "It prints that now, but for letter case or blanks, which are set aside:\n{}",
-            clipped(&now.out)
+            "It prints that now, but for letter case or blanks, which are set aside:\n{}{}",
+            clipped(&now.out),
+            spelling(must, &now.out)
         )
     } else {
-        format!("Now it prints:\n{}", clipped(&now.out))
+        format!(
+            "Now it prints:\n{}{}",
+            clipped(&now.out),
+            spelling(must, &now.out)
+        )
     };
     let said = format!(
         "{line} is held: your command must print:\n{}\n{state}",
         clipped(must)
     );
     (said, prints)
+}
+
+/// The most words [`letters`] names: the answer stays one a body reads to its end.
+const LETTERS: usize = 4;
+
+/// The words `stated` writes in other letters than `printed` does, each as the line writes it
+/// and as the code prints it: `day` and `DAY`. In the line's order, each word once, at most
+/// [`LETTERS`]. A word the code prints in the line's letters anywhere is not one of them.
+fn letters(stated: &str, printed: &str) -> Vec<(String, String)> {
+    fn cased(text: &str) -> Vec<&str> {
+        text.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .filter(|word| word.chars().any(char::is_alphabetic))
+            .collect()
+    }
+    let theirs = cased(printed);
+    let mut out: Vec<(String, String)> = Vec::new();
+    for word in cased(stated) {
+        if theirs.contains(&word) || out.iter().any(|(mine, _)| mine == word) {
+            continue;
+        }
+        if let Some(code) = theirs
+            .iter()
+            .find(|w| w.to_lowercase() == word.to_lowercase())
+        {
+            out.push((word.to_owned(), (*code).to_owned()));
+        }
+    }
+    out.truncate(LETTERS);
+    out
+}
+
+/// What a body is told when its line writes words in other letters than the code prints them:
+/// which words, and that the code's letters stay. Whoever wrote the line seldom saw the code,
+/// the harness holds a stated output whatever its letter case, and a body told only the line's
+/// letters builds the code to them: on our bench every failure of one ask with a list was a
+/// list in small letters where the code prints capitals. Nothing when no word differs so.
+fn spelling(stated: &str, printed: &str) -> String {
+    let pairs = letters(stated, printed);
+    if pairs.is_empty() {
+        return String::new();
+    }
+    let said: Vec<String> = pairs
+        .iter()
+        .map(|(line, code)| format!("`{line}` where the code prints `{code}`"))
+        .collect();
+    let said: Vec<&str> = said.iter().map(String::as_str).collect();
+    // Said of the letters alone: the two outputs may differ in more, and that is the work.
+    format!(
+        "\nAbout letters: the line writes {}. Letter case is set aside when your work is held to \
+the line. Unless the ask itself asks for other letters, keep the code's own letters: do not \
+change the code to print the line's.",
+        and(&said)
+    )
 }
 
 /// How a check already held stands on the world as it is: what a body asks by handing the same
@@ -939,8 +997,8 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
 #[cfg(test)]
 mod tests {
     use super::{
-        CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, loose, moved_note,
-        read_lines, runs, stated, states, words,
+        CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, letters, loose,
+        moved_note, read_lines, runs, stated, states, words,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -1316,6 +1374,87 @@ its output on the code you gave it)"
             !o.is_error && o.content.contains("It prints that now."),
             "{}",
             o.content
+        );
+    }
+
+    /// A line written by someone who never saw the code spells a word in other letters than the
+    /// code prints it. The harness holds the line whatever the letter case; a body told only the
+    /// line's letters builds the code to them. So the hand-in says which words differ by letter
+    /// case only, and that the code's own stay.
+    #[test]
+    fn a_line_in_other_letters_than_the_code_is_said_at_the_hand_in() {
+        assert_eq!(
+            letters("SELECT INTERVAL '1.5 day'", "SELECT INTERVAL '1.5' DAY"),
+            [("day".to_owned(), "DAY".to_owned())]
+        );
+        // The same letters, a word the code does not print, and a number are no such word.
+        assert_eq!(letters("SELECT x_1 FROM t LIMIT 5", "SELECT y FROM t"), []);
+        // A word the code prints in the line's letters somewhere is left alone.
+        assert_eq!(letters("day", "DAY and day"), []);
+        // Each word once, in the line's order, and no more than four.
+        assert_eq!(letters("a b a c d e f", "A B C D E F").len(), 4);
+        let (dir, mut cx) = world();
+        std::fs::write(
+            dir.path().join("unit.sh"),
+            "echo \"SELECT INTERVAL '1.5' DAY\"\n",
+        )
+        .unwrap();
+        let ask = "Keep the fraction.\n\n## Done when\nD1: `1.5 day` in one string must give `SELECT INTERVAL '1.5 day'`\nD2: `total 3` must give `3`\n";
+        let mut list = List::of(ask);
+        // The code prints another output, and one of its words in other letters.
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh unit.sh", "gives": "SELECT INTERVAL '1.5 day'"}"#,
+            true,
+        );
+        assert!(!o.is_error, "{}", o.content);
+        assert!(
+            o.content
+                .contains("Now it prints:\nSELECT INTERVAL '1.5' DAY\n")
+                && o.content.contains(
+                    "About letters: the line writes `day` where the code prints `DAY`. Letter \
+case is set aside"
+                )
+                && o.content.contains("keep the code's own letters"),
+            "{}",
+            o.content
+        );
+        // The work keeps the code's letters: the line holds, and the same words say so again.
+        std::fs::write(
+            dir.path().join("unit.sh"),
+            "echo \"SELECT INTERVAL '1.5 DAY'\"\n",
+        )
+        .unwrap();
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh unit.sh", "gives": "SELECT INTERVAL '1.5 day'"}"#,
+            false,
+        );
+        assert!(
+            o.content.contains("but for letter case or blanks")
+                && o.content.contains("`day` where the code prints `DAY`"),
+            "{}",
+            o.content
+        );
+        // Where no word differs by its letters, nothing is added.
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D2", "command": "sh calc.sh 1 3", "gives": "3"}"#,
+            false,
+        );
+        assert!(
+            !o.is_error && !o.content.contains("About letters"),
+            "{}",
+            o.content
+        );
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!(
+            (judged.failures.len(), judged.hold, judged.loosely),
+            (1, 1, 1),
+            "{judged:?}"
         );
     }
 
