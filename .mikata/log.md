@@ -7674,3 +7674,8 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Not closed, on the roadmap:** refusing a print-only check; naming one for a line that must stay (eight, in the run of 28); a line that states no exact output, held to the body's own wording.
 - **1.1.0 prepared here:** `Cargo.toml` and the lock at 1.1.0, the changelog's section dated 21 November, its notes saying the two builds and the limit. The tag, the draft and its check come after the merge, and get their own entry.
 - **Learned, again:** a count is not a reading. Twelve of twelve was true and the sentence I had built on it ("checks first, in every run") was hollow in two runs. Read the accepted calls, not only the refused ones, before saying how a number came about.
+
+### [2026-11-21T10:55:00+00:00] aibo Summoner — the 1.1.0 build run once in the product, and a sentence of mine made true
+- **Run:** `mikata run` of the release build that passed `just rc-smoke`, on a scratch project with a real model, the ask carrying three lines of its own: one to make true, one already true, one that fails today and must stay. Two cents.
+- **Seen:** the first edit waited for the checks, as a correction. The three checks came in, the edit landed, and the gate said `verified by the ask's Done when list (3 lines; D2 already gave its output on the code you gave it)`. D2 is the line that was already true.
+- **Corrected in the book before the merge:** I had written that the harness "does not call that verified". It does: the pass still counts the line, and names it beside the count. The loop's page, the bench page and the changelog now say what the line says.

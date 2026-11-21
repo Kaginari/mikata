@@ -43,7 +43,7 @@ notes said ahead, and by the bar we wrote first no difference is shown.
   nothing. A landing the list passed says so (`verified by the ask's Done when list (11 lines)`)
   and names every line whose check already gave its output before the work (`D1 to D4 already
   gave their output on the code you gave it`): a command that only prints the words holds
-  whatever the work is, and the harness does not call that verified. With no list in the ask,
+  whatever the work is, and you are told which lines showed nothing. With no list in the ask,
   nothing changes.
 - **A reader can write that list: `models.reader`.** Name a model in your own configuration and
   every light-coding ask that carries no list is read apart first: one call, shown the ask

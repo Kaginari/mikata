@@ -788,10 +788,11 @@ stay was tried before, and failed. So the harness holds the list, by code:
 - **A check that shows nothing of the work is named.** A command that only prints the words
   (`echo "SLICE(x, 2, 3)"`) holds whatever the work is, and by code it looks like a case that
   was right before the work: both give the line's output on the code as the ask found it. The
-  harness refuses neither, and the pass names every such line, so "verified" never covers a
-  check that showed nothing. On our bench three runs in twenty-eight handed in such commands,
-  one of them for each of its 28 lines ([the bench](bench.md#the-list-held)). A line that must
-  stay has no such sign: it prints the same before and after by what it is.
+  harness refuses neither, and the pass names every such line beside its count, so you see
+  which of the lines it calls verified showed nothing. On our bench three runs in twenty-eight
+  handed in such commands, one of them for each of its 28 lines
+  ([the bench](bench.md#the-list-held)). A line that must stay has no such sign: it prints the
+  same before and after by what it is.
 - **When the answer lands, the harness runs every check on the work,** through the same
   classified and guarded `bash` as any command, 60 seconds each. A line with no check, or a check
   that prints something else, fails the landing. The note names each line, what it printed on the

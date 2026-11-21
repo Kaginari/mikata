@@ -43,7 +43,7 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   nothing added to the ask, the four prose asks passed **12 of 12, against 6 of 12 without a
   reader,** at the same price a run. That screen also found a fault, fixed before the release,
   and a limit that is not closed: a body can hand in a check that only prints the expected words.
-  The pass now names such lines instead of calling them verified ([measured](#the-list-held)).
+  The pass now names such lines beside its "verified" ([measured](#the-list-held)).
 - **The list of what changed is worth reading.** On those prose asks a wrong value is in its
   twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
   the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask

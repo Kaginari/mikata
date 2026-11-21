@@ -1667,8 +1667,9 @@ async fn checks_the_harness_corrects_do_not_stop_the_run() {
 
 /// A check whose command only prints the words holds whatever the work is, and the harness
 /// cannot tell it from a case that was right before: it refuses nothing. The pass names every
-/// line whose check gave its output before any change, so "verified" never covers a check that
-/// showed nothing. On our bench one run handed in `echo` for each of its twenty-eight lines.
+/// line whose check gave its output before any change, so the human sees which of the lines it
+/// calls verified showed nothing. On our bench one run handed in `echo` for each of its
+/// twenty-eight lines.
 #[tokio::test]
 async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
     let w = World::new("listed-echo");
