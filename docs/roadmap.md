@@ -47,14 +47,24 @@ found it. As it ships, a reader named and nothing added to the ask, the four pro
 did not cost the asks that already passed (12 of 12 over both screens, plain 5 of 6). Open, and
 next:
 
-- **A reader's letters.** The largest loss left. The reader never saw the code, and on one ask
-  it writes a unit in small letters about half the time, where the code prints capitals. The
-  harness takes either; the body builds to the letter. A list in capitals passed 6 of 6, a list
-  in small letters 4 of 7, and both failures of the release's twelve are this. The `check`
-  tool's own words already say to keep the code's spelling, and did not prevent it. To try, bar
-  first: at the hand-in the harness has both spellings, what the line states and what the code
-  prints today; say there which words differ by letter case only, and that the code's stay. The
-  test is cheap and sharp: the failed runs' own lists, held again, against 4 of 7.
+- **A reader's spelling of what the code prints.** The largest loss left: three of the four
+  runs a reader has lost on the release. The reader never saw the code. On one prose ask it
+  writes a unit in small letters about half the time, where the code prints capitals: a list in
+  capitals passed 6 of 6, a list in small letters 4 of 7. On an ask with examples it added a
+  struct of its own without the colon the code writes, the body changed the generator to match,
+  and a task that passes plain failed. The harness sets letter case aside and the body builds to
+  the letter all the same; a colon it cannot set aside. The `check` tool's own words already say
+  to keep the code's spelling, and did not prevent it. To try, bar first, cheapest first: at the
+  hand-in the harness has both spellings where the command runs today, what the line states and
+  what the code prints; say there which words differ by letter case only, and that the code's
+  stay (the test: the failed runs' own lists, held again, against 4 of 7). Then the reader's own
+  words: an output the request does not write is a guess at the code's spelling, and a case it
+  invents should say what must stay, or name the shape, not the letters.
+- **When a reader pays.** On four prose asks it took 6 of 12 to 10 of 12. On the ten single
+  fixes, whose asks carry their examples, it changed nothing we can show (7 of 9 both ways), at
+  a third more a run, and 47% more on the tasks that pass either way. Today the reader is called
+  on every ask that carries no list. To try: let it answer that the ask already fixes its
+  outputs, and write only what must stay.
 - **A check that only prints the words.** Five runs in twenty-six handed in commands that never
   run the code, one of them an `echo` for each of its 28 lines. Three passes of the first screen
   were held by them; none of the release's twelve, where the gate failed the one landing that

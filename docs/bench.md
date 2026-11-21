@@ -46,6 +46,10 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   write: with a list that spells the unit in capitals, as the code prints it, 6 of 6; in small
   letters, 4 of 7. Not closed either: a body can hand in a check that only prints the expected
   words, which the pass now names beside its "verified" ([measured](#the-list-held)).
+- **A reader is for an ask without examples.** On the ten single fixes, whose asks carry their
+  examples, 1.1.0 with a reader passed 7 of the 9 tasks run, where plain passes 7 of the same
+  nine: one task won, one lost to a wrong line of the reader, at a third more a run. Against
+  OpenCode and Maki that screen stays level ([measured](#the-list-held)).
 - **The list of what changed is worth reading.** On those prose asks a wrong value is in its
   twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
   the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask
@@ -90,6 +94,7 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
 | The two prose asks that fail nearly always | a `Done when` list in the ask, held by the harness | **6 of 6**, with two lists (plain: 1 of 6) |
 | Four fixes as prose, a reader named, two builds | the build as it ships writes the list itself: one call to a stronger model, shown the ask alone | **12 of 12** (plain: 6 of 12); $0.31 a pass, against $0.59 |
 | The same twelve, on 1.1.0 as released | the published archive's own binaries, every run counted | **10 of 12** (plain: 6 of 12); $0.45 a pass, against $0.59 |
+| Ten single fixes, 1.1.0 with a reader named | each task once; one task not run under the cap | 7 of 9 (plain on the same nine: 7 of 9); $0.59 a pass, against $0.44 |
 
 On the largest work the single body never filled its context: no run was compacted. It ran out of
 steps, not memory, and with more steps it finished on its own.
@@ -179,10 +184,10 @@ changed what the body is told.
 
 ### The list held
 
-Five steps, each with its bar written first. The first three are on the two prose asks that fail
+Six steps, each with its bar written first. The first three are on the two prose asks that fail
 nearly always (one of them had passed once in the twenty-one kept runs of three harnesses); the
 fourth is the product as it ships, on all four; the fifth is the same twelve again on the release
-itself.
+itself; the sixth is the release with a reader on the asks that carry their examples.
 
 **The body's own list, corrected.** Every failed run's first "done" list held wrong lines. A
 stand-in for you corrected each wrong line before the work, by what the upstream fix does: 1 of
@@ -314,6 +319,39 @@ release is 10 of 12;** the first screen's 12 was the luckier draw on one ask.
 - **Dollars.** $0.37 a run with the reader's call in it, against $0.30 plain; a pass $0.45,
   against $0.59. The run that took all its steps cost $0.86 alone.
 
+**Asks that carry their examples: the ten single fixes.** The reader had only been measured on
+prose. So 1.1.0 was run with a reader on the ten single fixes, each task once. Between two plain
+screens that count moved from 9 to 7, so the bar was the one used between harnesses, three tasks
+of ten: a cost at 4 or fewer, a gain only at 10.
+
+| | Passes | Fails |
+|---|---|---|
+| Mikata plain, 13 November | 9 of 10 | 06 |
+| Mikata plain, 20 November | 7 of 10 | 06, 07, 10 |
+| **Mikata 1.1.0, a reader named** | **7 of 9** | 09, 10 (06 not run) |
+| OpenCode 1.19.6, 20 November | 7 of 10 | 06, 09, 10 |
+| Maki 0.7.3, 20 November | 7 of 10 | 01, 06, 10 |
+
+**No difference shown.** Plain passes 7 of the same nine. Task 06 was not run: the cap was hard,
+the runs cost more than counted on, and it is the task no harness has passed on either screen.
+
+- **The task it won:** 07, which plain failed on 20 November because the body's own list
+  reworded a check the ask spells out. The reader's first line holds it as the ask writes it.
+- **The task it lost, to a wrong line obeyed:** 09, which plain passes both times. The ask is
+  about `COLLATE` inside `ARRAY<...>` and `MAP<...>`. The reader added a struct of its own and
+  stated its output without the colon Databricks writes (`STRUCT<a STRING ...>` for
+  `STRUCT<a: STRING ...>`). It never saw the code. The body changed the generator to drop the
+  colon, every struct lost it, and a hidden test of an untouched statement fails. The list
+  passed the gate.
+- **The list costs where nothing was broken.** On the six tasks that pass both ways: 47% more
+  dollars, 16% more calls. On the task that runs out of steps either way, 43 `check` calls came
+  before the first change to the code.
+- No check that only prints the words was handed in, and the pass names what its rule says in
+  all 8 runs that landed one.
+
+Three of the four runs a reader has lost on the release are one thing: **the reader states how
+the code spells its output, and it has not seen the code.** Twice a letter case, once a colon.
+
 **What is not closed.** A check that only prints the words is named, not refused, and only for a
 line that must give: the eight lines that must stay in the run of 28 `echo`s are named by
 nothing. A line that states no exact output (`must give a list holding exactly one ... node`,
@@ -324,8 +362,9 @@ unit in small letters where the code prints capitals. The harness holds a stated
 letter case and blanks set aside, so it no longer forces the wrong letters, but the body builds
 to them: every failure of that ask with a list is a list in small letters (4 of 7 pass, against
 6 of 6 in capitals). The tool's own words now tell the body to keep the code's spelling, and
-with them two small-letter lists in three were still built to the letter. The first live
-reading, on a
+with them two small-letter lists in three were still built to the letter. Letter case is the
+one spelling the harness sets aside: a colon it cannot, and a struct stated without the colon
+the code writes cost a task that passes plain. The first live reading, on a
 four-line function, also held one wrong line of thirteen: an input the ask itself changes, listed
 as one that must stay. So a line whose command failed on the code as found, and no longer does,
 is said once and refuses nothing. That does not make a wrong line harmless. On the third live
@@ -334,8 +373,8 @@ calls `total`, and so began to work. Told once, with nothing refused, the body s
 check to `mean` to keep it failing. The list decides: read the one a reader writes.
 
 Six runs an arm on two asks for the first three steps, $10.77; fourteen runs on four asks for the
-fourth, $3.90; twelve for the fifth, $4.47. One codebase, asks that are not fresh, one model as
-the body and one as the reader.
+fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15. One codebase, asks that
+are not fresh, one model as the body and one as the reader.
 
 ### The modes against each other
 
