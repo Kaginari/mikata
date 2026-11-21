@@ -11,6 +11,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-21
+
+Say what done means, and the harness holds it: a `## Done when` list in your ask, yours or one a
+reader you name writes from the ask alone. And when an answer lands, you are shown what changed,
+by Mikata's own checks.
+
+**What to expect, as measured on our own bench** (fixes in a large Python library, one small open
+model). Asked as one paragraph of prose with no examples, four fixes passed 6 times in 12; with a
+reader named, 12 in 12, at the same price a run. Six of those twelve runs are of the build before
+a fix the screen itself called for, which this release holds
+([the bench](docs/bench.md#the-list-held)). Read the list a reader writes: a wrong line is
+obeyed, and a body can still answer a line with a command that only prints the expected words,
+which the pass names and does not refuse. Against the two other harnesses run beside it, each at
+its version of the day, Mikata is level on passes at about half their price a pass: the 1.0.0
+notes said ahead, and by the bar we wrote first no difference is shown.
+
 ### Added
 
 - **A `Done when` list in your ask is held by the harness.** Say what done means in lines of your
@@ -696,7 +712,8 @@ collective-coding are kept as the lab, usable and frozen.
 - The canvases: each page's sketches drawn by tldraw's Mermaid converter as `.tldr` documents and
   light and dark SVGs in the pages, every canvas checked for script and outside links [#311].
 
-[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.0.0...main
+[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.1.0...main
+[1.1.0]: https://github.com/Kaginari/mikata/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Kaginari/mikata/releases/tag/v1.0.0
 [#31]: https://github.com/Kaginari/mikata/pull/31
 [#32]: https://github.com/Kaginari/mikata/pull/32

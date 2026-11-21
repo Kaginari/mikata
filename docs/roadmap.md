@@ -4,11 +4,12 @@ What comes next for Mikata, in order. Each step is measured on [the bench](bench
 book says anything of it: a bar written first, then the runs, then the verdict, whatever it says.
 How everything so far was built, milestone by milestone, is [M0 to M14](experimental/roadmap-m0-m14.md).
 
-## Now: 1.0.0, as Mikata
+## Now: 1.1.0, what done means
 
-Mnemorph is renamed Mikata: the binaries, the crates, the npm packages, the world folder and the
-repository. Old worlds and homes are moved by themselves the first time Mikata runs. Next, the
-1.0.0 release ([releasing](releasing.md)) and the site.
+1.0.0 was the first release as Mikata. 1.1.0 holds what came of the largest gap we had measured,
+asks without examples: a `## Done when` list in the ask, held by the harness; a reader that
+writes it; and the list of what changed when an answer lands ([releasing](releasing.md)). Next,
+the site.
 
 ## Next: asks without examples
 
