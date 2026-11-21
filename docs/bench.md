@@ -115,12 +115,33 @@ Measured, and left out of the product:
 | The body's own "done" list, its wrong lines corrected by a stand-in for you before the work | 1 of 6 (approved as it was: 0 of 3) |
 | A stronger model's cases, from the ask alone, handed to the body as a note | 2 of 6, against 1 of 6 |
 | The body's own model's cases, written in a call of its own, as a note | 0 of 3 |
+| A sentence at the hand-in naming the word a list writes in other letters than the code prints | 3 of 6, against 4 of 6 without it |
+| A landing failed once for the list's letters, with a way out offered | 2 of 6: the way out taken 5 times in 5 |
+| The same, no way out offered | 4 of 6 where we asked 5: the code's letters back 4 times in 4 |
 
 A prompt sentence does not fix a misreading. The failures that remain are the model deciding a
 case should change when the ask says it must stay.
 
-**Nor does a second head of the same kind.** The last three rows are one study, on the kept runs
-of the four prose asks. By code alone, a failed run's own commands show its mistake in 14 of 16
+**Nor does a sentence fix the reader's letters.** The last three rows are three tries, in one
+evening, against the largest loss a reader has cost: a list that writes a unit in small letters
+where the code prints capitals, and a body that builds the code to the list. Each try had its
+bar first; two lists that had failed on the release, held again, three rounds each.
+
+- **Told at the hand-in,** word by word (`day` where the code prints `DAY`, letter case is set
+  aside, keep the code's): every run was told, none followed. One wrote down why it lowercased
+  the unit: "DuckDB convention".
+- **A landing failed for it,** once, in words that said "unless the ask itself asks for other
+  letters" and that the landing would stand if left: the body began to put the capitals back,
+  took the list for the ask, and left them, five times in five.
+- **The same failure with no way out in it:** the capitals came back four times in four, and no
+  tree ended in the list's letters, where 13 of 18 had. It passed 4 of 6, one short of the bar,
+  and the two it lost were not the letters. By the bar it does not ship, and the tries end here.
+
+What is kept is about words. This body does not follow a sentence. It does what a failed landing
+asks. And it takes any way out the failure offers.
+
+**Nor does a second head of the same kind.** The rows on a picker, on a model settling cases and
+on a second reading are one study, on the kept runs of the four prose asks. By code alone, a failed run's own commands show its mistake in 14 of 16
 runs, once their output on the starting code is set beside their output on the finished work. But
 a model asked to judge that list reads the ask as the coder did: it catches a stated limit the
 work crossed (57% to 67% of such cases) and takes a wrong new value for the right one (29 and 23
