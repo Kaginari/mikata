@@ -27,6 +27,12 @@ which the pass names and does not refuse. Against the two other harnesses run be
 its version of the day, Mikata is level on passes at about half their price a pass: the 1.0.0
 notes said ahead, and by the bar we wrote first no difference is shown.
 
+**Measured again on the release itself, the same day.** The published archive, the same twelve,
+every run counted: 10 of 12. Three of the four asks pass every time; the fourth passed 1 time in
+3, and fails when the reader writes a unit in small letters where the code prints capitals. No
+pass of that screen was held by a check that only prints the words
+([the bench](docs/bench.md#the-list-held)).
+
 ### Added
 
 - **A `Done when` list in your ask is held by the harness.** Say what done means in lines of your

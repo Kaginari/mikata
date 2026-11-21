@@ -80,7 +80,7 @@ code before anything changes, and runs every line when the answer lands
 ([the loop](02-loop.md#a-done-when-list-in-the-ask)). Name a model as `models.reader` and it
 writes those lines for each ask, from the ask alone. On the two asks our bench fails most, that
 is the difference between 1 pass in 6 and 6 in 6; on four asks stated as prose, with nothing
-added but the reader, between 6 passes in 12 and 12. Read the list a reader writes: the harness
+added but the reader, between 6 passes in 12 and 10. Read the list a reader writes: the harness
 holds whatever it says, and names in its pass any line whose check showed nothing of the work.
 
 **An ask that names several projects is split by itself.** When the ask names two or more folders
