@@ -165,6 +165,11 @@ pub struct Check {
     /// which, so it refuses nothing and the pass names the line ([`List::by`]). Never set for a
     /// check that came in late: what its command did before the work is not known then.
     pub already: bool,
+    /// The words its line writes in other letters than its command printed them on the code as
+    /// the ask found it, each as the line writes it and as the code printed it (`day`, `DAY`).
+    /// Whoever wrote the line seldom saw the code. Empty for a check that came in late, or whose
+    /// command did not run on that code.
+    pub letters: Vec<(String, String)>,
 }
 
 /// What a check's command must do on the work.
@@ -222,6 +227,8 @@ pub struct List {
     read: bool,
     /// The lines the body was told no longer fail as they did ([`Judged::moved`]): said once.
     told: Vec<String>,
+    /// How many landings were failed for the list's letters ([`List::letters_once`]).
+    respelled: u32,
 }
 
 impl List {
@@ -435,10 +442,15 @@ from the code as you found it: hand it in before the first change.",
             must,
             late: !pristine,
             already: false,
+            letters: Vec::new(),
         };
-        let (said, prints) = said_of(&check, tools, cx);
-        // Only the code as the ask found it says what a check will show of the work.
+        let (said, prints, letters) = said_of(&check, tools, cx);
+        // Only the code as the ask found it says what a check will show of the work, and how
+        // the code spells what it prints.
         check.already = pristine && prints;
+        if pristine {
+            check.letters = letters;
+        }
         self.checks.retain(|c| c.line != line);
         self.told.retain(|t| *t != line);
         self.checks.push(check);
@@ -480,10 +492,18 @@ from the code as you found it: hand it in before the first change.",
                 format!("fails ({})", failure(&now.err))
             };
             match &c.must {
-                Must::Give(must) if now.ok && now.out == *must => judged.hold += 1,
+                Must::Give(must) if now.ok && now.out == *must => {
+                    judged.hold += 1;
+                    judged
+                        .respelled
+                        .extend(respelled(c, &now.out).map(|said| (line.clone(), said)));
+                }
                 Must::Give(must) if now.ok && loose(&now.out) == loose(must) => {
                     judged.hold += 1;
                     judged.loosely += 1;
+                    judged
+                        .respelled
+                        .extend(respelled(c, &now.out).map(|said| (line.clone(), said)));
                 }
                 Must::Give(must) => judged.failures.push(format!(
                     "{SAID} {line} must give `{}`: `{command}` {did} on your work",
@@ -522,6 +542,26 @@ and {did} on your work",
         news.into_iter().map(|(_, said)| said).collect()
     }
 
+    /// Fail the landing `judged` is of for the lines whose work prints the list's letters where
+    /// the code printed its own ([`Judged::respelled`]), [`LETTER_ROUNDS`] time in an ask. Whoever
+    /// wrote the list seldom saw the code; the harness holds a stated output whatever its letter
+    /// case; and a body builds the code to the line's letters all the same, told or not: on our
+    /// bench one run in three of a list in small letters did, and a sentence at the hand-in
+    /// changed nothing. A failed landing is what this body acts on. The harness cannot know that
+    /// the ask did not ask for other letters, so it is said once and then the landing stands.
+    pub fn letters_once(&mut self, judged: &mut Judged) {
+        if judged.respelled.is_empty() || self.respelled >= LETTER_ROUNDS {
+            return;
+        }
+        self.respelled += 1;
+        judged.failures.extend(
+            judged
+                .respelled
+                .iter()
+                .map(|(_, said)| format!("{SAID} {said}")),
+        );
+    }
+
     /// What checked a landing the list passed, for the gate's word: the list, by how many lines,
     /// how many of them hold only with letter case or blanks set aside, which no longer fail as
     /// they did, which already gave their output before the work ([`Check::already`]), and how
@@ -557,6 +597,19 @@ and {did} on your work",
                 if lines.len() == 1 { "fails" } else { "fail" }
             ));
         }
+        if !judged.respelled.is_empty() {
+            let mut lines: Vec<&str> = judged
+                .respelled
+                .iter()
+                .map(|(line, _)| line.as_str())
+                .collect();
+            lines.sort_by_key(|name| number(name));
+            said.push(format!(
+                "{} {} the list's letters where the code printed its own",
+                runs(&lines),
+                if lines.len() == 1 { "prints" } else { "print" }
+            ));
+        }
         let already = self.already();
         if !already.is_empty() {
             said.push(format!(
@@ -589,6 +642,10 @@ pub struct Judged {
     /// nothing: a failure that is gone is what an ask is for, or a reach too far, and the
     /// harness cannot tell which.
     pub moved: Vec<(String, String)>,
+    /// The lines that hold while the work prints the list's letters where the code as the ask
+    /// found it printed its own ([`Check::letters`]): each by name, with what is said of it. A
+    /// landing is failed for them once ([`List::letters_once`]); after that the pass names them.
+    pub respelled: Vec<(String, String)>,
 }
 
 /// What the body is told, once, of lines that no longer fail as they did ([`List::news`]). Its
@@ -748,8 +805,13 @@ fn failure(err: &str) -> &str {
 
 /// What the body is told of a check just taken: what it is held to, and for a stated output,
 /// what its command does on the world as it stands. With it, whether the command prints that
-/// stated output now, letter case and blanks set aside.
-fn said_of(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> (String, bool) {
+/// stated output now, letter case and blanks set aside, and the words the line writes in other
+/// letters than the command prints them now ([`letters`]).
+fn said_of(
+    check: &Check,
+    tools: &[Box<dyn Tool>],
+    cx: &mut Context,
+) -> (String, bool, Vec<(String, String)>) {
     let line = &check.line;
     let must = match &check.must {
         Must::Print(must) if must.is_empty() => {
@@ -757,7 +819,7 @@ fn said_of(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> (String,
                 "{line} is held. On the code as you found it, your command prints nothing and \
 succeeds. Your work must do the same."
             );
-            return (said, false);
+            return (said, false, Vec::new());
         }
         Must::Print(must) => {
             let said = format!(
@@ -765,7 +827,7 @@ succeeds. Your work must do the same."
 work must print the same.",
                 clipped(must)
             );
-            return (said, false);
+            return (said, false, Vec::new());
         }
         Must::Fail(must) => {
             let said = format!(
@@ -775,7 +837,7 @@ way, you are told once, and it refuses nothing: never add code only to keep it f
 failure is in the command itself and not what the line is about, hand the line in again.",
                 failure(must)
             );
-            return (said, false);
+            return (said, false, Vec::new());
         }
         Must::Give(must) => must,
     };
@@ -800,7 +862,72 @@ failure is in the command itself and not what the line is about, hand the line i
         "{line} is held: your command must print:\n{}\n{state}",
         clipped(must)
     );
-    (said, prints)
+    let other = if now.ok {
+        letters(must, &now.out)
+    } else {
+        Vec::new()
+    };
+    (said, prints, other)
+}
+
+/// The most words [`letters`] keeps for a check.
+const LETTERS: usize = 4;
+
+/// How many landings are failed for the list's letters ([`List::letters_once`]). After that a
+/// body that keeps them has its landing, and the pass names the lines.
+const LETTER_ROUNDS: u32 = 1;
+
+/// A text's words as it writes them: each run of letters, digits and `_` that holds a letter.
+fn cased(text: &str) -> Vec<&str> {
+    text.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .filter(|word| word.chars().any(char::is_alphabetic))
+        .collect()
+}
+
+/// The words `stated` writes in other letters than `printed` does, each as the line writes it
+/// and as the code prints it: `day` and `DAY`. In the line's order, each word once, at most
+/// [`LETTERS`]. A word the code prints in the line's letters anywhere is not one of them.
+fn letters(stated: &str, printed: &str) -> Vec<(String, String)> {
+    let theirs = cased(printed);
+    let mut out: Vec<(String, String)> = Vec::new();
+    for word in cased(stated) {
+        if theirs.contains(&word) || out.iter().any(|(mine, _)| mine == word) {
+            continue;
+        }
+        if let Some(code) = theirs
+            .iter()
+            .find(|w| w.to_lowercase() == word.to_lowercase())
+        {
+            out.push((word.to_owned(), (*code).to_owned()));
+        }
+    }
+    out.truncate(LETTERS);
+    out
+}
+
+/// What is said of a check whose line holds on the work while the work prints the line's
+/// letters where the code as found printed its own: nothing when it does not.
+fn respelled(check: &Check, now: &str) -> Option<String> {
+    let words = cased(now);
+    let bent: Vec<String> = check
+        .letters
+        .iter()
+        .filter(|(line, code)| words.contains(&line.as_str()) && !words.contains(&code.as_str()))
+        .map(|(line, code)| format!("`{line}` where it printed `{code}`"))
+        .collect();
+    if bent.is_empty() {
+        return None;
+    }
+    let bent: Vec<&str> = bent.iter().map(String::as_str).collect();
+    Some(format!(
+        "{} holds, but on your work `{}` prints {} on the code as you found it. Letter case is \
+set aside for the line: it holds with the code's own letters too. Unless the ask itself asks for \
+other letters, make the code print its own again. Said once: left as it is, the landing stands \
+and the human is told.",
+        check.line,
+        clipped(&check.command),
+        and(&bent)
+    ))
 }
 
 /// How a check already held stands on the world as it is: what a body asks by handing the same
@@ -939,8 +1066,8 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
 #[cfg(test)]
 mod tests {
     use super::{
-        CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, loose, moved_note,
-        read_lines, runs, stated, states, words,
+        CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, letters, loose,
+        moved_note, read_lines, runs, stated, states, words,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -1317,6 +1444,121 @@ its output on the code you gave it)"
             "{}",
             o.content
         );
+    }
+
+    /// The words a line writes in other letters than the code prints them: `day` and `DAY`.
+    #[test]
+    fn words_in_other_letters_than_the_code_are_found() {
+        assert_eq!(
+            letters("SELECT INTERVAL '1.5 day'", "SELECT INTERVAL '1.5' DAY"),
+            [("day".to_owned(), "DAY".to_owned())]
+        );
+        // The same letters, a word the code does not print, and a number are no such word.
+        assert_eq!(letters("SELECT x_1 FROM t LIMIT 5", "SELECT y FROM t"), []);
+        // A word the code prints in the line's letters somewhere is left alone.
+        assert_eq!(letters("day", "DAY and day"), []);
+        // Each word once, in the line's order, and no more than four.
+        assert_eq!(letters("a b a c d e f", "A B C D E F").len(), 4);
+    }
+
+    const LETTERED: &str = "Keep the fraction.\n\n## Done when\nD1: `1.5 day` in one string must give `SELECT INTERVAL '1.5 day'`\nD2: `total 1 2` must stay as it is today\n";
+
+    /// A world whose `unit.sh` prints `text`, and a list with both checks of [`LETTERED`] handed
+    /// in while the code prints the unit apart and in capitals.
+    fn lettered(dir: &tempfile::TempDir, cx: &mut Context) -> List {
+        unit(dir, "SELECT INTERVAL '1.5' DAY");
+        let mut list = List::of(LETTERED);
+        for input in [
+            r#"{"line": "D1", "command": "sh unit.sh", "gives": "SELECT INTERVAL '1.5 day'"}"#,
+            r#"{"line": "D2", "command": "sh calc.sh 1 2"}"#,
+        ] {
+            let o = call_in(&mut list, cx, input, true);
+            assert!(!o.is_error, "{}", o.content);
+        }
+        list
+    }
+
+    fn unit(dir: &tempfile::TempDir, text: &str) {
+        std::fs::write(dir.path().join("unit.sh"), format!("echo \"{text}\"\n")).unwrap();
+    }
+
+    /// A line written by someone who never saw the code spells a word in other letters than the
+    /// code prints it. The harness holds the line whatever the letter case, and a body builds
+    /// the code to the line's letters all the same. So a landing whose work prints the list's
+    /// letters where the code printed its own is failed for it, once: after that it stands, and
+    /// the pass names the line.
+    #[test]
+    fn a_landing_in_the_lists_letters_is_failed_once_then_named() {
+        let (dir, mut cx) = world();
+        let mut list = lettered(&dir, &mut cx);
+        assert_eq!(
+            list.checks()[0].letters,
+            [("day".to_owned(), "DAY".to_owned())]
+        );
+        assert_eq!(list.checks()[1].letters, []);
+        // The work keeps the fraction and prints the line's small letters: the line holds, and
+        // the landing is failed for the letters, with both spellings.
+        unit(&dir, "SELECT INTERVAL '1.5 day'");
+        let mut judged = list.judge(&registry(), &mut cx);
+        assert_eq!(
+            (judged.failures.len(), judged.hold, judged.respelled.len()),
+            (0, 2, 1),
+            "{judged:?}"
+        );
+        list.letters_once(&mut judged);
+        assert_eq!(judged.failures.len(), 1, "{judged:?}");
+        assert!(
+            judged.failures[0].starts_with(SAID)
+                && judged.failures[0].contains(
+                    "D1 holds, but on your work `sh unit.sh` prints `day` where it printed `DAY` \
+on the code as you found it"
+                )
+                && judged.failures[0].contains("Said once"),
+            "{judged:?}"
+        );
+        // Left as it is, the next landing stands, and the pass names the line.
+        let mut judged = list.judge(&registry(), &mut cx);
+        list.letters_once(&mut judged);
+        assert_eq!(judged.failures, [] as [String; 0]);
+        assert_eq!(
+            list.by(&judged),
+            "the ask's Done when list (2 lines; D1 prints the list's letters where the code \
+printed its own)"
+        );
+    }
+
+    /// The work in the code's own letters holds the line, and nothing is said of letters. A
+    /// check that comes in after the code has changed knows no spelling of the code's.
+    #[test]
+    fn a_landing_in_the_codes_own_letters_holds() {
+        let (dir, mut cx) = world();
+        let mut list = lettered(&dir, &mut cx);
+        unit(&dir, "SELECT INTERVAL '1.5 DAY'");
+        let mut judged = list.judge(&registry(), &mut cx);
+        list.letters_once(&mut judged);
+        assert_eq!(
+            (
+                judged.failures.len(),
+                judged.hold,
+                judged.loosely,
+                judged.respelled.len()
+            ),
+            (0, 2, 1, 0),
+            "{judged:?}"
+        );
+        assert_eq!(
+            list.by(&judged),
+            "the ask's Done when list (2 lines, 1 but for letter case or blanks)"
+        );
+        let mut late = List::of(LETTERED);
+        let o = call_in(
+            &mut late,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh unit.sh", "gives": "SELECT INTERVAL '1.5 day'"}"#,
+            false,
+        );
+        assert!(!o.is_error, "{}", o.content);
+        assert_eq!(late.checks()[0].letters, []);
     }
 
     /// A check that only prints the words holds when the answer lands and shows nothing of the

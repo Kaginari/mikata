@@ -1721,3 +1721,64 @@ async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
         ]]
     );
 }
+
+/// A list written by someone who never saw the code spells a unit in small letters where the
+/// code prints capitals. The harness holds the line either way; the body builds the code to the
+/// line's letters. The landing is failed for it once, with both spellings, and a body that then
+/// prints the code's own letters passes: held but for letter case, and said so.
+#[tokio::test]
+async fn a_landing_in_the_lists_letters_is_handed_back_once() {
+    const SPLIT: &str = "echo \"INTERVAL '1.5' DAY\"\n";
+    const SMALL: &str = "echo \"INTERVAL '1.5 day'\"\n";
+    const KEPT: &str = "echo \"INTERVAL '1.5 DAY'\"\n";
+    let w = World::new("listed-letters");
+    fs::write(w.world().join("unit.sh"), SPLIT).unwrap();
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "sh unit.sh", "gives": "INTERVAL '1.5 day'"}),
+        ),
+        tool(
+            "t2",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh 1 2"}),
+        ),
+        tool("t3", "write", json!({"path": "unit.sh", "content": SMALL})),
+        answer("the fraction is kept"),
+        tool("t4", "write", json!({"path": "unit.sh", "content": KEPT})),
+        answer("the fraction is kept, in the code's own letters"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    let listed = "Keep the fraction of an interval written in one string.\n\n## Done when\nD1: `1.5 day` in one string must give `INTERVAL '1.5 day'`\nD2: `sh total.sh 1 2` must stay as it is today\n";
+    assert_eq!(
+        ask(&mut run, listed).await,
+        Ending::Answered("the fraction is kept, in the code's own letters".into())
+    );
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert_eq!(gates[0].len(), 1, "{gates:?}");
+    assert!(
+        gates[0][0].starts_with(
+            "done when: D1 holds, but on your work `sh unit.sh` prints `day` where it printed `DAY` on the code as you found it"
+        ),
+        "{gates:?}"
+    );
+    assert!(gates[1].is_empty(), "{gates:?}");
+    let by: Vec<Vec<String>> = w
+        .journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Gate { verified_by, .. } => Some(verified_by),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        by[1],
+        ["the ask's Done when list (2 lines, 1 but for letter case or blanks)"]
+    );
+}

@@ -1867,6 +1867,7 @@ impl Run {
         self.done_judged = crate::done::Judged::default();
         if !verdict.changed.is_empty() || self.done.any() {
             let mut judged = self.done.judge(&self.tools, &mut self.cx);
+            self.done.letters_once(&mut judged);
             if judged.failures.is_empty() && judged.hold > 0 {
                 verdict.listed = judged.hold;
                 verdict.verified_by.push(self.done.by(&judged));

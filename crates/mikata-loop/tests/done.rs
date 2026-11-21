@@ -135,7 +135,9 @@ fn replay_a_list_over_kept_trees() {
     {
         let world = PathBuf::from(tree).canonicalize().unwrap();
         let mut cx = unguarded(&world);
-        let judged = list.judge(&registry(), &mut cx);
+        // As the gate judges a landing: a tree in the list's letters is failed for it once.
+        let mut judged = list.judge(&registry(), &mut cx);
+        list.letters_once(&mut judged);
         println!(
             "\n== {tree}\n{} of {} lines hold ({} but for letter case or blanks); {} failures",
             judged.hold,
