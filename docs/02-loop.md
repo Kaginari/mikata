@@ -756,10 +756,20 @@ stay was tried before, and failed. So the harness holds the list, by code:
 - **A line that says `must give`** is held to an output the line states. One the line does not
   state is refused: the list is yours, and the body does not add to it.
 - **A line that says `must stay`** states no output, and the body may not give one. The harness
-  runs the command on the code as the ask found it, twice, tells the body what it prints today,
-  and holds the work to that. A command that fails there, prints nothing, or does not print the
-  same twice is refused. Handed in after the code has changed, the line is read in a copy put
-  back to the tree as the ask found it, which the attic kept when the ask began.
+  runs the command on the code as the ask found it, twice, tells the body what it does today, and
+  holds the work to that. It may print, print nothing, or fail: "everything else must keep
+  working as it does today" covers the input that raises today too, and a reader writes such
+  lines. Only a command that does not do the same thing twice is refused. What the checks leave
+  behind (`__pycache__` and the other test leftovers the harness knows) is no change to the code.
+  Handed in after the code itself has changed, the line is read in a copy put back to the tree as
+  the ask found it, which the attic kept when the ask began.
+- **A line that ran is held hard; a line that failed is not.** A line whose command printed
+  something holds only while it prints the same: breaking what worked is refused. A line whose
+  command failed holds while it fails the same way. When it no longer does, the harness cannot
+  know whether the ask asked for that (asks are for making something work) or the work reached
+  too far: the landing stands, the body is told once, and the pass names the line for you.
+- The same line and command handed in again asks how the line stands now. The check is kept as
+  it came in.
 - A line with neither phrase takes either form.
 - **A write to the code waits** until every line has its check: refused twice at most, then let
   through, so a refusal is never the only way on. The body's own notes under `.mikata/` never
@@ -777,8 +787,8 @@ stay was tried before, and failed. So the harness holds the list, by code:
   body break the code to match. A line that holds only that way is counted, and you are told.
 - A landing the list passed says what checked it: `verified by the ask's Done when list (11
   lines) only, not by a line the human pinned`, with how many lines held but for letter case or
-  blanks, and how many checks came in after the code had changed. It is no verify line: no claim
-  of memory cites it.
+  blanks, which lines no longer fail as they did, and how many checks came in after the code had
+  changed. It is no verify line: no claim of memory cites it.
 
 With no list in the ask nothing changes: nothing is told and no write waits. The body may still
 hand in checks for lines of its own plan, and its landing is held to them the same way.
@@ -807,8 +817,9 @@ list wrong by a letter, and three runs in three built to the wrong letter.
 What this does not do. Nothing here reads prose: the two phrases decide a line's kind, and equal
 text decides a pass. The checks are the body's own commands: one that does not print what its
 line is about holds nothing, and the harness cannot tell. The list is held right or wrong: a
-wrong line is held as hard as a right one. And an input no line names is not covered: of four
-failed runs, two failed on one.
+wrong line that says what something must give, or that something which works must stay, is held
+as hard as a right one. And an input no line names is not covered: of four failed runs, two
+failed on one.
 
 ### What changed, by its own checks
 
