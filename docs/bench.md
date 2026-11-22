@@ -86,6 +86,12 @@ The same three harnesses, each as released, on two more screens, each task once
   twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
   the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask
   again without pointing: never ([measured](#what-changed-measured)).
+- **Memory is kept, carried and recalled, and has not paid yet.** One memory carried through
+  ten tasks three times over, with two models: no pass gained or lost in sixty runs, no saving
+  by the bar written first, and with the stronger model the rounds cost 20% to 51% more
+  dollars than the same tasks cold. For that model memory had been empty all along, by a fault
+  now fixed. All of it measured without a verify line, which is where the design's own proof comes
+  from ([measured](#memory-carried-from-task-to-task)).
 - **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
   light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
   a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
@@ -591,6 +597,86 @@ our dollars within a tenth of the harness's own.
 
 30 runs, each counted on its first try, $0.79. One stronger body, a small model of a large
 maker; nothing here says what a larger one does.
+
+### Memory, carried from task to task
+
+Every screen above starts each task in a fresh world, where memory is empty. None of them
+measures memory, and none had since October. This one carries one memory through ten tasks,
+three times over. In round 1 a task meets a memory of other tasks in the same codebase. In
+rounds 2 and 3 it meets a memory that has done this very task: the code starts over, the memory
+goes on. Light-coding as it runs with nothing configured, each body on its own codebase.
+
+The bar, written first: against cold, round 3 costs no passes (not behind by three tasks of
+ten) and saves calls (fewer on 8 tasks of ten, or 70% of cold's calls in all). While round 1
+ran, a second cold arm was added on the same build and day, to say how far two cold arms differ.
+
+| | Claude Haiku 5.5 on ten sqlglot fixes | Calls | Dollars | The small model on ten mathjs fixes | Calls | Dollars |
+|---|---|---|---|---|---|---|
+| Cold, the release, a day earlier | 10 of 10 | 314 | 0.31 | 8 of 10 | 590 | 2.11 |
+| Cold, this build, the same day | 10 of 10 | 341 | 0.35 | 9 of 10 | 576 | 1.54 |
+| Round 1: a memory of other tasks | 10 of 10 | 362 | 0.42 | 9 of 10 | 574 | 1.57 |
+| Round 2: has done this task once | 10 of 10 | 371 | 0.43 | 9 of 10 | 519 | 1.62 |
+| Round 3: twice | 10 of 10 | 391 | 0.53 | 9 of 10 | 466 | 1.01 |
+
+- **Before anything could be measured, memory was empty.** Two runs in, every row read "memory:
+  none yet". A body ends its answer with what it learned, one `@U` line each, and the harness
+  read such a line only where it opens a line. Claude Haiku writes them as a markdown list.
+  Counted over the 284 runs kept from earlier screens: 97 of its 108 lessons had been dropped,
+  and 80 of the small model's 440. Fixed first; the rounds ran the fixed build, where every
+  lesson written was kept ([memory](07-memory.md#the-write-rule)).
+- **Memory changes no pass.** Sixty runs over the three rounds, forty cold. Haiku passes
+  everything either way. The small model passes 9 of 10 in every round and 9 of 10 cold on the
+  same build; the one task it fails, it fails in all five arms.
+- **It saves no calls by the bar, and with the stronger body it costs.** Haiku's rounds take
+  106%, 109% and 115% of the same day's cold calls, 117%, 122% and 132% of its tool uses, and
+  20%, 23% and 51% more dollars. No single round proves much: two arms of ten runs stand 8%
+  apart by themselves. But all seven arms that start from any memory stand above both cold
+  arms. The small model takes 10% and 19% fewer calls in rounds 2 and 3, short of the bar and
+  carried by one task: the one it fails, which stops at its step limit until round 3, where it
+  hands in the same wrong fix sooner. On its nine other tasks: 375 calls cold, then 373, 318,
+  400.
+- **What a body does with what it remembers is more of the same work.** Haiku is shown its
+  notes, in a third of its runs names one that changed a step, and changes the same code (531
+  lines cold; 547 and 573 with a memory that knows the task). What grows is checking: 81 checks handed in cold, 120
+  and 117 with memory; 271 lines of tests written cold, 307 and 353. It finds its place no
+  sooner: 141 tool uses before the first change cold, 142 and 172 with memory.
+- **Recall showed a run six notes, of which one was its own task's.** Read with the product's
+  own recall over the 29 Haiku runs that started from a memory: 1.3 its own task's, 1.2 lessons
+  about the repository, 3.3 other tasks'. Two runs of ten that met a task again were not shown
+  what their own earlier run had learned. Fixed: a lesson is kept with the first line of the ask
+  it was learned under and matched with those words too. On the campaign's own notes, 20 of 20
+  and 2.8 of the six ([memory](07-memory.md#recall)). That makes recall right. It is not shown
+  to make a run cheaper: an arm that gave each run only its own task's notes cost what the whole
+  memory cost (363 calls and 540 tool uses against 371 and 535).
+- **Which part of the memory costs the stronger body, three arms could not say.** With the
+  journal's last entries alone and no note, a run took 115% of cold's tool uses; with its own
+  task's notes alone, 107%; with both, 124%. An entry told a session how the landing before it
+  was verified ("12 lines; 12 checks handed in"), five entries at a time, and we took that line
+  for the cause. Left out of what a session is shown, it changed nothing: 125%, and 114 checks
+  handed in against 119 with it and 81 cold. That change was not kept. And two arms that differ
+  by one line stand 8% apart, which is more than the journal stood from the notes. What every
+  arm agrees on: with any memory at all, this body takes 107% to 132% of cold's tool uses for
+  the same ten passes.
+- **Showing a session the earlier entry of the same ask did not help, and broke two runs of
+  ten.** The journal says which files a session changed and never what it was asked. An arm
+  that put the ask's first line into each entry, with the entry of this very ask among the last
+  five, found its place no sooner (124 tool uses before the first change against 117). And
+  twice the body did nothing at all: it took the ask for part of the quoted journal. Not built.
+- **Memory cannot learn what nothing tells it.** The task the small model fails, it fails five
+  times: on five or six of its 62 hidden tests four times, and once with a tree that no longer
+  loads. Three of those runs stopped at the step limit: such a run writes no lesson and no
+  journal entry, so the next session starts from nothing. And no session was ever told its fix
+  was wrong: no check stood behind any landing.
+- **Every session writes the same lesson again.** At the end Haiku's memory held 88 notes, and
+  28 of them say that two packages are not installed. All 30 runs wrote it, 16 of them with
+  that very lesson in their ask.
+
+**The limit that matters most:** all of this ran with no verify line. That is the product with
+nothing configured, and it is not the setup the
+[README](https://github.com/Kaginari/mikata/blob/main/README.md) asks for: without a
+check behind a landing no note is ever grounded, every note is shown to the body as unproven,
+and a failure never reaches memory. The same three rounds with a verify line are the next
+screen ([roadmap](roadmap.md#next-a-memory-that-pays)).
 
 ### The modes against each other
 

@@ -58,6 +58,13 @@ session's body, which counts as the Summoner): it writes there freely, and only 
 there, so its mistakes cannot spread. **Shared** memory is what every session of the world reads,
 and only confirmed notes enter it.
 
+**What is measured, and what is not.** Carried from task to task on [the bench](bench.md#memory-carried-from-task-to-task),
+memory is kept, recalled and used by the body, and has not yet made a run better or cheaper:
+no pass gained or lost in sixty runs, and with a stronger model the runs that remember cost more.
+Those runs had no verify line, so they measured proposals alone: nothing was grounded and no
+failure was learned from. What a check behind each landing adds is the next thing to measure
+([roadmap](roadmap.md#next-a-memory-that-pays)).
+
 Six rules follow:
 
 1. **Proposals stay personal.** What a model says, including the unsaid it surfaces, lands in

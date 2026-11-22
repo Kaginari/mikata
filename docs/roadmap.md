@@ -126,6 +126,40 @@ next:
   prompt gave no line at all in 8,000 tokens of thought. A reader has to read better than the
   body.
 
+## Next: a memory that pays
+
+Memory is kept, carried, recalled and used, and it has not paid yet. Carried through ten tasks
+three times over with two models, it changed no pass in sixty runs and saved no calls by the bar
+written first; with the stronger model the rounds cost a fifth to a half more dollars than the
+same tasks cold ([the bench](bench.md#memory-carried-from-task-to-task)). Three faults found on the way are
+fixed: lessons written as a list were dropped, a marked heading was kept as a lesson, and a task
+that came again was not always shown its own notes. What comes next, in order:
+
+- **The same rounds with a verify line.** Everything measured ran with nothing configured: no
+  check behind a landing, so no note is ever grounded, the body is shown every note as unproven
+  and under review, and a failure never reaches memory. The design's proof comes from the
+  project's own test command, which the README asks for. To do first, bar first: the three
+  rounds and their cold arm with a verify line, on the codebase where the bench has one. About
+  $15, two bodies.
+- **A session that stops leaves nothing.** A run that ends on its step limit writes no lesson and
+  no journal entry. The next session finds changed files and no account of them, and on the one
+  task the small model cannot do it started from nothing each time, 200 calls later. To try: the
+  harness journals a stop as it journals a landing: why it stopped, what it had changed, how to
+  resume.
+- **The human's word.** The one way to tell Mikata what to remember is to edit `.mikata/law.md`
+  by hand, and to ground a note the human runs `mikatad memory confirm` on it afterwards. A fact
+  the human states in a session is the strongest memory there is and has no door. To try: one,
+  in the session.
+- **The same lesson, written by every session.** Thirty runs left 28 copies of one fact, 16 of
+  them written by a session that had it in its ask. Their words differ too much to drop a copy
+  by its words (two share a median 0.18). To try: say at the hand-in which lessons are already
+  kept, and count a repeat as the same lesson seen again.
+- **What a body pays for what it remembers.** With the stronger model every arm that started
+  from a memory did more than a cold one for the same result, and three arms of ten runs could
+  not say which part of the memory does it; the one cause we named was wrong. Two arms of the
+  same kind stand 8% apart by themselves. To do before any more arms: enough runs to see a
+  tenth (three a task), then the parts again.
+
 ## Then: a fold for long runs
 
 When a run's context fills, Mikata today summarises the whole history, at most twice, and then
