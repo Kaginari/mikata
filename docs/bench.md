@@ -52,6 +52,10 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   held 6 of 6); that note stood before the ask, in other words, on an earlier build. What the
   hold still gives is a pass that names what verified it, and what must stay read from the code
   itself. Neither changed a pass here ([measured](#the-list-held)).
+- **A stronger body does not need the list on these asks.** With Claude Haiku 5.5 as the body
+  the same four prose asks passed 12 of 12 plain, for two cents a run. A reader added nothing,
+  doubled the price, and one run in twelve fixed the code and failed its gate on a wrong line of
+  the reader's ([measured](#the-list-held)).
 - **A reader is for an ask without examples.** On the ten single fixes, whose asks carry their
   examples, 1.1.0 with a reader passed 7 of the 9 tasks run, where plain passes 7 of the same
   nine: one task won, one lost to a wrong line of the reader, at a third more a run. Against
@@ -211,11 +215,12 @@ changed what the body is told.
 
 ### The list held
 
-Seven steps, each with its bar written first. The first three are on the two prose asks that
+Eight steps, each with its bar written first. The first three are on the two prose asks that
 fail nearly always (one of them had passed once in the twenty-one kept runs of three harnesses);
 the fourth is the product as it ships, on all four; the fifth is the same twelve again on the
 release itself; the sixth is the release with a reader on the asks that carry their examples; the
-seventh hands the release's own lists to every harness as a note.
+seventh hands the release's own lists to every harness as a note; the eighth gives the release a
+stronger body.
 
 **The body's own list, corrected.** Every failed run's first "done" list held wrong lines. A
 stand-in for you corrected each wrong line before the work, by what the upstream fix does: 1 of
@@ -414,6 +419,29 @@ lines. Nothing holds it: in Mikata's twelve runs no `check` was called and every
 
 36 runs, each counted on its first try.
 
+**A stronger body.** Everything above has one body. So the release was run on the four prose
+asks with Claude Haiku 5.5 as the body, plain and with a reader named, three rounds:
+
+| | Passes, by the hidden tests | Landed | $ a run | Calls a run |
+|---|---|---|---|---|
+| **Haiku 5.5, plain** | **12 of 12** | 12 | 0.022 | 23 |
+| **Haiku 5.5, a reader named** | **12 of 12** | 11 | 0.048 | 25.5 |
+| qwen 3.5 35B, plain | 6 of 12 | | 0.30 | 93.5 |
+| qwen 3.5 35B, a reader named | 10 of 12 | | 0.37 | 100.5 |
+
+- **No room.** This body passes the prose asks unaided, every time, so a reader has nothing to
+  add on them. The feature was not tested here; it was not needed.
+- **The reader costs what the run costs.** Its one call is 2.1 cents, the body's whole plain run
+  2.2. With this body a reader more than doubles the price for no pass.
+- **One reader run in twelve fixed the code and failed its gate.** The reader wrote that the
+  very input the ask is about "must stay as it is today". The body's check was piped into
+  `tail`, which ends well whatever came before it; the harness took the last line of the error
+  for what the command prints and held the line hard to it. The reader's line was wrong, and
+  reading a failed command as one that ran was ours: a check is now judged by the first stage
+  of its pipeline ([the loop](02-loop.md#done-when)). Not screened.
+
+24 runs, each counted on its first try, $0.85.
+
 **What is not closed.** A check that only prints the words is named, not refused, and only for a
 line that must give: the eight lines that must stay in the run of 28 `echo`s are named by
 nothing. A line that states no exact output (`must give a list holding exactly one ... node`,
@@ -436,8 +464,8 @@ check to `mean` to keep it failing. The list decides: read the one a reader writ
 
 Six runs an arm on two asks for the first three steps, $10.77; fourteen runs on four asks for the
 fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15; thirty-six for the
-seventh, $11.72. One codebase, asks that are not fresh, one model as the body and one as the
-reader.
+seventh, $11.72; twenty-four for the eighth, $0.85. One codebase, asks that are not fresh, one
+model as the reader, and but for the eighth step one as the body.
 
 ### The modes against each other
 
@@ -459,9 +487,11 @@ when they ran. Why they lose, and what we are building next, is on
 
 ### What the numbers do not say
 
-- **One model.** Most screens ran on one small open model. A stronger model passes more of these
-  tasks from scratch, in any harness; the gaps here are what a harness adds to a model that needs
-  help.
+- **One model, mostly.** Most screens ran on one small open model. A stronger model passes more
+  of these tasks from scratch, in any harness; the gaps here are what a harness adds to a model
+  that needs help. Where we gave Mikata a stronger body (Claude Haiku 5.5), the prose asks the
+  small model passes half the time passed 12 of 12 with no help, for two cents a run, and the
+  reader had nothing left to add ([measured](#the-list-held)).
 - **One kind of work.** Fixes and features in Python libraries with tests. We have not measured
   front-end work, infrastructure, or code with no tests.
 - **Small counts.** Ten tasks, run once or twice. We say "ahead" only where the gap is larger than

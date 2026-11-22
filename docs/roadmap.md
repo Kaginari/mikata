@@ -73,9 +73,12 @@ next:
   reader has not.
 - **When a reader pays.** On four prose asks it took 6 of 12 to 10 of 12. On the ten single
   fixes, whose asks carry their examples, it changed nothing we can show (7 of 9 both ways), at
-  a third more a run, and 47% more on the tasks that pass either way. Today the reader is called
-  on every ask that carries no list. To try: let it answer that the ask already fixes its
-  outputs, and write only what must stay.
+  a third more a run, and 47% more on the tasks that pass either way. With a stronger body
+  (Claude Haiku 5.5) the prose asks pass 12 of 12 unaided: the reader had no room, cost as much
+  as the run itself, and one landing in twelve failed on a wrong line of its list. So far a
+  reader pays for a weak body on an ask without examples, and nowhere else we have looked. Today
+  the reader is called on every ask that carries no list. To try: let it answer that the ask
+  already fixes its outputs, and write only what must stay.
 - **A copy that cannot run the project.** A `must stay` line handed in late is read from a copy
   of the world, and what changed is shown from two. Until a second codebase was run the copies
   left `node_modules` out, and on a JavaScript project almost nothing ran in them: 8 checks of
