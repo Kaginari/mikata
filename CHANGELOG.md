@@ -31,6 +31,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   any failure at all. The error is now the last line that begins with an error's name or tells
   of a panic, found in the output too when the command failed. Seen in a run that fixed the
   code, could not make its own checks run, and spent its steps on them.
+- **A check piped into `tail` or `grep` is judged by its command, not by the pipe.** A pipeline
+  ends as its last stage does, so a check whose command raised still "ran", and a line that
+  must stay was held hard to the last line of an error message. A reader had written such a
+  line for the very input an ask was about; the fix was right, the line "broke", and the
+  landing failed twice. The harness now reads the first stage's status from the shell, as its
+  stall detector already did: that check failed on the code as you gave it, so the line is held
+  as a failure is, and work that makes the command run is said once and refuses nothing.
 
 ## [1.1.0] - 2026-11-21
 

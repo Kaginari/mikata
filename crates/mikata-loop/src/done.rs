@@ -1683,6 +1683,66 @@ you gave it; 1 check handed in after the code had changed)"
         );
     }
 
+    /// A check that pipes its command into `tail` ends well whatever the command did. A line
+    /// that must stay is not held to an error message as if it were output: its command failed
+    /// on the code as found, so the line is held as a failure is, and work that makes the
+    /// command run is said once and refuses nothing. A reader wrote such a line for the very
+    /// input an ask was about, and a correct fix failed its gate twice.
+    #[test]
+    fn a_piped_check_that_failed_is_held_as_a_failure_not_as_its_last_line() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        script(
+            "echo 'ParseError: no such clause' >&2\necho '  PARTITION BY EXCLUDING a' >&2\nexit 1\n",
+        );
+        let ask = "Be kinder.\n\n## Done when\nD1: `x` must stay as it is today\n";
+        let mut list = List::of(ask);
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x 2>&1 | tail -1"}"#,
+            true,
+        );
+        assert!(
+            !o.is_error
+                && o.content
+                    .contains("your command fails:\nPARTITION BY EXCLUDING a\n"),
+            "{}",
+            o.content
+        );
+        assert!(
+            matches!(list.checks()[0].must, Must::Fail(_)),
+            "{:?}",
+            list.checks()
+        );
+        // The work makes the command run: said once, and the landing is not refused.
+        script("echo 'PARTITION BY EXCLUDING a'\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!(
+            (judged.failures.len(), judged.moved.len()),
+            (0, 1),
+            "{judged:?}"
+        );
+        // The other way round is a break: it printed, and now its command fails behind the pipe.
+        script("echo 5\n");
+        let mut list = List::of(ask);
+        call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x 2>&1 | tail -1"}"#,
+            true,
+        );
+        assert_eq!(list.checks()[0].must, Must::Print("5".into()));
+        script("echo 'ValueError: bad unit' >&2\nexit 1\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.failures[0].contains(
+                "printed `5` on the code as you found it and fails (ValueError: bad unit) on your work"
+            ),
+            "{judged:?}"
+        );
+    }
+
     /// A write is refused while a line has no check, twice, and then goes through: the gate
     /// says what is missing, and a body is never left with no way on.
     #[test]

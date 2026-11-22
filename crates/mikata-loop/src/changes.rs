@@ -231,11 +231,12 @@ pub fn compare(
 /// What a check did on one tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Said {
-    /// Whether it ran to its end and left with 0.
+    /// Whether it ran to its end and left with 0: in a pipeline, its first stage as well as its
+    /// last.
     pub ok: bool,
     /// What it printed on its standard output, as far as it got.
     pub out: String,
-    /// The last line of what it said besides: its error, when it failed.
+    /// The line of what it said where its error names itself, when it failed.
     pub err: String,
 }
 
@@ -337,17 +338,29 @@ pub(crate) fn said_of(o: &mikata_tools::Outcome, names: &[String]) -> Said {
         })
     };
     let out = stdout_of(&o.content);
+    // A pipeline ends as its last stage does, and `| tail -1` ends well whatever came before
+    // it. The command a check is about is the first stage: when that failed, the check failed,
+    // and what the pipe let through is no output to hold a line to. A first stage the pipe
+    // itself closed early did not fail.
+    let failed = o.is_error
+        || o.meta
+            .pipe
+            .is_some_and(|status| status != 0 && status != CLOSED);
     // What it said besides its output: the line of it where an error names itself. A command
     // that sends both down one pipe (`2>&1`) and fails said it in the output.
     let err = named_error(&o.content[out.len()..])
-        .or_else(|| o.is_error.then(|| named_error(out)).flatten())
+        .or_else(|| failed.then(|| named_error(out)).flatten())
         .unwrap_or_default();
     Said {
-        ok: !o.is_error,
+        ok: !failed,
         out: placed(out).trim_end().to_owned(),
         err: placed(err),
     }
 }
+
+/// How a stage ends when the stage after it stops reading (`... | head -1`): killed by the pipe
+/// closing, which the shell reports as 128 and the signal's number.
+const CLOSED: u8 = 141;
 
 /// The line of what a failed command said where the error names itself. The last line that
 /// begins with an error's name (`ValueError: …`, `Error [ERR_MODULE_NOT_FOUND]: …`, `error[E0308]:
@@ -1100,6 +1113,28 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<world>/src/entry/gen.js' impo
             mikata_races::ToolClass::Read,
         );
         assert_eq!(said_of(&ran, &[]).err, "");
+    }
+
+    /// A pipeline ends as its last stage does. A check whose first stage failed did fail,
+    /// whatever `| tail -1` let through; one whose first stage the pipe closed early did not.
+    #[test]
+    fn a_piped_check_is_judged_by_its_first_stage() {
+        let piped = |first: u8| {
+            let mut o = mikata_tools::Outcome::ok(
+                "  SELECT 1 OVER (PARTITION BY EXCLUDING a)\n".to_owned(),
+                mikata_races::ToolClass::Read,
+            );
+            o.meta.exit = Some(0);
+            o.meta.pipe = Some(first);
+            said_of(&o, &[])
+        };
+        let failed = piped(1);
+        assert!(!failed.ok, "{failed:?}");
+        assert_eq!(failed.err, "SELECT 1 OVER (PARTITION BY EXCLUDING a)");
+        for held in [0, CLOSED] {
+            let ran = piped(held);
+            assert!(ran.ok && ran.err.is_empty(), "{held}: {ran:?}");
+        }
     }
 
     /// A dependency folder is lent as a folder of links: a package leads to the world's own, a

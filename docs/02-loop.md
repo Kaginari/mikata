@@ -780,7 +780,10 @@ stay was tried before, and failed. So the harness holds the list, by code:
   ...`, `error[E0308]: ...`) or tells of a panic, wherever a runtime's own closing lines come
   after it (Node ends every failure on its version), and whichever pipe it came down: a check
   written with `2>&1` says its error in its output. The body is told that line when a check
-  fails, at the hand-in and at the gate.
+  fails, at the hand-in and at the gate. And a check is a failure when its command failed,
+  whatever it was piped into: `... 2>&1 | tail -1` ends well whatever came before it, so the
+  harness reads the first stage's own status from the shell. What the pipe let through of a
+  failed command is no output to hold a line to.
 - The same line and command handed in again asks how the line stands now. The check is kept as
   it came in.
 - A line with neither phrase takes either form.
