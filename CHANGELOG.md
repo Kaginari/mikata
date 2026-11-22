@@ -11,6 +11,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Security
+
+- **The URL library under the HTTP client is updated past an advisory published on 22 November
+  2026** (`url` 2.5.8 to 2.5.9, RUSTSEC-2026-0592): a `blob:` URL nested deep enough overflowed
+  the stack in `Url::origin()`. Mikata's own code does not call that function; the update is
+  the one the advisory names.
+
 ### Fixed
 
 - **A task that comes again is shown what was learned on it.** Recall matched a note by its

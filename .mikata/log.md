@@ -7838,3 +7838,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **What I read wrong on the way, each caught before it reached the book:** my reader counted the plan file a body writes as its first change to the code; and I read an arm that stood one tool use over its line as carrying a cost, where two arms of the same kind stand 8% apart.
 - **What none of it says:** every run had no verify line. Nothing was grounded and no failure reached memory, which is the product with nothing configured and not the setup the README asks for. The same rounds with a verify line are the next screen; about $15.
 - **In the book:** the bench page's section on memory and a line in plain words; the roadmap's "a memory that pays"; the memory page's "what is measured"; four lessons. **Kept:** rows, the five notes, tools and readings in the bench repository.
+
+### [2026-11-22T14:32:00+00:00] aibo Summoner — an advisory against a dependency failed the check; and a count corrected
+- **What failed:** the dependency check, on a commit that changed only pages. RUSTSEC-2026-0592 was published today against `url` 2.5.8, which the HTTP client brings in: a deeply nested `blob:` URL overflows the stack in `Url::origin()`. Mikata's own code does not call it.
+- **The change:** `url` 2.5.9, the release the advisory names (and `form_urlencoded` 1.2.3 with it). The lockfile only. Advisories, bans, licences and sources pass; the workspace builds; the provider's 84 tests pass.
+- **A count corrected:** the entry above says four lessons went into the book for the memory campaign. Five did: two with the fixes, three with the verdict.
+- **Kept, for the campaign:** Kaginari/bench pull request 62 (rows, the five notes, tools, readings, the report).
