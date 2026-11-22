@@ -32,7 +32,8 @@ The same three harnesses, each as released, on two more screens, each task once
   model, same tasks, same host: the harness is the only difference. By the bar written before
   each screen (ahead at three tasks of ten) no difference is shown, any of the four times.
 - **On price there is no one answer, and Mikata is not always the cheapest.** On sqlglot with
-  the small model a pass cost Mikata about half what it cost the others, both times. On mathjs,
+  the small model a pass cost Mikata a little over half what it cost the others, over the two
+  screens ($0.50 against $0.91 and $0.87). On mathjs,
   whose fixes are smaller, it cost half of OpenCode's and three times Maki's. With a stronger
   model every harness passes every task, and Mikata's pass costs what OpenCode's does and twice
   Maki's. Mikata writes down what done means and checks each line; that takes calls. Where the
