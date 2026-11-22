@@ -7,6 +7,8 @@
 //! word said. Counted over 284 kept runs of two bodies: one lost 80 of its 440 lessons this way,
 //! the other 97 of 108.
 
+use mikata_wire::UnsaidKind;
+
 /// What markdown puts before a line's first word: a list mark, a heading, a quote.
 const MARKS: [char; 6] = ['-', '*', '+', '•', '#', '>'];
 /// What it wraps a word or a whole line in.
@@ -15,9 +17,11 @@ const WRAPS: [&str; 2] = ["**", "`"];
 const TAG: &str = "@U";
 
 /// `text` with each lesson line bare, as the wire reads one: the marks before its `@U` dropped,
-/// and the emphasis or code span that opened on it closed. Only a line whose first word behind
-/// those marks is `@U` is touched. Every other line stays as written, so no other tag is read
-/// from inside a list, and a status can never come from one.
+/// the emphasis or code span that opened on it closed, and the colon a body sets after the kind
+/// as after a label (`@U colony: …`) gone. Only a line whose first word behind those marks is
+/// `@U` is touched, and behind a mark only one that names its kind: a heading that reads
+/// `**@U lines**` is a heading. Every other line stays as written, so no other tag is read from
+/// inside a list, and a status can never come from one.
 pub(crate) fn bare(text: &str) -> String {
     text.lines()
         .map(|line| lesson(line).unwrap_or_else(|| line.to_owned()))
@@ -25,8 +29,8 @@ pub(crate) fn bare(text: &str) -> String {
         .join("\n")
 }
 
-/// The line bare, when it is a lesson behind marks; `None` for any other line, a lesson already
-/// bare among them.
+/// The line as a bare lesson, when it is one that the wire would not read as written; `None`
+/// for any other line, a lesson the wire reads already among them.
 fn lesson(line: &str) -> Option<String> {
     let mut rest = unmarked(line);
     let mut open = Vec::new();
@@ -34,24 +38,36 @@ fn lesson(line: &str) -> Option<String> {
         rest = &rest[wrap.len()..];
         open.push(*wrap);
     }
-    let tagged = rest
+    let marked = rest.len() < line.trim_start().len();
+    let said = rest
         .strip_prefix(TAG)
-        .is_some_and(|after| after.starts_with(char::is_whitespace));
-    if !tagged || rest.len() == line.trim_start().len() {
-        return None;
-    }
-    let mut bare = rest.trim_end().to_owned();
+        .filter(|after| after.starts_with(char::is_whitespace))?;
+    let mut said = said.trim().to_owned();
     // Each wrap closes where it is next seen, the innermost first: around the tag and its path
     // (`**@U law a.py** the fact`), around the whole line, or never. A colon set after it, as
     // after a label, goes with it.
     for wrap in open.iter().rev() {
-        if let Some(at) = bare.find(wrap) {
-            let after = &bare[at + wrap.len()..];
+        if let Some(at) = said.find(wrap) {
+            let after = &said[at + wrap.len()..];
             let after = after.strip_prefix(':').unwrap_or(after);
-            bare = format!("{}{after}", &bare[..at]);
+            said = format!("{}{after}", &said[..at]);
         }
     }
-    Some(bare)
+    let (word, fact) = said
+        .split_once(char::is_whitespace)
+        .unwrap_or((said.as_str(), ""));
+    let kind = word.strip_suffix(':').unwrap_or(word);
+    let labelled = kind.len() < word.len();
+    // Behind a mark, a lesson names its kind. Bare, it is the wire's to read unless its kind
+    // carries a colon, which the wire would take for part of the fact.
+    if UnsaidKind::from_word(kind).is_none() || !(marked || labelled) {
+        return None;
+    }
+    Some(
+        format!("{TAG} {kind} {}", fact.trim_start())
+            .trim_end()
+            .to_owned(),
+    )
 }
 
 /// The line behind its list marks, numbers, heading marks and quote marks, however they nest.
@@ -137,6 +153,16 @@ mod tests {
                 law,
                 "a.py pop on an empty stack raises",
             ),
+            (
+                "- @U colony: in this environment `unittest discover` has 4 known errors",
+                colony,
+                "in this environment `unittest discover` has 4 known errors",
+            ),
+            (
+                "@U colony: a bare lesson whose kind carries a colon",
+                colony,
+                "a bare lesson whose kind carries a colon",
+            ),
         ] {
             assert_eq!(kept(written), [(kind, text.to_owned())], "{written}");
         }
@@ -168,6 +194,10 @@ mod tests {
             "`@$ slime-a: do it`",
             "- the `@U law` lines above are what I learned",
             "- @Ulaw a.py no space, no tag",
+            "**@U lines**",
+            "- @U lines I wrote above",
+            "## @U",
+            "@U a bare lesson of no kind is the wire's to read",
             "-@U law a.py a dash is not a list mark without its space",
             "@U law a.py a bare lesson is left alone",
             "plain prose",

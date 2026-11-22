@@ -22,7 +22,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   that wrote a lesson, 32 left an empty memory behind them. A lesson is now read behind a list
   mark, a number, a heading or a quote mark, and out of the code span or the bold that opens on
   it. Nothing else is read that way: a status or a verdict still counts only where it opens a
-  line.
+  line, and a marked line is a lesson only when it names its kind, so a heading that reads
+  `@U lines` stays a heading. A colon after the kind (`@U colony: ...`) is no part of the fact.
 - **In a JavaScript project, the harness's own copies of your code now find what is installed.**
   "What changed" runs Mikata's checks again on two copies of the world, and a line of your list
   that must stay, handed in after the code changed, is read from a copy as well. The copies left

@@ -7813,3 +7813,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **The change:** an answer to the human, and a drain, are read as markdown for lessons alone: behind a list mark, a number, a heading or a quote mark, and out of the code span or bold that opens on them. No status, verdict or order is read that way. Two end-to-end tests, both red with the reader switched off; 466 tests of the loop crate, lints clean.
 - **Not shown yet:** that a kept memory makes a later run better. That is the screen's question, and it starts over on this build. The two runs of the old build are paid (5 cents) and not counted.
 - **Seen and not changed:** a lesson about the whole repository reaches a later session only when the ask's words match it. Whether that costs anything is read from the screen's first round before anything is built.
+
+### [2026-11-22T06:39:00+00:00] aibo Summoner — the lesson reader, two cases from its first twenty runs
+- **Why:** I read every note the first twenty runs of the memory screen kept. Two were wrong, both my reader's doing.
+- **A heading kept as a lesson:** a body titled its list `**@U lines**`, and the reader kept a note that says "lines". Behind a mark a line is now a lesson only when it names its kind (law, colony, territory). Over the 311 runs on disk, 219 marked lessons name one and that heading is the only line that does not.
+- **A kind lost to a colon:** `- @U colony: ...` was kept with no kind and "colony:" in its text. The colon a body sets after the kind is dropped, on a bare line too. Twice in those 311 runs.
+- **The screen:** it runs the build before this change, as its note says. Those two notes are in its memory, of about ninety.

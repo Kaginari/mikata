@@ -302,8 +302,10 @@ its prompt asks to end with them, grounded by that ask's own passing gate when t
 where it opens a line: a report is written for a parser. A body answering the human sets its
 lessons down as it sets down any list — `- @U law …`, `` `@U colony …` ``, `**@U law a.py** …` —
 so in an answer, and in a drain, a lesson is read behind a list mark, a number, a heading or a
-quote mark, and out of the code span or the bold that opens on it. Only a lesson: no status,
-verdict or order is ever read from inside a list. Read strictly, such a line was prose and the
+quote mark, and out of the code span or the bold that opens on it. Only a lesson, and only one
+that names its kind (`law`, `colony`, `territory`): no status, verdict or order is ever read from
+inside a list, and a heading that reads `**@U lines**` is a heading. A colon set after the kind,
+as after a label (`@U colony: …`), is dropped. Read strictly, such a line was prose and the
 lesson was lost with nothing said. Over 284 kept runs of the bench, one body lost 80 of its 440
 lessons that way and another 97 of 108.
 
