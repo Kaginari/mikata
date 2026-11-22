@@ -13,6 +13,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **A task that comes again is shown what was learned on it.** Recall matched a note by its
+  own words, and a lesson is written in the words of what was found, not of what was asked. In
+  one codebase a long ask shares its words with half the memory, so other tasks' notes took the
+  seats: carried through ten tasks three times over, 18 of the 20 runs that met a task again
+  were shown a note of their own, and of about six notes shown 1.3 were their own task's. A
+  lesson is now kept with the first line of the ask it was learned under and matched with those
+  words too: 20 of 20, and 2.8 of the six. Measured with the product's own recall on that
+  campaign's 88 notes, which a test now holds. It is not shown to make a run cheaper: on that
+  campaign a body that passes every task cold passed every task with memory, in more calls.
 - **What a session learned is kept when it is written as a list.** At the end of an answer
   Mikata writes down what it learned that is written nowhere, one line each, and the harness
   keeps those lines as notes for later sessions. It read such a line only where it opened a line

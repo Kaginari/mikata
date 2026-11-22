@@ -1,4 +1,4 @@
-//! A lesson line as a body writes it when it answers the human.
+//! A lesson line as a body writes it when it answers the human, and the ask it is kept under.
 //!
 //! The wire reads a tag only where it opens a line, and between bodies that is right: a report is
 //! written for a parser. An answer to the human is markdown, and a body sets its lessons down
@@ -68,6 +68,24 @@ fn lesson(line: &str) -> Option<String> {
             .trim_end()
             .to_owned(),
     )
+}
+
+/// The longest first line of an ask kept with a lesson, in characters.
+const FIRST_LINE: usize = 200;
+
+/// The first line of an ask, as it is kept with what a session learned answering it: its first
+/// line that says anything, behind any heading marks, within [`FIRST_LINE`] characters. Recall
+/// matches a lesson with these words beside its own. `None` for an ask that says nothing.
+pub(crate) fn first_line(ask: &str) -> Option<&str> {
+    let line = ask
+        .lines()
+        .map(|l| l.trim().trim_start_matches('#').trim())
+        .find(|l| !l.is_empty())?;
+    let end = line
+        .char_indices()
+        .nth(FIRST_LINE)
+        .map_or(line.len(), |(at, _)| at);
+    Some(&line[..end])
 }
 
 /// The line behind its list marks, numbers, heading marks and quote marks, however they nest.
@@ -182,6 +200,22 @@ mod tests {
         ] {
             assert!(bare.lines().any(|l| l == prose), "{prose}: {bare}");
         }
+    }
+
+    #[test]
+    fn an_asks_first_line_is_its_first_words_behind_any_heading() {
+        use super::first_line;
+        assert_eq!(
+            first_line("\n# `COLLATE` is not accepted inside `CAST`\n\nIt fails."),
+            Some("`COLLATE` is not accepted inside `CAST`")
+        );
+        assert_eq!(
+            first_line("make out.txt say fixed"),
+            Some("make out.txt say fixed")
+        );
+        assert_eq!(first_line("  \n\n"), None);
+        let long = "é".repeat(300);
+        assert_eq!(first_line(&long).map(|l| l.chars().count()), Some(200));
     }
 
     /// The reader is for lessons alone: a list never yields a status, a verdict or an order, and

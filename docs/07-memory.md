@@ -196,6 +196,23 @@ the floor above 0 and at most 1, the saturations and the half-life above 0, the 
 (0 keeps $c$ fixed) — anything else, an
 infinity included, is an error naming its file.
 
+**A note is matched with the ask it was learned under.** A lesson is put in the words of what
+was found, not of what was asked: "pushdown stops at the first source it cannot fill" shares no
+word with "support NEAREST joins". And inside one codebase a long ask shares its words with half
+the memory, so the notes of other tasks take the seats. A session's own body therefore keeps
+each lesson with the first line of the ask it was answering (`asked`, at most 200 characters),
+and recall matches the note with those words beside its own, the way a correction borrows the
+words of the note it corrects: for the match alone, never shown as the note's text, never
+counted in how common a word is. Measured on a campaign that carried one memory through ten
+tasks of one codebase three times over (88 notes; the product's own recall, which shows exactly
+the 168 notes the runs were shown): by their words alone, 18 of the 20 runs that met a task again
+were shown a note their own earlier run wrote, and of about six notes shown 1.3 were their own
+task's and 3.3 other tasks'. Kept with their ask: 20 of 20, 2.8 their own and 2.1 other tasks'.
+The notes are in `crates/mikata-memory/tests/fixtures/carried-recall.json` and a test holds the
+twenty. A commissioned body's claims carry no ask: its commission says what it is about. What
+this does not show: that being shown its own notes makes a run cheaper or better. On that
+campaign it did not ([the bench](bench.md)).
+
 ### Two scopes, two standings
 
 Scope says who may recall a note; standing says how far it is trusted. They are separate axes:

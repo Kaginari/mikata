@@ -299,6 +299,13 @@ pub fn gather(
         notes.push((n, rel));
     }
     lend_to_corrections(&mut notes);
+    // A note is matched where the ask it was learned under would be: a session that meets that
+    // ask again is shown what the one before it learned, whatever words the lesson was put in.
+    for (note, _) in &mut notes {
+        if let Some(asked) = &note.asked {
+            note.lent.push(asked.clone());
+        }
+    }
     Ok(Memory {
         notes,
         personal,

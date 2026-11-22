@@ -34,6 +34,7 @@ fn create(note: &str, time: u64, source: Option<&str>) -> Event {
             links: vec![],
             evidence: vec![],
             depends_on: vec![],
+            asked: None,
         },
     }
 }

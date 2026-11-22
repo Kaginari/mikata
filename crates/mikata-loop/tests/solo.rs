@@ -653,6 +653,66 @@ async fn a_solo_answer_that_lists_its_lessons_keeps_them() {
     }
 }
 
+/// A lesson is put in the words of what was found, not of what was asked. Kept with the first
+/// line of its ask, it is shown again when that ask comes again, though it shares no word with
+/// it; and the next ask of another thing is not shown it.
+#[tokio::test]
+async fn an_ask_that_comes_again_is_shown_what_was_learned_under_it() {
+    use mikata_memory::{Tier, fold, read};
+    let w = World::new("solo-asked-again");
+    let asked = "# Support NEAREST top-k joins\n\nA join may say how many rows it keeps.";
+    let lesson = "pushdown stops at the first source it cannot fill";
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer(&format!("Done.\n\n- @U law out.txt {lesson}")),
+        answer("Nothing left to do."),
+        answer("That is another matter."),
+    ]));
+    let mut run = w.run(model.clone(), &[]);
+    ask(&mut run, asked).await;
+    let mine = fold(
+        &read(&w.world(), &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
+    let kept = mine.values().next().unwrap_or_else(|| panic!("{mine:?}"));
+    assert_eq!(
+        kept.asked.as_deref(),
+        Some("Support NEAREST top-k joins"),
+        "the lesson is kept with the first line of its ask: {kept:?}"
+    );
+    let said = |i: usize| -> String {
+        model.requests()[i]
+            .messages
+            .iter()
+            .rev()
+            .find(|m| m.role == mikata_provider::Role::User)
+            .unwrap()
+            .content
+            .iter()
+            .filter_map(|b| match b {
+                Block::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    ask(&mut run, asked).await;
+    let again = said(2);
+    assert!(again.starts_with("Recalled from memory"), "{again}");
+    assert!(again.contains(&format!("out.txt {lesson}")), "{again}");
+    ask(
+        &mut run,
+        "Oracle: alternative quoting rejects most delimiters",
+    )
+    .await;
+    let other = said(3);
+    assert!(!other.contains(lesson), "{other}");
+}
+
 /// A claim about the world, which no check can ground, is corroborated when another creature said
 /// the same from other evidence: what the body read is the evidence it rests on.
 #[tokio::test]

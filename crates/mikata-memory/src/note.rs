@@ -148,6 +148,10 @@ pub enum Change {
         /// What it rests on: claims, facts, files with their hashes.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         depends_on: Vec<Dependency>,
+        /// The first line of the ask it was learned under, when a session learned it answering
+        /// one: recall matches the note with these words beside its own.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        asked: Option<String>,
     },
     /// A correction of its text: the next version, under the same id. The earlier versions stay;
     /// the new one is proposed until a route grounds it.
@@ -229,9 +233,12 @@ pub struct Note {
     pub born: u64,
     /// The notes it revises, each with its weight: a revise note's.
     pub links: Vec<Link>,
-    /// Words recall borrows for a correction from the notes it cites, to match where they match:
-    /// never stored, never counted in how common a word is.
+    /// Words recall borrows for matching: a correction's from the notes it cites, to match where
+    /// they match, and any note's from the ask it was learned under ([`Note::asked`]). Never
+    /// counted in how common a word is.
     pub lent: Vec<String>,
+    /// The first line of the ask it was learned under, when a session learned it answering one.
+    pub asked: Option<String>,
     /// What the claim rests on: the files its run read or changed.
     pub evidence: Vec<String>,
     /// Its version now, from 1: its id stays, each correction a new version.
@@ -292,6 +299,7 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
                 links,
                 evidence,
                 depends_on,
+                asked,
             } => {
                 notes.entry(e.note.clone()).or_insert_with(|| Note {
                     id: e.note.clone(),
@@ -307,6 +315,7 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
                     born: e.time,
                     links: links.clone(),
                     lent: Vec::new(),
+                    asked: asked.clone(),
                     evidence: evidence.clone(),
                     version: 1,
                     versions: vec![Version {

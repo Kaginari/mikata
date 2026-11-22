@@ -345,6 +345,167 @@ fn a_correction_stands_where_the_note_it_corrects_stands() {
 /// Against the 100-odd notes real runs wrote: each task's ask, over all of them, should find its
 /// own notes. A fixed saturation lets nearly every note clear the floor once memory is this large;
 /// the saturation that grows with the notes keeps most of what clears relevant (#196).
+/// A lesson is put in the words of what was found, not of what was asked. Kept with the first
+/// line of the ask it was learned under, it is recalled when that ask comes again; the same
+/// words kept without it are not.
+#[test]
+fn a_note_is_recalled_for_the_ask_it_was_learned_under() {
+    use mikata_memory::{gather, propose_on, propose_under};
+    let w = std::env::temp_dir().join(format!("mikata-recall-asked-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&w);
+    std::fs::create_dir_all(&w).unwrap();
+    let ask = "DuckDB: support NEAREST top-k joins\n\nA join may name how many rows it keeps.";
+    let lesson = "pushdown stops at the first source it cannot fill";
+    let learned = propose_under(
+        &w,
+        "summoner",
+        lesson,
+        vec!["law".into()],
+        ask.lines().next(),
+        vec![],
+    )
+    .unwrap();
+    assert_eq!(
+        learned.asked.as_deref(),
+        Some("DuckDB: support NEAREST top-k joins")
+    );
+    let other = propose_on(
+        &w,
+        "summoner",
+        "an index is counted from one in this dialect",
+        vec!["law".into()],
+        None,
+        vec![],
+    )
+    .unwrap();
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ask, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(ids(&r), [learned.note.as_str()], "{r:?}");
+    // The words are borrowed for the match alone: the note says what it said.
+    assert_eq!(r.anchors[0].note.text, lesson);
+    // Another ask does not find it by them, and a note kept under no ask borrows nothing.
+    let elsewhere = recall(
+        "Oracle: alternative quoting rejects most delimiters",
+        &memory.notes,
+        NOW,
+        6,
+        &Weights::default(),
+    );
+    assert!(elsewhere.anchors.is_empty(), "{elsewhere:?}");
+    assert!(
+        memory
+            .notes
+            .iter()
+            .any(|(n, _)| n.id == other.note && n.lent.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
+/// Measured on a carried campaign's own notes (`fixtures/carried-recall.json`: one body, ten
+/// tasks in one codebase, three rounds on one memory, 88 notes). A task that comes again must be
+/// shown a note its own earlier run wrote. Matched by their words alone, the notes of a long ask
+/// lose their seats to other tasks' notes that share the codebase's words; kept with the first
+/// line of the ask they were learned under, every one of the twenty returning asks finds its own.
+#[test]
+fn a_task_that_comes_again_finds_its_own_notes_among_a_codebases() {
+    let data: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/carried-recall.json")).unwrap();
+    let order: Vec<&str> = data["order"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t.as_str().unwrap())
+        .collect();
+    let ask = |task: &str| data["asks"][task].as_str().unwrap();
+    let first_line = |task: &str| {
+        ask(task)
+            .lines()
+            .map(|l| l.trim().trim_start_matches('#').trim())
+            .find(|l| !l.is_empty())
+            .unwrap()
+            .to_owned()
+    };
+    // Where a run stands in the campaign: its round, then its task's place in the order.
+    let at = |round: u64, task: &str| (round, order.iter().position(|t| *t == task).unwrap());
+    let written: Vec<(u64, &str, Note)> = data["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .enumerate()
+        .map(|(i, n)| {
+            let (round, task) = (n["round"].as_u64().unwrap(), n["task"].as_str().unwrap());
+            let note = Note {
+                tags: n["tags"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|t| t.as_str().unwrap().to_owned())
+                    .collect(),
+                owner: Some("summoner".into()),
+                salience: 0.6,
+                born: NOW - DAY + i as u64,
+                ..note(
+                    &format!("n{i:03}"),
+                    n["text"].as_str().unwrap(),
+                    Polarity::Support,
+                    Status::Proposed,
+                )
+            };
+            (round, task, note)
+        })
+        .collect();
+    assert!(written.len() >= 80, "{}", written.len());
+    // For each run of rounds 2 and 3: recall over what was written before it, and whether a
+    // note of its own task is among the anchors.
+    let found = |kept_with_their_ask: bool| {
+        let (mut own_shown, mut cases, mut own_seats, mut seats) = (0, 0, 0, 0);
+        for round in [2, 3] {
+            for task in &order {
+                let before: Vec<(Note, Relation)> = written
+                    .iter()
+                    .filter(|(r, t, _)| at(*r, t) < at(round, task))
+                    .map(|(_, t, n)| {
+                        let mut n = n.clone();
+                        if kept_with_their_ask {
+                            n.lent.push(first_line(t));
+                        }
+                        (n, Relation::Own)
+                    })
+                    .collect();
+                let own: Vec<&str> = written
+                    .iter()
+                    .filter(|(r, t, _)| t == task && at(*r, t) < at(round, task))
+                    .map(|(_, _, n)| n.id.as_str())
+                    .collect();
+                let r = recall(ask(task), &before, NOW, 6, &Weights::default());
+                let shown = ids(&r);
+                let mine = shown.iter().filter(|i| own.contains(i)).count();
+                cases += 1;
+                own_shown += usize::from(mine > 0);
+                own_seats += mine;
+                seats += shown.len();
+            }
+        }
+        (own_shown, cases, own_seats, seats)
+    };
+    let (by_words, cases, words_own, words_seats) = found(false);
+    let (with_ask, _, ask_own, ask_seats) = found(true);
+    assert_eq!(cases, 20);
+    assert!(
+        by_words < cases,
+        "by their words alone every ask found its own note: the fixture no longer shows the fault"
+    );
+    assert_eq!(
+        with_ask, cases,
+        "kept with its ask, a note is found when the ask comes again"
+    );
+    // And it takes the seats other tasks' notes held: twice as many of the six are its own.
+    assert!(
+        ask_own * words_seats >= 2 * words_own * ask_seats,
+        "own seats {ask_own} of {ask_seats} with the ask, {words_own} of {words_seats} by words"
+    );
+}
+
 #[test]
 fn a_large_memory_does_not_flood_the_floor() {
     use mikata_memory::text::{bm25, content_words};

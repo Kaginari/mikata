@@ -34,6 +34,8 @@ pub struct Claim<S> {
     pub evidence: Vec<String>,
     /// What it depends on: claims, facts, files with their hashes.
     pub depends_on: Vec<Dependency>,
+    /// The first line of the ask it was learned under, when a session learned it answering one.
+    pub asked: Option<String>,
     standing: PhantomData<S>,
 }
 
@@ -315,6 +317,53 @@ pub fn propose_resting(
     evidence: Vec<String>,
     depends_on: Vec<Dependency>,
 ) -> std::io::Result<Claim<Proposed>> {
+    born(world, owner, text, tags, source, evidence, depends_on, None)
+}
+
+/// [`propose_on`], for a claim a session learned while answering an ask: `asked` is that ask's
+/// first line, kept with the note. Recall matches the note with those words beside its own, so
+/// a session that meets the ask again is shown what the one before it learned, whatever words
+/// the lesson was put in.
+///
+/// # Errors
+///
+/// The creature's memory is frozen ([`crate::unfrozen`]), or the note file cannot be written.
+pub fn propose_under(
+    world: &Path,
+    owner: &str,
+    text: &str,
+    tags: Vec<String>,
+    asked: Option<&str>,
+    evidence: Vec<String>,
+) -> std::io::Result<Claim<Proposed>> {
+    let asked = asked.map(str::trim).filter(|a| !a.is_empty());
+    born(
+        world,
+        owner,
+        text,
+        tags,
+        None,
+        evidence,
+        Vec::new(),
+        asked.map(str::to_owned),
+    )
+}
+
+/// A claim's birth, whole: what every `propose` comes to.
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the creation event's own fields, behind the functions that name the few a caller has"
+)]
+fn born(
+    world: &Path,
+    owner: &str,
+    text: &str,
+    tags: Vec<String>,
+    source: Option<String>,
+    evidence: Vec<String>,
+    depends_on: Vec<Dependency>,
+    asked: Option<String>,
+) -> std::io::Result<Claim<Proposed>> {
     crate::audit::unfrozen(world, owner)?;
     let mut depends_on = depends_on;
     for f in crate::graph::files(world, &evidence) {
@@ -340,6 +389,7 @@ pub fn propose_resting(
             links: Vec::new(),
             evidence: evidence.clone(),
             depends_on: depends_on.clone(),
+            asked: asked.clone(),
         },
     )?;
     Ok(Claim {
@@ -350,6 +400,7 @@ pub fn propose_resting(
         source,
         evidence,
         depends_on,
+        asked,
         standing: PhantomData,
     })
 }
@@ -425,6 +476,7 @@ pub fn ground(
             links: Vec::new(),
             evidence: claim.evidence.clone(),
             depends_on: depends_on.clone(),
+            asked: claim.asked.clone(),
         },
     )?;
     // Shared memory may hold it already — a claim grounded again after a review: what this
@@ -457,6 +509,7 @@ pub fn ground(
         source: claim.source,
         evidence: claim.evidence,
         depends_on,
+        asked: claim.asked,
         standing: PhantomData,
     })
 }
@@ -541,6 +594,7 @@ pub fn revise(
                 evidence: Vec::new(),
                 links,
                 depends_on: Vec::new(),
+                asked: None,
             },
         )?;
         append(
@@ -597,6 +651,7 @@ pub fn cache(world: &Path, body: &str, text: &str) -> std::io::Result<String> {
             evidence: Vec::new(),
             links: Vec::new(),
             depends_on: Vec::new(),
+            asked: None,
         },
     )?;
     Ok(note)
@@ -1150,6 +1205,7 @@ pub fn proposed(world: &Path, owner: &str, id: &str) -> std::io::Result<Option<C
             source: n.source.clone(),
             evidence: n.evidence.clone(),
             depends_on: n.depends_on.clone(),
+            asked: n.asked.clone(),
             standing: PhantomData,
         }))
 }

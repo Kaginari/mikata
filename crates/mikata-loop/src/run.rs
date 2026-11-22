@@ -2655,6 +2655,7 @@ impl Run {
             &ending,
             proof.as_ref(),
             &self.evidence(),
+            crate::lessons::first_line(&self.asked),
         );
         if let Some(kept) = kept {
             self.record(&Beat::Warning { text: kept });
@@ -4550,7 +4551,14 @@ impl Run {
             }
             let mut tags: Vec<String> = u.kind.map(|k| k.word().to_owned()).into_iter().collect();
             tags.push("drain".into());
-            match mikata_memory::propose(self.cx.world(), &self.body.name, &u.text, tags, None) {
+            match mikata_memory::propose_under(
+                self.cx.world(),
+                &self.body.name,
+                &u.text,
+                tags,
+                crate::lessons::first_line(&self.asked),
+                Vec::new(),
+            ) {
                 Ok(_) => kept += 1,
                 Err(e) => self.record(&Beat::Warning {
                     text: format!("a drained line could not be kept: {e}"),

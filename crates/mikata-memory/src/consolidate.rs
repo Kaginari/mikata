@@ -73,6 +73,7 @@ pub fn distill(
             source: None,
             evidence: Vec::new(),
             depends_on: Vec::new(),
+            asked: None,
             links: merged
                 .iter()
                 .map(|n| Link {
@@ -160,6 +161,7 @@ pub fn forget(
                     source: n.source.clone(),
                     evidence: Vec::new(),
                     depends_on: Vec::new(),
+                    asked: None,
                     links: vec![Link {
                         note: id.to_owned(),
                         weight: 1.0,
