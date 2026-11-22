@@ -2213,8 +2213,12 @@ async fn a_full_context_drains_its_unsaid_into_memory() {
         .unwrap()
         .rows,
     );
+    // The stop itself is remembered too, by the harness, under the ask: not the body's words.
+    let stop = |n: &&mikata_memory::Note| n.tags.iter().any(|t| t == "stopped");
+    assert_eq!(notes.values().filter(stop).count(), 1, "{notes:?}");
     let mut kept: Vec<(String, Vec<String>)> = notes
         .values()
+        .filter(|n| !stop(n))
         .map(|n| {
             assert_eq!(n.status, mikata_memory::Status::Proposed);
             (n.text.clone(), n.tags.clone())
@@ -2268,7 +2272,11 @@ async fn a_drain_written_as_a_list_keeps_its_unsaid() {
         .unwrap()
         .rows,
     );
-    let kept: Vec<&str> = notes.values().map(|n| n.text.as_str()).collect();
+    let kept: Vec<&str> = notes
+        .values()
+        .filter(|n| n.tags.iter().any(|t| t == "drain"))
+        .map(|n| n.text.as_str())
+        .collect();
     assert_eq!(kept, ["run uv before pytest"]);
 }
 
@@ -2326,7 +2334,11 @@ async fn a_run_drains_once() {
         .unwrap()
         .rows,
     );
-    assert_eq!(notes.len(), 1, "no second set of notes");
+    let lessons = notes
+        .values()
+        .filter(|n| n.tags.iter().any(|t| t == "drain"))
+        .count();
+    assert_eq!(lessons, 1, "no second set of notes: {notes:?}");
 }
 
 /// What a compacting body writes: the fixed sections, a discovery on the wire.

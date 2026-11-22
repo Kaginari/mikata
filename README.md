@@ -142,6 +142,9 @@ yours, mode `600`, and outside every world.
 Until a world has one, nothing a session claims is grounded, and `mikatad memory status` suggests
 the line for your project (`cargo test --workspace`, `pytest`, `npm test`, …).
 
+**Say when it was wrong.** `mikatad memory wrong "<what still fails>"` keeps your words as a
+correction under that ask: the next session that meets it is told first.
+
 ## Run it
 
 ```sh

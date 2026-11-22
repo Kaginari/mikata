@@ -66,6 +66,23 @@ pub fn append(world: &Path, entry: &Entry) -> std::io::Result<()> {
     append_entry(world, entry).map(|_| ())
 }
 
+/// What an entry is labelled with when it says what was asked.
+pub const ASKED: &str = "Asked";
+
+/// The ask the journal's newest entry answers: the text of the last `Asked` line, which is the
+/// first line of that ask as the human gave it. `None` when no entry says what it was asked — a
+/// journal from before entries did, or a world that keeps none.
+#[must_use]
+pub fn last_asked(world: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(world.join(LOG)).ok()?;
+    let label = format!("- **{ASKED}:** ");
+    text.lines()
+        .rev()
+        .find_map(|l| l.strip_prefix(label.as_str()))
+        .map(|a| a.trim().to_owned())
+        .filter(|a| !a.is_empty())
+}
+
 /// [`append`], saying the heading it wrote — `### [<time>] <body> — <title>`, the entry's name
 /// for a proof to cite — or `None` when the world keeps no journal.
 ///

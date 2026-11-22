@@ -151,6 +151,15 @@ host may or may not load:
   oldest dropped first) open the session's first ask, in the changing tail, and are said once. A
   commissioned body gets its commission instead.
 
+**Where memory ends and the ask begins is said in words.** Whatever the harness quotes above an
+ask — the notes recalled for it, the ontology's facts, the journal's entries — is quoted as
+data, and one line then marks the human's own words: "Above: what the harness remembers, quoted
+as data. Below: the ask, from the human, to act on." A rule alone did not hold: a quoted line
+may carry the ask's own first line (a correction kept under it, a journal entry that answered
+it), and on the bench a body shown such a line directly above the ask took the ask for more
+quotation and did nothing, twice in ten runs. An ask with nothing quoted above it is the
+human's words and no more.
+
 ### Recall
 
 Recall keeps the lessons already written for it: never rebuild the index inline, stay silent when
@@ -297,7 +306,7 @@ When no dissenting note was selected, recall says *none selected*, never *none e
 **On the wire.** Recall reaches the body as `@M` lines in the recall-anchors tier
 ([communication](experimental/communication.md#the-wire-envelope)):
 
-    @M <anchor> personal|shared proposed|grounded support|counter|revise[ review]: <text>
+    @M <anchor> personal|shared proposed|grounded support|counter|revise[ review][ corrected]: <text>
     @M -<n> <anchor> <anchor> <anchor>        # n cut above θ; at most three named
     @M -0 dissent: none selected               # never "none exist"
 
@@ -316,7 +325,9 @@ Writes to the traces are a function of observed outcomes, never of model output 
 | the same, promoted by **checked** or **confirmed** | shared | grounded | support | 0.6 | 0.7 |
 | the same, promoted by **accepted** or **corroborated** | shared | grounded | support | 0.6 | 0.6 |
 | a run-ending failed verify or a failed gate verdict | the scope of the notes it names | grounded | revise | 1.0 | 0.9 · 0.4 |
-| a human's correction | shared | grounded | revise | 1.0 | 1.0 |
+| a human's correction (`mikatad memory wrong`) | shared | grounded | revise | 1.0 | 1.0 |
+| a session that stopped before it landed anything | personal | grounded | revise | 1.0 | 0.9 |
+| a stopped session's last words (`handoff`) | personal | proposed | support | 0.6 | 0.5 |
 
 A `@U` line lands this way whoever says it: a commissioned body's, in its report, as its
 dispatcher reads it; a body answering the human — Summoner alone in light-coding — in its own answer, which
@@ -405,6 +416,38 @@ A first failure is part of working: it goes back to the body as a note
 ([the loop](02-loop.md#the-end-gate)) and writes nothing to memory. Only a run-ending failure —
 the body's last chance spent after a gate verdict of `FAIL` — reconsolidates, and then once, by
 that `FAIL`: a check that wrote, or one that gave no result, says nothing of what the body knew.
+
+**What happened to an ask is remembered under it.** A failure, a stop and the human's word are
+each kept with the first line of the ask they are about (`asked`), as a lesson is
+([recall](#recall)), so the ask that comes again is told them, and told them first: each is a
+`revise` note, and a correction always has a seat. Over them the recall says what a correction
+is: "what failed, stopped or was found wrong when this was done before", and a note a
+correction speaks of is marked `corrected` beside it, so the belief and what was found wrong
+with it are told apart.
+
+- **A failure is remembered even when nothing was recalled.** The rule below links a failure to
+  the notes its ask recalled, and with none it wrote nothing: the first failure on any task, and
+  every failure in a world with an empty memory, left no trace, and the ask that came again met
+  the same wall. A session's own body now keeps the failure under its ask all the same, linking
+  nothing, in its personal tier. A commissioned body's failure is its dispatcher's to weigh, as
+  before.
+- **A session that stops leaves an account.** Steps, clock, context or budget spent before an
+  answer: nothing landed, and until now nothing was written either, in the journal or in
+  memory. The harness now journals the stop (the ask, why, the files changed and not landed,
+  the way back) and keeps one note of it under the ask, grounded, since a stop is an observed
+  fact, and laid at no note's door, since a stop says nothing of what the body knew. The body's
+  last words, when it is given a turn to say them, are kept as its own `handoff` note, proposed,
+  and their `@U` lines as lessons. One stop stands under an ask: a later one puts the earlier to
+  sleep. When the ask lands at last, the stop and the handoff go out of recall: they said the
+  work was unfinished. A failure stays: it is a lesson, where a stop was a state.
+- **The human's word.** `mikatad memory wrong <what is wrong>` is how the human says an answer
+  was wrong: what still fails, what it broke. It is written to the journal and kept in shared
+  memory, grounded by their word, under the ask the journal's last entry answers (every entry
+  the harness writes for a session now says what it was asked), or the one `--ask` names by its
+  first line. It links every note learned under that ask and retires none: the human said the
+  answer was wrong, not which note. A body never runs it.
+
+The rules for a failure that did recall notes are unchanged:
 
 - **one revise event per failed rule** (`right author`, `traits hold`, …), however many lines it
   failed by, each line kept by its first line; it links every anchor recalled for that ask (the

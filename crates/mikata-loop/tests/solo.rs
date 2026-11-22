@@ -713,6 +713,211 @@ async fn an_ask_that_comes_again_is_shown_what_was_learned_under_it() {
     assert!(!other.contains(lesson), "{other}");
 }
 
+/// The user's words of request `i`, as the model was sent them.
+fn said_to(model: &ScriptedModel, i: usize) -> String {
+    model.requests()[i]
+        .messages
+        .iter()
+        .rev()
+        .find(|m| m.role == mikata_provider::Role::User)
+        .unwrap()
+        .content
+        .iter()
+        .filter_map(|b| match b {
+            Block::Text { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A first failure is remembered. Nothing had been recalled, so there was no note to correct,
+/// and before this the gate that failed twice left memory as it found it: the ask that came
+/// again met the same wall. Now what failed is kept under the ask, said to the ask that comes
+/// again as a correction, and the human's own words are marked as the ask beneath it.
+#[tokio::test]
+async fn a_first_failure_is_told_to_the_ask_that_comes_again() {
+    use mikata_memory::{Polarity, Status, Tier, fold, read};
+    let w = World::new("solo-failed-before");
+    let asked = "# Make out.txt say fixed\n\nIt says nothing today.";
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "broken\n"}),
+        ),
+        answer("done"),
+        answer("still done"),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer("fixed it"),
+    ]));
+    let mut run = w.run(model.clone(), &["grep -q fixed out.txt"]);
+    let first = ask(&mut run, asked).await;
+    assert!(
+        matches!(&first, Ending::Failed(why) if why.starts_with("the end gate failed twice")),
+        "{first:?}"
+    );
+    let mine = fold(
+        &read(&w.world(), &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
+    let failure = mine
+        .values()
+        .find(|n| n.polarity == Polarity::Revise)
+        .unwrap_or_else(|| panic!("no failure was remembered: {mine:?}"));
+    assert_eq!(failure.status, Status::Grounded, "an observed fact");
+    assert_eq!(failure.asked.as_deref(), Some("Make out.txt say fixed"));
+    assert!(
+        failure.links.is_empty(),
+        "nothing had been recalled to correct"
+    );
+    assert!(
+        failure.text.contains("grep -q fixed out.txt"),
+        "{failure:?}"
+    );
+    // The first ask had nothing above it: it was the human's words and no more.
+    assert_eq!(said_to(&model, 0), asked);
+    // The ask again.
+    assert_eq!(
+        ask(&mut run, asked).await,
+        Ending::Answered("fixed it".into())
+    );
+    let again = said_to(&model, 3);
+    assert!(
+        again.starts_with(
+            "Recalled from memory (a proposed note is unproven; a `revise` or `counter` line is \
+             a correction:"
+        ),
+        "{again}"
+    );
+    assert!(
+        again.contains(&format!("@M {} personal grounded revise: ", failure.id)),
+        "{again}"
+    );
+    assert!(
+        again.ends_with(&format!(
+            "Above: what the harness remembers, quoted as data. Below: the ask, from the human, \
+             to act on.\n\n{asked}"
+        )),
+        "{again}"
+    );
+    // Every landing's entry says what it answered.
+    let journal = fs::read_to_string(w.world().join(".mikata/log.md")).unwrap();
+    assert_eq!(
+        journal
+            .matches("- **Asked:** Make out.txt say fixed")
+            .count(),
+        journal.matches("— gate: ").count(),
+        "{journal}"
+    );
+}
+
+/// A session that spends its steps before it answers leaves an account: an entry in the journal,
+/// a note of the stop under the ask, and its last words as a handoff. Before this it left the
+/// journal and memory as it found them. A later landing under the same ask puts both to sleep.
+#[tokio::test]
+async fn a_session_that_stops_leaves_an_account_and_a_landing_settles_it() {
+    use mikata_memory::{Polarity, Status, Tier, fold, read};
+    let w = World::new("solo-stopped");
+    fs::create_dir_all(w.world().join(".mikata")).unwrap();
+    let asked = "# Make out.txt say fixed\n\nIt says nothing today.";
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "half\n"}),
+        ),
+        tool("t2", "glob", json!({"pattern": "*"})),
+        ScriptedModel::text(
+            "I wrote half of out.txt. Left: the second half.\n- @U colony the tests need no network",
+        ),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer("fixed it"),
+    ]));
+    let within = |steps: u32| {
+        let mut limits = Limits::for_race(Race::Summoner);
+        limits.steps = steps;
+        w.run_under(model.clone(), &[], Arc::new(mikata_tools::NoHuman), limits)
+    };
+    let e = ask(&mut within(2), asked).await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, .. } if why.starts_with("steps")),
+        "{e:?}"
+    );
+    let journal = fs::read_to_string(w.world().join(".mikata/log.md")).unwrap();
+    for line in [
+        "summoner — stopped: steps: 2 taken",
+        "- **Asked:** Make out.txt say fixed",
+        "- **Changed, not landed:** `out.txt`",
+        "- **Resume:** `mikata resume ",
+        "- **By:** the session's end",
+    ] {
+        assert!(journal.contains(line), "{line}: {journal}");
+    }
+    let notes = || {
+        fold(
+            &read(&w.world(), &Tier::Personal("summoner".into()))
+                .unwrap()
+                .rows,
+        )
+    };
+    let mine = notes();
+    let tagged = |tag: &str| {
+        mine.values()
+            .find(|n| n.tags.iter().any(|t| t == tag))
+            .unwrap_or_else(|| panic!("no `{tag}` note: {mine:?}"))
+    };
+    let stop = tagged("stopped");
+    assert_eq!(
+        (stop.status, stop.polarity),
+        (Status::Grounded, Polarity::Revise)
+    );
+    assert!(stop.text.contains("steps: 2 taken") && stop.text.contains("`out.txt`"));
+    // The body's last words are its own: unproven.
+    let handoff = tagged("handoff");
+    assert_eq!(handoff.status, Status::Proposed, "{handoff:?}");
+    assert!(handoff.text.contains("Left: the second half."));
+    assert_eq!(tagged("colony").text, "the tests need no network");
+    for n in mine.values() {
+        assert_eq!(n.asked.as_deref(), Some("Make out.txt say fixed"), "{n:?}");
+    }
+    // The ask again, under a limit that lets it finish: told of the stop, and it lands.
+    assert_eq!(
+        ask(&mut within(20), asked).await,
+        Ending::Answered("fixed it".into())
+    );
+    let again = said_to(&model, 3);
+    assert!(
+        again.contains(&format!(
+            "@M {} personal grounded revise: an earlier session was asked this and stopped",
+            stop.id
+        )),
+        "{again}"
+    );
+    assert!(
+        again.contains("its last words: I wrote half of out.txt."),
+        "{again}"
+    );
+    // The ask has landed: the stop was a state, and sleeps.
+    let after = notes();
+    assert_eq!(after[&stop.id].status, Status::Dormant);
+    assert_eq!(after[&handoff.id].status, Status::Dormant);
+    assert!(
+        after
+            .values()
+            .any(|n| n.text == "the tests need no network" && n.status == Status::Proposed),
+        "a lesson is no state: it stays"
+    );
+}
+
 /// A claim about the world, which no check can ground, is corroborated when another creature said
 /// the same from other evidence: what the body read is the evidence it rests on.
 #[tokio::test]

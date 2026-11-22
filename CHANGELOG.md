@@ -18,8 +18,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   the stack in `Url::origin()`. Mikata's own code does not call that function; the update is
   the one the advisory names.
 
+### Added
+
+- **Say when an answer was wrong, and the next session is told first.** `mikatad memory wrong
+  "<what still fails, in your words>"` writes your words to the journal and keeps them as a
+  correction in shared memory, under the ask of the journal's last entry (or the one `--ask`
+  names by its first line). A session that meets that ask again is shown the correction ahead of
+  what the earlier session believed, with that belief marked `corrected`. Nothing is deleted.
+  It is the human's alone: a body's command is refused.
+- **A session that stops leaves an account.** When a session spends its steps, its clock, its
+  context or its budget before it answers, the journal now gets an entry (what was asked, why it
+  stopped, which files it had changed, how to resume) and memory a note of the stop under that
+  ask; the session's last words are kept as a handoff. Before, such a session left the journal
+  and memory as it found them: on our bench one task stopped at its step limit two rounds
+  running, 200 calls each, and each time the next session started it from nothing. When the ask
+  lands at last, the stop's notes go out of recall.
+
+### Changed
+
+- **Every entry the harness writes for a session says what it was asked** (`- **Asked:**`, the
+  ask's first line), so the journal reads as what happened to which ask.
+- **Where quoted memory ends and your ask begins is marked in words** whenever notes, facts or
+  journal entries stand above an ask. An ask with nothing above it is sent as you wrote it.
+- **A correction is said to be one.** When a recalled note is a correction, the line over the
+  notes says what that means and that it is not to be done that way again.
+
 ### Fixed
 
+- **A first failure is remembered.** When the end gate failed twice, what failed was written to
+  memory only as a correction of the notes that ask had recalled. With none recalled, nothing
+  was written: the first failure on any task left no trace, and the same ask met the same wall.
+  It is now kept under the ask, and said first when the ask comes again.
 - **A task that comes again is shown what was learned on it.** Recall matched a note by its
   own words, and a lesson is written in the words of what was found, not of what was asked. In
   one codebase a long ask shares its words with half the memory, so other tasks' notes took the

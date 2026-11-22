@@ -157,7 +157,10 @@ same request again, twice at most in a row, and the journal says so. Only an err
 could change is asked again.
 
 A checkpoint is an honest stop: the journal holds every beat, and `mikata resume <run>` picks
-up from it. An outward act cut mid-flight is never replayed: before its post's next act is
+up from it. A session of its own that stops this way also leaves an account for the session
+that may come instead of a resume: an entry in `.mikata/log.md` (the ask, why it stopped, the
+files changed and not landed, the command to resume) and a note of the stop under the ask
+([memory](07-memory.md#reconsolidation)). An outward act cut mid-flight is never replayed: before its post's next act is
 gated, its probe says whether it landed (settled, not asked again), never did (gated again as a
 new act) or cannot be told (`reconcile`, for the human) — [races](experimental/races.md).
 
@@ -321,7 +324,8 @@ room in the window checkpoints without one.
 
 **A clock death salvages**: one more turn, told to call no tool, sent with the tools and capped at 4096 tokens, in a grace of
 a tenth of the clock (2–60 s), to write down what the body did, learned and left. The
-checkpoint carries it.
+checkpoint carries it, and so do spent steps. In a session of its own those last words are kept:
+as the body's `handoff` note under the ask, and their `@U` lines as lessons.
 A tool the body calls anyway on a drain or salvage turn never runs: only its words are kept.
 
 **Changes mid-session append.** The system prompt and the tools are built once, when the run is

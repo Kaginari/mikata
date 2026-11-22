@@ -285,3 +285,146 @@ fn status_says_when_the_session_card_has_no_verify_line() {
     );
     let _ = fs::remove_dir_all(&world);
 }
+
+/// `mikatad <args> --world <world>`, as the human (`body` unset) or from inside a body's command.
+fn mikatad(world: &std::path::Path, args: &[&str], body: Option<&str>) -> std::process::Output {
+    let mut c = isolated::bin(env!("CARGO_BIN_EXE_mikatad"));
+    c.args(args).args(["--world", world.to_str().unwrap()]);
+    match body {
+        Some(b) => c.env("MIKATA_BODY", b),
+        None => c.env_remove("MIKATA_BODY"),
+    };
+    c.output().unwrap()
+}
+
+/// A world whose journal's last entry answered `Make out.txt say fixed`.
+fn world_that_answered(name: &str) -> std::path::PathBuf {
+    let world = std::env::temp_dir().join(format!("mikata-memory-{name}-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&world);
+    fs::create_dir_all(world.join(".mikata")).unwrap();
+    fs::write(
+        world.join(".mikata/log.md"),
+        "\n---\n\n### [2026-11-22T10:00:00Z] summoner — gate: PASS, unchecked\n\
+         - **Asked:** Make out.txt say fixed\n- **Changed:** `out.txt`\n\
+         - **Unchecked:** no verify line ran\n- **By:** the end gate\n",
+    )
+    .unwrap();
+    world
+}
+
+/// Saying an answer was wrong is the human's act: a body's command is refused and writes
+/// nothing, and so is a correction of nothing — no words, or no ask to say them of.
+#[test]
+fn a_correction_is_the_humans_and_names_what_it_corrects() {
+    let world = world_that_answered("wrong-refused");
+    let journal = || fs::read_to_string(world.join(".mikata/log.md")).unwrap();
+    let body = mikatad(
+        &world,
+        &["memory", "wrong", "it still says broken"],
+        Some("summoner"),
+    );
+    assert_eq!(body.status.code(), Some(2));
+    assert_eq!(
+        mikatad(&world, &["memory", "wrong"], None).status.code(),
+        Some(2)
+    );
+    assert!(!journal().contains("wrong:"), "{}", journal());
+    // A journal with no entry that says what it was asked, and no ask named.
+    fs::write(world.join(".mikata/log.md"), "# Journal\n").unwrap();
+    let unnamed = mikatad(&world, &["memory", "wrong", "it still says broken"], None);
+    assert_eq!(unnamed.status.code(), Some(2));
+    let why = String::from_utf8_lossy(&unnamed.stderr).into_owned();
+    assert!(why.contains("--ask"), "{why}");
+    let _ = fs::remove_dir_all(&world);
+}
+
+/// The human says an answer was wrong: their words go to the journal and are kept as a correction
+/// under the ask the journal's last entry answers, shared and grounded, linking what was learned
+/// under that ask; `--ask` names another ask by its first line.
+#[test]
+fn the_human_says_an_answer_was_wrong() {
+    use mikata_server::world::memory::{Polarity, Status, Tier, fold, propose_under, read};
+    let world = world_that_answered("wrong");
+    let learned = propose_under(
+        &world,
+        "summoner",
+        "out.txt is written by the build",
+        vec!["law".into()],
+        Some("Make out.txt say fixed"),
+        vec![],
+    )
+    .unwrap();
+    // In as many words as they type.
+    let human = mikatad(
+        &world,
+        &["memory", "wrong", "it", "still", "says", "broken"],
+        None,
+    );
+    let out = String::from_utf8_lossy(&human.stdout).into_owned();
+    assert!(
+        human.status.success(),
+        "{}",
+        String::from_utf8_lossy(&human.stderr)
+    );
+    assert!(
+        out.contains("under the ask Make out.txt say fixed"),
+        "{out}"
+    );
+    assert!(
+        out.contains(&format!(
+            "it corrects 1 note(s) learned under that ask: {}",
+            learned.note
+        )),
+        "{out}"
+    );
+    let journal = fs::read_to_string(world.join(".mikata/log.md")).unwrap();
+    for line in [
+        "] the human — wrong: Make out.txt say fixed\n",
+        "- **Asked:** Make out.txt say fixed\n- **Said:** it still says broken\n",
+    ] {
+        assert!(journal.contains(line), "{line}: {journal}");
+    }
+    let shared = fold(&read(&world, &Tier::Shared).unwrap().rows);
+    assert_eq!(shared.len(), 1, "{shared:?}");
+    let kept = shared.values().next().unwrap();
+    assert_eq!(kept.text, "it still says broken");
+    assert_eq!(
+        (kept.status, kept.polarity),
+        (Status::Grounded, Polarity::Revise)
+    );
+    assert_eq!(kept.asked.as_deref(), Some("Make out.txt say fixed"));
+    assert_eq!(kept.links.len(), 1);
+    assert_eq!(kept.links[0].note, learned.note);
+    assert!(
+        kept.proof
+            .as_deref()
+            .unwrap()
+            .contains("the human — wrong:"),
+        "it cites the journal entry that holds the human's word: {kept:?}"
+    );
+    // Memory still resolves whole: a human's word needs no other proof.
+    assert_eq!(status(&world, false).0, Some(0));
+    let other = mikatad(
+        &world,
+        &[
+            "memory",
+            "wrong",
+            "--ask",
+            "Sort the report",
+            "ties come out in any order",
+        ],
+        None,
+    );
+    assert!(other.status.success());
+    let shared = fold(&read(&world, &Tier::Shared).unwrap().rows);
+    let second = shared
+        .values()
+        .find(|n| n.asked.as_deref() == Some("Sort the report"))
+        .unwrap_or_else(|| panic!("{shared:?}"));
+    assert_eq!(second.text, "ties come out in any order");
+    assert!(
+        second.links.is_empty(),
+        "nothing was learned under that ask"
+    );
+    let _ = fs::remove_dir_all(&world);
+}

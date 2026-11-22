@@ -362,13 +362,26 @@ fn lend_to_corrections(notes: &mut [(Note, Relation)]) {
 }
 
 /// A recall on the wire, as `@M` lines: each anchor with its scope, standing and polarity — and
-/// `review` while something it rests on has moved — then its text; the cut above the floor as a count and at most three ids; and, when no dissent was
-/// selected, that it was none selected — never that none exist. Nothing for an empty recall.
+/// `review` while something it rests on has moved, and `corrected` when a correction recalled
+/// beside it speaks of it — then its text; the cut above the floor as a count and at most three
+/// ids; and, when no dissent was selected, that it was none selected — never that none exist.
+/// Nothing for an empty recall.
 #[must_use]
 pub fn lines(r: &Recalled, personal: &std::collections::BTreeSet<String>) -> Vec<String> {
     if r.anchors.is_empty() {
         return Vec::new();
     }
+    // What a correction among the anchors names as its own: a note its failed run cited, or one
+    // learned under the ask the human called wrong. Shown side by side, the belief and what was
+    // found wrong with it are told apart.
+    let corrected: std::collections::BTreeSet<&str> = r
+        .anchors
+        .iter()
+        .filter(|h| h.note.polarity.dissents())
+        .flat_map(|h| &h.note.links)
+        .filter(|l| l.weight >= 0.9)
+        .map(|l| l.note.as_str())
+        .collect();
     let mut out: Vec<String> = r
         .anchors
         .iter()
@@ -393,8 +406,13 @@ pub fn lines(r: &Recalled, personal: &std::collections::BTreeSet<String>) -> Vec
             } else {
                 ""
             };
+            let named = if corrected.contains(h.note.id.as_str()) {
+                " corrected"
+            } else {
+                ""
+            };
             format!(
-                "@M {} {scope} {standing} {polarity}{review}: {text}",
+                "@M {} {scope} {standing} {polarity}{review}{named}: {text}",
                 h.note.id
             )
         })

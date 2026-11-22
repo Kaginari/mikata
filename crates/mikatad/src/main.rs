@@ -26,6 +26,7 @@ Usage: mikatad [--world <dir>] [--resume <run|last>] [--mode auto|light-coding|s
        mikatad memory status [--world <dir>] [--json]
        mikatad memory wake <note> [--world <dir>]
        mikatad memory confirm <claim> [--world <dir>]
+       mikatad memory wrong <what is wrong> [--ask <its first line>] [--world <dir>]
        mikatad incident list | open <post> <act> [--why <text>] | settle <post> <act>
                  [--why <text>] | lesson <post> <act> test <path> | verify <path>:<line>
                  | thought <id>   [--world <dir>]
@@ -116,6 +117,12 @@ and the members' orders by outcome, with their dollars.
 a hand edit, a bad merge, an import that skipped its checks. Recall ignores such an event and
 the creature's memory writes stay frozen until the event is removed or re-proved; it exits 1
 while any is found.
+
+`memory wrong` is how the human says an answer was wrong, in their own words: what still fails,
+what it broke. It is written to the journal and kept as a correction in shared memory, grounded
+by the human's word, under the ask it speaks of: the ask of the journal's last entry, or the one
+`--ask` names by its first line. A session that meets that ask again is told it first, ahead of
+what the earlier session believed. Nothing is deleted. A body never runs it.
 
 `incident` is the human's door to the Kijin's incidents. An outward act that was rolled back or
 corrected stays an open incident until four receipts are recorded: undone (its undo observed),
@@ -1657,6 +1664,9 @@ fn settle(world: Option<&Path>, ids: &[String]) -> ExitCode {
 /// `memory status`: the unproven writes, per creature.
 fn memory(args: &[String]) -> ExitCode {
     use mikata_server::world::memory::{Unproven, audit::SHARED, pathology};
+    if args.first().map(String::as_str) == Some("wrong") {
+        return wrong_said(&args[1..]);
+    }
     let mut world = None;
     let mut json = false;
     let mut verb = None;
@@ -1681,7 +1691,9 @@ fn memory(args: &[String]) -> ExitCode {
         }
     }
     let Some(verb) = verb else {
-        return refused(&"memory needs a verb: status, wake <note> or confirm <claim>");
+        return refused(
+            &"memory needs a verb: status, wake <note>, confirm <claim> or wrong <what is wrong>",
+        );
     };
     let Ok(cwd) = std::env::current_dir() else {
         return refused(&"the current directory cannot be read");
@@ -1858,6 +1870,95 @@ fn confirm(world: &Path, id: &str) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(e) => refused(&e),
+    }
+}
+
+/// `memory wrong`'s own words: what is wrong, in as many words as the human types, the ask it is
+/// said of when `--ask` names one, and the world.
+fn wrong_said(args: &[String]) -> ExitCode {
+    let (mut world, mut ask, mut said) = (None, None, Vec::new());
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--world" => match it.next() {
+                Some(v) => world = Some(PathBuf::from(v)),
+                None => return refused(&"--world needs a value"),
+            },
+            "--ask" => match it.next() {
+                Some(v) => ask = Some(v.clone()),
+                None => return refused(&"--ask needs the ask's first line"),
+            },
+            other if other.starts_with("--") => {
+                return refused(&format!("unknown argument `{other}`; see --help"));
+            }
+            other => said.push(other),
+        }
+    }
+    let Ok(cwd) = std::env::current_dir() else {
+        return refused(&"the current directory cannot be read");
+    };
+    let world = world.map_or_else(|| cwd.clone(), |w| absolute(&cwd, &w));
+    wrong(&world, &said.join(" "), ask.as_deref())
+}
+
+/// `memory wrong <what is wrong>`: the human says an answer was wrong. Their words go to the
+/// journal and are kept as a correction — shared, grounded by their word — under the ask they
+/// speak of: the journal's last, or the one `--ask` names by its first line. A body never says it.
+fn wrong(world: &Path, words: &str, ask: Option<&str>) -> ExitCode {
+    use mikata_server::world::log::{ASKED, Entry, append_entry, last_asked};
+    use mikata_server::world::memory::corrected;
+    if let Ok(body) = std::env::var("MIKATA_BODY") {
+        return refused(&format!(
+            "{body} runs this: saying an answer was wrong is the human's act, never a body's"
+        ));
+    }
+    let words = words.trim();
+    if words.is_empty() {
+        return refused(
+            &"say what is wrong: mikatad memory wrong <what still fails, in your words>",
+        );
+    }
+    let Some(asked) = ask
+        .map(|a| a.trim().to_owned())
+        .filter(|a| !a.is_empty())
+        .or_else(|| last_asked(world))
+    else {
+        return refused(
+            &"no entry of the journal says what it was asked: name the ask with --ask \"<its \
+              first line>\"",
+        );
+    };
+    let entry = Entry {
+        body: "the human".to_owned(),
+        title: format!("wrong: {asked}"),
+        lines: vec![
+            (ASKED.to_owned(), asked.clone()),
+            ("Said".to_owned(), words.to_owned()),
+        ],
+    };
+    let heading = match append_entry(world, &entry) {
+        Ok(Some(h)) => h,
+        Ok(None) => return refused(&"this world keeps no journal (.mikata/log.md) to write it in"),
+        Err(e) => return refused(&format!("the journal cannot be written: {e}")),
+    };
+    match corrected(world, words, &asked, &format!("log.md {heading}")) {
+        Ok((id, linked)) => {
+            println!(
+                "kept as {id}: a correction, shared and grounded by your word, under the ask {}",
+                field(&asked)
+            );
+            if linked.is_empty() {
+                println!("no note was learned under that ask: the correction stands alone");
+            } else {
+                println!(
+                    "it corrects {} note(s) learned under that ask: {}",
+                    linked.len(),
+                    linked.join(", ")
+                );
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => refused(&format!("the correction could not be kept: {e}")),
     }
 }
 

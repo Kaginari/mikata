@@ -141,15 +141,14 @@ that came again was not always shown its own notes. What comes next, in order:
   project's own test command, which the README asks for. To do first, bar first: the three
   rounds and their cold arm with a verify line, on the codebase where the bench has one. About
   $15, two bodies.
-- **A session that stops leaves nothing.** A run that ends on its step limit writes no lesson and
-  no journal entry. The next session finds changed files and no account of them, and on the one
-  task the small model cannot do it started from nothing each time, 200 calls later. To try: the
-  harness journals a stop as it journals a landing: why it stopped, what it had changed, how to
-  resume.
-- **The human's word.** The one way to tell Mikata what to remember is to edit `.mikata/law.md`
-  by hand, and to ground a note the human runs `mikatad memory confirm` on it afterwards. A fact
-  the human states in a session is the strongest memory there is and has no door. To try: one,
-  in the session.
+- **Learning from a mistake, measured.** Built after that campaign, because it showed memory
+  could not: a first failure is now remembered under its ask, a session that stops leaves an
+  account, and the human can say an answer was wrong (`mikatad memory wrong`), which the next
+  session with that ask is told first ([memory](07-memory.md#reconsolidation)). Tests hold each
+  step. What is not shown yet is that a second attempt passes for it: that is the next screen,
+  bar first, on the asks the small model fails.
+- **The human's word, in the session.** The door is a command of the core today. To do: the
+  same act from inside a session, where the human is looking at the answer.
 - **The same lesson, written by every session.** Thirty runs left 28 copies of one fact, 16 of
   them written by a session that had it in its ask. Their words differ too much to drop a copy
   by its words (two share a median 0.18). To try: say at the hand-in which lessons are already
