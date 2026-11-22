@@ -2234,6 +2234,44 @@ async fn a_full_context_drains_its_unsaid_into_memory() {
     assert!(facts.contains("interval fractions whole"), "{facts}");
 }
 
+/// A drain written as a list keeps its lines all the same: the body is answering in markdown.
+#[tokio::test]
+async fn a_drain_written_as_a_list_keeps_its_unsaid() {
+    let w = World::new("drain-list");
+    let model = Arc::new(ScriptedModel::new([
+        tool_with("t1", "glob", json!({"pattern": "*"}), usage(181_000)),
+        answer(
+            "What I learned:\n\n- `@U territory src/parser keeps interval fractions whole`\n- @U colony run uv before pytest\n\nLeft: the docs.",
+        ),
+    ]));
+    let mut run = w.run(
+        model.clone(),
+        Limits {
+            compactions: 0,
+            ..limits()
+        },
+    );
+    let e = ask(&mut run, "big").await;
+    let Ending::Checkpoint { salvage, .. } = &e else {
+        panic!("{e:?}");
+    };
+    let salvage = salvage.as_deref().unwrap();
+    assert!(
+        salvage.ends_with("[memory: 1 line(s) kept as proposed notes, 1 territory fact(s) filed]"),
+        "{salvage}"
+    );
+    let notes = mikata_memory::fold(
+        &mikata_memory::read(
+            &w.world(),
+            &mikata_memory::Tier::Personal("slime-test".into()),
+        )
+        .unwrap()
+        .rows,
+    );
+    let kept: Vec<&str> = notes.values().map(|n| n.text.as_str()).collect();
+    assert_eq!(kept, ["run uv before pytest"]);
+}
+
 /// A jump to the window's edge leaves no room for a drain turn: the plain checkpoint.
 #[tokio::test]
 async fn a_context_at_the_windows_edge_checkpoints_without_a_drain() {

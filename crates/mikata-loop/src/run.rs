@@ -2638,8 +2638,9 @@ impl Run {
     /// are.
     fn remember_own(&self, answer: &str) {
         let world = self.cx.world();
-        // The answer read as a report: prose around its `@U` lines, as a drain's is.
-        let ending = Ending::Answered(format!("@S DONE\n{answer}"));
+        // The answer read as a report: prose around its `@U` lines, as a drain's is. It is
+        // markdown, so a lesson may sit behind a list mark or inside a code span.
+        let ending = Ending::Answered(format!("@S DONE\n{}", crate::lessons::bare(answer)));
         // Only a gate this ask passed proves this ask's claims: never an earlier one's.
         let passed = self
             .landed_in_ask
@@ -4524,8 +4525,10 @@ impl Run {
     /// A drain's `@U` lines, each a proposed note of the body's own — a territory fact filed to the
     /// ontology instead: how many notes were kept, and how many facts filed.
     fn keep_unsaid(&self, text: &str) -> (usize, usize) {
-        // The wire's own reader, so a drain's `@U` reads as a report's does.
-        let Some(report) = mikata_wire::Report::parse(&format!("@S DRAIN\n{text}")) else {
+        // The wire's own reader, so a drain's `@U` reads as a report's does, behind the marks
+        // an answer to the human may put before one.
+        let drained = format!("@S DRAIN\n{}", crate::lessons::bare(text));
+        let Some(report) = mikata_wire::Report::parse(&drained) else {
             return (0, 0);
         };
         let (mut kept, mut filed) = (0, 0);

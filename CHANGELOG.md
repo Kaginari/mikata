@@ -13,6 +13,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **What a session learned is kept when it is written as a list.** At the end of an answer
+  Mikata writes down what it learned that is written nowhere, one line each, and the harness
+  keeps those lines as notes for later sessions. It read such a line only where it opened a line
+  of the answer. A model answering in markdown writes them as a list, inside a code span or in
+  bold, and each of those was dropped without a word. Counted over 284 kept runs of our bench:
+  one model lost 80 of its 440 lessons this way and the other 97 of 108. Of that model's 36 runs
+  that wrote a lesson, 32 left an empty memory behind them. A lesson is now read behind a list
+  mark, a number, a heading or a quote mark, and out of the code span or the bold that opens on
+  it. Nothing else is read that way: a status or a verdict still counts only where it opens a
+  line.
 - **In a JavaScript project, the harness's own copies of your code now find what is installed.**
   "What changed" runs Mikata's checks again on two copies of the world, and a line of your list
   that must stay, handed in after the code changed, is read from a copy as well. The copies left

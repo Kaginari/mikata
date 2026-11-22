@@ -298,6 +298,15 @@ A `@U` line lands this way whoever says it: a commissioned body's, in its report
 dispatcher reads it; a body answering the human — Summoner alone in light-coding — in its own answer, which
 its prompt asks to end with them, grounded by that ask's own passing gate when they name its diff.
 
+**An answer to the human is markdown, and is read as markdown.** Between bodies a tag counts only
+where it opens a line: a report is written for a parser. A body answering the human sets its
+lessons down as it sets down any list — `- @U law …`, `` `@U colony …` ``, `**@U law a.py** …` —
+so in an answer, and in a drain, a lesson is read behind a list mark, a number, a heading or a
+quote mark, and out of the code span or the bold that opens on it. Only a lesson: no status,
+verdict or order is ever read from inside a list. Read strictly, such a line was prose and the
+lesson was lost with nothing said. Over 284 kept runs of the bench, one body lost 80 of its 440
+lessons that way and another 97 of 108.
+
 Only the record beat, the gate and the promotion routes hold the write path, and that is a
 type, not a habit: a `Claim<Proposed>` becomes a `Claim<Grounded>` only through a value that
 carries its route's proof (a gate verdict, a passed verify line, a commissioner's verdict, a

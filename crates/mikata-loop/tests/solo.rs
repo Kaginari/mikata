@@ -602,6 +602,57 @@ async fn a_solo_answer_keeps_its_claims_by_the_write_rule() {
     );
 }
 
+/// An answer to the human is markdown, and a body writes its lessons there as a list, in a code
+/// span, or in bold. Each is kept as a bare line is: read as the wire reads, every one of these
+/// was prose, and the session left an empty memory behind it.
+#[tokio::test]
+async fn a_solo_answer_that_lists_its_lessons_keeps_them() {
+    use mikata_memory::{Status, Tier, fold, read};
+    let w = World::new("solo-remembers-a-list");
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer(
+            "Done: out.txt says fixed.\n\n**Lessons**\n\n\
+             - @U law out.txt says fixed once the build is green — check=`grep -q fixed out.txt`\n\
+             - `@U colony run the build before answering`\n\
+             **@U colony** the tests need no network\n\
+             - the list ends here",
+        ),
+    ]));
+    let mut run = w.run(model.clone(), &["grep -q fixed out.txt"]);
+    let ending = ask(&mut run, "make out.txt say fixed").await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let mine = fold(
+        &read(&w.world(), &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
+    assert_eq!(mine.len(), 3, "three lessons, and no plain item: {mine:?}");
+    let of = |t: &str| {
+        mine.values()
+            .find(|n| n.text.starts_with(t))
+            .unwrap_or_else(|| panic!("{t}: {mine:?}"))
+    };
+    assert_eq!(
+        of("out.txt says fixed").status,
+        Status::Grounded,
+        "a listed claim about the passing diff is grounded by the check it names"
+    );
+    for (text, tag) in [
+        ("run the build before answering", "colony"),
+        ("the tests need no network", "colony"),
+    ] {
+        let note = of(text);
+        assert_eq!(note.text, text, "the marks around it are not part of it");
+        assert_eq!(note.status, Status::Proposed, "{text}");
+        assert_eq!(note.tags, [tag], "{text}");
+    }
+}
+
 /// A claim about the world, which no check can ground, is corroborated when another creature said
 /// the same from other evidence: what the body read is the evidence it rests on.
 #[tokio::test]
