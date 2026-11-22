@@ -570,6 +570,16 @@ fn the_humans_word_corrects_what_was_learned_under_an_ask() {
         vec![],
     )
     .unwrap();
+    // A lesson about the repository, learned under the same ask: no part of the answer.
+    let place = propose_under(
+        &w,
+        "summoner",
+        "the tests of the planner run with make test-join",
+        vec!["colony".into()],
+        Some(ASKED),
+        vec![],
+    )
+    .unwrap();
     assert_eq!(
         learned_under(&w, ASKED).unwrap(),
         [(believed.note.clone(), true)]
@@ -592,11 +602,22 @@ fn the_humans_word_corrects_what_was_learned_under_an_ask() {
     assert_eq!(note.owner, None, "the world's, not a creature's");
     assert_eq!(note.asked.as_deref(), Some(ASKED));
     let memory = gather(&w, "summoner", |_| false).unwrap();
-    // The ask again: the correction and what it corrects, the correction first, and the belief
-    // it speaks of marked as corrected.
+    // The ask again: the correction first, the belief it speaks of marked as corrected, and the
+    // lesson about the repository as it was.
     let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
-    assert_eq!(ids(&r), [id.as_str(), believed.note.as_str()], "{r:?}");
+    assert_eq!(ids(&r)[0], id.as_str(), "{r:?}");
     let told = mikata_memory::lines(&r, &memory.personal);
+    assert!(
+        told.contains(&format!(
+            "@M {} personal proposed support: the tests of the planner run with make test-join",
+            place.note
+        )),
+        "{told:?}"
+    );
+    let told: Vec<String> = told
+        .into_iter()
+        .filter(|l| !l.contains(&place.note))
+        .collect();
     assert_eq!(
         told,
         [

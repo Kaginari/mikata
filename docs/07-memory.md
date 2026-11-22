@@ -444,8 +444,10 @@ with it are told apart.
   was wrong: what still fails, what it broke. It is written to the journal and kept in shared
   memory, grounded by their word, under the ask the journal's last entry answers (every entry
   the harness writes for a session now says what it was asked), or the one `--ask` names by its
-  first line. It links every note learned under that ask and retires none: the human said the
-  answer was wrong, not which note. A body never runs it.
+  first line. It links what a session claimed of its work under that ask and retires none: the
+  human said the answer was wrong, not which note. A lesson about the repository as a whole,
+  learned under the same ask, is no part of the answer and is left as it is. A body never runs
+  it.
 
 The rules for a failure that did recall notes are unchanged:
 

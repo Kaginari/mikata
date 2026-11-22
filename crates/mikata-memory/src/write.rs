@@ -791,9 +791,11 @@ pub fn answered(
     Ok(over)
 }
 
-/// The notes a session learned while answering `asked` — its first line, as each note keeps it —
-/// in every tier, each note once: `(id, whether it is someone's personal note)`. Corrections are
-/// left out: a correction is never corrected.
+/// What a session claimed of its work while answering `asked` — the ask's first line, as each
+/// note keeps it — in every tier, each note once: `(id, whether it is someone's personal note)`.
+/// These are what a correction of that answer speaks of. A lesson about the repository as a
+/// whole (`colony`) is no part of the answer: how the tests are run holds whether the fix was
+/// right or wrong, so it is left out, as are corrections themselves and a stop's handoff.
 ///
 /// # Errors
 ///
@@ -806,7 +808,9 @@ pub fn learned_under(world: &Path, asked: &str) -> std::io::Result<Vec<(String, 
         let notes = crate::note::fold(&crate::store::read(world, &tier)?.rows);
         for n in notes.values() {
             let live = matches!(n.status, Status::Proposed | Status::Grounded);
+            let of_the_work = !n.tags.iter().any(|t| t == "colony" || t == "handoff");
             if live
+                && of_the_work
                 && !n.polarity.dissents()
                 && n.asked.as_deref().map(str::trim) == Some(asked)
                 && !out.iter().any(|(id, _)| *id == n.id)
@@ -821,8 +825,8 @@ pub fn learned_under(world: &Path, asked: &str) -> std::io::Result<Vec<(String, 
 /// The human says an answer was wrong. Their words are a correction: one revise note in shared
 /// memory, the world's own, grounded at once by their word (`proof`, the journal entry that holds
 /// it), salience 1.0, confidence 1.0. It is kept under the ask it speaks of (`asked`, that ask's
-/// first line) and links every note a session learned under that ask, so it is recalled where
-/// they are, ahead of them, and whenever the ask comes again. Nothing is deleted and no note is
+/// first line) and links what a session claimed of its work under that ask ([`learned_under`]),
+/// so it is recalled where those claims are, ahead of them, and whenever the ask comes again. Nothing is deleted and no note is
 /// retired by it: the human said the answer was wrong, not which note. Returns the correction's
 /// id and the notes it links.
 ///
