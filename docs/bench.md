@@ -69,6 +69,10 @@ The same three harnesses, each as released, on two more screens, each task once
   held 6 of 6); that note stood before the ask, in other words, on an earlier build. What the
   hold still gives is a pass that names what verified it, and what must stay read from the code
   itself. Neither changed a pass here ([measured](#the-list-held)).
+- **On a second codebase the list is not shown to pay at all.** Four prose asks in mathjs: 8 of
+  12 plain, 8 with a reader's lists as a note, 10 with them held. Held, a run costs twice a
+  plain one, and two of its ten passes did not land: the code was right and the gate failed,
+  once on the reader's own wrong lines ([measured](#a-second-codebase)).
 - **A stronger body does not need the list on these asks.** With Claude Haiku 5.5 as the body
   the same four prose asks passed 12 of 12 plain, for two cents a run. A reader added nothing,
   doubled the price, and one run in twelve fixed the code and failed its gate on a wrong line of
@@ -532,16 +536,24 @@ project could show, each fixed with a test that fails without it:
   the stronger body above; the same rule the stall detector already had.
 
 **Prose asks, with a reader.** Four of the ten asks cut to a paragraph of prose, three rounds,
-on the build that holds the first of those fixes. A difference was set at four runs of twelve.
+on the build that holds the first of those fixes: plain, with a reader's list held, and with
+those same lists handed over as a note that nothing holds. A difference was set at four runs of
+twelve.
 
 | | 01 | 02 | 03 | 05 | Passes, by the hidden tests | Landed | $ a run | Calls a run |
 |---|---|---|---|---|---|---|---|---|
 | Plain | 0 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | 8 of 12 | 11 | 0.15 | 39.5 |
 | **A reader named, its list held** | 2 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | **10 of 12** | 9 | 0.32 | 102.5 |
+| **The same lists as a note** | 1 of 3 | 1 of 3 | 3 of 3 | 3 of 3 | **8 of 12** | 12 | 0.26 | 50 |
 
-- **No difference shown,** and there was room for one. The whole gap is the first ask, 2 of 3
-  against 0 of 3.
-- **Held, a run costs 2.1 times the dollars** and 2.6 times the calls.
+- **Nothing separates the three arms.** On sqlglot the list took Mikata from 6 of 12 to 11 as a
+  note and to 10 held. Here it is 8 plain, 8 as a note, 10 held: no difference shown, in a
+  codebase where two of the four asks pass every time whatever is done.
+- **The hold is not shown to add, on either codebase.** The same 24 lists pass 20 times held and
+  19 times as a note. Here the hold is two runs ahead; on sqlglot one behind. Of the four note
+  runs that failed here, one broke a line its list states.
+- **Held, a run costs 2.1 times the dollars** of a plain one and 2.6 times the calls; as a note,
+  1.7 times the dollars.
 - **Two of the reader arm's ten passes did not land.** One never learned why its checks could
   not run (the second fault above). One was held to two wrong lines of the reader's: an
   expression spelled as the reader guessed it, and a value the fix itself changes listed as one
@@ -551,7 +563,7 @@ on the build that holds the first of those fixes. A difference was set at four r
 - **A list can hold nothing.** 41 of the 236 checks never touch the code. One run passed and
   landed with every one of its 21 checks an `echo`.
 
-30 runs for the ten fixes, $5.96; 24 for the prose asks, $5.73. One model as the body. The asks
+30 runs for the ten fixes, $5.96; 36 for the prose asks, $8.80. One model as the body. The asks
 are ours, written that day, and nobody else has read them.
 
 ### A second body

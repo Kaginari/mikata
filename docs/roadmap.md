@@ -70,17 +70,23 @@ next:
   reader's wrong letters made binding. On the second codebase the cost showed again: of the
   reader arm's ten passes two did not land (one could not make its own checks run, one was held
   to two wrong lines of the reader's), and one run landed "verified" by 21 checks that were all
-  an `echo`. To decide, bar first: a reader's list put in the ask as a note by default, held
-  only when you ask for it, against the release as it is, on fresh lists. Your own list stays
-  held: you have seen the code and the reader has not.
+  an `echo`. The same lists as a note passed 8 of 12 there against 10 held: over both codebases
+  20 of 24 held and 19 of 24 as a note. So twelve runs an arm cannot show what the hold is
+  worth, and what it costs can be counted: a quarter to four tenths more dollars a run than the
+  note, up to twice the calls, and in one night four held runs (one of them a trial of a fix)
+  whose code was right and whose landing failed. To decide, bar first: a
+  reader's list put in the ask as a note by default, held only when you ask for it, against
+  the release as it is, on fresh lists, with enough runs to see two in twelve. Your own list
+  stays held: you have seen the code and the reader has not.
 - **When a reader pays.** On four prose asks it took 6 of 12 to 10 of 12. On the ten single
   fixes, whose asks carry their examples, it changed nothing we can show (7 of 9 both ways), at
   a third more a run, and 47% more on the tasks that pass either way. With a stronger body
   (Claude Haiku 5.5) the prose asks pass 12 of 12 unaided: the reader had no room, cost as much
   as the run itself, and one landing in twelve failed on a wrong line of its list. On prose asks
-  in a second codebase, with the small model: 10 of 12 against 8, under the bar, at twice the
-  price a run, the whole gap on one ask. So far a reader is shown to pay for a weak body on an
-  ask without examples in one codebase, and nowhere else we have looked. Today
+  in a second codebase, with the small model: 10 of 12 held against 8 plain, under the bar, at
+  twice the price a run, the whole gap on one ask; and 8 of 12 with the lists as a note. So far
+  a reader is shown to pay for a weak body on an ask without examples in one codebase, and
+  nowhere else we have looked. Today
   the reader is called on every ask that carries no list. To try: let it answer that the ask
   already fixes its outputs, and write only what must stay.
 - **What the habit costs where it is not needed.** Mikata writes down what done means and
