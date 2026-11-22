@@ -21,8 +21,12 @@ harness, run twice a week apart ([the bench](docs/bench.md)):
 | Maki | 15 of 20 | $0.91 |
 | OpenCode | 14 of 20 | $0.87 |
 
-On passes the three are level: by the bar we wrote first, no difference is shown. The price per
-pass held in every screen.
+On passes the three are level: by the bar we wrote first, no difference is shown. On a second
+codebase (ten fixes in a JavaScript library) they are level again, 8, 7 and 6 of 10, and with a
+stronger model every one of them passes all ten. Mikata is not always the cheapest: on the
+JavaScript fixes, which are smaller, Maki's pass cost a third of Mikata's, and with the stronger
+model half. Writing down what done means and checking it takes calls; it pays where the work is
+hard for the model.
 
 **Say what done means, and the harness holds it.** Put lines under `## Done when` in your ask
 (`D1: ... must give ...`, `D2: ... must stay as it is today`), or name a reader, a model that

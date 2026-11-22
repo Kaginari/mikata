@@ -68,6 +68,14 @@ without. So the list is the gain, and holding it is not shown to add a pass: hel
 lists passed 10, for about four dollars in ten more a run. What the hold gives is a pass that
 names what verified it ([the bench](docs/bench.md#the-list-held)).
 
+**Measured that night: a second codebase and a second body.** On ten fixes in a JavaScript
+library the three harnesses are level again (Mikata 8, Maki 7, OpenCode 6), and Mikata's pass
+cost half of OpenCode's and three times Maki's. With a stronger model (Claude Haiku 5.5) all
+three pass all ten sqlglot fixes, and Mikata's pass costs what OpenCode's does and twice Maki's.
+So "about half their price a pass", above, is a count on one codebase with one small model, not
+a property of the harness. With that stronger model the four prose asks pass 12 times in 12
+with no reader ([the bench](docs/bench.md#a-second-codebase)).
+
 ### Added
 
 - **A `Done when` list in your ask is held by the harness.** Say what done means in lines of your

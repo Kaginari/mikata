@@ -70,7 +70,9 @@ works through it over your whole repository, the way a careful engineer would:
    that list. You do.
 
 That habit, writing "done" down and checking it, took Mikata from 5 of 10 to level with OpenCode
-and Maki on our bench, at about half their price per pass ([the bench](bench.md)). It needs
+and Maki on our bench, at about half their price per pass on the fixes it was built on. It takes
+calls: on smaller fixes in a second codebase, and with a stronger model that needs no help, the
+three stay level on passes and Mikata is not the cheapest ([the bench](bench.md)). It needs
 nothing set up.
 
 **You can write the list yourself, or have a reader write it.** Lines under `## Done when` in your

@@ -17,12 +17,29 @@ task once per harness, twice a week apart, each harness at its version of the da
 
 Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
 
+The same three harnesses, each as released, on two more screens, each task once
+([measured](#a-second-codebase)):
+
+| Harness | Ten fixes in mathjs (JavaScript), the same small model | Per pass | The ten sqlglot fixes, a stronger model (Claude Haiku 5.5) | Per pass |
+|---|---|---|---|---|
+| **Mikata 1.1.0** | **8 of 10** | $0.26 | **10 of 10** | $0.031 |
+| Maki 0.7.3 | 7 of 10 | $0.08 | 10 of 10 | $0.015 |
+| OpenCode 1.19.6 | 6 of 10 | $0.55 | 10 of 10 | $0.030 |
+
 ## In plain words
 
-- **On passes the three harnesses are level. Mikata pays about half.** Same model, same tasks,
-  same host: the harness is the only difference. By the bar written before each screen (ahead at
-  three tasks of ten) no difference is shown, either time. The price a pass is the steadier
-  number, and it held in every screen.
+- **On passes the three harnesses are level: on two codebases, and with two models.** Same
+  model, same tasks, same host: the harness is the only difference. By the bar written before
+  each screen (ahead at three tasks of ten) no difference is shown, any of the four times.
+- **On price there is no one answer, and Mikata is not always the cheapest.** On sqlglot with
+  the small model a pass cost Mikata about half what it cost the others, both times. On mathjs,
+  whose fixes are smaller, it cost half of OpenCode's and three times Maki's. With a stronger
+  model every harness passes every task, and Mikata's pass costs what OpenCode's does and twice
+  Maki's. Mikata writes down what done means and checks each line; that takes calls. Where the
+  work is hard for the model it has paid for itself in passes. Where the work is small, or the
+  model needs no help, it is a cost.
+- **The ceiling on those ten tasks was the model's.** The two tasks all three harnesses failed
+  with the small model pass in all three with the stronger one.
 - **A count moves by one or two between runs.** Mikata passed 9, then 7. Two tasks fail for all
   three harnesses on the second screen, and the step limit is not why: the others took more
   calls on them and failed too.
@@ -467,6 +484,101 @@ fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15; thirty-si
 seventh, $11.72; twenty-four for the eighth, $0.85. One codebase, asks that are not fresh, one
 model as the reader, and but for the eighth step one as the body.
 
+### A second codebase
+
+Everything above is one Python codebase, sqlglot. So the bench got a second one in another
+language: [mathjs](https://github.com/josdejong/mathjs), about 250,000 lines of JavaScript. Ten
+upstream fixes of 2025 and 2026, each asked with what the code prints today and what is
+expected, each judged by the fix's own unit tests. The same small model, each harness as
+released, each task once. The bar was the one used on sqlglot: a difference is three tasks of
+ten.
+
+| | Passes | Fails | $ a run | $ a pass | Calls a run |
+|---|---|---|---|---|---|
+| **Mikata 1.1.0** | **8 of 10** | 04, 10 | 0.21 | 0.26 | 31.5 |
+| Maki 0.7.3 | 7 of 10 | 04, 08, 10 | 0.05 | 0.08 | 27.5 |
+| OpenCode 1.19.6 | 6 of 10 | 01, 04, 07, 10 | 0.33 | 0.55 | 21 |
+
+- **Level on passes, again.** No difference shown. Two tasks fail in all three.
+- **Not the cheapest here.** A pass cost Mikata about half of OpenCode's and more than three
+  times Maki's. On sqlglot Maki's pass cost $0.91 and Mikata's $0.50. These fixes are smaller:
+  five of Mikata's ten runs cost under five cents. Mikata made 590 calls with 55,000 prompt
+  tokens each, Maki 300 with 26,000. On a small fix, writing down what done means and checking
+  each line costs more than it saves.
+- **One task may be owed to Maki.** Its world had no test runner left when it was judged: the
+  run had removed or replaced `node_modules`, which nothing can fetch again with no network, so
+  its fix was never judged. Mikata's own gate refuses an install; the other two run with every
+  command approved. That is a fault of our suite, counted as it ran and fixed for the next
+  screen: the suite's `node_modules` are put back before a world is judged. With it the passes
+  read 8, 7 or 8, 6: level either way.
+- **Mikata's two failures are the model's.** In both the ask states the output the tree does
+  not give. Reading them found a fault of ours beside them, the next paragraph.
+
+**What the second codebase found in Mikata itself.** Three faults, none of which a Python
+project could show, each fixed with a test that fails without it:
+
+- **The harness's own copies of the code had no `node_modules`.** "What changed" runs the
+  body's checks again in two copies, and a `must stay` line handed in late is read from a copy.
+  A copy left `node_modules` out for its size. Over Mikata's ten runs, 8 of 70 checks ran in
+  the copies, 62 were counted as "fails on the finished work", and nothing was shown in ten
+  runs of ten. A copy is now lent the world's `node_modules`, to read and never to write. The
+  same ten runs asked again with no model call: 61 of 70 run, 30 print differently, and both
+  failed runs show a wrong value.
+- **A failing check was told "it said nothing".** A check written with `2>&1` says its error in
+  its output, and Node ends every uncaught error on its own version. One run fixed the code,
+  never learned which file its checks could not import, and ended on its step limit. A failing
+  check is now told the line where its error names itself.
+- **A check piped into `tail` was read as one that ran,** whatever its command did. Seen with
+  the stronger body above; the same rule the stall detector already had.
+
+**Prose asks, with a reader.** Four of the ten asks cut to a paragraph of prose, three rounds,
+on the build that holds the first of those fixes. A difference was set at four runs of twelve.
+
+| | 01 | 02 | 03 | 05 | Passes, by the hidden tests | Landed | $ a run | Calls a run |
+|---|---|---|---|---|---|---|---|---|
+| Plain | 0 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | 8 of 12 | 11 | 0.15 | 39.5 |
+| **A reader named, its list held** | 2 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | **10 of 12** | 9 | 0.32 | 102.5 |
+
+- **No difference shown,** and there was room for one. The whole gap is the first ask, 2 of 3
+  against 0 of 3.
+- **Held, a run costs 2.1 times the dollars** and 2.6 times the calls.
+- **Two of the reader arm's ten passes did not land.** One never learned why its checks could
+  not run (the second fault above). One was held to two wrong lines of the reader's: an
+  expression spelled as the reader guessed it, and a value the fix itself changes listed as one
+  that must stay. The body handed in the code's real output four times and was refused.
+- **The reader's lists were nearly all right:** 3 wrong lines of 236. All three state something
+  about code the reader has not seen, as on sqlglot.
+- **A list can hold nothing.** 41 of the 236 checks never touch the code. One run passed and
+  landed with every one of its 21 checks an `echo`.
+
+30 runs for the ten fixes, $5.96; 24 for the prose asks, $5.73. One model as the body. The asks
+are ours, written that day, and nobody else has read them.
+
+### A second body
+
+"Level on passes, about half the price a pass" also rested on one body. So the three harnesses
+were run on the same ten sqlglot fixes with Claude Haiku 5.5 as the body, each as released, each
+task once. Before a harness's counted runs, one run of it was read by code: tokens by kind, and
+our dollars within a tenth of the harness's own.
+
+| | Passes | $ a run | Calls a run | Seconds a run | Prompt tokens a call |
+|---|---|---|---|---|---|
+| **Mikata 1.1.0** | **10 of 10** | 0.031 | 26 | 229 | 39,000 |
+| OpenCode 1.19.6 | 10 of 10 | 0.030 | 21.5 | 162 | 52,000 |
+| Maki 0.7.3 | 10 of 10 | 0.015 | 13 | 110 | 30,000 |
+| The small model, 20 November: Mikata, OpenCode, Maki | 7 of 10 each | 0.41, 0.74, 0.59 | 114, 176.5, 106.5 | | |
+
+- **Every task passes in every harness.** Tasks 06 and 10, which all three failed with the small
+  model, pass in all three. That ceiling was the model's. On passes this screen cannot tell the
+  harnesses apart, and we said before it ran that it would then say nothing about them.
+- **Mikata is not cheaper with this body.** Its pass costs 103% of OpenCode's and 204% of
+  Maki's. The bar for "about half" was 60%, for "cheaper" 90%. All three read 92% to 96% of
+  their prompt from the cache: the price turns on calls, and Mikata takes the most.
+- **Maki finishes in half Mikata's calls and half its time.**
+
+30 runs, each counted on its first try, $0.79. One stronger body, a small model of a large
+maker; nothing here says what a larger one does.
+
 ### The modes against each other
 
 Each mode against light-coding, on the same tasks, same model and host. Structured-coding counts
@@ -491,8 +603,11 @@ when they ran. Why they lose, and what we are building next, is on
   of these tasks from scratch, in any harness; the gaps here are what a harness adds to a model
   that needs help. Where we gave Mikata a stronger body (Claude Haiku 5.5), the prose asks the
   small model passes half the time passed 12 of 12 with no help, for two cents a run, and the
-  reader had nothing left to add ([measured](#the-list-held)).
-- **One kind of work.** Fixes and features in Python libraries with tests. We have not measured
-  front-end work, infrastructure, or code with no tests.
+  reader had nothing left to add ([measured](#the-list-held)); and on the ten single fixes all
+  three harnesses passed everything ([measured](#a-second-body)).
+- **One kind of work.** Fixes in two libraries with tests, one in Python and one in JavaScript.
+  We have not measured front-end work, infrastructure, or code with no tests.
 - **Small counts.** Ten tasks, run once or twice. We say "ahead" only where the gap is larger than
-  what the same harness varies between two runs, and price per pass is the steadier number.
+  what the same harness varies between two runs. A price per pass held between two screens of
+  the same tasks and model; it did not hold across codebases or models, and we no longer quote
+  one as the harness's own.

@@ -67,18 +67,30 @@ next:
   ([the bench](bench.md#the-list-held)). The hold was built on a smaller screen that said the
   opposite. What it gives beyond passes is real and unmeasured: a pass that names what verified
   it, and what must stay read from the code. What it costs is measured: dollars, calls, and a
-  reader's wrong letters made binding. To decide, bar first: a reader's list put in the ask as
-  a note by default, held only when you ask for it, against the release as it is, on fresh
-  lists and on a second codebase. Your own list stays held: you have seen the code and the
-  reader has not.
+  reader's wrong letters made binding. On the second codebase the cost showed again: of the
+  reader arm's ten passes two did not land (one could not make its own checks run, one was held
+  to two wrong lines of the reader's), and one run landed "verified" by 21 checks that were all
+  an `echo`. To decide, bar first: a reader's list put in the ask as a note by default, held
+  only when you ask for it, against the release as it is, on fresh lists. Your own list stays
+  held: you have seen the code and the reader has not.
 - **When a reader pays.** On four prose asks it took 6 of 12 to 10 of 12. On the ten single
   fixes, whose asks carry their examples, it changed nothing we can show (7 of 9 both ways), at
   a third more a run, and 47% more on the tasks that pass either way. With a stronger body
   (Claude Haiku 5.5) the prose asks pass 12 of 12 unaided: the reader had no room, cost as much
-  as the run itself, and one landing in twelve failed on a wrong line of its list. So far a
-  reader pays for a weak body on an ask without examples, and nowhere else we have looked. Today
+  as the run itself, and one landing in twelve failed on a wrong line of its list. On prose asks
+  in a second codebase, with the small model: 10 of 12 against 8, under the bar, at twice the
+  price a run, the whole gap on one ask. So far a reader is shown to pay for a weak body on an
+  ask without examples in one codebase, and nowhere else we have looked. Today
   the reader is called on every ask that carries no list. To try: let it answer that the ask
   already fixes its outputs, and write only what must stay.
+- **What the habit costs where it is not needed.** Mikata writes down what done means and
+  checks each line. On the fixes it was built on that took it from 5 of 10 to level with the
+  others at half their price. On ten smaller fixes in a second codebase it is level and costs
+  three times what Maki does a pass; with a stronger body all three pass everything and Maki
+  finishes in half Mikata's calls ([the bench](bench.md#a-second-codebase)). The habit is one
+  size for every ask and every body. To try, bar first: let the size of the list follow the
+  ask, and measure calls a pass on the small fixes with passes on the hard ones held where they
+  are.
 - **A copy that cannot run the project.** A `must stay` line handed in late is read from a copy
   of the world, and what changed is shown from two. Until a second codebase was run the copies
   left `node_modules` out, and on a JavaScript project almost nothing ran in them: 8 checks of
