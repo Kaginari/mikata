@@ -239,8 +239,10 @@ impl Policy {
     }
 
     /// Let the command read `path` besides, and never write it: a folder outside its world that
-    /// the harness lends it. Granted where it resolves, as a toolchain is: a loan that lands on,
-    /// inside or above a credential is left out, and kept in `refused`.
+    /// the harness lends it, named by its resolved path. A loan is the folder it was when it
+    /// was lent: one that leads elsewhere now, because a link stands in its place or above it,
+    /// is no loan. Nor is one that lands on, inside or above a credential. Either is left out,
+    /// and kept in `refused`.
     pub fn lend(&mut self, path: &Path) {
         let at = resolve(path);
         let credential = self
@@ -248,7 +250,7 @@ impl Policy {
             .iter()
             .flat_map(|c| [c.clone(), resolve(c)])
             .any(|c| at.starts_with(&c) || c.starts_with(&at));
-        if credential {
+        if credential || at != path {
             self.refused.push(path.to_path_buf());
         } else if !self.read.contains(&at) {
             self.read.push(at);

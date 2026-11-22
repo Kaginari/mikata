@@ -1570,9 +1570,9 @@ flowchart LR
     git dependency's `.cargo/git/db/*/config`, and `.gitconfig` (an `http.extraHeader` bearer
     token) — keep such tokens in the credential files instead. Seatbelt reads the same list and denies the credential paths besides. One more read is granted to no body, only to the
     copies of a world the harness itself runs a check in ([what changed](02-loop.md#what-changed-by-its-own-checks)): the
-    world's own `node_modules`, lent to the copy to read and never to write. A loan is granted
-    where it resolves, as a toolchain is, and one that lands on, inside or above a credential
-    path grants nothing. Writes: the world, the command's temporary directory
+    world's own `node_modules`, lent to the copy to read and never to write. A loan is the
+    folder it was when it was lent: a link put in its place grants nothing, and neither does a
+    loan that lands on, inside or above a credential path. Writes: the world, the command's temporary directory
     inside it, and a few devices — for light-coding. A commissioned creature's commands are granted
     exactly what its soil admits, and the rest of the world is read-only to them: landlock can
     allow a folder but never except a spot inside it, so a claim that holds another's spot (a

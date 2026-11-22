@@ -401,6 +401,20 @@ fn a_lent_folder_is_read_and_never_written() {
         let (ok, out) = g.run(&policy, "cat ~/.ssh/id_ed25519");
         assert!(!ok && !out.contains("PRIVATE KEY"), "{loan}: {out}");
     }
+    // A loan is the folder it was when it was lent. A link put in its place leads elsewhere, to
+    // files that are no credential and no business of the command's: that is no loan either.
+    let was = g.path("world/deps-once");
+    fs::create_dir(&was).unwrap();
+    let mut policy = g.policy(false);
+    policy.lend(&was);
+    assert!(policy.refused.is_empty() && policy.read.contains(&was));
+    fs::remove_dir(&was).unwrap();
+    std::os::unix::fs::symlink(g.path("home/Documents"), &was).unwrap();
+    let mut policy = g.policy(false);
+    policy.lend(&was);
+    assert_eq!(policy.refused, [was]);
+    let (ok, out) = g.run(&policy, "cat deps-once/diary.txt ~/Documents/diary.txt");
+    assert!(!ok && !out.contains("dear diary"), "{out}");
 }
 
 /// Reads come from an allowlist: the home's ordinary files are as closed as its keys.
