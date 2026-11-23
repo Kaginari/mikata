@@ -277,6 +277,35 @@ impl Host {
                     let _ = tx.send(Msg::Said(waive(&world, &landing, &reason)));
                 });
             }
+            // The human's word goes through the one act the core's door uses; the disk is read and
+            // written off the UI thread.
+            Cmd::Wrong(words) => {
+                let (tx, world) = (self.tx.clone(), self.world.clone());
+                self.runtime.spawn_blocking(move || {
+                    let _ = tx.send(Msg::Previewed(mikata_loop::word::preview(
+                        &world, &words, None,
+                    )));
+                });
+            }
+            Cmd::Keep(said) => {
+                let (tx, world) = (self.tx.clone(), self.world.clone());
+                self.runtime.spawn_blocking(move || {
+                    let _ = tx.send(Msg::Kept(mikata_loop::word::keep(&world, &said)));
+                });
+            }
+            Cmd::Withdraw(id) => {
+                let (tx, world) = (self.tx.clone(), self.world.clone());
+                self.runtime.spawn_blocking(move || {
+                    let said = match mikata_loop::word::take_back(&world, &id) {
+                        Ok(words) => format!(
+                            "withdrawn: {id} is neither told nor held when its ask comes again: \
+                             {words}"
+                        ),
+                        Err(why) => format!("not withdrawn: {why}"),
+                    };
+                    let _ = tx.send(Msg::Said(said));
+                });
+            }
             Cmd::Copy(text) => {
                 // The terminal's clipboard on the UI thread, between frames: never inside one.
                 let mut out = std::io::stdout();

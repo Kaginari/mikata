@@ -157,10 +157,11 @@ the fourth attempt, where a session without memory makes the first mistake again
   again); a tree that keeps its code between attempts, as a real one does; and the two other
   paths, a failure by the gate and a stop, which have their tests and one sighting each in a
   paid run, and no screen.
-- **The human's word, in the session.** The door is a command of the core today. To do: the
-  same act from inside a session, where the human is looking at the answer, and the line the
-  harness would hold shown back before it is kept: a word is held only when it says what must
-  come out, and a person does not always say it so.
+- **The human's word, in the session: built, not measured.** `/wrong` in the terminal UI shows
+  what would be held, or that the words are advice, before `/keep` keeps it; the core's command
+  and the session share one act. Left: the web board; a correction read from the human's next
+  message when a reader model is named (offered, never kept without `/keep`); and a screen that
+  shows people phrase it so that it is held.
 - **A check that cannot run is not a check that fails: built, not measured.** Twice a run on a
   JavaScript codebase handed in checks that load a file a source tree does not have, was told
   "fails on your work" at every landing, and never repaired them; the second time its code was

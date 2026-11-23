@@ -1912,77 +1912,54 @@ fn wrong_said(args: &[String]) -> ExitCode {
 /// journal and are kept as a correction — shared, grounded by their word — under the ask they
 /// speak of: the journal's last, or the one `--ask` names by its first line. A body never says it.
 fn wrong(world: &Path, words: &str, ask: Option<&str>) -> ExitCode {
-    use mikata_server::world::log::{ASKED, Entry, append_entry, last_asked};
-    use mikata_server::world::memory::corrected;
+    use mikata_server::word;
     if let Ok(body) = std::env::var("MIKATA_BODY") {
         return refused(&format!(
             "{body} runs this: saying an answer was wrong is the human's act, never a body's"
         ));
     }
-    let words = words.trim();
-    if words.is_empty() {
+    if words.trim().is_empty() {
         return refused(
             &"say what is wrong: mikatad memory wrong <what still fails, in your words>",
         );
     }
-    let Some(asked) = ask
-        .map(|a| a.trim().to_owned())
-        .filter(|a| !a.is_empty())
-        .or_else(|| last_asked(world))
-    else {
+    let Ok(said) = word::preview(world, words, ask) else {
         return refused(
             &"no entry of the journal says what it was asked: name the ask with --ask \"<its \
               first line>\"",
         );
     };
-    let entry = Entry {
-        body: "the human".to_owned(),
-        title: format!("wrong: {asked}"),
-        lines: vec![
-            (ASKED.to_owned(), asked.clone()),
-            ("Said".to_owned(), words.to_owned()),
-        ],
-    };
-    let heading = match append_entry(world, &entry) {
-        Ok(Some(h)) => h,
-        Ok(None) => return refused(&"this world keeps no journal (.mikata/log.md) to write it in"),
-        Err(e) => return refused(&format!("the journal cannot be written: {e}")),
-    };
-    match corrected(world, words, &asked, &format!("log.md {heading}")) {
-        Ok((id, linked)) => {
+    match word::keep(world, &said) {
+        Ok(kept) => {
             println!(
-                "kept as {id}: a correction, shared and grounded by your word, under the ask {}",
-                field(&asked)
+                "kept as {}: a correction, shared and grounded by your word, under the ask {}",
+                kept.id,
+                field(&kept.asked)
             );
-            if linked.is_empty() {
+            if kept.linked.is_empty() {
                 println!("no note was learned under that ask: the correction stands alone");
             } else {
                 println!(
                     "it corrects {} note(s) learned under that ask: {}",
-                    linked.len(),
-                    linked.join(", ")
+                    kept.linked.len(),
+                    kept.linked.join(", ")
                 );
             }
-            // Read from the words as memory keeps them: that is what a later session holds.
-            let kept = mikata_server::world::memory::correction(world, &id)
-                .ok()
-                .flatten()
-                .unwrap_or_else(|| words.to_owned());
-            match mikata_server::held_line(&kept) {
+            match &kept.held {
                 Some(line) => println!(
                     "held: when that ask comes again this is a line of its Done when list, and \
                      an answer that breaks it does not land: {}",
-                    field(&line)
+                    field(line)
                 ),
                 None => println!(
                     "kept as advice, which a body may overrule. To have the harness hold it, say \
                      what must come out: <input> must give <output>"
                 ),
             }
-            println!("to take it back: mikatad memory withdraw {id}");
+            println!("to take it back: mikatad memory withdraw {}", kept.id);
             ExitCode::SUCCESS
         }
-        Err(e) => refused(&format!("the correction could not be kept: {e}")),
+        Err(e) => refused(&e),
     }
 }
 
@@ -2014,42 +1991,24 @@ fn withdraw_said(args: &[String]) -> ExitCode {
 /// journal and the correction sleeps: neither told first nor held when its ask comes again. A
 /// body never runs it.
 fn withdraw(world: &Path, id: &str) -> ExitCode {
-    use mikata_server::world::log::{Entry, append_entry};
-    use mikata_server::world::memory::{correction, withdraw};
     if let Ok(body) = std::env::var("MIKATA_BODY") {
         return refused(&format!(
             "{body} runs this: taking a correction back is the human's act, never a body's"
         ));
     }
-    let said = match correction(world, id) {
-        Ok(Some(said)) => said,
-        Ok(None) => {
-            return refused(&format!(
-                "{} is no correction of yours that is awake",
-                field(id)
-            ));
-        }
-        Err(e) => return refused(&format!("memory cannot be read: {e}")),
-    };
-    let entry = Entry {
-        body: "the human".to_owned(),
-        title: format!("withdrawn: {id}"),
-        lines: vec![("Said".to_owned(), said.clone())],
-    };
-    let heading = match append_entry(world, &entry) {
-        Ok(Some(h)) => h,
-        Ok(None) => return refused(&"this world keeps no journal (.mikata/log.md) to write it in"),
-        Err(e) => return refused(&format!("the journal cannot be written: {e}")),
-    };
-    match withdraw(world, id, &format!("log.md {heading}")) {
-        Ok(_) => {
+    match mikata_server::word::take_back(world, id) {
+        Ok(said) => {
             println!(
                 "withdrawn: {id} sleeps, and is neither told nor held when its ask comes again: {}",
                 field(&said)
             );
             ExitCode::SUCCESS
         }
-        Err(e) => refused(&format!("the correction could not be withdrawn: {e}")),
+        Err(e) if e.ends_with("is no correction of yours that is awake") => refused(&format!(
+            "{} is no correction of yours that is awake",
+            field(id)
+        )),
+        Err(e) => refused(&e),
     }
 }
 

@@ -7873,3 +7873,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **A plan corrected before it was built:** I told the owner a budget on what memory shows was the likeliest way to make memory cheap. Measured on the kept runs first: memory opens a session of the stronger body with about 2,800 characters (median 916 of notes and 1,920 of journal), some 700 tokens. That cannot carry 20 to 51% more dollars; the cost is in the work the body then does (17 to 32% more tool uses). The budget moves to last, with a small effect expected.
 - **Not done as asked:** the owner asked for several agents working at once on this machine. Hivemind's hook refuses Claude Code's own agents, and Hivemind's delegation answers 401 to this thread. One piece at a time until that is repaired; five briefs are written.
 
+### [2026-11-23T11:18:00+00:00] aibo Summoner — the human's word, in the session
+- **Why:** the chain of corrections passed 7 of 8 failing asks, but a person could only say "wrong" through a separate command of the core, and learned only after keeping it whether their words were held.
+- **Built:** `/wrong <words>` in the terminal UI shows `held:` with the line, or `advice:` with how to say it so it is held, and the ask it goes under; `/keep` keeps, `/drop` drops, `/withdraw` takes back the last one kept. The act moved into one function (`mikata_loop::word`: `preview`, `keep`, `take_back`) used by the core's command and the session; the core prints what it printed before, and its tests pass unchanged.
+- **Held by tests:** a preview writes nothing; what is kept is what was shown and can be taken back once; the session shows before it keeps and keeps once; `/withdraw` with no id takes the last kept. 1,003 tests of the loop, the UI, the core and the server; lints clean.
+- **Left:** the web board; a correction read from the human's next message by a reader model; no screen yet.
+
