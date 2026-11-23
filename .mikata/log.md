@@ -7878,4 +7878,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Result:** 2 and 2: missed. Memory kept the first named case right in 7 of 7; the session without it broke it in 3 runs that began on code that had it right. Hidden cases wrong 7 against 15. \$2.83.
 - **Corrected in the book:** "7 of the 8 asks pass by the fourth attempt" now says it was with the code starting over, and that with the code kept the two pass alike. The bench page, the memory page and the roadmap.
 - **Mine:** I expected 4 and 3. My watchdog ended the first three runs: 3.6 GB of file cache from my builds was charged to the service. Dropped without root (POSIX_FADV_DONTNEED), and the watchdog now drops it before it ends a run.
+### [2026-11-23T11:18:00+00:00] aibo Summoner — the human's word, in the session
+- **Why:** the chain of corrections passed 7 of 8 failing asks, but a person could only say "wrong" through a separate command of the core, and learned only after keeping it whether their words were held.
+- **Built:** `/wrong <words>` in the terminal UI shows `held:` with the line, or `advice:` with how to say it so it is held, and the ask it goes under; `/keep` keeps, `/drop` drops, `/withdraw` takes back the last one kept. The act moved into one function (`mikata_loop::word`: `preview`, `keep`, `take_back`) used by the core's command and the session; the core prints what it printed before, and its tests pass unchanged.
+- **Held by tests:** a preview writes nothing; what is kept is what was shown and can be taken back once; the session shows before it keeps and keeps once; `/withdraw` with no id takes the last kept. 1,003 tests of the loop, the UI, the core and the server; lints clean.
+- **Left:** the web board; a correction read from the human's next message by a reader model; no screen yet.
 
