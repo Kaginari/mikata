@@ -5327,8 +5327,25 @@ hands that part on. Do not write outside your zone.",
 fn retry_note(how: &str, said: &[&str], commissioned: bool, failures: &[String]) -> String {
     let orcs_line = commissioned && failures.iter().any(|f| f.starts_with("traits hold:"));
     let listed = failures.iter().any(|f| f.starts_with(crate::done::SAID));
+    // A check that cannot run is the command's fault, and the fix is another command: a body
+    // told only to "fix it" changes code that may be right.
+    let unrun = failures
+        .iter()
+        .filter(|f| f.contains(crate::done::CANNOT_RUN))
+        .count();
+    let commands = match unrun {
+        0 => String::new(),
+        n if n == failures.len() => " Nothing above says your work is wrong: the commands fail \
+             before they reach it. Leave the code as it is and repair the commands."
+            .to_owned(),
+        n => format!(
+            " {n} of these {} a command that cannot run: repair the command, not the code it \
+             never reached.",
+            if n == 1 { "is" } else { "are" }
+        ),
+    };
     format!(
-        "The end gate {how}:\n- {}\nFix it, then answer again.{}{}",
+        "The end gate {how}:\n- {}\nFix it, then answer again.{}{commands}{}",
         said.join("\n- "),
         if listed { crate::done::TOGETHER } else { "" },
         if orcs_line {
@@ -5396,6 +5413,48 @@ mod tests {
             got
         }) as std::pin::Pin<Box<dyn std::future::Future<Output = u8> + Send>>;
         assert_eq!(all(vec![a, b]).await, [2, 1]);
+    }
+
+    /// A landing failed only by checks that cannot run is not told to fix its work: the code
+    /// may be right, and the command is what must change. With a real failure beside them the
+    /// body is told how many are commands.
+    #[test]
+    fn a_landing_failed_by_commands_that_cannot_run_is_told_to_repair_the_commands() {
+        let unrun = |line: &str| {
+            format!(
+                "{} {line} must give `5`: `node t.js` {}: it fails as it did when you handed it \
+in (Error: Cannot find module './x.js'), before it reaches your work.",
+                crate::done::SAID,
+                crate::done::CANNOT_RUN
+            )
+        };
+        let wrong = format!(
+            "{} D3 must give `5`: `python3 t.py` prints `3` on your work",
+            crate::done::SAID
+        );
+        let all = [unrun("D1"), unrun("D2")];
+        let said: Vec<&str> = all.iter().map(String::as_str).collect();
+        let note = super::retry_note("failed", &said, false, &all);
+        assert!(
+            note.contains("Nothing above says your work is wrong")
+                && note.contains("Leave the code as it is and repair the commands"),
+            "{note}"
+        );
+        let some = [unrun("D1"), wrong.clone()];
+        let said: Vec<&str> = some.iter().map(String::as_str).collect();
+        let note = super::retry_note("failed", &said, false, &some);
+        assert!(
+            note.contains("1 of these is a command that cannot run: repair the command")
+                && !note.contains("Nothing above says"),
+            "{note}"
+        );
+        let ran = [wrong];
+        let said: Vec<&str> = ran.iter().map(String::as_str).collect();
+        let note = super::retry_note("failed", &said, false, &ran);
+        assert!(
+            !note.contains("cannot run") && !note.contains("repair"),
+            "{note}"
+        );
     }
 
     #[test]

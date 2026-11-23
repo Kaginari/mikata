@@ -801,6 +801,19 @@ stay was tried before, and failed. So the harness holds the list, by code:
   whatever it was piped into: `... 2>&1 | tail -1` ends well whatever came before it, so the
   harness reads the first stage's own status from the shell. What the pipe let through of a
   failed command is no output to hold a line to.
+- **A check that cannot run is said to be one.** A check for a stated output remembers how its
+  command failed when it was handed in. If that was a failure to load (a program that is not
+  installed, a module or a file that is not there), the body is told at once that the command
+  stops before it reaches what the line is about, and to hand in one that runs unless its work
+  is to make the missing thing exist. When the answer comes and the command fails exactly as it
+  did then, the gate does not say the work is wrong: it says the command `cannot run here`, that
+  this shows nothing of the work, right or wrong, and to hand the line in again. A landing
+  failed only by such commands is told to leave the code and repair the commands. The line
+  still does not land: nothing checked it. A command that failed another way when handed in
+  (the function is not written yet) and fails the same way on the finished work is said to be
+  unmoved by the work, which is true whichever of the two is at fault. The journal, the
+  session's ending and the failure memory keeps under the ask carry the same words, so the
+  next session is told it was the checks.
 - The same line and command handed in again asks how the line stands now. The check is kept as
   it came in.
 - A line with neither phrase takes either form.
