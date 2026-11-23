@@ -328,6 +328,19 @@ checkpoint carries it, and so do spent steps. In a session of its own those last
 as the body's `handoff` note under the ask, and their `@U` lines as lessons.
 A tool the body calls anyway on a drain or salvage turn never runs: only its words are kept.
 
+**A stop puts a stash back.** A body often puts its edits aside for a moment, to see what the
+code as it found it prints (`git stash && <a probe> && git stash pop`), and a stop can fall
+before the pop: its work would sit in `git stash` while the tree reads as the ask found it. So
+every checkpoint counts the stashes the ask pushed and has not popped, from git's own files and
+from the count the ask began at. The newest is popped (`git stash pop --index`, through `bash`,
+under the guard the body's own commands run under) while nothing has moved since it was pushed:
+the tree and the index clean, no commit made. That comes before a drain or salvage turn is
+asked, so the last words are said of the tree as it is left. A stash that cannot be put back
+that way is left where it is and named with the way to bring it back. What the stop did is
+said to you as a warning, and to the body: in its last turn's note, or, at a stop with no last
+turn, as a note in the conversation for the ask that goes on. A stash left is in the stop's
+account too. A stash the ask found is the human's, and is never touched.
+
 **Changes mid-session append.** The system prompt and the tools are built once, when the run is
 made. A model fallback, a new date, working directory or mode, or a reloaded configuration is
 said to the body as a `[context update]` line before its next request, and journaled as a note,

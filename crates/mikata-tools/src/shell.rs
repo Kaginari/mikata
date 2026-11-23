@@ -490,30 +490,46 @@ const KEPT_FILES: usize = 12;
 /// The largest replaced version copied to the scratch.
 const KEPT_BYTES: u64 = 1024 * 1024;
 
+/// The directory git keeps the world's stash in, found without running git in the world.
+fn stash_home(world: &Path) -> Option<PathBuf> {
+    let dot = world.join(".git");
+    if dot.is_dir() {
+        return Some(dot);
+    }
+    // A linked worktree: `.git` is a file naming its own directory, and `commondir` there
+    // names the one the stash lives in.
+    let named = fs::read_to_string(&dot).ok()?;
+    let own = PathBuf::from(named.strip_prefix("gitdir:")?.trim());
+    let own = if own.is_absolute() {
+        own
+    } else {
+        world.join(own)
+    };
+    Some(match fs::read_to_string(own.join("commondir")) {
+        Ok(common) => own.join(common.trim()),
+        Err(_) => own,
+    })
+}
+
 /// The stash's tip as git keeps it on disk, read without running git in the world: a command
 /// that pushes a stash moves it.
 fn stash_tip(world: &Path) -> Option<String> {
-    let dot = world.join(".git");
-    let dir = if dot.is_dir() {
-        dot
-    } else {
-        // A linked worktree: `.git` is a file naming its own directory, and `commondir` there
-        // names the one the stash lives in.
-        let named = fs::read_to_string(&dot).ok()?;
-        let own = PathBuf::from(named.strip_prefix("gitdir:")?.trim());
-        let own = if own.is_absolute() {
-            own
-        } else {
-            world.join(own)
-        };
-        match fs::read_to_string(own.join("commondir")) {
-            Ok(common) => own.join(common.trim()),
-            Err(_) => own,
-        }
-    };
-    fs::read_to_string(dir.join("refs/stash"))
+    fs::read_to_string(stash_home(world)?.join("refs/stash"))
         .ok()
         .map(|tip| tip.trim().to_owned())
+}
+
+/// How many stashes the world's repository holds, read as git keeps them on disk and without
+/// running git in the world: a stash is one line of the stash's own log, which git removes with
+/// the last of them. A world that is no repository's root holds none. An ask that ends above
+/// the count it began at pushed a stash and did not pop it: its work is out of the tree.
+#[must_use]
+pub fn stash_depth(world: &Path) -> usize {
+    stash_home(world)
+        .and_then(|home| fs::read_to_string(home.join("logs/refs/stash")).ok())
+        .map_or(0, |log| {
+            log.lines().filter(|l| !l.trim().is_empty()).count()
+        })
 }
 
 /// What is said when a command put files back to what they were when the session started,

@@ -37,7 +37,7 @@ pub use mikata_sandbox::harden_self;
 /// Whether an environment variable is a secret the harness keeps from its children.
 pub use mikata_sandbox::is_secret;
 pub use pinned::remove_created;
-pub use shell::{model_call, stdout_of};
+pub use shell::{model_call, stash_depth, stdout_of};
 pub use tool::{
     Context, Grant, Meta, Outcome, OwnerOf, ReadOf, ReadSpan, Tool, call, ignored, registry,
 };

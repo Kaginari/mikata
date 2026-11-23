@@ -828,22 +828,28 @@ fn a_file_put_back_is_seen_whatever_the_command_says() {
     drop(g);
 }
 
-/// A stash holds what it took: the body pops it, and nothing is said.
+/// A stash holds what it took: the body pops it, and nothing is said. How many stashes the
+/// world holds is read from git's own files, for the stop that comes before the pop.
 #[test]
 fn a_stash_is_the_bodys_to_pop_and_nothing_is_said() {
     let (g, mut cx) = edited("putback-stash");
+    assert_eq!(mikata_tools::stash_depth(&g.world()), 0);
     let o = bash(&mut cx, "git stash -q");
     assert!(
         !o.is_error && !o.content.contains("back as the session found"),
         "{o:?}"
     );
     assert_eq!(read(&g, "src/a.rs"), "fn a() {}\n");
+    assert_eq!(mikata_tools::stash_depth(&g.world()), 1);
     let o = bash(&mut cx, "git stash pop -q");
     assert!(
         !o.is_error && !o.content.contains("back as the session found"),
         "{o:?}"
     );
     assert_eq!(read(&g, "src/a.rs"), "fn a() { work() }\n");
+    assert_eq!(mikata_tools::stash_depth(&g.world()), 0);
+    // A folder that is no repository holds none.
+    assert_eq!(mikata_tools::stash_depth(&g.root), 0);
     assert_eq!(kept_copies(&g), Vec::<PathBuf>::new());
     // With the stash gone, the same checkout is a loss again.
     let o = bash(&mut cx, "git checkout -- src/a.rs");
