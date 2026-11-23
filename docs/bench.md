@@ -678,6 +678,81 @@ check behind a landing no note is ever grounded, every note is shown to the body
 and a failure never reaches memory. The same three rounds with a verify line are the next
 screen ([roadmap](roadmap.md#next-a-memory-that-pays)).
 
+### Memory, told it was wrong
+
+The campaign above showed that memory could not learn from a mistake: nothing told it one had
+been made. So three things were built: a first failure is kept under its ask, a session that
+stops leaves an account, and the human can say an answer was wrong
+(`mikatad memory wrong "<what is wrong>"`), which the next session with that ask is told first
+([memory](07-memory.md#reconsolidation)). These screens measure the last one, on the asks the
+small model fails: three asks stated in prose, on two codebases. Thirteen first attempts, 5
+pass; the 8 that fail each get a human's word, and then a second attempt. The code starts over
+at every attempt; only the word, and memory, go on. No verify line.
+
+Two ways to carry the word. **Told once:** said through the door into the memory the first
+attempt left, and the same ask asked again. **Told again:** a fresh world with no memory, the
+same words typed after the ask. A second attempt told nothing would pass about 0.7 of the 8.
+
+| The second attempt | Passes of 8 | The named case right | Answered "done" with it wrong | Calls | Dollars |
+|---|---|---|---|---|---|
+| (the first attempt) | 0 | 0 | 8 | 596 | 1.39 |
+| Told once, the failing test's own line | 1 | 4 | 4 | 675 | 1.98 |
+| Told again, the failing test's own line | 0 | 4 | 4 | 694 | 1.87 |
+| Told once, as a person would say it | 0 | 5 | 3 | 745 | 1.89 |
+| Told again, as a person would say it | 0 | 6 | 2 | 552 | 1.41 |
+| Told again, and the case **held** by the harness | 1 | 8 | 0 | 888 | 3.35 |
+
+"The named case" is one input and the output it must give, found by running the first
+attempt's code against the hidden test; "right" is that input run on the code the second
+attempt left.
+
+- **The first bar was missed, and so was the second.** Written first each time: the second
+  attempt, told once by memory, passes at least half of the 8. It passed 1, then 0. Told again
+  in the ask it passed 0 and 0. No pass is shown anywhere here.
+- **Memory carries the word as well as saying it again.** In every pair of arms the two stand
+  together: 1 and 0 passes, 4 and 4, 5 and 6 named cases right. All 16 runs that were told once
+  opened on the correction, shown first and marked as one.
+- **A failing test's own line is no way to say it.** The first screen passed the human's word as
+  the verifier prints a failure: two strings and a `!=`. It names no input and not which string
+  is wanted, and six runs made the same wrong fix again and answered that the named test passes.
+- **Said as a person would say it, the word arrives, and is then overruled.** "`<input>` must
+  give `<wanted>`; it gives `<got>`": 16 runs of 16 wrote that case into their own plan as a
+  line that must hold, and ran the input themselves, 4 to 23 times. On the one ask where the fix
+  is hard, 5 runs of 6 then rewrote their own line to say the opposite, ticked it, and answered
+  that the ask was done. A correction that is told is advice.
+- **One sentence names one case, and the code starts over.** Where the fix is easy the named
+  case came out right in 10 runs of 10, and every one failed on a case nobody had named. One ask
+  has two cases: the pair told about the first got the second wrong, and the pairs told about
+  the second got the first wrong, each the case the other was told.
+- **Held, the named case is not the body's to rewrite.** Mikata already holds a list by code
+  ([the list held](#the-list-held)); the last screen put the named case after the ask as the one
+  line of such a list. It came out right in 8 runs of 8, the hard ask's three among them. One of
+  those changed the code until the case was wrong, handed the line in again with the opposite
+  output and was refused, answered, had the answer failed by the gate with what the line
+  printed, and put it right. One worked on the real fix for its 200 steps and did not land: the
+  journal says it stopped, and memory keeps the stop. No run answered "done" with the named case
+  wrong, where 5 of 16 had.
+- **A held line pulls the work toward itself.** The run that was refused ended with the human's
+  case right and the ask's own case undone: the code as it found it already satisfied the line.
+  Counted over the cases we transcribed from the hidden tests, the held runs leave 16 wrong,
+  the two prose arms 17 and 21. The hold moves the named case to right and makes the rest of the ask no more right.
+- **The one pass with the hold is a third draw.** The provider answered 429 during two attempts
+  at that pair; the harness waited and went on, and the bench then threw such a run away and ran
+  the pair again. Both of those left failing code. Counted as the bench now counts (a run that
+  waited out a limit and ended by its own doing is a run), the held arm reads 0 of 8.
+- **It costs.** Held runs took 888 calls against 552 and 745, and about twice the dollars.
+
+So a correction is built to be held: a word of the human's that says what must come out is a
+line of that ask's list whenever the ask comes again, and each further word adds a line
+([memory](07-memory.md#reconsolidation)). What these screens do not show is a pass that follows
+from it; whether a second word, joined to the first by memory, gets there is the next screen.
+
+**Limits.** Eight pairs, three asks, two codebases, one small model, one second attempt each.
+The words are ours, one case each, found by running the code. The code starts over between
+attempts, which a real tree does not. No verify line. $14.34 over 57 paid runs, caps $23; rows,
+notes with their bars, and the readers are in the bench repository
+(`studies/told-once/`).
+
 ### The modes against each other
 
 Each mode against light-coding, on the same tasks, same model and host. Structured-coding counts

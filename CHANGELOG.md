@@ -26,6 +26,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   names by its first line). A session that meets that ask again is shown the correction ahead of
   what the earlier session believed, with that belief marked `corrected`. Nothing is deleted.
   It is the human's alone: a body's command is refused.
+- **What you say must come out is held.** A correction that says so in the words a `Done when`
+  list is read by, ``mikatad memory wrong "`total 1 2` must give `6`; it gives `3`"``, is now a
+  line of that ask's list whenever the ask comes again: after the ask's own lines or a
+  reader's, in the order you said them, the newest twelve. The body is told the lines are yours,
+  that they are not its to rewrite, and that they are cases of the ask and not the whole of it;
+  it hands in a check for each, and an answer that leaves one wrong does not land. The line is
+  your words up to the output they state. Words that state no output stay advice, as before,
+  and `memory wrong` now says which it was. On our bench a correction that was only told was
+  taken up by every run and then overruled by five runs of six where the fix was hard; held,
+  the case came out right in eight runs of eight.
+- **Take a correction back.** `mikatad memory withdraw <note>` puts a correction of yours to
+  sleep: it is told and held no more, the journal keeps the act, and nothing is deleted.
 - **A session that stops leaves an account.** When a session spends its steps, its clock, its
   context or its budget before it answers, the journal now gets an entry (what was asked, why it
   stopped, which files it had changed, how to resume) and memory a note of the stop under that
@@ -45,6 +57,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **A stopped session's account names files as the world does.** A body that wrote a file by
+  the world's whole path had that path listed as changed, its own plan under `.mikata/` among
+  them. Paths are now said relative to the world, and the plan is left out whichever way it was
+  named.
 - **A first failure is remembered.** When the end gate failed twice, what failed was written to
   memory only as a correction of the notes that ask had recalled. With none recalled, nothing
   was written: the first failure on any task left no trace, and the same ask met the same wall.

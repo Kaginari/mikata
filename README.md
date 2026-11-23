@@ -143,7 +143,10 @@ Until a world has one, nothing a session claims is grounded, and `mikatad memory
 the line for your project (`cargo test --workspace`, `pytest`, `npm test`, …).
 
 **Say when it was wrong.** `mikatad memory wrong "<what still fails>"` keeps your words as a
-correction under that ask: the next session that meets it is told first.
+correction under that ask: the next session that meets it is told first. Say what must come out,
+as ``mikatad memory wrong "`total 1 2` must give `6`; it gives `3`"``, and the harness holds it:
+whenever that ask comes again the case is a line of its `Done when` list, and an answer that
+leaves it wrong does not land. `mikatad memory withdraw <note>` takes a correction back.
 
 ## Run it
 

@@ -825,11 +825,14 @@ async fn a_session_that_stops_leaves_an_account_and_a_landing_settles_it() {
     let w = World::new("solo-stopped");
     fs::create_dir_all(w.world().join(".mikata")).unwrap();
     let asked = "# Make out.txt say fixed\n\nIt says nothing today.";
+    // Written by the world's whole path, as a body sometimes names a file: the account names
+    // it as the world does.
+    let whole = w.world().canonicalize().unwrap().join("out.txt");
     let model = Arc::new(ScriptedModel::new([
         tool(
             "t1",
             "write",
-            json!({"path": "out.txt", "content": "half\n"}),
+            json!({"path": whole.to_str().unwrap(), "content": "half\n"}),
         ),
         tool("t2", "glob", json!({"pattern": "*"})),
         ScriptedModel::text(
@@ -1533,6 +1536,129 @@ async fn an_asks_own_done_when_list_is_held_by_the_harness() {
         by[1],
         (false, vec!["the ask's Done when list (2 lines)".to_owned()])
     );
+}
+
+/// What checked each landing of a run, in order: whether nothing did, and what did.
+fn verified(w: &World) -> Vec<(bool, Vec<String>)> {
+    w.journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Gate {
+                unchecked,
+                verified_by,
+                ..
+            } => Some((unchecked, verified_by)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// What the human said must come out when an answer was wrong is held when that ask comes again.
+/// The case joins the ask's list, said after the ask as the human's own; an answer that leaves
+/// it untrue is handed back with what it printed; and the pass says whose list checked it. Words
+/// that state no output hold nothing, and a correction taken back holds nothing.
+#[tokio::test]
+async fn what_the_human_said_must_come_out_is_held_when_the_ask_comes_again() {
+    const DOUBLE: &str = "Make total.sh print twice the sum.";
+    let w = World::new("held-word");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    // The human's word on an earlier answer: one states what must come out, one is advice.
+    let (held, _) = mikata_memory::corrected(
+        &w.world(),
+        "Still wrong. `sh total.sh 1 2` must give `6`; it gives `3`.",
+        DOUBLE,
+        "log.md ### [1] the human — wrong",
+    )
+    .unwrap();
+    mikata_memory::corrected(
+        &w.world(),
+        "and the script is slow",
+        DOUBLE,
+        "log.md ### [2] the human — wrong",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "6"}),
+        ),
+        // The answer the human called wrong, given again: the code as it was.
+        answer("it sums already"),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, DOUBLE).await,
+        Ending::Answered("doubled".into())
+    );
+    // Said after the ask: the line in the human's words up to the output they state, whose it
+    // is, and how the harness holds it. The advice is no line.
+    let first = told_after(&model, 0);
+    assert!(
+        first.contains(
+            "Make total.sh print twice the sum.\n\n## Done when\nD1: Still wrong. `sh total.sh 1 2` \
+             must give `6`\n\nD1 is the human's own word: they said an earlier answer to this ask \
+             was wrong, and this is what must come out. It is not yours to rewrite, and it is one \
+             case of the ask, not the whole of it: the ask stands as written.\n\nThe ask \
+             holds a `## Done when` list (D1)"
+        ),
+        "{first}"
+    );
+    assert!(!first.contains("D2:"), "{first}");
+    // Both of the human's words are told from memory, as before: held or not.
+    assert!(
+        first.contains(
+            "shared grounded revise: Still wrong. `sh total.sh 1 2` must give `6`; it gives `3`."
+        ) && first.contains("shared grounded revise: and the script is slow"),
+        "{first}"
+    );
+    // The human is told what is held.
+    assert!(
+        w.journal().read().unwrap().rows.iter().any(|b| matches!(
+            b,
+            Beat::Warning { text }
+                if text == "held from what you said was wrong when this was asked before: D1"
+        )),
+        "the human is told which lines are held"
+    );
+    // The first answer leaves the case untrue: handed back with what it printed.
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(
+        gates[0].len() == 1
+            && gates[0][0].starts_with(
+                "done when: D1 must give `6`: `sh total.sh 1 2` prints `3` on your work"
+            ),
+        "{gates:?}"
+    );
+    assert!(gates[1].is_empty(), "{gates:?}");
+    assert_eq!(
+        verified(&w)[1],
+        (
+            false,
+            vec!["the human's Done when list (1 line)".to_owned()]
+        )
+    );
+    // Taken back, the correction holds nothing: the same ask in a new session carries no list.
+    mikata_memory::withdraw(&w.world(), &held, "log.md ### [3] the human — withdrawn").unwrap();
+    let again = Arc::new(ScriptedModel::new([answer("nothing to change")]));
+    let mut run = w.run_light(Arc::clone(&again));
+    assert_eq!(
+        ask(&mut run, DOUBLE).await,
+        Ending::Answered("nothing to change".into())
+    );
+    let told = told_after(&again, 0);
+    assert!(!told.contains("## Done when"), "{told}");
+    assert!(told.contains("and the script is slow"), "{told}");
 }
 
 /// A body that ignores the list is refused twice, then let through: the landing fails for the

@@ -650,6 +650,90 @@ fn the_humans_word_corrects_what_was_learned_under_an_ask() {
     let _ = std::fs::remove_dir_all(&w);
 }
 
+/// The human's corrections under an ask are found for the harness to hold: theirs alone, oldest
+/// first, under that ask and no other. One they take back sleeps: found no more, told no more,
+/// and nothing is deleted.
+#[test]
+fn the_humans_corrections_under_an_ask_are_found_and_one_is_taken_back() {
+    const FIRST: &str = "`nearest(3)` must give `3 rows`; with ties it gives 4";
+    use mikata_memory::{
+        Tier, corrected, correction, corrections_under, fold, gather, propose_under, read, withdraw,
+    };
+    let w = fresh_world("corrections");
+    // A lesson a body wrote under the ask is no correction of the human's, whatever its tag.
+    propose_under(
+        &w,
+        "summoner",
+        "src/join.js `nearest(3)` must give `3 rows`",
+        vec!["correction".into()],
+        Some(ASKED),
+        vec![],
+    )
+    .unwrap();
+    assert_eq!(
+        corrections_under(&w, ASKED).unwrap(),
+        [] as [(String, String); 0],
+        "a body's own lesson is no correction"
+    );
+    let (first, _) = corrected(&w, FIRST, ASKED, "log.md ### [2] the human — wrong").unwrap();
+    let (second, _) = corrected(
+        &w,
+        "ties are still wrong",
+        ASKED,
+        "log.md ### [3] the human — wrong",
+    )
+    .unwrap();
+    let (other, _) = corrected(
+        &w,
+        "`f(1)` must give `2`",
+        "Another ask",
+        "log.md ### [4] the human — wrong",
+    )
+    .unwrap();
+    assert_eq!(
+        corrections_under(&w, ASKED).unwrap(),
+        [
+            (first.clone(), FIRST.to_owned()),
+            (second.clone(), "ties are still wrong".to_owned())
+        ]
+    );
+    assert_eq!(correction(&w, &first).unwrap().as_deref(), Some(FIRST));
+    assert_eq!(correction(&w, "r-no-such-note").unwrap(), None);
+    // Taken back: it sleeps by the human's word, and its ask is told and held to it no more.
+    assert_eq!(
+        withdraw(&w, &first, "log.md ### [5] the human — withdrawn").unwrap(),
+        FIRST
+    );
+    assert_eq!(
+        corrections_under(&w, ASKED).unwrap(),
+        [(second.clone(), "ties are still wrong".to_owned())]
+    );
+    assert_eq!(correction(&w, &first).unwrap(), None);
+    assert!(
+        withdraw(&w, &first, "log.md ### [6] the human — withdrawn").is_err(),
+        "it sleeps already"
+    );
+    let shared = fold(&read(&w, &Tier::Shared).unwrap().rows);
+    assert_eq!(shared[&first].status, Status::Dormant);
+    assert_eq!(shared[&first].text, FIRST, "nothing is deleted");
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
+    assert!(!ids(&r).contains(&first.as_str()), "{r:?}");
+    assert!(ids(&r).contains(&second.as_str()), "{r:?}");
+    // The other ask's correction is its own.
+    assert_eq!(
+        corrections_under(&w, "Another ask").unwrap(),
+        [(other, "`f(1)` must give `2`".to_owned())]
+    );
+    assert!(
+        mikata_memory::status(&w)
+            .unwrap()
+            .iter()
+            .all(|(_, f)| f.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
 /// Measured on a carried campaign's own notes (`fixtures/carried-recall.json`: one body, ten
 /// tasks in one codebase, three rounds on one memory, 88 notes). A task that comes again must be
 /// shown a note its own earlier run wrote. Matched by their words alone, the notes of a long ask

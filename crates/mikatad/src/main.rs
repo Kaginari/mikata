@@ -27,6 +27,7 @@ Usage: mikatad [--world <dir>] [--resume <run|last>] [--mode auto|light-coding|s
        mikatad memory wake <note> [--world <dir>]
        mikatad memory confirm <claim> [--world <dir>]
        mikatad memory wrong <what is wrong> [--ask <its first line>] [--world <dir>]
+       mikatad memory withdraw <note> [--world <dir>]
        mikatad incident list | open <post> <act> [--why <text>] | settle <post> <act>
                  [--why <text>] | lesson <post> <act> test <path> | verify <path>:<line>
                  | thought <id>   [--world <dir>]
@@ -123,6 +124,12 @@ what it broke. It is written to the journal and kept as a correction in shared m
 by the human's word, under the ask it speaks of: the ask of the journal's last entry, or the one
 `--ask` names by its first line. A session that meets that ask again is told it first, ahead of
 what the earlier session believed. Nothing is deleted. A body never runs it.
+
+Say what must come out, as <input> must give <output>, and the harness holds it: whenever that
+ask comes again the case is a line of its Done when list, the body hands in a check for it, and
+an answer whose check prints something else does not land. Words that state no output that way
+are advice, which a body may overrule. `memory withdraw <note>` takes a correction of yours
+back: it sleeps, and is neither told nor held from then on.
 
 `incident` is the human's door to the Kijin's incidents. An outward act that was rolled back or
 corrected stays an open incident until four receipts are recorded: undone (its undo observed),
@@ -1664,8 +1671,10 @@ fn settle(world: Option<&Path>, ids: &[String]) -> ExitCode {
 /// `memory status`: the unproven writes, per creature.
 fn memory(args: &[String]) -> ExitCode {
     use mikata_server::world::memory::{Unproven, audit::SHARED, pathology};
-    if args.first().map(String::as_str) == Some("wrong") {
-        return wrong_said(&args[1..]);
+    match args.first().map(String::as_str) {
+        Some("wrong") => return wrong_said(&args[1..]),
+        Some("withdraw") => return withdraw_said(&args[1..]),
+        _ => {}
     }
     let mut world = None;
     let mut json = false;
@@ -1691,9 +1700,7 @@ fn memory(args: &[String]) -> ExitCode {
         }
     }
     let Some(verb) = verb else {
-        return refused(
-            &"memory needs a verb: status, wake <note>, confirm <claim> or wrong <what is wrong>",
-        );
+        return refused(&"memory needs a verb: status, wake, confirm, wrong or withdraw");
     };
     let Ok(cwd) = std::env::current_dir() else {
         return refused(&"the current directory cannot be read");
@@ -1956,9 +1963,93 @@ fn wrong(world: &Path, words: &str, ask: Option<&str>) -> ExitCode {
                     linked.join(", ")
                 );
             }
+            // Read from the words as memory keeps them: that is what a later session holds.
+            let kept = mikata_server::world::memory::correction(world, &id)
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| words.to_owned());
+            match mikata_server::held_line(&kept) {
+                Some(line) => println!(
+                    "held: when that ask comes again this is a line of its Done when list, and \
+                     an answer that breaks it does not land: {}",
+                    field(&line)
+                ),
+                None => println!(
+                    "kept as advice, which a body may overrule. To have the harness hold it, say \
+                     what must come out: <input> must give <output>"
+                ),
+            }
+            println!("to take it back: mikatad memory withdraw {id}");
             ExitCode::SUCCESS
         }
         Err(e) => refused(&format!("the correction could not be kept: {e}")),
+    }
+}
+
+/// `memory withdraw`'s own words: the correction's id, and the world.
+fn withdraw_said(args: &[String]) -> ExitCode {
+    let (mut world, mut id) = (None, None);
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--world" => match it.next() {
+                Some(v) => world = Some(PathBuf::from(v)),
+                None => return refused(&"--world needs a value"),
+            },
+            other if id.is_none() && !other.starts_with("--") => id = Some(other.to_owned()),
+            other => return refused(&format!("unknown argument `{other}`; see --help")),
+        }
+    }
+    let Some(id) = id else {
+        return refused(&"withdraw needs the correction's id");
+    };
+    let Ok(cwd) = std::env::current_dir() else {
+        return refused(&"the current directory cannot be read");
+    };
+    let world = world.map_or_else(|| cwd.clone(), |w| absolute(&cwd, &w));
+    withdraw(&world, &id)
+}
+
+/// `memory withdraw <note>`: the human takes back a correction of theirs. It is written to the
+/// journal and the correction sleeps: neither told first nor held when its ask comes again. A
+/// body never runs it.
+fn withdraw(world: &Path, id: &str) -> ExitCode {
+    use mikata_server::world::log::{Entry, append_entry};
+    use mikata_server::world::memory::{correction, withdraw};
+    if let Ok(body) = std::env::var("MIKATA_BODY") {
+        return refused(&format!(
+            "{body} runs this: taking a correction back is the human's act, never a body's"
+        ));
+    }
+    let said = match correction(world, id) {
+        Ok(Some(said)) => said,
+        Ok(None) => {
+            return refused(&format!(
+                "{} is no correction of yours that is awake",
+                field(id)
+            ));
+        }
+        Err(e) => return refused(&format!("memory cannot be read: {e}")),
+    };
+    let entry = Entry {
+        body: "the human".to_owned(),
+        title: format!("withdrawn: {id}"),
+        lines: vec![("Said".to_owned(), said.clone())],
+    };
+    let heading = match append_entry(world, &entry) {
+        Ok(Some(h)) => h,
+        Ok(None) => return refused(&"this world keeps no journal (.mikata/log.md) to write it in"),
+        Err(e) => return refused(&format!("the journal cannot be written: {e}")),
+    };
+    match withdraw(world, id, &format!("log.md {heading}")) {
+        Ok(_) => {
+            println!(
+                "withdrawn: {id} sleeps, and is neither told nor held when its ask comes again: {}",
+                field(&said)
+            );
+            ExitCode::SUCCESS
+        }
+        Err(e) => refused(&format!("the correction could not be withdrawn: {e}")),
     }
 }
 

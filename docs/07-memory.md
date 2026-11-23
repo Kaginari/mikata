@@ -448,6 +448,28 @@ with it are told apart.
   human said the answer was wrong, not which note. A lesson about the repository as a whole,
   learned under the same ask, is no part of the answer and is left as it is. A body never runs
   it.
+- **What the human says must come out is held.** A correction that is only told is advice, and
+  a body overrules advice when following it is hard. Measured on the asks our small model fails:
+  said as a person would say it (what was run, what must come out, what comes out), the
+  correction was taken up by 16 runs of 16, by memory as well as by the ask, and on the one ask
+  where the fix is hard 5 runs of 6 then rewrote their own "done when" line to say the opposite
+  and answered that the ask was done ([the bench](bench.md#memory-told-it-was-wrong)). So when
+  the human's words say what must come out, in the phrase a done-when list is read by
+  (`<input>` must give `<output>`), the harness **holds** them. Whenever that ask comes again,
+  each such correction is a line of its `## Done when` list
+  ([the loop](02-loop.md#a-done-when-list-in-the-ask)), after the ask's own lines or a reader's,
+  in the order the human said them, at most the newest twelve. The body is told whose lines they
+  are, that they are not its to rewrite, and that they are cases of the ask and not the whole of
+  it; it hands in a check for each, and an answer whose check prints something else does not
+  land. The line is the human's words up to the output they state: what they say came out
+  instead is no part of it, or the wrong output would count as one the line states. Words that
+  state no output stay advice, as do words that say something `must stay`: what the code does
+  today may be the very answer the human called wrong. The door says which it was, in the line
+  as it will be held. Held on the same asks, the named case came out right in 8 runs of 8, and
+  one run that handed the line in again with the opposite output was refused. Only what recall
+  itself would tell is held: a note whose author or proof does not resolve is neither.
+  `mikatad memory withdraw <note>` takes a correction back: it sleeps by the human's word, is
+  told and held no more, and nothing is deleted.
 
 The rules for a failure that did recall notes are unchanged:
 

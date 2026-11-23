@@ -2533,12 +2533,38 @@ impl Run {
         crate::lessons::first_line(&self.asked)
     }
 
+    /// What the human's corrections of earlier answers to `ask` say must come out, oldest
+    /// first, each a line for the harness to hold ([`crate::done::held_line`]). None for a
+    /// commissioned body: the human corrects the answer to their own ask. A memory that cannot
+    /// be read holds nothing: the ask goes on as it would have.
+    fn corrected_cases(&self, ask: &str) -> Vec<String> {
+        if self.caller.commission.is_some() {
+            return Vec::new();
+        }
+        let Some(asked) = crate::lessons::first_line(ask) else {
+            return Vec::new();
+        };
+        mikata_memory::corrections_under(self.cx.world(), asked)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|(_, words)| crate::done::held_line(words))
+            .collect()
+    }
+
     /// The files this ask changed, by the body's own acts: written, edited, moved, deleted or
     /// patched, each once, as the acts name them.
     fn changed_in_ask(&self) -> Vec<String> {
         let mut paths = std::collections::BTreeSet::new();
         for (name, input) in self.acts_since_ask() {
             for p in changed_paths(name, input) {
+                // As the world names it: a body may write by the world's whole path, and its own
+                // plan under `.mikata/` is no change to the work whichever way it was named.
+                let p = std::path::Path::new(&p)
+                    .strip_prefix(self.cx.world())
+                    .map_or_else(
+                        |_| p.clone(),
+                        |inside| inside.to_string_lossy().into_owned(),
+                    );
                 let p = p.trim_start_matches("./").to_owned();
                 if !p.is_empty() && !p.starts_with(".mikata/") {
                     paths.insert(p);
@@ -3120,18 +3146,29 @@ impl Run {
         self.acceptable.clear();
         self.landed_in_ask = None;
         // A list the ask carries is the harness's to hold, where the body holds the tool for it:
-        // the ask's own, or else the one a reader wrote for it.
+        // the ask's own, or else the one a reader wrote for it; and with either, what the human
+        // said must come out when an earlier answer to this very ask was wrong.
         let read = std::mem::take(&mut self.read);
         self.done = if self.tools.iter().any(|t| t.name() == crate::done::CHECK) {
             let own = crate::done::List::of(text);
-            if own.is_empty() {
+            let list = if own.is_empty() {
                 crate::done::List::read(&read)
             } else {
                 own
-            }
+            };
+            list.holding(&self.corrected_cases(text))
         } else {
             crate::done::List::default()
         };
+        if !self.done.humans().is_empty() {
+            let lines: Vec<&str> = self.done.humans().iter().map(String::as_str).collect();
+            self.record(&Beat::Warning {
+                text: format!(
+                    "held from what you said was wrong when this was asked before: {}",
+                    lines.join(", ")
+                ),
+            });
+        }
         self.done_rounds = 0;
         self.done_judged = crate::done::Judged::default();
         let text = self.preface(text);

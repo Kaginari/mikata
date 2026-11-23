@@ -853,6 +853,18 @@ about a third more a run ([the bench](bench.md#the-list-held)). It has not seen 
 where it states how the code spells an output it is guessing: read its list before you trust a
 pass by it.
 
+**What you said was wrong joins the list.** When you say an earlier answer was wrong
+(`mikatad memory wrong`) and your words say what must come out, `<input>` must give `<output>`,
+memory keeps them under that ask, and whenever the ask comes again the case is a line of its
+list, after the ask's own lines or a reader's: `D3: <your words, up to the output they state>`.
+The body is told the line is yours, that it is not its to rewrite, and that it is one case of
+the ask and not the whole of it. Each further correction adds a line, so what you said once is
+held from then on without your saying it again. You see one line when a session starts with
+such lines: `held from what you said was wrong when this was asked before: D3`. A landing they
+checked says so: `verified by the human's Done when list (1 line)`, or the ask's or the reader's
+list with `D3 from what the human said was wrong before`. Why it is held and not only told, and
+what it measured, is in [memory](07-memory.md#reconsolidation).
+
 What this does not do. Nothing here reads prose: the two phrases decide a line's kind, and equal
 text decides a pass. The checks are the body's own commands: one that does not print what its
 line is about holds nothing, and the harness cannot tell. The list is held right or wrong: a

@@ -887,6 +887,80 @@ pub fn corrected(
     Ok((note, learned.into_iter().map(|(id, _)| id).collect()))
 }
 
+/// Whether the note `id` was born as a correction the human said through their own door.
+fn humans_correction(rows: &[crate::note::Event], id: &str) -> bool {
+    rows.iter().any(|e| {
+        e.note == id
+            && matches!(e.by, By::Human)
+            && matches!(&e.change, Change::Create { tags, .. } if tags.iter().any(|t| t == "correction"))
+    })
+}
+
+/// The human's corrections kept under `asked` and still awake, oldest first: `(id, words)`. Only
+/// what the human said through their own door ([`corrected`]) is one: a note a body wrote is
+/// never the human's correction, whatever its tags say. Where one says what must come out, the
+/// harness holds a later answer to the same ask to it.
+///
+/// # Errors
+///
+/// The shared tier cannot be read.
+pub fn corrections_under(world: &Path, asked: &str) -> std::io::Result<Vec<(String, String)>> {
+    let asked = asked.trim();
+    // The events recall folds, and no other: one whose author or proof does not resolve is
+    // never held, as it is never told.
+    let rows = crate::audit::resolved(crate::store::read(world, &Tier::Shared)?.rows).0;
+    let mut notes: Vec<crate::note::Note> = crate::note::fold(&rows)
+        .into_values()
+        .filter(|n| {
+            n.status != Status::Dormant
+                && n.asked.as_deref().map(str::trim) == Some(asked)
+                && humans_correction(&rows, &n.id)
+        })
+        .collect();
+    notes.sort_by(|a, b| a.born.cmp(&b.born).then_with(|| a.id.cmp(&b.id)));
+    Ok(notes.into_iter().map(|n| (n.id, n.text)).collect())
+}
+
+/// What the human's correction `id` says, while it is awake; `None` when `id` names none.
+///
+/// # Errors
+///
+/// The shared tier cannot be read.
+pub fn correction(world: &Path, id: &str) -> std::io::Result<Option<String>> {
+    let rows = crate::audit::resolved(crate::store::read(world, &Tier::Shared)?.rows).0;
+    Ok(crate::note::fold(&rows)
+        .remove(id)
+        .filter(|n| n.status != Status::Dormant && humans_correction(&rows, id))
+        .map(|n| n.text))
+}
+
+/// The human takes back a correction of theirs: it goes to sleep by their word (`proof`, the
+/// journal entry that holds it). From then on it is neither told first when its ask comes again
+/// nor held. Nothing is deleted. Returns what it said.
+///
+/// # Errors
+///
+/// `id` names no correction of the human's that is awake, or the shared tier cannot be read or
+/// written.
+pub fn withdraw(world: &Path, id: &str, proof: &str) -> std::io::Result<String> {
+    let Some(text) = correction(world, id)? else {
+        return Err(std::io::Error::other(format!(
+            "{id} is no correction of yours that is awake"
+        )));
+    };
+    append(
+        world,
+        &Tier::Shared,
+        id,
+        By::Human,
+        Some(proof.to_owned()),
+        Change::Status {
+            status: Status::Dormant,
+        },
+    )?;
+    Ok(text)
+}
+
 /// One anchor recalled into a run, as reconsolidation weighs it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Anchor {
