@@ -70,7 +70,9 @@ works through it over your whole repository, the way a careful engineer would:
    that list. You do.
 
 That habit, writing "done" down and checking it, took Mikata from 5 of 10 to level with OpenCode
-and Maki on our bench, at about half their price per pass ([the bench](bench.md)). It needs
+and Maki on our bench, at about half their price per pass on the fixes it was built on. It takes
+calls: on smaller fixes in a second codebase, and with a stronger model that needs no help, the
+three stay level on passes and Mikata is not the cheapest ([the bench](bench.md)). It needs
 nothing set up.
 
 **You can write the list yourself, or have a reader write it.** Lines under `## Done when` in your
@@ -80,8 +82,13 @@ code before anything changes, and runs every line when the answer lands
 ([the loop](02-loop.md#a-done-when-list-in-the-ask)). Name a model as `models.reader` and it
 writes those lines for each ask, from the ask alone. On the two asks our bench fails most, that
 is the difference between 1 pass in 6 and 6 in 6; on four asks stated as prose, with nothing
-added but the reader, between 6 passes in 12 and 10. Read the list a reader writes: the harness
-holds whatever it says, and names in its pass any line whose check showed nothing of the work.
+added but the reader, between 6 passes in 12 and 10. The list is what does it: the same lists
+handed over as a plain note, held by nothing, passed 11 in 12, and 8 in 12 in each of the two
+other harnesses we run beside Mikata, where those passed 5 and 3 without
+([the bench](bench.md#the-list-held)). What the hold adds is a pass that names what verified it
+and what must stay read from your code; it costs about four dollars in ten more a run and is not
+shown to add passes. Read the list a reader writes: the harness holds whatever it says, and
+names in its pass any line whose check showed nothing of the work.
 
 **An ask that names several projects is split by itself.** When the ask names two or more folders
 at the root of your repository that each hold a project file of their own (`pyproject.toml`,

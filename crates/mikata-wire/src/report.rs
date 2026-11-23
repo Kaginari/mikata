@@ -76,7 +76,9 @@ impl UnsaidKind {
         }
     }
 
-    fn from_word(word: &str) -> Option<Self> {
+    /// The home a word on the wire names: `law`, `colony` or `territory`, and no other word.
+    #[must_use]
+    pub fn from_word(word: &str) -> Option<Self> {
         match word {
             "law" => Some(UnsaidKind::Law),
             "colony" => Some(UnsaidKind::Colony),

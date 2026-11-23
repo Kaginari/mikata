@@ -17,12 +17,30 @@ task once per harness, twice a week apart, each harness at its version of the da
 
 Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
 
+The same three harnesses, each as released, on two more screens, each task once
+([measured](#a-second-codebase)):
+
+| Harness | Ten fixes in mathjs (JavaScript), the same small model | Per pass | The ten sqlglot fixes, a stronger model (Claude Haiku 5.5) | Per pass |
+|---|---|---|---|---|
+| **Mikata 1.1.0** | **8 of 10** | $0.26 | **10 of 10** | $0.031 |
+| Maki 0.7.3 | 7 of 10 | $0.08 | 10 of 10 | $0.015 |
+| OpenCode 1.19.6 | 6 of 10 | $0.55 | 10 of 10 | $0.030 |
+
 ## In plain words
 
-- **On passes the three harnesses are level. Mikata pays about half.** Same model, same tasks,
-  same host: the harness is the only difference. By the bar written before each screen (ahead at
-  three tasks of ten) no difference is shown, either time. The price a pass is the steadier
-  number, and it held in every screen.
+- **On passes the three harnesses are level: on two codebases, and with two models.** Same
+  model, same tasks, same host: the harness is the only difference. By the bar written before
+  each screen (ahead at three tasks of ten) no difference is shown, any of the four times.
+- **On price there is no one answer, and Mikata is not always the cheapest.** On sqlglot with
+  the small model a pass cost Mikata a little over half what it cost the others, over the two
+  screens ($0.50 against $0.91 and $0.87). On mathjs,
+  whose fixes are smaller, it cost half of OpenCode's and three times Maki's. With a stronger
+  model every harness passes every task, and Mikata's pass costs what OpenCode's does and twice
+  Maki's. Mikata writes down what done means and checks each line; that takes calls. Where the
+  work is hard for the model it has paid for itself in passes. Where the work is small, or the
+  model needs no help, it is a cost.
+- **The ceiling on those ten tasks was the model's.** The two tasks all three harnesses failed
+  with the small model pass in all three with the stronger one.
 - **A count moves by one or two between runs.** Mikata passed 9, then 7. Two tasks fail for all
   three harnesses on the second screen, and the step limit is not why: the others took more
   calls on them and failed too.
@@ -35,17 +53,31 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   model checks against its own reading, and a wrong reading passes its own checks. That is the
   model's, in any harness: on those prose asks, three runs each, Mikata passed 6 of 12, OpenCode
   5, Maki 3, and on one ask all eight failures of the three break the same line.
-- **A list of what done means, held by the harness, closes that gap where we measured it.** On
-  the two prose asks that fail nearly always: 1 of 6 plain; 2 of 6 with a stronger model's lines
-  handed over as a note; **6 of 6 with the same lines held by the harness.** The lines say what
-  must come out and what must stay; the harness reads what must stay from the code itself, so the
-  body is never the one who says what "today" is. As the product ships it, a reader named and
-  nothing added to the ask, the four prose asks passed **10 of 12 on Mikata 1.1.0 as released,
-  against 6 of 12 without a reader** (12 of 12 on the screen before it, which mixed two builds).
-  Three of the four asks pass every time. The fourth turns on the letters the reader happens to
-  write: with a list that spells the unit in capitals, as the code prints it, 6 of 6; in small
-  letters, 4 of 7. Not closed either: a body can hand in a check that only prints the expected
-  words, which the pass now names beside its "verified" ([measured](#the-list-held)).
+- **A list of what done means closes that gap where we measured it.** The lines say what must
+  come out and what must stay. As the product ships it, a reader named and nothing added to the
+  ask, the four prose asks passed **10 of 12 on Mikata 1.1.0 as released, against 6 of 12
+  without a reader** (12 of 12 on the screen before it, which mixed two builds). Three of the
+  four asks pass every time. The fourth turns on the letters the reader happens to write: with a
+  list that spells the unit in capitals, as the code prints it, 6 of 6; in small letters, 4 of
+  7. Not closed either: a body can hand in a check that only prints the expected words, which
+  the pass now names beside its "verified" ([measured](#the-list-held)).
+- **The list is the gain, and any harness gets it. Holding the list is not shown to add.** The
+  same twelve lists, handed to each harness as a note after the ask and held by nothing: Mikata
+  **11 of 12**, OpenCode **8**, Maki **8**, where they passed 6, 5 and 3 without. So the 10 of 12
+  above against the others' 5 and 3 was a harness with a second model's help beside two with
+  none. Held by Mikata the same lists pass 10, for 42% more dollars a run than as a note. An
+  earlier, smaller screen had said the hold was what mattered (a note 2 of 6, the same lines
+  held 6 of 6); that note stood before the ask, in other words, on an earlier build. What the
+  hold still gives is a pass that names what verified it, and what must stay read from the code
+  itself. Neither changed a pass here ([measured](#the-list-held)).
+- **On a second codebase the list is not shown to pay at all.** Four prose asks in mathjs: 8 of
+  12 plain, 8 with a reader's lists as a note, 10 with them held. Held, a run costs twice a
+  plain one, and two of its ten passes did not land: the code was right and the gate failed,
+  once on the reader's own wrong lines ([measured](#a-second-codebase)).
+- **A stronger body does not need the list on these asks.** With Claude Haiku 5.5 as the body
+  the same four prose asks passed 12 of 12 plain, for two cents a run. A reader added nothing,
+  doubled the price, and one run in twelve fixed the code and failed its gate on a wrong line of
+  the reader's ([measured](#the-list-held)).
 - **A reader is for an ask without examples.** On the ten single fixes, whose asks carry their
   examples, 1.1.0 with a reader passed 7 of the 9 tasks run, where plain passes 7 of the same
   nine: one task won, one lost to a wrong line of the reader, at a third more a run. Against
@@ -54,6 +86,22 @@ Before the "done" list, on 12 November, Mikata passed 5 of 10 at $0.79 a pass.
   twenty lines in 18 of 26 failed runs, and one run in four that passes its tests shows a break
   the tests missed. Point at one wrong line and ask again: the work passes 6 times in 18. Ask
   again without pointing: never ([measured](#what-changed-measured)).
+- **Memory is kept, carried and recalled, and has not paid yet.** One memory carried through
+  ten tasks three times over, with two models: no pass gained or lost in sixty runs, no saving
+  by the bar written first, and with the stronger model the rounds cost 20% to 51% more
+  dollars than the same tasks cold. For that model memory had been empty all along, by a fault
+  now fixed. All of it measured without a verify line, which is where the design's own proof comes
+  from ([measured](#memory-carried-from-task-to-task)).
+- **Told what was wrong, memory learns, when the harness holds what it was told.** On eight asks
+  the small model fails, a human says one wrong case after each attempt. Told as words, by
+  memory or in the ask, every run takes the case up and, where the fix is hard, five of six then
+  rewrite their own line and answer "done": 0 passes of 8 either way. Held by the harness, a
+  line the model cannot rewrite, the named case is right in 8 of 8. And with memory keeping each
+  word as a held line, the words add up: **7 of the 8 asks pass by the fourth attempt**, the
+  human having typed nothing but the ask and three sentences. A fresh session told only the
+  newest word makes the first mistake again in 5 of 7 and stands at 2 of 8 after its third
+  attempt. By the bars written first: two missed, one missed by one, two met
+  ([measured](#memory-told-it-was-wrong)).
 - **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
   light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
   a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
@@ -115,12 +163,33 @@ Measured, and left out of the product:
 | The body's own "done" list, its wrong lines corrected by a stand-in for you before the work | 1 of 6 (approved as it was: 0 of 3) |
 | A stronger model's cases, from the ask alone, handed to the body as a note | 2 of 6, against 1 of 6 |
 | The body's own model's cases, written in a call of its own, as a note | 0 of 3 |
+| A sentence at the hand-in naming the word a list writes in other letters than the code prints | 3 of 6, against 4 of 6 without it |
+| A landing failed once for the list's letters, with a way out offered | 2 of 6: the way out taken 5 times in 5 |
+| The same, no way out offered | 4 of 6 where we asked 5: the code's letters back 4 times in 4 |
 
 A prompt sentence does not fix a misreading. The failures that remain are the model deciding a
 case should change when the ask says it must stay.
 
-**Nor does a second head of the same kind.** The last three rows are one study, on the kept runs
-of the four prose asks. By code alone, a failed run's own commands show its mistake in 14 of 16
+**Nor does a sentence fix the reader's letters.** The last three rows are three tries, in one
+evening, against the largest loss a reader has cost: a list that writes a unit in small letters
+where the code prints capitals, and a body that builds the code to the list. Each try had its
+bar first; two lists that had failed on the release, held again, three rounds each.
+
+- **Told at the hand-in,** word by word (`day` where the code prints `DAY`, letter case is set
+  aside, keep the code's): every run was told, none followed. One wrote down why it lowercased
+  the unit: "DuckDB convention".
+- **A landing failed for it,** once, in words that said "unless the ask itself asks for other
+  letters" and that the landing would stand if left: the body began to put the capitals back,
+  took the list for the ask, and left them, five times in five.
+- **The same failure with no way out in it:** the capitals came back four times in four, and no
+  tree ended in the list's letters, where 13 of 18 had. It passed 4 of 6, one short of the bar,
+  and the two it lost were not the letters. By the bar it does not ship, and the tries end here.
+
+What is kept is about words. This body does not follow a sentence. It does what a failed landing
+asks. And it takes any way out the failure offers.
+
+**Nor does a second head of the same kind.** The rows on a picker, on a model settling cases and
+on a second reading are one study, on the kept runs of the four prose asks. By code alone, a failed run's own commands show its mistake in 14 of 16
 runs, once their output on the starting code is set beside their output on the finished work. But
 a model asked to judge that list reads the ask as the coder did: it catches a stated limit the
 work crossed (57% to 67% of such cases) and takes a wrong new value for the right one (29 and 23
@@ -184,10 +253,12 @@ changed what the body is told.
 
 ### The list held
 
-Six steps, each with its bar written first. The first three are on the two prose asks that fail
-nearly always (one of them had passed once in the twenty-one kept runs of three harnesses); the
-fourth is the product as it ships, on all four; the fifth is the same twelve again on the release
-itself; the sixth is the release with a reader on the asks that carry their examples.
+Eight steps, each with its bar written first. The first three are on the two prose asks that
+fail nearly always (one of them had passed once in the twenty-one kept runs of three harnesses);
+the fourth is the product as it ships, on all four; the fifth is the same twelve again on the
+release itself; the sixth is the release with a reader on the asks that carry their examples; the
+seventh hands the release's own lists to every harness as a note; the eighth gives the release a
+stronger body.
 
 **The body's own list, corrected.** Every failed run's first "done" list held wrong lines. A
 stand-in for you corrected each wrong line before the work, by what the upstream fix does: 1 of
@@ -352,6 +423,63 @@ the runs cost more than counted on, and it is the task no harness has passed on 
 Three of the four runs a reader has lost on the release are one thing: **the reader states how
 the code spells its output, and it has not seen the code.** Twice a letter case, once a colon.
 
+**The same lists for every harness.** The release with a reader passes 10 of 12 where OpenCode
+passed 5 and Maki 3. That set a harness helped by a second model beside two that had none. So
+each harness was handed the very list the reader wrote for Mikata's run of the same ask and
+round, as a note after the ask: a heading, one sentence ("A second reader wrote these cases from
+the request alone, without seeing the code. The work is done when each of them holds."), the
+lines. Nothing holds it: in Mikata's twelve runs no `check` was called and every gate reads
+"checked by nothing". A difference was set at four runs of twelve.
+
+| | 01 | 02 | 03 | 04 | All | $ a run | $ a pass |
+|---|---|---|---|---|---|---|---|
+| Mikata 1.1.0, the lists held (the fifth step) | 1 of 3 | 3 of 3 | 3 of 3 | 3 of 3 | 10 of 12 | 0.37 | 0.45 |
+| **Mikata 1.1.0, the lists as a note** | 2 of 3 | 3 of 3 | 3 of 3 | 3 of 3 | **11 of 12** | 0.26 | 0.29 |
+| **OpenCode 1.19.6, the lists as a note** | 1 of 3 | 2 of 3 | 3 of 3 | 2 of 3 | **8 of 12** | 0.34 | 0.51 |
+| **Maki 0.7.3, the lists as a note** | 0 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | **8 of 12** | 0.38 | 0.56 |
+| Plain: Mikata, OpenCode, Maki | | | | | 6, 5 and 3 of 12 | 0.30, 0.46, 0.29 | 0.59, 1.10, 1.17 |
+
+- **The list is the gain, in every harness.** Mikata 6 to 11 and Maki 3 to 8 are differences.
+  OpenCode's 5 to 8 is under the bar.
+- **Holding is not shown to add:** 10 held, 11 as a note, at 42% more dollars a run and ten more
+  calls.
+- **Mikata holding the lists is not shown ahead of the others handed them:** 10 against 8 and 8.
+  Nor is Mikata's note, at 11.
+- **We had measured the opposite, and built on it.** In the second step above a note passed 2 of
+  6 where the same lines held passed 6 of 6; here the note passes 5 of 6 on those two asks. The
+  two notes differ in three ways and nothing here says which matters: the first stood before the
+  ask and asked the body to put the lines at the top of its own list, on the build of 20
+  November; this one stands after the ask, says who wrote the cases, on the release.
+- **The reader's small letters cost a run in every harness.** Of the 8 runs handed a list that
+  writes the unit in small letters, 5 were lost to it: both of Mikata's held, both of
+  OpenCode's, one of Maki's. Mikata's two as a note passed (one tree prints capitals, one keeps
+  the case it is given); that is two runs.
+
+36 runs, each counted on its first try.
+
+**A stronger body.** Everything above has one body. So the release was run on the four prose
+asks with Claude Haiku 5.5 as the body, plain and with a reader named, three rounds:
+
+| | Passes, by the hidden tests | Landed | $ a run | Calls a run |
+|---|---|---|---|---|
+| **Haiku 5.5, plain** | **12 of 12** | 12 | 0.022 | 23 |
+| **Haiku 5.5, a reader named** | **12 of 12** | 11 | 0.048 | 25.5 |
+| qwen 3.5 35B, plain | 6 of 12 | | 0.30 | 93.5 |
+| qwen 3.5 35B, a reader named | 10 of 12 | | 0.37 | 100.5 |
+
+- **No room.** This body passes the prose asks unaided, every time, so a reader has nothing to
+  add on them. The feature was not tested here; it was not needed.
+- **The reader costs what the run costs.** Its one call is 2.1 cents, the body's whole plain run
+  2.2. With this body a reader more than doubles the price for no pass.
+- **One reader run in twelve fixed the code and failed its gate.** The reader wrote that the
+  very input the ask is about "must stay as it is today". The body's check was piped into
+  `tail`, which ends well whatever came before it; the harness took the last line of the error
+  for what the command prints and held the line hard to it. The reader's line was wrong, and
+  reading a failed command as one that ran was ours: a check is now judged by the first stage
+  of its pipeline ([the loop](02-loop.md#done-when)). Not screened.
+
+24 runs, each counted on its first try, $0.85.
+
 **What is not closed.** A check that only prints the words is named, not refused, and only for a
 line that must give: the eight lines that must stay in the run of 28 `echo`s are named by
 nothing. A line that states no exact output (`must give a list holding exactly one ... node`,
@@ -373,8 +501,304 @@ calls `total`, and so began to work. Told once, with nothing refused, the body s
 check to `mean` to keep it failing. The list decides: read the one a reader writes.
 
 Six runs an arm on two asks for the first three steps, $10.77; fourteen runs on four asks for the
-fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15. One codebase, asks that
-are not fresh, one model as the body and one as the reader.
+fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15; thirty-six for the
+seventh, $11.72; twenty-four for the eighth, $0.85. One codebase, asks that are not fresh, one
+model as the reader, and but for the eighth step one as the body.
+
+### A second codebase
+
+Everything above is one Python codebase, sqlglot. So the bench got a second one in another
+language: [mathjs](https://github.com/josdejong/mathjs), about 250,000 lines of JavaScript. Ten
+upstream fixes of 2025 and 2026, each asked with what the code prints today and what is
+expected, each judged by the fix's own unit tests. The same small model, each harness as
+released, each task once. The bar was the one used on sqlglot: a difference is three tasks of
+ten.
+
+| | Passes | Fails | $ a run | $ a pass | Calls a run |
+|---|---|---|---|---|---|
+| **Mikata 1.1.0** | **8 of 10** | 04, 10 | 0.21 | 0.26 | 31.5 |
+| Maki 0.7.3 | 7 of 10 | 04, 08, 10 | 0.05 | 0.08 | 27.5 |
+| OpenCode 1.19.6 | 6 of 10 | 01, 04, 07, 10 | 0.33 | 0.55 | 21 |
+
+- **Level on passes, again.** No difference shown. Two tasks fail in all three.
+- **Not the cheapest here.** A pass cost Mikata about half of OpenCode's and more than three
+  times Maki's. On sqlglot Maki's pass cost $0.91 and Mikata's $0.50. These fixes are smaller:
+  five of Mikata's ten runs cost under five cents. Mikata made 590 calls with 55,000 prompt
+  tokens each, Maki 300 with 26,000. On a small fix, writing down what done means and checking
+  each line costs more than it saves.
+- **One task may be owed to Maki.** Its world had no test runner left when it was judged: the
+  run had removed or replaced `node_modules`, which nothing can fetch again with no network, so
+  its fix was never judged. Mikata's own gate refuses an install; the other two run with every
+  command approved. That is a fault of our suite, counted as it ran and fixed for the next
+  screen: the suite's `node_modules` are put back before a world is judged. With it the passes
+  read 8, 7 or 8, 6: level either way.
+- **Mikata's two failures are the model's.** In both the ask states the output the tree does
+  not give. Reading them found a fault of ours beside them, the next paragraph.
+
+**What the second codebase found in Mikata itself.** Three faults, none of which a Python
+project could show, each fixed with a test that fails without it:
+
+- **The harness's own copies of the code had no `node_modules`.** "What changed" runs the
+  body's checks again in two copies, and a `must stay` line handed in late is read from a copy.
+  A copy left `node_modules` out for its size. Over Mikata's ten runs, 8 of 70 checks ran in
+  the copies, 62 were counted as "fails on the finished work", and nothing was shown in ten
+  runs of ten. A copy is now lent the world's `node_modules`, to read and never to write. The
+  same ten runs asked again with no model call: 61 of 70 run, 30 print differently, and both
+  failed runs show a wrong value.
+- **A failing check was told "it said nothing".** A check written with `2>&1` says its error in
+  its output, and Node ends every uncaught error on its own version. One run fixed the code,
+  never learned which file its checks could not import, and ended on its step limit. A failing
+  check is now told the line where its error names itself.
+- **A check piped into `tail` was read as one that ran,** whatever its command did. Seen with
+  the stronger body above; the same rule the stall detector already had.
+
+**Prose asks, with a reader.** Four of the ten asks cut to a paragraph of prose, three rounds,
+on the build that holds the first of those fixes: plain, with a reader's list held, and with
+those same lists handed over as a note that nothing holds. A difference was set at four runs of
+twelve.
+
+| | 01 | 02 | 03 | 05 | Passes, by the hidden tests | Landed | $ a run | Calls a run |
+|---|---|---|---|---|---|---|---|---|
+| Plain | 0 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | 8 of 12 | 11 | 0.15 | 39.5 |
+| **A reader named, its list held** | 2 of 3 | 2 of 3 | 3 of 3 | 3 of 3 | **10 of 12** | 9 | 0.32 | 102.5 |
+| **The same lists as a note** | 1 of 3 | 1 of 3 | 3 of 3 | 3 of 3 | **8 of 12** | 12 | 0.26 | 50 |
+
+- **Nothing separates the three arms.** On sqlglot the list took Mikata from 6 of 12 to 11 as a
+  note and to 10 held. Here it is 8 plain, 8 as a note, 10 held: no difference shown, in a
+  codebase where two of the four asks pass every time whatever is done.
+- **The hold is not shown to add, on either codebase.** The same 24 lists pass 20 times held and
+  19 times as a note. Here the hold is two runs ahead; on sqlglot one behind. Of the four note
+  runs that failed here, one broke a line its list states.
+- **Held, a run costs 2.1 times the dollars** of a plain one and 2.6 times the calls; as a note,
+  1.7 times the dollars.
+- **Two of the reader arm's ten passes did not land.** One never learned why its checks could
+  not run (the second fault above). One was held to two wrong lines of the reader's: an
+  expression spelled as the reader guessed it, and a value the fix itself changes listed as one
+  that must stay. The body handed in the code's real output four times and was refused.
+- **The reader's lists were nearly all right:** 3 wrong lines of 236. All three state something
+  about code the reader has not seen, as on sqlglot.
+- **A list can hold nothing.** 41 of the 236 checks never touch the code. One run passed and
+  landed with every one of its 21 checks an `echo`.
+
+30 runs for the ten fixes, $5.96; 36 for the prose asks, $8.80. One model as the body. The asks
+are ours, written that day, and nobody else has read them.
+
+### A second body
+
+"Level on passes, about half the price a pass" also rested on one body. So the three harnesses
+were run on the same ten sqlglot fixes with Claude Haiku 5.5 as the body, each as released, each
+task once. Before a harness's counted runs, one run of it was read by code: tokens by kind, and
+our dollars within a tenth of the harness's own.
+
+| | Passes | $ a run | Calls a run | Seconds a run | Prompt tokens a call |
+|---|---|---|---|---|---|
+| **Mikata 1.1.0** | **10 of 10** | 0.031 | 26 | 229 | 39,000 |
+| OpenCode 1.19.6 | 10 of 10 | 0.030 | 21.5 | 162 | 52,000 |
+| Maki 0.7.3 | 10 of 10 | 0.015 | 13 | 110 | 30,000 |
+| The small model, 20 November: Mikata, OpenCode, Maki | 7 of 10 each | 0.41, 0.74, 0.59 | 114, 176.5, 106.5 | | |
+
+- **Every task passes in every harness.** Tasks 06 and 10, which all three failed with the small
+  model, pass in all three. That ceiling was the model's. On passes this screen cannot tell the
+  harnesses apart, and we said before it ran that it would then say nothing about them.
+- **Mikata is not cheaper with this body.** Its pass costs 103% of OpenCode's and 204% of
+  Maki's. The bar for "about half" was 60%, for "cheaper" 90%. All three read 92% to 96% of
+  their prompt from the cache: the price turns on calls, and Mikata takes the most.
+- **Maki finishes in half Mikata's calls and half its time.**
+
+30 runs, each counted on its first try, $0.79. One stronger body, a small model of a large
+maker; nothing here says what a larger one does.
+
+### Memory, carried from task to task
+
+Every screen above starts each task in a fresh world, where memory is empty. None of them
+measures memory, and none had since October. This one carries one memory through ten tasks,
+three times over. In round 1 a task meets a memory of other tasks in the same codebase. In
+rounds 2 and 3 it meets a memory that has done this very task: the code starts over, the memory
+goes on. Light-coding as it runs with nothing configured, each body on its own codebase.
+
+The bar, written first: against cold, round 3 costs no passes (not behind by three tasks of
+ten) and saves calls (fewer on 8 tasks of ten, or 70% of cold's calls in all). While round 1
+ran, a second cold arm was added on the same build and day, to say how far two cold arms differ.
+
+| | Claude Haiku 5.5 on ten sqlglot fixes | Calls | Dollars | The small model on ten mathjs fixes | Calls | Dollars |
+|---|---|---|---|---|---|---|
+| Cold, the release, a day earlier | 10 of 10 | 314 | 0.31 | 8 of 10 | 590 | 2.11 |
+| Cold, this build, the same day | 10 of 10 | 341 | 0.35 | 9 of 10 | 576 | 1.54 |
+| Round 1: a memory of other tasks | 10 of 10 | 362 | 0.42 | 9 of 10 | 574 | 1.57 |
+| Round 2: has done this task once | 10 of 10 | 371 | 0.43 | 9 of 10 | 519 | 1.62 |
+| Round 3: twice | 10 of 10 | 391 | 0.53 | 9 of 10 | 466 | 1.01 |
+
+- **Before anything could be measured, memory was empty.** Two runs in, every row read "memory:
+  none yet". A body ends its answer with what it learned, one `@U` line each, and the harness
+  read such a line only where it opens a line. Claude Haiku writes them as a markdown list.
+  Counted over the 284 runs kept from earlier screens: 97 of its 108 lessons had been dropped,
+  and 80 of the small model's 440. Fixed first; the rounds ran the fixed build, where every
+  lesson written was kept ([memory](07-memory.md#the-write-rule)).
+- **Memory changes no pass.** Sixty runs over the three rounds, forty cold. Haiku passes
+  everything either way. The small model passes 9 of 10 in every round and 9 of 10 cold on the
+  same build; the one task it fails, it fails in all five arms.
+- **It saves no calls by the bar, and with the stronger body it costs.** Haiku's rounds take
+  106%, 109% and 115% of the same day's cold calls, 117%, 122% and 132% of its tool uses, and
+  20%, 23% and 51% more dollars. No single round proves much: two arms of ten runs stand 8%
+  apart by themselves. But all seven arms that start from any memory stand above both cold
+  arms. The small model takes 10% and 19% fewer calls in rounds 2 and 3, short of the bar and
+  carried by one task: the one it fails, which stops at its step limit until round 3, where it
+  hands in the same wrong fix sooner. On its nine other tasks: 375 calls cold, then 373, 318,
+  400.
+- **What a body does with what it remembers is more of the same work.** Haiku is shown its
+  notes, in a third of its runs names one that changed a step, and changes the same code (531
+  lines cold; 547 and 573 with a memory that knows the task). What grows is checking: 81 checks handed in cold, 120
+  and 117 with memory; 271 lines of tests written cold, 307 and 353. It finds its place no
+  sooner: 141 tool uses before the first change cold, 142 and 172 with memory.
+- **Recall showed a run six notes, of which one was its own task's.** Read with the product's
+  own recall over the 29 Haiku runs that started from a memory: 1.3 its own task's, 1.2 lessons
+  about the repository, 3.3 other tasks'. Two runs of ten that met a task again were not shown
+  what their own earlier run had learned. Fixed: a lesson is kept with the first line of the ask
+  it was learned under and matched with those words too. On the campaign's own notes, 20 of 20
+  and 2.8 of the six ([memory](07-memory.md#recall)). That makes recall right. It is not shown
+  to make a run cheaper: an arm that gave each run only its own task's notes cost what the whole
+  memory cost (363 calls and 540 tool uses against 371 and 535).
+- **Which part of the memory costs the stronger body, three arms could not say.** With the
+  journal's last entries alone and no note, a run took 115% of cold's tool uses; with its own
+  task's notes alone, 107%; with both, 124%. An entry told a session how the landing before it
+  was verified ("12 lines; 12 checks handed in"), five entries at a time, and we took that line
+  for the cause. Left out of what a session is shown, it changed nothing: 125%, and 114 checks
+  handed in against 119 with it and 81 cold. That change was not kept. And two arms that differ
+  by one line stand 8% apart, which is more than the journal stood from the notes. What every
+  arm agrees on: with any memory at all, this body takes 107% to 132% of cold's tool uses for
+  the same ten passes.
+- **Showing a session the earlier entry of the same ask did not help, and broke two runs of
+  ten.** The journal says which files a session changed and never what it was asked. An arm
+  that put the ask's first line into each entry, with the entry of this very ask among the last
+  five, found its place no sooner (124 tool uses before the first change against 117). And
+  twice the body did nothing at all: it took the ask for part of the quoted journal. Not built.
+- **Memory cannot learn what nothing tells it.** The task the small model fails, it fails five
+  times: on five or six of its 62 hidden tests four times, and once with a tree that no longer
+  loads. Three of those runs stopped at the step limit: such a run writes no lesson and no
+  journal entry, so the next session starts from nothing. And no session was ever told its fix
+  was wrong: no check stood behind any landing.
+- **Every session writes the same lesson again.** At the end Haiku's memory held 88 notes, and
+  28 of them say that two packages are not installed. All 30 runs wrote it, 16 of them with
+  that very lesson in their ask.
+
+**The limit that matters most:** all of this ran with no verify line. That is the product with
+nothing configured, and it is not the setup the
+[README](https://github.com/Kaginari/mikata/blob/main/README.md) asks for: without a
+check behind a landing no note is ever grounded, every note is shown to the body as unproven,
+and a failure never reaches memory. The same three rounds with a verify line are the next
+screen ([roadmap](roadmap.md#next-a-memory-that-pays)).
+
+### Memory, told it was wrong
+
+The campaign above showed that memory could not learn from a mistake: nothing told it one had
+been made. So three things were built: a first failure is kept under its ask, a session that
+stops leaves an account, and the human can say an answer was wrong
+(`mikatad memory wrong "<what is wrong>"`), which the next session with that ask is told first
+([memory](07-memory.md#reconsolidation)). These screens measure the last one, on the asks the
+small model fails: three asks stated in prose, on two codebases. Thirteen first attempts, 5
+pass; the 8 that fail each get a human's word, and then a second attempt. The code starts over
+at every attempt; only the word, and memory, go on. No verify line.
+
+Two ways to carry the word. **Told once:** said through the door into the memory the first
+attempt left, and the same ask asked again. **Told again:** a fresh world with no memory, the
+same words typed after the ask. A second attempt told nothing would pass about 0.7 of the 8.
+
+| The second attempt | Passes of 8 | The named case right | Answered "done" with it wrong | Calls | Dollars |
+|---|---|---|---|---|---|
+| (the first attempt) | 0 | 0 | 8 | 596 | 1.39 |
+| Told once, the failing test's own line | 1 | 4 | 4 | 675 | 1.98 |
+| Told again, the failing test's own line | 0 | 4 | 4 | 694 | 1.87 |
+| Told once, as a person would say it | 0 | 5 | 3 | 745 | 1.89 |
+| Told again, as a person would say it | 0 | 6 | 2 | 552 | 1.41 |
+| Told again, and the case **held** by the harness | 1 | 8 | 0 | 888 | 3.35 |
+
+"The named case" is one input and the output it must give, found by running the first
+attempt's code against the hidden test; "right" is that input run on the code the second
+attempt left.
+
+- **The first bar was missed, and so was the second.** Written first each time: the second
+  attempt, told once by memory, passes at least half of the 8. It passed 1, then 0. Told again
+  in the ask it passed 0 and 0. No pass is shown anywhere here.
+- **Memory carries the word as well as saying it again.** In every pair of arms the two stand
+  together: 1 and 0 passes, 4 and 4, 5 and 6 named cases right. All 16 runs that were told once
+  opened on the correction, shown first and marked as one.
+- **A failing test's own line is no way to say it.** The first screen passed the human's word as
+  the verifier prints a failure: two strings and a `!=`. It names no input and not which string
+  is wanted, and six runs made the same wrong fix again and answered that the named test passes.
+- **Said as a person would say it, the word arrives, and is then overruled.** "`<input>` must
+  give `<wanted>`; it gives `<got>`": 16 runs of 16 wrote that case into their own plan as a
+  line that must hold, and ran the input themselves, 4 to 23 times. On the one ask where the fix
+  is hard, 5 runs of 6 then rewrote their own line to say the opposite, ticked it, and answered
+  that the ask was done. A correction that is told is advice.
+- **One sentence names one case, and the code starts over.** Where the fix is easy the named
+  case came out right in 10 runs of 10, and every one failed on a case nobody had named. One ask
+  has two cases: the pair told about the first got the second wrong, and the pairs told about
+  the second got the first wrong, each the case the other was told.
+- **Held, the named case is not the body's to rewrite.** Mikata already holds a list by code
+  ([the list held](#the-list-held)); the last screen put the named case after the ask as the one
+  line of such a list. It came out right in 8 runs of 8, the hard ask's three among them. One of
+  those changed the code until the case was wrong, handed the line in again with the opposite
+  output and was refused, answered, had the answer failed by the gate with what the line
+  printed, and put it right. One worked on the real fix for its 200 steps and did not land: the
+  journal says it stopped, and memory keeps the stop. No run answered "done" with the named case
+  wrong, where 5 of 16 had.
+- **A held line pulls the work toward itself.** The run that was refused ended with the human's
+  case right and the ask's own case undone: the code as it found it already satisfied the line.
+  Counted over the cases we transcribed from the hidden tests, the held runs leave 16 wrong,
+  the two prose arms 17 and 21. The hold moves the named case to right and makes the rest of the ask no more right.
+- **The one pass with the hold is a third draw.** The provider answered 429 during two attempts
+  at that pair; the harness waited and went on, and the bench then threw such a run away and ran
+  the pair again. Both of those left failing code. Counted as the bench now counts (a run that
+  waited out a limit and ended by its own doing is a run), the held arm reads 0 of 8.
+- **It costs.** Held runs took 888 calls against 552 and 745, and about twice the dollars.
+
+So a correction is built to be held: a word of the human's that says what must come out is a
+line of that ask's list whenever the ask comes again, and each further word adds a line
+([memory](07-memory.md#reconsolidation)). Then the same eight asks were taken further, on that
+build, to see whether a second word **joins** the first. Two chains from the same second
+attempt. In one, **memory keeps every word**: the human says each through the door once and
+types nothing but the ask. In the other, a fresh session is told **the newest word only**, as a
+human with no memory would say it, held the same way. Each new word is the first case the
+attempt before it still gets wrong.
+
+| After | Memory keeps every word | Cases wrong | The newest word only | Cases wrong |
+|---|---|---|---|---|
+| The first attempt | 0 of 8 | 31 | 0 of 8 | 31 |
+| The second, one word held | 1 of 8 | 16 | 1 of 8 | 16 |
+| The third, two words | 4 of 8 | 5 | 2 of 8 | 17 |
+| The fourth, three words | **7 of 8** | 1 | not run | |
+
+- **At the third attempt the bar was missed by one.** Written first: with memory keeping both
+  words, at least 4 of the 7 pairs still open pass, and three more than the fresh session. It
+  was 3 against 1.
+- **Memory kept what was said once; the fresh session went in a circle.** The first word's case
+  came out right in 7 runs of 7 with memory. Told only the second word, the fresh session got
+  that one right in 7 of 7 and made the first mistake again in 5 of 7. Its count of wrong cases
+  stood where it was, 17 after 16; with memory it fell to 5.
+- **At the fourth attempt the chain arrived.** A third word on the four pairs still open: 3 of 4
+  pass, the bar being 2. The ask where the fix is hard, which failed in all 18 counted runs
+  before, passes in all three of its pairs with two or three words held. The fourth pair has its
+  three named cases right and could not land: its checks load a file a source tree does not
+  have, it was told so five times, and it never repaired them.
+- **The fresh chain was not run a fourth time, and that is a limit of the comparison.** Its
+  third word, found the same way, is the first word's own case again in 5 of its 6 open pairs:
+  its next attempt would be the second attempt over again, which passed none of those five.
+
+**What this says.** On asks this model fails, told what is wrong one case at a time: a correction
+that is told is overruled, a correction that is held sticks, and with memory keeping each word
+the words add up to a pass, where a session without it is brought back to the first mistake.
+The human's part was one sentence an attempt, each said once.
+
+**What it does not say.** That memory pays on work that already passes: the campaign above
+found it does not. That the two chains differ by the bar at the same attempt: at the third they
+stood 4 and 2 of 8. That a person will say what is wrong this exactly: every word here is one
+input and the output it must give, found by running the code. Eight asks, three of them
+distinct, two codebases, one small model, one run a cell. The code starts over between
+attempts, which a real tree does not. No verify line.
+
+$19.03 over 75 paid runs, caps $33. Two bars missed, one missed by one, two met. Rows, the five
+notes with their bars, the words and the readers are in the bench repository
+(`studies/told-once/`).
 
 ### The modes against each other
 
@@ -396,10 +820,15 @@ when they ran. Why they lose, and what we are building next, is on
 
 ### What the numbers do not say
 
-- **One model.** Most screens ran on one small open model. A stronger model passes more of these
-  tasks from scratch, in any harness; the gaps here are what a harness adds to a model that needs
-  help.
-- **One kind of work.** Fixes and features in Python libraries with tests. We have not measured
-  front-end work, infrastructure, or code with no tests.
+- **One model, mostly.** Most screens ran on one small open model. A stronger model passes more
+  of these tasks from scratch, in any harness; the gaps here are what a harness adds to a model
+  that needs help. Where we gave Mikata a stronger body (Claude Haiku 5.5), the prose asks the
+  small model passes half the time passed 12 of 12 with no help, for two cents a run, and the
+  reader had nothing left to add ([measured](#the-list-held)); and on the ten single fixes all
+  three harnesses passed everything ([measured](#a-second-body)).
+- **One kind of work.** Fixes in two libraries with tests, one in Python and one in JavaScript.
+  We have not measured front-end work, infrastructure, or code with no tests.
 - **Small counts.** Ten tasks, run once or twice. We say "ahead" only where the gap is larger than
-  what the same harness varies between two runs, and price per pass is the steadier number.
+  what the same harness varies between two runs. A price per pass held between two screens of
+  the same tasks and model; it did not hold across codebases or models, and we no longer quote
+  one as the harness's own.

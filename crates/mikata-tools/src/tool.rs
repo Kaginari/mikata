@@ -247,6 +247,9 @@ pub struct Context {
     home: PathBuf,
     /// The directories outside the world a deploy may write (see [`Self::with_deploy_roots`]).
     deploy_roots: Vec<PathBuf>,
+    /// Paths outside the world this body's commands may read and never write (see
+    /// [`Self::lend`]).
+    lent: Vec<PathBuf>,
     gate: Arc<dyn Gate>,
     sandbox: Sandbox,
     asked_rules: BTreeSet<Rule>,
@@ -411,6 +414,7 @@ impl Context {
             nest: None,
             home,
             deploy_roots: Vec::new(),
+            lent: Vec::new(),
             gate: Arc::new(NoHuman),
             sandbox: Sandbox::detect(),
             asked_rules: BTreeSet::new(),
@@ -869,6 +873,23 @@ impl Context {
     #[must_use]
     pub fn home(&self) -> &Path {
         &self.home
+    }
+
+    /// Let this body's commands read `path`, which lies outside its world, and never write it:
+    /// the kernel guard grants it read-only. For the harness's own copies of a world, whose
+    /// commands need what the world they were copied from keeps for them (its installed
+    /// dependencies). Never a body's own doing: nothing a model says reaches this.
+    pub fn lend(&mut self, path: impl AsRef<Path>) {
+        let path = real(path.as_ref());
+        if !self.lent.contains(&path) {
+            self.lent.push(path);
+        }
+    }
+
+    /// What was lent to this body's commands to read ([`Self::lend`]).
+    #[must_use]
+    pub fn lent(&self) -> &[PathBuf] {
+        &self.lent
     }
 
     /// The directories outside the world a deploy Kijin may write: a write outside the world

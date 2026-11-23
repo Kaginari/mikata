@@ -1,0 +1,546 @@
+{
+  "about": "The notes one body kept over three rounds of ten tasks in one codebase (sqlglot), each task's world starting from the memory the one before it left: 30 runs, 2026-11-22, in the order they were written. `asks` holds each task's ask; `order` the order the tasks ran in every round. A note's `task` and `round` say which run wrote it.",
+  "order": ["09", "05", "08", "07", "03", "04", "06", "02", "10", "01"],
+  "asks": {
+    "09": "# `COLLATE` is not accepted on a type inside `CAST(... AS type)` or inside a nested type (`ARRAY<...>`, `MAP<...>`)\n\n`COLLATE` on a column definition works, but the same clause on a type anywhere else fails:\n\n```python\n>>> import sqlglot\n>>> sqlglot.transpile(\"CREATE TABLE foo (x STRING COLLATE UTF8_BINARY)\", read=\"databricks\")      # fine today\n>>> sqlglot.transpile(\"CREATE TABLE foo (my_arr ARRAY<STRING COLLATE UTF8_BINARY>)\", read=\"databricks\")\nParseError: Expecting >. Line 1, Col: 45.\n>>> sqlglot.transpile(\"CREATE TABLE foo (m MAP<STRING, STRING COLLATE UTF8_BINARY>)\", read=\"databricks\")\nParseError: Expecting >.\n>>> sqlglot.transpile(\"SELECT CAST('a' AS STRING COLLATE UTF8_BINARY)\", read=\"databricks\")\nParseError: Invalid expression / Unexpected token. Line 1, Col: 46.\n>>> sqlglot.transpile(\"\"\"CAST('a' AS TEXT COLLATE \"de_DE\")\"\"\", read=\"postgres\")\nParseError\n```\n\n## Expected\n\nA `DataType` can carry a collation (a new optional `collate` argument holding the identifier\nor column that followed `COLLATE`), parsed in two places:\n\n- the target type of a `CAST`;\n- each nested type parameter inside `ARRAY<...>`, `MAP<...>`, `STRUCT<...>` etc.\n\nand the generic generator renders it after the type (`<type> COLLATE <collation>`). All of\nthese must round-trip unchanged in their dialect:\n\n```sql\n-- databricks\nCREATE TABLE foo (my_arr ARRAY<STRING COLLATE UTF8_BINARY>)\nCREATE TABLE foo (m MAP<STRING, STRING COLLATE UTF8_BINARY>)\nSELECT CAST('a' AS STRING COLLATE UTF8_BINARY)\n-- postgres\nCAST('a' AS TEXT COLLATE \"de_DE\")\n```\n\nColumn-definition `COLLATE` (which is a column constraint today) must keep working as before;\nthis is only about types in casts and nested type parameters.\n\n## Dialect type rewrites must keep the collation\n\nHive/Spark rewrite `CHAR(n)`/`VARCHAR(n)` to `STRING`, DuckDB rewrites `TEXT(...)` to `TEXT`,\nand the Hive generator drops parameters on text/temporal/float types. Today those rewrites\nthrow the collation away; it should survive them:\n\n```python\n>>> sqlglot.transpile(\"SELECT CAST('a' AS CHAR(10) COLLATE UTF8_BINARY)\", read=\"spark\", write=\"spark\")\n['SELECT CAST(\\'a\\' AS STRING COLLATE UTF8_BINARY)']\n>>> sqlglot.transpile(\"SELECT CAST('a' AS VARCHAR(10) COLLATE UTF8_BINARY)\", read=\"spark\", write=\"spark\")\n['SELECT CAST(\\'a\\' AS STRING COLLATE UTF8_BINARY)']\n>>> sqlglot.transpile(\"SELECT CAST('a' AS VARCHAR COLLATE foo)\", read=\"postgres\", write=\"spark\")\n['SELECT CAST(\\'a\\' AS STRING COLLATE foo)']\n```\n\nThe collation must survive in every dialect that reads these types, ClickHouse and Hive\nincluded.\n",
+    "05": "# Postgres/DuckDB `<@` (\"is contained by\") is rewritten into a flipped `@>`\n\nThe array operator `a <@ b` (\"a is contained by b\") is currently parsed as the *reverse* of\n`@>` by swapping the operands, so the SQL that comes back out is not what the user wrote:\n\n```python\n>>> import sqlglot\n>>> sqlglot.parse_one(\"SELECT ARRAY[1, 2, 3] <@ ARRAY[1, 2]\", read=\"postgres\").sql(\"postgres\")\n'SELECT ARRAY[1, 2] @> ARRAY[1, 2, 3]'\n>>> sqlglot.parse_one(\"a <@ b\", read=\"duckdb\").sql(\"duckdb\")\n'b @> a'\n>>> type(sqlglot.parse_one(\"a <@ b\", read=\"duckdb\")).__name__\n'ArrayContainsAll'\n```\n\nSemantically equivalent, but it destroys the operator direction and the operand order, which\nmatters for diffing, lineage, formatting and anything inspecting the tree.\n\n## Expected\n\n`<@` should be its own binary expression, `exp.ArrayContainedBy`, with `this` = the left\noperand and `expression` = the right operand exactly as written, and it should round-trip\nunchanged:\n\n```python\n>>> e = sqlglot.parse_one(\"SELECT ARRAY[1, 2, 3] <@ ARRAY[1, 2]\", read=\"postgres\")\n>>> e.expressions[0].__class__.__name__, e.sql(\"postgres\")\n('ArrayContainedBy', 'SELECT ARRAY[1, 2, 3] <@ ARRAY[1, 2]')\n>>> sqlglot.parse_one(\"a <@ b\", read=\"duckdb\").sql(\"duckdb\")\n'a <@ b'\n```\n\n`a @> b` keeps parsing to `exp.ArrayContainsAll` and keeps rendering as `a @> b`.\n\nThe default generator should render the new expression with the `<@` operator, and the MySQL\ngenerator should treat it like the other array operators it cannot express (an \"unsupported\"\nwarning and a function-style fallback), so that transpiling to MySQL does not crash.\n",
+    "08": "# T-SQL `DAY(x)`, `MONTH(x)`, `YEAR(x)` are emitted verbatim in Postgres, where they do not exist\n\nPostgres has no `DAY()`, `MONTH()` or `YEAR()` functions; the equivalent is\n`EXTRACT(part FROM date)`. Transpiling from T-SQL just copies the call:\n\n```python\n>>> import sqlglot\n>>> sqlglot.transpile(\"SELECT DAY(x), MONTH(x), YEAR(x)\", read=\"tsql\", write=\"postgres\")\n['SELECT DAY(x), MONTH(x), YEAR(x)']        # invalid Postgres\n```\n\n## Expected\n\n```python\n>>> sqlglot.transpile(\"SELECT DAY(x), MONTH(x), YEAR(x)\", read=\"tsql\", write=\"postgres\")\n['SELECT EXTRACT(DAY FROM CAST(x AS DATE)), EXTRACT(MONTH FROM CAST(x AS DATE)), EXTRACT(YEAR FROM CAST(x AS DATE))']\n```\n\nThe details:\n\n1. **T-SQL parse.** T-SQL's `DAY/MONTH/YEAR` accept any date-like value (strings included),\n   so the parser should wrap their argument in a `TsOrDsToDate` the way other T-SQL date\n   functions already do. Generic output then shows the cast while T-SQL output hides it\n   again:\n\n   ```python\n   >>> sqlglot.transpile(\"DAY(x)\", read=\"tsql\", write=\"\")\n   ['DAY(CAST(x AS DATE))']\n   >>> sqlglot.transpile(\"DAY(x)\", read=\"tsql\", write=\"tsql\")\n   ['DAY(x)']\n   ```\n   Same for `MONTH` and `YEAR`, and `WITH t AS (SELECT 0 AS col) SELECT YEAR(col) FROM t`\n   round-trips unchanged in T-SQL.\n\n2. **T-SQL generate.** The T-SQL generator should strip a bare `TsOrDsToDate` (one without a\n   format) from the argument of `Day`/`Month`/`Year`, like the MySQL generator already does\n   for its date functions. That helper currently lives as a private function in the MySQL\n   generator and is also imported by SingleStore; it should become a shared dialect helper so\n   T-SQL and Postgres can use it too. Consequence for an existing case:\n\n   ```python\n   >>> sqlglot.transpile(\"CREATE TABLE foo (x INT GENERATED ALWAYS AS (YEAR(y)))\", read=\"databricks\", write=\"tsql\")\n   ['CREATE TABLE foo (x AS YEAR(y))']        # today: 'CREATE TABLE foo (x AS YEAR(CAST(y AS DATE)))'\n   ```\n\n3. **Postgres generate.** `Day`/`Month`/`Year` become `EXTRACT(DAY|MONTH|YEAR FROM <arg>)`.\n   If the argument is an integer literal or has been type-annotated as an integer type, that\n   is not transpilable (Postgres cannot extract from an int), so the generator must flag it\n   as unsupported — raising `UnsupportedError` under `unsupported_level=ErrorLevel.RAISE`:\n\n   ```python\n   >>> from sqlglot.optimizer.annotate_types import annotate_types\n   >>> annotate_types(sqlglot.parse_one(\"SELECT DAY(CAST(x AS DATE))\", read=\"tsql\")).sql(\"postgres\")\n   'SELECT EXTRACT(DAY FROM CAST(x AS DATE))'\n   >>> annotate_types(sqlglot.parse_one(\"WITH t AS (SELECT 1 AS col) SELECT YEAR(t.col) FROM t\", read=\"tsql\")\n   ...   ).sql(\"postgres\", unsupported_level=sqlglot.ErrorLevel.RAISE)\n   UnsupportedError\n   ```\n",
+    "07": "# StarRocks: `FROM TABLE(GENERATE_SERIES(...))` parses as an anonymous function and cannot be qualified\n\nStarRocks exposes table functions through `TABLE(...)` and documents that\n`GENERATE_SERIES` yields a single column named `generate_series`:\n\n```sql\nSELECT generate_series FROM TABLE(GENERATE_SERIES(0, 10));\n```\n\nsqlglot parses `TABLE(...)` here as an `Anonymous` function call wrapped in a `Table`, so the\noptimizer cannot see a table-valued function with a known output column, and lineage over\nit fails:\n\n```python\n>>> import sqlglot\n>>> from sqlglot.optimizer.qualify import qualify\n>>> repr(sqlglot.parse_one(\"SELECT * FROM TABLE(GENERATE_SERIES(0, 10))\", read=\"starrocks\").args[\"from_\"].this)\n'Table(\\n  this=Anonymous(\\n    this=TABLE, ...'\n>>> qualify(sqlglot.parse_one(\"SELECT generate_series FROM TABLE(GENERATE_SERIES(0, 10))\", read=\"starrocks\"),\n...         dialect=\"starrocks\").sql(\"starrocks\")\n'SELECT `_0`.`generate_series` AS `generate_series` FROM TABLE(GENERATE_SERIES(0, 10)) AS `_0`'\n#                                                   no column alias is attached to the TVF ^\n>>> from sqlglot.lineage import lineage\n>>> lineage(\"to_deposit_days\", \"\"\"\n...   WITH t AS (SELECT p.user_id, gs.n AS to_deposit_days FROM tbl1 AS p\n...              CROSS JOIN (SELECT generate_series AS n FROM TABLE(generate_series(0, 8000))) AS gs),\n...        t2 AS (SELECT t.* FROM t)\n...   SELECT user_id, to_deposit_days FROM t2\"\"\",\n...   schema={\"tbl1\": {\"user_id\": \"BIGINT\"}}, dialect=\"starrocks\",\n...   expand_stars=True, validate_qualify_columns=True)\nOptimizeError: Column 'generate_series' could not be resolved.\n```\n\n## Expected\n\n1. **Parsing.** In StarRocks, `TABLE(<tvf>)` in a FROM clause parses to the existing\n   `exp.TableFromRows` node wrapping the function (here `exp.GenerateSeries`), carrying the\n   alias/joins/etc. that were attached to the enclosing table, so that\n   `parse_one(sql, read=\"starrocks\").args[\"from_\"].this` is a `TableFromRows` whose `this`\n   is a `GenerateSeries`. These must round-trip unchanged in StarRocks:\n\n   ```sql\n   SELECT * FROM TABLE(GENERATE_SERIES(0, 10))\n   SELECT generate_series FROM TABLE(GENERATE_SERIES(0, 10, 2)) AS t\n   SELECT x FROM TABLE(GENERATE_SERIES(0, 10)) AS t(x)\n   SELECT * FROM t, GENERATE_SERIES(t.s, t.e)\n   ```\n\n   Snowflake already does this hoisting of `TABLE(...)` in its own parser; the behaviour\n   should move into the generic table parser so both dialects share it (Snowflake output\n   must not change).\n\n2. **Qualification.** When a `TableFromRows` has no explicit column aliases, `qualify_tables`\n   should attach the dialect's default column name for that function type (for StarRocks,\n   `GenerateSeries` -> `generate_series`), the way it already fills in column aliases for\n   `VALUES`. A table alias alone does not rename the column:\n\n   ```\n   SELECT generate_series FROM TABLE(GENERATE_SERIES(0, 10))      -> ... AS _0(generate_series)\n   SELECT generate_series FROM TABLE(GENERATE_SERIES(0, 10)) AS t -> ... AS t(generate_series)\n   SELECT g FROM TABLE(GENERATE_SERIES(0, 10)) AS t(g)            -> unchanged\n   ```\n\n   With that, the lineage call above succeeds and the leaf node for `to_deposit_days` is\n   named `_0.generate_series` with source `TABLE(GENERATE_SERIES(0, 8000)) AS _0(generate_series)`.\n\nThe dialect-level mapping from function type to default column name(s) should be a new\ndialect setting so other dialects can declare theirs later.\n",
+    "03": "# `ALTER TABLE t DROP COLUMN a, b` falls back to a Command in Snowflake and T-SQL\n\nSnowflake and SQL Server allow dropping several columns with a single `DROP COLUMN` keyword:\n\n```sql\nALTER TABLE tbl DROP COLUMN col1, col2\n```\n\nsqlglot only consumes the first column; the `, col2` continuation has no `DROP` keyword for\nthe action parser to match, so the whole statement degrades to an opaque `exp.Command`:\n\n```python\n>>> import sqlglot\n>>> sqlglot.parse_one(\"ALTER TABLE tbl DROP COLUMN col1, col2\", read=\"snowflake\")\n'ALTER TABLE tbl DROP COLUMN col1, col2' contains unsupported syntax. Falling back to parsing as a 'Command'.\nCommand(this=ALTER, expression=TABLE tbl DROP COLUMN col1, col2)\n```\n\nSame for `read=\"tsql\"`.\n\n## Expected\n\nFor Snowflake and T-SQL the statement parses to an `exp.Alter` with **one** `exp.Drop`\naction of kind `COLUMN`, whose `tables` list holds both columns (`col1`, `col2`) — the same\nshape `DROP TABLE a, b` already produces. It must round-trip unchanged as an identity in both\ndialects:\n\n```python\n>>> sqlglot.parse_one(\"ALTER TABLE foo DROP COLUMN col1, col2\", read=\"snowflake\").sql(\"snowflake\")\n'ALTER TABLE foo DROP COLUMN col1, col2'\n```\n\nDo **not** split it into `DROP COLUMN col1, DROP COLUMN col2`: Snowflake and T-SQL reject\nthat spelling with a syntax error.\n\n## Must not regress\n\nThis should be opt-in per dialect (Snowflake and T-SQL today; the base dialect keeps\nrequiring a `DROP` per column), mirroring how the existing \"ADD is required for each column\"\ndialect switch works. In particular MySQL must keep working exactly as now:\n\n```sql\nALTER TABLE t DROP PRIMARY KEY                       -- still an Alter whose action is DropPrimaryKey\nALTER TABLE t DROP COLUMN c, DROP PRIMARY KEY, DROP INDEX `i`\nALTER TABLE t DROP COLUMN a, ALGORITHM=INPLACE       -- ALGORITHM is an option, not a column\n```\n\n\n",
+    "04": "# DuckDB `ARRAY_SLICE(arr, begin, end)` is transpiled to Spark/Presto `SLICE` with the wrong third argument\n\nDuckDB's `ARRAY_SLICE(list, begin, end)` takes an inclusive **end index**. Spark, Databricks,\nPresto and Trino's `SLICE(array, start, length)` take a **length**. sqlglot currently just\nrenames the function and passes the end index through as if it were a length:\n\n```python\n>>> import sqlglot\n>>> sqlglot.transpile(\"SELECT ARRAY_SLICE([1, 2, 3, 4], 2, 3)\", read=\"duckdb\", write=\"spark\")\n['SELECT SLICE(ARRAY(1, 2, 3, 4), 2, 3)']     # wrong: returns [2, 3, 4]; DuckDB returns [2, 3]\n>>> sqlglot.transpile(\"SELECT ARRAY_SLICE([1, 2, 3, 4], 2, 3)\", read=\"duckdb\", write=\"presto\")\n['SELECT SLICE(ARRAY[1, 2, 3, 4], 2, 3)']     # same\n```\n\n## Expected\n\nWhen the slice came from DuckDB's `ARRAY_SLICE` (i.e. its bounds are known to be indices,\nnot a length), and both bounds are plain non-negative integer literals that fit in a 32-bit\nsigned int, the generators for spark2/spark/databricks/presto/trino should emit a `SLICE`\nwith the equivalent **length**, clamping a 0 start to 1 and never producing a negative length:\n\n```python\n>>> sqlglot.transpile(\"SELECT ARRAY_SLICE([1, 2, 3, 4], 2, 3)\", read=\"duckdb\", write=\"spark\")\n['SELECT SLICE(ARRAY(1, 2, 3, 4), 2, 2)']\n>>> sqlglot.transpile(\"SELECT ARRAY_SLICE([1, 2, 3, 4], 2, 3)\", read=\"duckdb\", write=\"trino\")\n['SELECT SLICE(ARRAY[1, 2, 3, 4], 2, 2)']\n>>> sqlglot.transpile(\"ARRAY_SLICE(x, 0, 2)\", read=\"duckdb\", write=\"spark\")\n['SLICE(x, 1, 2)']        # start 0 becomes 1, length 2\n>>> sqlglot.transpile(\"ARRAY_SLICE(x, 3, 2)\", read=\"duckdb\", write=\"presto\")\n['SLICE(x, 3, 0)']        # end before start: empty slice, not a negative length\n```\n\nThe DuckDB -> DuckDB round-trip must stay `SELECT ARRAY_SLICE([1, 2, 3, 4], 2, 3)`.\n\n## When not to convert\n\nIf a bound is negative, non-literal, or out of range, the exact length cannot be computed\nstatically, so keep the current plain rename:\n\n```python\n>>> sqlglot.transpile(\"ARRAY_SLICE(CASE WHEN RANDOM() < 0.5 THEN [1] ELSE [1, 2] END, -1, 2)\",\n...                   read=\"duckdb\", write=\"spark\")\n['SLICE(CASE WHEN RAND() < 0.5 THEN ARRAY(1) ELSE ARRAY(1, 2) END, -1, 2)']\n```\n\nAnd slices that did *not* come from DuckDB's index-based function are untouched: Spark's\n`SLICE(x, 2, 3)` read from presto, spark or ClickHouse (`arraySlice(x, 2, 3)`) still writes\nas `SLICE(x, 2, 3)` in Spark.\n\nThe DuckDB parser needs to build the `ArraySlice` expression from `ARRAY_SLICE` marking that\nits bounds are not a length (the expression already has an `is_length` argument), and the\nshared helper that produces `SLICE` should live where both the Presto and Spark generators\ncan use it.\n",
+    "06": "# Oracle: alternative quoting `q'...'` rejects most delimiters, and national `nq'...'` is not supported at all\n\nOracle's alternative quoting mechanism `q'<delim>text<delim>'` accepts **any** single-byte\ncharacter as the delimiter (with the four bracket pairs `[]`, `{}`, `()`, `<>` as the\nspecial paired cases), and a national variant `nq'...'` / `NQ'...'` exists too. sqlglot\nonly knows a hand-picked set of punctuation delimiters and no `nq` at all:\n\n```python\n>>> import sqlglot\n>>> sqlglot.transpile(\"SELECT q'[it's]' FROM dual\", read=\"oracle\")        # works today\n[\"SELECT 'it''s' FROM dual\"]\n>>> sqlglot.transpile(\"SELECT q']it's]' FROM dual\", read=\"oracle\")\nTokenError: Error tokenizing 'SELECT q']it's]' FROM dua'\n>>> sqlglot.transpile(\"SELECT q'ait'sa' FROM dual\", read=\"oracle\")        # letters\nTokenError\n>>> sqlglot.transpile(\"SELECT q'0it's0' FROM dual\", read=\"oracle\")        # digits\nTokenError\n>>> sqlglot.transpile(\"SELECT nq'[it's]' FROM dual\", read=\"oracle\")\nTokenError\n>>> sqlglot.transpile(\"SELECT NQ'{a}' FROM dual\", read=\"oracle\")\nParseError: Invalid expression / Unexpected token\n```\n\n## Expected\n\n1. Any ASCII letter, digit or punctuation character works as a `q'...'` delimiter (the\n   closing bracket of a pair, e.g. `]`, `}`, `)`, `>`, works as a plain self-delimiter; so\n   does `'`). All of these should produce `SELECT 'it''s' FROM dual`:\n\n   ```sql\n   SELECT q']it's]' FROM dual\n   SELECT q'}it's}' FROM dual\n   SELECT q')it's)' FROM dual\n   SELECT q'>it's>' FROM dual\n   SELECT q''it's'' FROM dual\n   SELECT q'ait'sa' FROM dual\n   SELECT Q'Ait'sA' FROM dual\n   SELECT q'0it's0' FROM dual\n   ```\n\n2. `nq`, `nQ`, `Nq`, `NQ` + the same delimiters are **national raw strings**: parsed into an\n   `exp.National` literal with the raw (unescaped) content, and generated as `N'...'`:\n\n   ```python\n   >>> sqlglot.transpile(\"SELECT nq'[it's]' FROM dual\", read=\"oracle\")\n   [\"SELECT N'it''s' FROM dual\"]\n   >>> sqlglot.transpile(\"SELECT NQ'[a''b]' FROM dual\", read=\"oracle\")\n   [\"SELECT N'a''''b' FROM dual\"]          # raw: the doubled quote is content\n   >>> sqlglot.transpile(\"SELECT nq'|\\\\n|' FROM dual\", read=\"oracle\")\n   [\"SELECT N'\\\\n' FROM dual\"]              # raw: no backslash processing\n   >>> sqlglot.transpile(\"SELECT nq'[]' FROM dual\", read=\"oracle\")\n   [\"SELECT N'' FROM dual\"]\n   ```\n\n   Newlines and non-ASCII content (`nq'[é漢]'`) inside the literal are kept verbatim.\n\n3. The new literal kind must plug into the places that already know about national/raw\n   strings:\n\n   - The parser accepts it wherever a string token is accepted, e.g. as a TRIM argument:\n     `SELECT TRIM(nq'[both]')` read as Oracle generates `SELECT TRIM(N'both')`.\n   - The anonymizer masks its content like other literals, keeping the prefix and delimiters.\n     Today `render(sql, anonymize(\"SELECT nq'[secret]'\", \"oracle\"), \"oracle\")` gives\n     `SELECT aa'aaaaaaab'`; it should give `SELECT nq'[aaaaaa]'` (same length as the input).\n",
+    "02": "# Window `PARTITION BY EXCLUDING col, ...` fails to parse\n\nSome engines accept an inverted partition clause in window specifications: `PARTITION BY\nEXCLUDING a, b` partitions by every column *except* the listed ones. sqlglot rejects it:\n\n```python\n>>> import sqlglot\n>>> sqlglot.parse_one(\n...   \"LAG(revenue) OVER (PARTITION BY EXCLUDING orders.order_date, orders.order_year ORDER BY orders.order_date)\")\nParseError: Expecting ). Line 1, Col: 48.\n```\n\n## Expected\n\nThe statement parses and round-trips unchanged in the default dialect:\n\n```python\n>>> sqlglot.parse_one(sql).sql()\n'LAG(revenue) OVER (PARTITION BY EXCLUDING orders.order_date, orders.order_year ORDER BY orders.order_date)'\n```\n\nThe window's `partition_by` list should then hold a single dedicated expression node of type\n`exp.PartitionByExcluding` whose `expressions` are the excluded columns, and the generator\nmust render it back as `EXCLUDING <col>, <col>`.\n\n## Must not regress\n\n`excluding` is a perfectly good column name, so these must keep parsing to plain `exp.Column`\npartition keys and round-trip unchanged:\n\n```sql\nSUM(a) OVER (PARTITION BY excluding ORDER BY a)\nSUM(a) OVER (PARTITION BY excluding, a ORDER BY a)\nSUM(a) OVER (PARTITION BY excluding.a ORDER BY a)\n```\n\nThat is: `EXCLUDING` is only the keyword when it is immediately followed by something that\ncan start a column reference (an identifier), not when it is itself the partition key.\n",
+    "10": "# DuckDB: support `NEAREST k BY DISTANCE|SIMILARITY expr` top-k joins\n\nDuckDB has a top-k (\"nearest neighbour\") join clause that replaces `ON`:\n\n```sql\nSELECT q.id, t.id\nFROM queries AS q JOIN items AS t\nNEAREST 2 BY DISTANCE ARRAY_DISTANCE(q.embedding, t.embedding)\n```\n\nwith variants `APPROX NEAREST k`, `BY SIMILARITY <expr>`, and any join kind (`JOIN`,\n`INNER JOIN`, `LEFT JOIN`, `LEFT OUTER JOIN`). sqlglot cannot parse it:\n\n```python\n>>> import sqlglot\n>>> sqlglot.parse_one(\"SELECT a.id, b.id FROM a JOIN b NEAREST 1 BY DISTANCE ABS(a.id - b.id)\", read=\"duckdb\")\nParseError: Invalid expression / Unexpected token. Line 1, Col: ...\n```\n\n## Expected\n\n### Parsing and generation (DuckDB)\n\n- The join gets a new `nearest` argument holding an `exp.Nearest` node with:\n  `this` = the distance/similarity expression, `count` = the k literal,\n  `approximate` = whether `APPROX` was present, `similarity` = `True` for `BY SIMILARITY`,\n  `False` for `BY DISTANCE`.\n- The DuckDB generator renders it after the joined table (and after any\n  `MATCH_CONDITION`), before `ON`/`USING`:\n  `[APPROX ]NEAREST <k> BY DISTANCE|SIMILARITY <expr>`. A join that has a `nearest` clause\n  and no `ON` must **not** be turned into a `CROSS JOIN` / comma join and must keep its\n  explicit `JOIN` keyword. All of these round-trip unchanged in DuckDB:\n\n  ```sql\n  SELECT a.id, b.id FROM a JOIN b NEAREST 1 BY DISTANCE ABS(a.id - b.id)\n  SELECT a.id, b.id FROM a JOIN b APPROX NEAREST 1 BY DISTANCE ABS(a.id - b.id)\n  SELECT a.id, b.id FROM a LEFT JOIN b NEAREST 1 BY DISTANCE ABS(a.id - b.id)\n  SELECT a.id, b.id FROM a JOIN b NEAREST 1 BY DISTANCE ABS(a.id - b.id) JOIN c ON b.id = c.id WHERE a.id > 0 ORDER BY a.id\n  SELECT * FROM a JOIN b NEAREST 1 BY DISTANCE ABS(a.id - b.id) JOIN c NEAREST 2 BY DISTANCE ABS(b.id - c.id)\n  SELECT * FROM a LEFT JOIN (SELECT * FROM b WHERE id > 0) AS b NEAREST 1 BY DISTANCE ABS(a.id - b.id)\n  SELECT * FROM a JOIN b AS \"nearest\" NEAREST 1 BY DISTANCE ABS(a.id - \"nearest\".id)\n  ```\n  Pretty-printing puts the whole `LEFT JOIN b NEAREST 1 BY DISTANCE ...` on one line, as\n  joins are today.\n\n- `nearest` and `approx` remain valid implicit table aliases when they are not followed by\n  the clause: `SELECT * FROM a nearest JOIN b approx ON nearest.id = approx.id` still becomes\n  `SELECT * FROM a AS nearest JOIN b AS approx ON nearest.id = approx.id`. `NEAREST` starts the\n  clause only when a number follows it, or as `APPROX NEAREST`.\n\n- Malformed clauses raise `ParseError`: a missing `BY`, a missing `DISTANCE`/`SIMILARITY`,\n  or a missing expression after the metric.\n\n### Other dialects\n\nGenerators that do not support it (a new generator flag, off by default, on for DuckDB) emit\nan \"unsupported\" warning; with `unsupported_level=ErrorLevel.RAISE` transpiling the query to\nPostgres raises `UnsupportedError`.\n\n### Optimizer safety\n\nA NEAREST join selects the top-k matches *of its inputs*, so the optimizer must treat it as\nopaque: do not eliminate it as an unused join, do not reorder it, do not merge subqueries\ninto or across it, do not push predicates past it, and do not normalise away its join kind.\n",
+    "01": "# DuckDB: a fractional interval written as one string loses its fraction on round-trip\n\nIn DuckDB (and Postgres) these two are **not** the same thing:\n\n```sql\nSELECT INTERVAL '1.5 DAY'   -- 1 day 12:00:00  (the fraction is kept)\nSELECT INTERVAL '1.5' DAY   -- 1 day           (DuckDB truncates the amount)\n```\n\nsqlglot currently normalises the first form into the second, which silently changes the\nvalue:\n\n```python\n>>> import sqlglot\n>>> sqlglot.transpile(\"SELECT INTERVAL '1.5 DAY'\", read=\"duckdb\", write=\"duckdb\")\n[\"SELECT INTERVAL '1.5' DAY\"]           # wrong: now truncates to 1 day\n>>> sqlglot.transpile(\"SELECT CAST('2024-01-01' AS TIMESTAMP) + INTERVAL '-10.75 MINUTE'\",\n...                   read=\"postgres\", write=\"duckdb\")\n[\"SELECT CAST('2024-01-01' AS TIMESTAMP) + INTERVAL '-10.75' MINUTE\"]   # same problem\n```\n\n## Expected\n\nWhen a DuckDB/Postgres interval has a fractional amount written together with its unit in\none string literal, the DuckDB generator should keep that one-string form:\n\n```python\n>>> sqlglot.transpile(\"SELECT INTERVAL '1.5 DAY'\", read=\"duckdb\", write=\"duckdb\")\n[\"SELECT INTERVAL '1.5 DAY'\"]\n>>> sqlglot.transpile(\"SELECT CAST('2024-01-01' AS TIMESTAMP) + INTERVAL '-10.75 MINUTE'\",\n...                   read=\"postgres\", write=\"duckdb\")\n[\"SELECT CAST('2024-01-01' AS TIMESTAMP) + INTERVAL '-10.75 MINUTE'\"]\n```\n\nEverything else must stay as it is:\n\n- `SELECT INTERVAL '1.5' DAY` and `SELECT INTERVAL '1.5' MONTH` still round-trip unchanged\n  in DuckDB (the amount was *not* written with its unit, so the user asked for truncation).\n- Whole-number one-string intervals keep their current normalisation, e.g.\n  `SELECT INTERVAL '1 quarter'` still becomes `SELECT INTERVAL '1' QUARTER` in DuckDB.\n- Other dialects are unaffected: `SELECT INTERVAL '1.5 SECOND'` read as DuckDB still writes\n  as `SELECT INTERVAL '1.5' SECOND` in Trino, and `SELECT INTERVAL '1.0 QUARTER'` still\n  writes as `SELECT INTERVAL '3 MONTH'` in Postgres.\n\nThe parsed `Interval` expression needs to remember that the fraction came in one string so\nthe generator can tell the two spellings apart.\n"
+  },
+  "notes": [
+    {
+      "round": 1,
+      "task": "09",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py — `_parse_types` must not consume `COLLATE`, or column-definition `COLLATE` constraints change; collation on types is parsed only via `_parse_type_with_collate` in CAST targets and nested params."
+    },
+    {
+      "round": 1,
+      "task": "09",
+      "tags": ["colony"],
+      "text": "— in this environment the full `unittest discover` run has 4 pre-existing errors from missing `pytz`/`duckdb`; the dialect modules run cleanly without them."
+    },
+    {
+      "round": 1,
+      "task": "09",
+      "tags": ["colony"],
+      "text": "— in `validate_all`, `read=` entries are transpiled into the test's own dialect, so the expected string must be that dialect's output, not the reader's."
+    },
+    {
+      "round": 1,
+      "task": "05",
+      "tags": ["law"],
+      "text": "sqlglot/generator.py — a `TRANSFORMS` entry for a class wins over any `<name>_sql` method, so dialect overrides of that class never run."
+    },
+    {
+      "round": 1,
+      "task": "05",
+      "tags": ["colony"],
+      "text": "— run tests with `python3 -m unittest`; pytest is not installed, and `duckdb`/`pytz` are missing, which gives 4 baseline errors in the full run."
+    },
+    {
+      "round": 1,
+      "task": "08",
+      "tags": ["law"],
+      "text": "sqlglot/generators/postgres.py DAY/MONTH/YEAR must emit EXTRACT via _date_part_extract_sql, and integer arguments must be flagged unsupported (looking through a bare TsOrDsToDate)"
+    },
+    {
+      "round": 1,
+      "task": "08",
+      "tags": ["law"],
+      "text": "sqlglot/generators/tsql.py Day/Month/Year strip a bare TsOrDsToDate via remove_ts_or_ds_to_date"
+    },
+    {
+      "round": 1,
+      "task": "08",
+      "tags": ["colony"],
+      "text": "ruff is not installed in this environment, so the repo's style target can't be run here; line lengths were checked by hand"
+    },
+    {
+      "round": 1,
+      "task": "08",
+      "tags": ["colony"],
+      "text": "test_bigquery, test_executor, test_optimizer and test_convert need pytz/duckdb and can't run here; the 4 baseline errors are expected"
+    },
+    {
+      "round": 1,
+      "task": "07",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py _parse_table must hoist Table(this=TableFromRows) on every return path, via _parse_table_body and _hoist_table_from_rows"
+    },
+    {
+      "round": 1,
+      "task": "07",
+      "tags": ["law"],
+      "text": "sqlglot/optimizer/qualify_tables.py TableFromRows default column names come from dialect.TABLE_FROM_ROWS_COLUMN_NAMES and apply only when there are no explicit column aliases"
+    },
+    {
+      "round": 1,
+      "task": "07",
+      "tags": ["colony"],
+      "text": "tests run with unittest, since pytest is absent: python3 -m unittest discover -s tests -t . ; test_optimizer needs duckdb, pandas and pytz, which are not installed here."
+    },
+    {
+      "round": 1,
+      "task": "03",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py: `DROP COLUMN a, b` folding happens only when `ALTER_TABLE_DROP_REQUIRED_FOR_EACH_COLUMN` is False; `ALGORITHM=` and the next action keyword are never taken as columns."
+    },
+    {
+      "round": 1,
+      "task": "03",
+      "tags": [],
+      "text": "colony: in this environment `python -m unittest discover -s tests -t .` has 4 known errors (missing `pytz`/`duckdb`, `test_convert`); compare against that, not against zero. Lint tools aren't installed; the shell also refused a heredoc write to `/tmp`, so scratch scripts go under `.mikata/tmp` with `PYTHONPATH=.`."
+    },
+    {
+      "round": 1,
+      "task": "04",
+      "tags": ["law"],
+      "text": "sqlglot/parsers/duckdb.py ARRAY_SLICE marks its bounds as indices with is_length=False; the Spark/Presto helper only converts when that marker is False"
+    },
+    {
+      "round": 1,
+      "task": "04",
+      "tags": ["colony"],
+      "text": "the test suite has 4 known errors (test_convert, test_bigquery, test_executor, test_optimizer), so compare against 4 rather than 0; run with python3 -m unittest discover -s tests -t . and PYTHONPATH=. for scratch scripts under .mikata/tmp"
+    },
+    {
+      "round": 1,
+      "task": "04",
+      "tags": ["colony"],
+      "text": "when writing validate_all tests, read= entries are rendered in the test's own dialect; use write= for the target dialect's output"
+    },
+    {
+      "round": 1,
+      "task": "06",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/oracle.py Oracle q'...' delimiters are generated from ALT_QUOTE_DELIMITERS (all printable ASCII, pairs for [{(<), and nq variants are national raw strings —"
+    },
+    {
+      "round": 1,
+      "task": "06",
+      "tags": ["colony"],
+      "text": "run repo Python from bash with PYTHONPATH=. (sqlglot is not installed); a heredoc writing to /tmp was refused as outward, so put scripts under .mikata/tmp"
+    },
+    {
+      "round": 1,
+      "task": "06",
+      "tags": ["colony"],
+      "text": "full `unittest discover` needs duckdb and pytz; without them test_bigquery, test_executor, test_optimizer and test_expressions.test_convert error on import"
+    },
+    {
+      "round": 1,
+      "task": "06",
+      "tags": ["colony"],
+      "text": "multiedit rejects malformed JSON arguments outright; use single edit calls when a multi-edit fails to parse"
+    },
+    {
+      "round": 1,
+      "task": "02",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py `ROWS` and `RANGE` are in `ID_VAR_TOKENS`, so any \"next token is a column start\" lookahead must exclude them explicitly —"
+    },
+    {
+      "round": 1,
+      "task": "02",
+      "tags": ["colony"],
+      "text": "run tests with `python3 -m unittest discover -s tests -t .`; pytest is not installed. Five modules fail on missing optional packages (duckdb, pytz, setuptools) even on the untouched baseline."
+    },
+    {
+      "round": 1,
+      "task": "10",
+      "tags": [],
+      "text": "lines"
+    },
+    {
+      "round": 1,
+      "task": "10",
+      "tags": ["law"],
+      "text": "sqlglot/optimizer/pushdown_predicates.py NEAREST sources and those before it are not filled by WHERE pushdown"
+    },
+    {
+      "round": 1,
+      "task": "10",
+      "tags": ["colony"],
+      "text": "the test suite has 5 baseline errors here (bigquery, executor, test_convert, optimizer, sqlglotc), not 4; test_optimizer needs duckdb/pandas and a process pool"
+    },
+    {
+      "round": 1,
+      "task": "01",
+      "tags": ["law"],
+      "text": "sqlglot/generators/duckdb.py a fractional amount written as one string keeps its form; INTERVAL '1.5' DAY truncates, so the one-string form must not be normalised"
+    },
+    {
+      "round": 1,
+      "task": "01",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py single_string is set only in the one-string branch of _parse_interval_span"
+    },
+    {
+      "round": 1,
+      "task": "01",
+      "tags": ["colony"],
+      "text": "full unittest discover needs duckdb, pytz and setuptools; without them 5 import errors appear that are not related to the change; use python3 -m unittest, pytest is not installed"
+    },
+    {
+      "round": 2,
+      "task": "09",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py COLLATE after a type in a column definition is a column constraint; only `_parse_type_with_collate` (CAST target and nested params) may consume it"
+    },
+    {
+      "round": 2,
+      "task": "09",
+      "tags": ["colony"],
+      "text": "Scripts run with `python3 file.py` need `PYTHONPATH=.`; the gate refuses writes to `/tmp` and package installs, so use `.mikata/tmp`, and tests needing `duckdb`/`pytz` cannot run here."
+    },
+    {
+      "round": 2,
+      "task": "05",
+      "tags": ["law"],
+      "text": "sqlglot/generator.py a `TRANSFORMS` entry for a class shadows any `<name>_sql` method on dialect subclasses, because `_build_dispatch` loads `TRANSFORMS` first and only adds methods for classes not already present."
+    },
+    {
+      "round": 2,
+      "task": "05",
+      "tags": ["colony"],
+      "text": "`duckdb` and `pytz` are not installed in this environment. Run `python3 -m unittest tests.dialects.test_postgres tests.dialects.test_duckdb tests.dialects.test_mysql tests.dialects.test_dialect tests.test_parser tests.test_generator` for the dialect tests. The other test modules need those packages."
+    },
+    {
+      "round": 2,
+      "task": "08",
+      "tags": ["law"],
+      "text": "sqlglot/generators/postgres.py DAY/MONTH/YEAR emit EXTRACT(part FROM arg) and flag an integer argument unsupported, looking through a bare TsOrDsToDate, without stripping it from the output"
+    },
+    {
+      "round": 2,
+      "task": "08",
+      "tags": ["law"],
+      "text": "sqlglot/generators/tsql.py Day/Month/Year strip a bare TsOrDsToDate via remove_ts_or_ds_to_date"
+    },
+    {
+      "round": 2,
+      "task": "08",
+      "tags": ["colony"],
+      "text": "this environment has no pytest, ruff, mypy or pytz; run tests with python3 -m unittest discover -s tests -t .; test_bigquery, test_executor, test_optimizer and test_expressions.test_convert fail to import on the missing pytz, and they were already failing before any change"
+    },
+    {
+      "round": 2,
+      "task": "07",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py `_parse_table` hoists `Table(this=TableFromRows)` on every return path via the `_parse_table_body` wrapper"
+    },
+    {
+      "round": 2,
+      "task": "07",
+      "tags": ["law"],
+      "text": "sqlglot/optimizer/qualify_tables.py TableFromRows default column names apply only when the table alias has no column list; a table alias alone keeps its name"
+    },
+    {
+      "round": 2,
+      "task": "07",
+      "tags": ["colony"],
+      "text": "The system Python has no `duckdb` or `pytz`, and `pip install` is refused by the gate, so `tests/test_optimizer.py` cannot import here. Run its qualify_tables fixture cases through the repo's fixture loader instead."
+    },
+    {
+      "round": 2,
+      "task": "07",
+      "tags": ["colony"],
+      "text": "`python3 -m ...` from the repo root prints `Unable to set __version__` on stderr; discard stderr before comparing outputs."
+    },
+    {
+      "round": 2,
+      "task": "03",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py after `DROP COLUMN a` with `ALTER_TABLE_DROP_REQUIRED_FOR_EACH_COLUMN` False, `, name` continues the same drop only for a plain identifier that is not an alter keyword and not followed by `=` —"
+    },
+    {
+      "round": 2,
+      "task": "03",
+      "tags": ["colony"],
+      "text": "run tests with `SKIP_INTEGRATION=1 python3 -m unittest` from the repo root; pytest is not installed, and `duckdb` and `pytz` are missing here, so test_optimizer, test_executor, test_bigquery and test_convert error even on untouched code"
+    },
+    {
+      "round": 2,
+      "task": "04",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/dialect.py array_slice_sql converts only when is_length is exactly False; None (ClickHouse, Presto, Snowflake) must keep the plain rename"
+    },
+    {
+      "round": 2,
+      "task": "04",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/dialect.py array_slice_sql keeps the plain rename when a step is present, a bound is negative, non-literal, decimal or above 2^31-1"
+    },
+    {
+      "round": 2,
+      "task": "04",
+      "tags": ["colony"],
+      "text": "the DuckDB ARRAY_SLICE builder is in sqlglot/parsers/duckdb.py FUNCTIONS; a memory note said it already existed there, which was wrong"
+    },
+    {
+      "round": 2,
+      "task": "04",
+      "tags": ["colony"],
+      "text": "run tests with `python3 -m unittest` (no pytest here); test_optimizer, test_executor and test_bigquery need duckdb/pytz, which are missing, so they cannot import"
+    },
+    {
+      "round": 2,
+      "task": "06",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/oracle.py Oracle q'/nq' delimiters come from ALT_QUOTE_DELIMITERS; the keyword trie upper-cases chars but _FORMAT_STRINGS keys are case-sensitive, so every case prefix needs its own key"
+    },
+    {
+      "round": 2,
+      "task": "06",
+      "tags": ["colony"],
+      "text": "The unit suite has 4 pre-existing import errors on the clean tree (duckdb missing; test_bigquery, test_executor, test_expressions.test_convert, test_optimizer); judge changes against them, not against zero."
+    },
+    {
+      "round": 2,
+      "task": "06",
+      "tags": ["colony"],
+      "text": "sqlglotrs is deprecated and not installed; sqlglot/tokenizer_core.py is the only tokenizer to change."
+    },
+    {
+      "round": 2,
+      "task": "02",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py `PARTITION BY EXCLUDING` is a keyword only when an identifier follows it; `excluding` alone, before `,`, `.`, or `)`, stays a column —"
+    },
+    {
+      "round": 2,
+      "task": "02",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py bare `order`, `groups`, `exclude` tokenize as VAR, so they are stop words after EXCLUDING and must not be taken as columns —"
+    },
+    {
+      "round": 2,
+      "task": "02",
+      "tags": ["colony"],
+      "text": "tests run with `python3 -m unittest`; pytest is absent, and `pytz`, `duckdb` and `setuptools` are missing, so `test_convert` and four modules fail to import before any change"
+    },
+    {
+      "round": 2,
+      "task": "02",
+      "tags": ["colony"],
+      "text": "the check gate refuses commands that write to `/tmp`; write scratch output under `.mikata/tmp/`"
+    },
+    {
+      "round": 2,
+      "task": "10",
+      "tags": ["law"],
+      "text": "sqlglot/generators/duckdb.py DuckDB join_sql drops side and kind from ON-less joins; nearest joins must be exempt, or LEFT becomes a comma join."
+    },
+    {
+      "round": 2,
+      "task": "10",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py `NEAREST` starts a join clause only before a number, `APPROX` only before `NEAREST`; `_parse_table_alias` must skip both."
+    },
+    {
+      "round": 2,
+      "task": "10",
+      "tags": ["colony"],
+      "text": "Tests run with `python3 -m unittest`, not pytest, and five modules need packages missing from this machine (duckdb, pytz, pandas, setuptools)."
+    },
+    {
+      "round": 2,
+      "task": "10",
+      "tags": ["colony"],
+      "text": "Check commands that run scripts under `.mikata/tmp` need `PYTHONPATH=.`, or `sqlglot` will not import."
+    },
+    {
+      "round": 2,
+      "task": "01",
+      "tags": ["law"],
+      "text": "sqlglot/generators/duckdb.py a fractional one-string interval keeps its one-string form, while `'1.5' DAY` still truncates"
+    },
+    {
+      "round": 2,
+      "task": "01",
+      "tags": ["colony"],
+      "text": "in this run, `git stash`, `git show HEAD:...`, and `rm -rf` were refused by the human gate, so the original-code comparison needs another route"
+    },
+    {
+      "round": 3,
+      "task": "09",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py COLLATE after a type in a column definition is a column constraint; only `_parse_type_with_collate` (CAST target and nested params) consumes a type's COLLATE"
+    },
+    {
+      "round": 3,
+      "task": "09",
+      "tags": ["colony"],
+      "text": "in `validate_all`, `read=` entries are compared against the test dialect's output, so write the expected string in that dialect"
+    },
+    {
+      "round": 3,
+      "task": "09",
+      "tags": ["colony"],
+      "text": "run the optimizer and executor tests only after installing `duckdb` and `pytz`; here they cannot import"
+    },
+    {
+      "round": 3,
+      "task": "05",
+      "tags": ["law"],
+      "text": "sqlglot/generator.py — a `TRANSFORMS` entry shadows `*_sql` methods on dialect subclasses, so new expression renderings that dialects override should be methods."
+    },
+    {
+      "round": 3,
+      "task": "05",
+      "tags": ["colony"],
+      "text": "— `duckdb` and `pytz` are not installed here. Run the six dialect and parser/generator modules listed in note n1a201ccb746; the other four test modules cannot import."
+    },
+    {
+      "round": 3,
+      "task": "05",
+      "tags": ["colony"],
+      "text": "— at HEAD, bare `a @> b` fails in the default dialect because `@` is read as a parameter. Use `read='postgres'` or `'duckdb'` for these operators."
+    },
+    {
+      "round": 3,
+      "task": "08",
+      "tags": ["colony"],
+      "text": "in-place `sed -i` is refused by the `in-place-edit` guard; use edit or multiedit for renames."
+    },
+    {
+      "round": 3,
+      "task": "08",
+      "tags": ["colony"],
+      "text": "`pytz` and `duckdb` are missing here, so tests/test_optimizer.py, tests/test_executor.py and TestExprs.test_convert cannot run; run them where the deps exist."
+    },
+    {
+      "round": 3,
+      "task": "08",
+      "tags": ["colony"],
+      "text": "check scripts run as files need `PYTHONPATH=.` from the repo root, or `import sqlglot` fails."
+    },
+    {
+      "round": 3,
+      "task": "08",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/dialect.py `remove_ts_or_ds_to_date` copies the expression before stripping, so one tree generates the same way for other dialects."
+    },
+    {
+      "round": 3,
+      "task": "07",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py _parse_table hoists TABLE(<tvf>) into TableFromRows; the body is _parse_table_core, and dialect overrides must call super()._parse_table"
+    },
+    {
+      "round": 3,
+      "task": "07",
+      "tags": ["law"],
+      "text": "sqlglot/optimizer/qualify_tables.py TableFromRows gets default column names from dialect.TABLE_FROM_ROWS_COLUMN_NAMES only when the alias has no column list"
+    },
+    {
+      "round": 3,
+      "task": "07",
+      "tags": ["colony"],
+      "text": "tests/test_optimizer.py cannot import without duckdb/pytz; run its qualify_tables fixtures via tests.helpers.load_sql_fixture_pairs instead"
+    },
+    {
+      "round": 3,
+      "task": "07",
+      "tags": ["colony"],
+      "text": "check commands must use tracked files only; helper scripts under .mikata/tmp were not visible to the as-found baseline run, so a keep-line failed with no output"
+    },
+    {
+      "round": 3,
+      "task": "03",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py `_parse_drop_column_continuation`: after `DROP COLUMN a` with the flag False, `, name` continues the drop only for a plain identifier that is not an alter keyword and not followed by `=`"
+    },
+    {
+      "round": 3,
+      "task": "03",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/dialect.py `ALTER_TABLE_DROP_REQUIRED_FOR_EACH_COLUMN` defaults True; only Snowflake and T-SQL set False"
+    },
+    {
+      "round": 3,
+      "task": "03",
+      "tags": ["colony"],
+      "text": "Tests run with `python3 -m unittest` (no pytest here); four modules fail to import in this environment for missing duckdb/pytz, so run the dialect test modules by name."
+    },
+    {
+      "round": 3,
+      "task": "04",
+      "tags": ["law"],
+      "text": "sqlglot/dialects/dialect.py a -1 parses as Neg, and Neg.is_int is True, so the helper must check for Literal and the sign itself."
+    },
+    {
+      "round": 3,
+      "task": "04",
+      "tags": ["colony"],
+      "text": "pytest is not installed here; run the suite with python3 -m unittest. Four test modules fail to import without pytz and duckdb."
+    },
+    {
+      "round": 3,
+      "task": "06",
+      "tags": ["law"],
+      "text": "sqlglot/tokenizer_core.py raw-ness of a format string is decided by token type or by membership in raw_national_starts, so a new raw national prefix must go in NATIONAL_RAW_STRINGS, not RAW_STRINGS"
+    },
+    {
+      "round": 3,
+      "task": "06",
+      "tags": ["colony"],
+      "text": "run the suite as SKIP_INTEGRATION=1 python3 -m unittest from the repo root; pytest is not installed here, and 4 errors pre-exist (pytz, duckdb missing)"
+    },
+    {
+      "round": 3,
+      "task": "02",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py `_parse_partition_and_order`: `EXCLUDING` is a keyword only before an ID_VAR token that is not ORDER, GROUPS or EXCLUDE, and never before ROWS or RANGE."
+    },
+    {
+      "round": 3,
+      "task": "02",
+      "tags": ["colony"],
+      "text": "`tests/test_expressions.py` (test_convert), `tests/dialects/test_bigquery.py`, `tests/test_executor.py` and `tests/test_optimizer.py` need pytz, duckdb or setuptools, which are missing here. Their results are not in a bare `unittest` run. Installing them is outward and needs approval."
+    },
+    {
+      "round": 3,
+      "task": "02",
+      "tags": ["colony"],
+      "text": "`git stash` is refused in this sandbox; use `git archive HEAD` to get a baseline copy."
+    },
+    {
+      "round": 3,
+      "task": "10",
+      "tags": ["law"],
+      "text": "sqlglot/generators/duckdb.py DuckDB join_sql must not strip side/kind from an ON-less join that has a nearest clause"
+    },
+    {
+      "round": 3,
+      "task": "10",
+      "tags": ["law"],
+      "text": "sqlglot/parser.py NEAREST starts a join clause only before a number; APPROX only before NEAREST; _parse_table_alias skips both"
+    },
+    {
+      "round": 3,
+      "task": "10",
+      "tags": ["colony"],
+      "text": "test_optimizer imports duckdb and pandas, and its setUpClass needs a process pool that this sandbox refuses; run specific methods with a stubbed module and synchronous pool, as in .mikata/tmp/run_opt_test.py"
+    },
+    {
+      "round": 3,
+      "task": "01",
+      "tags": ["colony"],
+      "text": "`git stash`, `git archive` and `rm -rf` are held by the gate in this repository, so a baseline comparison must come from elsewhere."
+    },
+    {
+      "round": 3,
+      "task": "01",
+      "tags": ["law"],
+      "text": "sqlglot/generators/duckdb.py the one-string fractional form is kept only when `single_string` is set, the amount has a `.`, and the unit is a `Var`;"
+    }
+  ]
+}

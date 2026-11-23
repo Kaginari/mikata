@@ -29,6 +29,14 @@
 //! reader list an input the ask itself changes as one that must stay: held hard, a wrong line of
 //! that kind leaves a body no honest way through.
 //!
+//! **What the human said was wrong is a line too.** When the human says an earlier answer to an
+//! ask was wrong, and says what must come out (`<input>` must give `<output>`), memory keeps the
+//! words under that ask, and whenever the ask comes again the case they state joins its list
+//! ([`held_line`], [`List::holding`]). Told as advice, the same words were taken up and then
+//! overruled: on our bench a body wrote the human's case first in its own plan, could not make
+//! it true, rewrote the plan to say the opposite, ticked it, and answered that the ask was done.
+//! A line the harness holds is not the body's to rewrite.
+//!
 //! **Who writes the list.** The human, in the ask. Or a reader: a model the human names
 //! (`models.reader`), asked once an ask, shown the ask alone and never the code, and asked only
 //! for these lines ([`READER`]). Its list is put after the ask and held the same way. A reader
@@ -79,6 +87,8 @@ pub const READER_TOKENS: u32 = 6000;
 pub const READER_WAIT: Duration = Duration::from_secs(90);
 /// The most lines of a reader's list that are kept.
 const READER_LINES: usize = 30;
+/// The most lines held from the human's corrections of one ask: the newest.
+const CORRECTED_LINES: usize = 12;
 /// What a reader is told. It names no language and no tool: the lines are for any codebase.
 pub const READER: &str = "\
 You are handed a request for a change to a codebase, before anyone works on it. You see the \
@@ -222,6 +232,9 @@ pub struct List {
     read: bool,
     /// The lines the body was told no longer fail as they did ([`Judged::moved`]): said once.
     told: Vec<String>,
+    /// The lines that are the human's corrections of earlier answers to this ask
+    /// ([`List::holding`]), by name: said after the ask, which did not hold them.
+    humans: Vec<String>,
 }
 
 impl List {
@@ -255,18 +268,72 @@ impl List {
         self.lines.is_empty()
     }
 
-    /// What goes after the ask when a list is held: a reader's list itself, which the ask did
-    /// not carry, then how the harness holds it ([`List::note`]). Nothing for an ask with no
-    /// list.
+    /// The list with what the human's corrections of earlier answers to this ask say must come
+    /// out (`cases`, oldest first, each a line: [`held_line`]) held too, named on from the
+    /// list's last line. The newest [`CORRECTED_LINES`] are kept, and a case the list already
+    /// holds word for word is one line.
+    #[must_use]
+    pub fn holding(mut self, cases: &[String]) -> Self {
+        let mut last = self
+            .lines
+            .iter()
+            .filter_map(|(name, _)| number(name))
+            .max()
+            .unwrap_or(0);
+        let from = cases.len().saturating_sub(CORRECTED_LINES);
+        for text in &cases[from..] {
+            if self.lines.iter().any(|(_, held)| held == text) {
+                continue;
+            }
+            last += 1;
+            let name = format!("D{last}");
+            self.humans.push(name.clone());
+            self.lines.push((name, text.clone()));
+        }
+        self
+    }
+
+    /// The lines that are the human's corrections, by name.
+    #[must_use]
+    pub fn humans(&self) -> &[String] {
+        &self.humans
+    }
+
+    /// What goes after the ask when a list is held: the lines the ask's own words did not carry
+    /// (a reader's list, and what the human's corrections say must come out, with whose words
+    /// those are), then how the harness holds the list ([`List::note`]). Nothing for an ask with
+    /// no list.
     #[must_use]
     pub fn after_the_ask(&self) -> Option<String> {
         let note = self.note()?;
-        if !self.read {
+        let after: Vec<&Line> = self
+            .lines
+            .iter()
+            .filter(|(name, _)| self.read || self.humans.contains(name))
+            .collect();
+        if after.is_empty() {
             return Some(note);
         }
         let mut said = "## Done when".to_owned();
-        for (name, text) in &self.lines {
+        for (name, text) in after {
             let _ = write!(said, "\n{name}: {text}");
+        }
+        if !self.humans.is_empty() {
+            let names: Vec<&str> = self.humans.iter().map(String::as_str).collect();
+            // One line, or several: said as what they are, and as part of the ask, not all of it.
+            // A body held to one line has made it true and left the rest of its ask undone.
+            let (are, they_are, cases) = if names.len() == 1 {
+                ("is the human's own word", "It is", "it is one case")
+            } else {
+                ("are the human's own words", "They are", "they are cases")
+            };
+            let _ = write!(
+                said,
+                "\n\n{} {are}: they said an earlier answer to this ask was wrong, and this is \
+what must come out. {they_are} not yours to rewrite, and {cases} of the ask, not the whole of it: \
+the ask stands as written.",
+                runs(&names)
+            );
         }
         Some(format!("{said}\n\n{note}"))
     }
@@ -531,6 +598,8 @@ and {did} on your work",
         let late = self.checks.iter().filter(|c| c.late).count();
         let whose = if self.is_empty() {
             "Mikata's own"
+        } else if self.humans.len() == self.lines.len() {
+            "the human's"
         } else if self.read {
             "the reader's"
         } else {
@@ -555,6 +624,13 @@ and {did} on your work",
                 "{} no longer {} as on the code you gave it",
                 and(&lines),
                 if lines.len() == 1 { "fails" } else { "fail" }
+            ));
+        }
+        if !self.humans.is_empty() && self.humans.len() < self.lines.len() {
+            let names: Vec<&str> = self.humans.iter().map(String::as_str).collect();
+            said.push(format!(
+                "{} from what the human said was wrong before",
+                runs(&names)
             ));
         }
         let already = self.already();
@@ -613,6 +689,37 @@ again: this refuses no landing.",
         },
         news.join("\n- ")
     )
+}
+
+/// The case a correction states, as a line the harness can hold: the human's words up to the
+/// end of the output they say something `must give`, so that what they say came out instead is
+/// no part of the line. `None` for words that state no output that way: they stay advice. Words
+/// that say something `must stay` are never held: what the code does today may be the very
+/// answer the human called wrong.
+#[must_use]
+pub fn held_line(words: &str) -> Option<String> {
+    // The phrase is plain ASCII: found in the words as they are, its ends are ends of letters.
+    let at = words
+        .as_bytes()
+        .windows(GIVES.len())
+        .position(|w| w.eq_ignore_ascii_case(GIVES.as_bytes()))?;
+    let (input, after) = (words[..at].trim(), &words[at + GIVES.len()..]);
+    // The output: the first code span after the phrase, whole; with none, the words up to a `;`
+    // or the sentence's end.
+    let end = match after.find('`') {
+        Some(open) => after[open + 1..].find('`').map(|close| open + close + 2)?,
+        None => after
+            .char_indices()
+            .zip(after.chars().skip(1).chain([' ']))
+            .find(|((_, c), next)| *c == ';' || (matches!(c, '.' | '!' | '?') && *next == ' '))
+            .map_or(after.len(), |((i, _), _)| i),
+    };
+    let output = after[..end].trim();
+    // Words that also say something must stay would be read as a line of that kind, and held
+    // to what the code does today: they are advice.
+    (!input.is_empty() && !output.is_empty())
+        .then(|| format!("{input} {GIVES} {output}"))
+        .filter(|line| kind(line) == Kind::Gives)
 }
 
 /// A reader's lines out of its reply: each line named `D1`, `D2`, … that says what it must give
@@ -939,8 +1046,8 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
 #[cfg(test)]
 mod tests {
     use super::{
-        CHECK, CheckTool, Kind, List, Must, READER, SAID, and, clipped, kind, loose, moved_note,
-        read_lines, runs, stated, states, words,
+        CHECK, CORRECTED_LINES, CheckTool, Judged, Kind, List, Must, READER, SAID, and, clipped,
+        held_line, kind, loose, moved_note, read_lines, runs, stated, states, words,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -1261,6 +1368,136 @@ its output on the code you gave it)"
         assert!(List::read(&[]).is_empty());
         // What the reader is asked names both phrases the harness reads a line by.
         assert!(READER.contains("must give") && READER.contains("must stay"));
+    }
+
+    /// What the human said must come out is a line the harness can hold, in their own words up
+    /// to the output they state: what they say came out instead is no part of it. Words that
+    /// state no output, or that say something must stay, are advice.
+    #[test]
+    fn a_correction_that_states_its_output_is_a_line() {
+        assert_eq!(
+            held_line("Still wrong. `rightLogShift(-1, 0)` must give `4294967295`; it gives `-1`.")
+                .as_deref(),
+            Some("Still wrong. `rightLogShift(-1, 0)` must give `4294967295`")
+        );
+        assert_eq!(
+            held_line(
+                "In DuckDB, `SELECT INTERVAL '1.5' DAY` MUST GIVE `SELECT INTERVAL '1.5' DAY`, \
+                 not the one-string form"
+            )
+            .as_deref(),
+            Some("In DuckDB, `SELECT INTERVAL '1.5' DAY` must give `SELECT INTERVAL '1.5' DAY`")
+        );
+        // No code span: the output ends at a `;` or with its sentence.
+        assert_eq!(
+            held_line("f(1) must give 2; it gives 3").as_deref(),
+            Some("f(1) must give 2")
+        );
+        assert_eq!(
+            held_line("f(1) must give 1.5 days. It gives 2.").as_deref(),
+            Some("f(1) must give 1.5 days")
+        );
+        for advice in [
+            "it still fails on ties",
+            "`f(0)` must stay as it is today",
+            "must give `2`",
+            "`f(1)` must give",
+            "`f(1)` must give `2",
+            "`f(0)` must stay as it is and `f(1)` must give `2`",
+        ] {
+            assert_eq!(held_line(advice), None, "{advice}");
+        }
+        // The line states the output the human wants, never the one they called wrong.
+        let line = held_line("`f(1)` must give `2`; it gives `3`").unwrap();
+        assert!(states(&line, "2") && !states(&line, "3"), "{line}");
+        assert_eq!(kind(&line), Kind::Gives);
+    }
+
+    /// What the human's corrections say must come out joins the list after its own lines, is
+    /// said after the ask as the human's, and is held like any line. The same case twice is one
+    /// line, and only the newest are kept.
+    #[test]
+    fn what_the_human_said_was_wrong_joins_the_list() {
+        let cases = [
+            "`f(1)` must give `2`".to_owned(),
+            "`f(2)` must give `4`".to_owned(),
+        ];
+        // An ask with no list: the corrections are its list.
+        let list = List::default().holding(&cases);
+        assert_eq!(list.humans(), ["D1", "D2"]);
+        assert_eq!(list.missing(), ["D1", "D2"]);
+        let after = list.after_the_ask().unwrap();
+        assert!(
+            after.starts_with(
+                "## Done when\nD1: `f(1)` must give `2`\nD2: `f(2)` must give `4`\n\nD1 and D2 are \
+                 the human's own words: they said an earlier answer to this ask was wrong, and \
+                 this is what must come out. They are not yours to rewrite, and they are cases \
+                 of the ask, not the whole of it: the ask stands as written.\n\nThe ask holds a \
+                 `## Done when` list (D1 to D2)"
+            ),
+            "{after}"
+        );
+        assert!(
+            list.by(&Judged::default())
+                .starts_with("the human's Done when list ("),
+            "{}",
+            list.by(&Judged::default())
+        );
+        // An ask with its own list: named on from its last line, and only they are said after.
+        let list = List::of(ASK).holding(&cases[..1]);
+        assert_eq!(list.humans(), ["D4"]);
+        let after = list.after_the_ask().unwrap();
+        assert!(
+            after.starts_with(
+                "## Done when\nD4: `f(1)` must give `2`\n\nD4 is the human's own word: they said \
+                 an earlier answer to this ask was wrong, and this is what must come out. It is \
+                 not yours to rewrite, and it is one case of the ask, not the whole of it: the ask \
+                 stands as written.\n\nThe ask holds a `## Done when` list (D1 to D4)"
+            ),
+            "{after}"
+        );
+        assert_eq!(
+            list.text_of("D4").unwrap().as_deref(),
+            Some("`f(1)` must give `2`")
+        );
+        let by = list.by(&Judged::default());
+        assert!(
+            by.starts_with("the ask's Done when list (")
+                && by.contains("D4 from what the human said was wrong before"),
+            "{by}"
+        );
+        // A reader's list: its lines and the human's, all said after the ask.
+        let list = List::read(&["`g(0)` must stay as it is today".to_owned()]).holding(&cases);
+        assert_eq!(list.humans(), ["D2", "D3"]);
+        assert!(
+            list.after_the_ask().unwrap().starts_with(
+                "## Done when\nD1: `g(0)` must stay as it is today\nD2: `f(1)` must give `2`\nD3: \
+                 `f(2)` must give `4`\n\nD2 and D3 are the human's own words"
+            ),
+            "{:?}",
+            list.after_the_ask()
+        );
+        // The same case said twice is one line, and a case the ask's own list holds is not said again.
+        let twice = [cases[0].clone(), cases[0].clone()];
+        assert_eq!(List::default().holding(&twice).humans(), ["D1"]);
+        let own = "x\n\n## Done when\nD1: `f(1)` must give `2`\n";
+        assert_eq!(
+            List::of(own).holding(&cases[..1]).humans(),
+            [] as [String; 0]
+        );
+        // Only the newest are held.
+        let many: Vec<String> = (1..=20)
+            .map(|i| format!("`h({i})` must give `{i}`"))
+            .collect();
+        let list = List::default().holding(&many);
+        assert_eq!(list.humans().len(), CORRECTED_LINES);
+        assert_eq!(
+            list.text_of("D1").unwrap().as_deref(),
+            Some("`h(9)` must give `9`")
+        );
+        // No correction: the list is as it was.
+        assert!(List::default().holding(&[]).is_empty());
+        assert!(List::default().holding(&[]).after_the_ask().is_none());
     }
 
     /// A line states an output when it holds the output given, or when the output given holds
@@ -1624,6 +1861,121 @@ you gave it; 1 check handed in after the code had changed)"
         let judged = list.judge(&registry(), &mut cx);
         assert!(
             judged.failures[0].contains("D1 must stay: `sh strict.sh x` printed `5` on the code as you found it and fails (it said nothing) on your work"),
+            "{judged:?}"
+        );
+    }
+
+    /// A check that sends its error down the same pipe as its output (`2>&1`) is still told how
+    /// it failed, and a line held to a failure is held to that failure, not to any failure: the
+    /// error is the line that names itself, whatever a runtime prints after it.
+    #[test]
+    fn a_failing_check_is_told_its_error_whichever_pipe_it_came_down() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        // As Node ends an uncaught error: the error, its stack, then its own version.
+        let node = |what: &str| {
+            format!(
+                "echo 'Error [ERR_MODULE_NOT_FOUND]: Cannot find module {what}' >&2\necho '    at resolve (node:internal:1:1)' >&2\necho 'Node.js v22.0.0' >&2\nexit 1\n"
+            )
+        };
+        script(&node("gen.js"));
+        let ask =
+            "Be kinder.\n\n## Done when\nD1: `x` must give `5`\nD2: `y` must stay as it is today\n";
+        let mut list = List::of(ask);
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x 2>&1", "gives": "5"}"#,
+            true,
+        );
+        assert!(
+            o.content.contains(
+                "Now the command fails (Error [ERR_MODULE_NOT_FOUND]: Cannot find module gen.js)"
+            ),
+            "{}",
+            o.content
+        );
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D2", "command": "sh strict.sh y 2>&1"}"#,
+            true,
+        );
+        assert!(
+            o.content.contains(
+                "your command fails:\nError [ERR_MODULE_NOT_FOUND]: Cannot find module gen.js\n"
+            ),
+            "{}",
+            o.content
+        );
+        // Failing another way is not the failure the line was held to.
+        script(&node("other.js"));
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.moved.iter().any(|(line, said)| line == "D2"
+                && said.contains(
+                    "fails (Error [ERR_MODULE_NOT_FOUND]: Cannot find module other.js) on your work"
+                )),
+            "{judged:?}"
+        );
+    }
+
+    /// A check that pipes its command into `tail` ends well whatever the command did. A line
+    /// that must stay is not held to an error message as if it were output: its command failed
+    /// on the code as found, so the line is held as a failure is, and work that makes the
+    /// command run is said once and refuses nothing. A reader wrote such a line for the very
+    /// input an ask was about, and a correct fix failed its gate twice.
+    #[test]
+    fn a_piped_check_that_failed_is_held_as_a_failure_not_as_its_last_line() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        script(
+            "echo 'ParseError: no such clause' >&2\necho '  PARTITION BY EXCLUDING a' >&2\nexit 1\n",
+        );
+        let ask = "Be kinder.\n\n## Done when\nD1: `x` must stay as it is today\n";
+        let mut list = List::of(ask);
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x 2>&1 | tail -1"}"#,
+            true,
+        );
+        assert!(
+            !o.is_error
+                && o.content
+                    .contains("your command fails:\nPARTITION BY EXCLUDING a\n"),
+            "{}",
+            o.content
+        );
+        assert!(
+            matches!(list.checks()[0].must, Must::Fail(_)),
+            "{:?}",
+            list.checks()
+        );
+        // The work makes the command run: said once, and the landing is not refused.
+        script("echo 'PARTITION BY EXCLUDING a'\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!(
+            (judged.failures.len(), judged.moved.len()),
+            (0, 1),
+            "{judged:?}"
+        );
+        // The other way round is a break: it printed, and now its command fails behind the pipe.
+        script("echo 5\n");
+        let mut list = List::of(ask);
+        call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh x 2>&1 | tail -1"}"#,
+            true,
+        );
+        assert_eq!(list.checks()[0].must, Must::Print("5".into()));
+        script("echo 'ValueError: bad unit' >&2\nexit 1\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.failures[0].contains(
+                "printed `5` on the code as you found it and fails (ValueError: bad unit) on your work"
+            ),
             "{judged:?}"
         );
     }

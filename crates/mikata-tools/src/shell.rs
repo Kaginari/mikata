@@ -802,6 +802,43 @@ impl From<std::io::Error> for Spawn {
     }
 }
 
+/// What a command of `cx` may touch, its temporary files under `tmp`: the world, or for a
+/// commissioned creature what its soil admits; each path of `opened` besides; what the harness
+/// lent the context, to read; and for a `typed` act the forge's login, to read.
+fn policy_of(cx: &Context, tmp: &Path, network: bool, typed: bool, opened: &[PathBuf]) -> Policy {
+    let mut policy = Policy::new(cx.world(), cx.home(), tmp, network);
+    // A commissioned creature writes what its soil admits; the rest of the world it only reads.
+    let grants = cx.grants();
+    if grants != [cx.world().to_path_buf()] {
+        policy.write.retain(|p| p != cx.world());
+        policy.write.extend(grants);
+        policy.read.push(cx.world().to_path_buf());
+    }
+    // Each approved path exists by now and opens alone: never its folder.
+    policy.write.extend(opened.iter().cloned());
+    // What the harness lent this context's commands: read, never written, and never a path
+    // that leads onto a credential.
+    for lent in cx.lent() {
+        policy.lend(lent);
+    }
+    // A typed act reaches the forge as the probe that reads it back does: its login, read-only.
+    if typed {
+        let logins: Vec<PathBuf> = mikata_sandbox::FORGE_LOGINS
+            .iter()
+            .map(|c| cx.home().join(c))
+            .collect();
+        policy.hidden.retain(|h| !logins.contains(h));
+        policy.read.extend(logins);
+        // And notes where the remote now stands: git's own record, the one part of `.git` it
+        // writes. Made here: a rule can name only what exists.
+        let remotes = cx.world().join(".git/refs/remotes");
+        if std::fs::create_dir_all(&remotes).is_ok() {
+            policy.write.push(remotes);
+        }
+    }
+    policy
+}
+
 /// Run `command` in the context's sandbox: the world writable, a private temporary directory
 /// inside it, the network open only for an approved outward or destructive act. An approved
 /// command runs only if the world still matches the approved plan at the moment of the spawn,
@@ -820,31 +857,7 @@ fn run(
 ) -> Result<Ran, Spawn> {
     let tmp = cx.scratch();
     std::fs::create_dir_all(&tmp)?;
-    let mut policy = Policy::new(cx.world(), cx.home(), &tmp, network);
-    // A commissioned creature writes what its soil admits; the rest of the world it only reads.
-    let grants = cx.grants();
-    if grants != [cx.world().to_path_buf()] {
-        policy.write.retain(|p| p != cx.world());
-        policy.write.extend(grants);
-        policy.read.push(cx.world().to_path_buf());
-    }
-    // Each approved path exists by now and opens alone: never its folder.
-    policy.write.extend(opened.iter().cloned());
-    // A typed act reaches the forge as the probe that reads it back does: its login, read-only.
-    if typed {
-        let logins: Vec<PathBuf> = mikata_sandbox::FORGE_LOGINS
-            .iter()
-            .map(|c| cx.home().join(c))
-            .collect();
-        policy.hidden.retain(|h| !logins.contains(h));
-        policy.read.extend(logins);
-        // And notes where the remote now stands: git's own record, the one part of `.git` it
-        // writes. Made here: a rule can name only what exists.
-        let remotes = cx.world().join(".git/refs/remotes");
-        if std::fs::create_dir_all(&remotes).is_ok() {
-            policy.write.push(remotes);
-        }
-    }
+    let policy = policy_of(cx, &tmp, network, typed, opened);
     // The command as approved, and after it a line that keeps its last pipeline's statuses.
     let (wrapped, status_file) = with_status_line(command, &tmp);
     let mut cmd = cx

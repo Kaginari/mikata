@@ -34,6 +34,8 @@ pub struct Claim<S> {
     pub evidence: Vec<String>,
     /// What it depends on: claims, facts, files with their hashes.
     pub depends_on: Vec<Dependency>,
+    /// The first line of the ask it was learned under, when a session learned it answering one.
+    pub asked: Option<String>,
     standing: PhantomData<S>,
 }
 
@@ -315,6 +317,53 @@ pub fn propose_resting(
     evidence: Vec<String>,
     depends_on: Vec<Dependency>,
 ) -> std::io::Result<Claim<Proposed>> {
+    born(world, owner, text, tags, source, evidence, depends_on, None)
+}
+
+/// [`propose_on`], for a claim a session learned while answering an ask: `asked` is that ask's
+/// first line, kept with the note. Recall matches the note with those words beside its own, so
+/// a session that meets the ask again is shown what the one before it learned, whatever words
+/// the lesson was put in.
+///
+/// # Errors
+///
+/// The creature's memory is frozen ([`crate::unfrozen`]), or the note file cannot be written.
+pub fn propose_under(
+    world: &Path,
+    owner: &str,
+    text: &str,
+    tags: Vec<String>,
+    asked: Option<&str>,
+    evidence: Vec<String>,
+) -> std::io::Result<Claim<Proposed>> {
+    let asked = asked.map(str::trim).filter(|a| !a.is_empty());
+    born(
+        world,
+        owner,
+        text,
+        tags,
+        None,
+        evidence,
+        Vec::new(),
+        asked.map(str::to_owned),
+    )
+}
+
+/// A claim's birth, whole: what every `propose` comes to.
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the creation event's own fields, behind the functions that name the few a caller has"
+)]
+fn born(
+    world: &Path,
+    owner: &str,
+    text: &str,
+    tags: Vec<String>,
+    source: Option<String>,
+    evidence: Vec<String>,
+    depends_on: Vec<Dependency>,
+    asked: Option<String>,
+) -> std::io::Result<Claim<Proposed>> {
     crate::audit::unfrozen(world, owner)?;
     let mut depends_on = depends_on;
     for f in crate::graph::files(world, &evidence) {
@@ -340,6 +389,7 @@ pub fn propose_resting(
             links: Vec::new(),
             evidence: evidence.clone(),
             depends_on: depends_on.clone(),
+            asked: asked.clone(),
         },
     )?;
     Ok(Claim {
@@ -350,6 +400,7 @@ pub fn propose_resting(
         source,
         evidence,
         depends_on,
+        asked,
         standing: PhantomData,
     })
 }
@@ -425,6 +476,7 @@ pub fn ground(
             links: Vec::new(),
             evidence: claim.evidence.clone(),
             depends_on: depends_on.clone(),
+            asked: claim.asked.clone(),
         },
     )?;
     // Shared memory may hold it already — a claim grounded again after a review: what this
@@ -457,6 +509,7 @@ pub fn ground(
         source: claim.source,
         evidence: claim.evidence,
         depends_on,
+        asked: claim.asked,
         standing: PhantomData,
     })
 }
@@ -478,8 +531,30 @@ pub fn revise(
     recalled: &[Anchor],
     verdict: &str,
 ) -> std::io::Result<Vec<String>> {
+    revise_under(world, owner, acts, recalled, verdict, None)
+}
+
+/// [`revise`], for the failure of a session that was answering an ask: `asked` is that ask's
+/// first line, kept with each note. Recall matches the note with those words, so a session that
+/// meets the ask again is told what failed the last time, and a correction always has a seat.
+/// With an ask the failure is remembered **even when nothing was recalled**: a first failure
+/// corrects no note, and is still what the next attempt most needs to know. Such a note links
+/// nothing and lands in `owner`'s personal tier.
+///
+/// # Errors
+///
+/// The creature's memory is frozen ([`crate::unfrozen`]), or a note file cannot be written.
+pub fn revise_under(
+    world: &Path,
+    owner: &str,
+    acts: &[String],
+    recalled: &[Anchor],
+    verdict: &str,
+    asked: Option<&str>,
+) -> std::io::Result<Vec<String>> {
     let targets: Vec<&Anchor> = recalled.iter().filter(|r| !r.dissent).collect();
-    if targets.is_empty() {
+    let asked = asked.map(str::trim).filter(|a| !a.is_empty());
+    if targets.is_empty() && asked.is_none() {
         return Ok(Vec::new());
     }
     crate::audit::unfrozen(world, owner)?;
@@ -541,6 +616,7 @@ pub fn revise(
                 evidence: Vec::new(),
                 links,
                 depends_on: Vec::new(),
+                asked: asked.map(str::to_owned),
             },
         )?;
         append(
@@ -556,6 +632,333 @@ pub fn revise(
         made.push(note);
     }
     Ok(made)
+}
+
+/// The most of a stop's or a correction's words a note keeps, in characters.
+const SAID: usize = 600;
+
+/// `text` on one line, within [`SAID`] characters, an ellipsis marking a cut.
+fn said(text: &str) -> String {
+    let one: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if one.chars().count() > SAID {
+        one.chars().take(SAID).collect::<String>() + "…"
+    } else {
+        one
+    }
+}
+
+/// A session stopped before anything landed — its steps, its clock, its context or its budget
+/// spent — remembered under the ask it was answering: one revise note in `owner`'s personal
+/// tier, grounded at once, since the stop is an observed fact, written by the harness citing the
+/// journal entry of the stop (`verdict`). It says why the session stopped and which files it
+/// had changed, and links nothing: a stop says nothing of what the body knew, so no note is
+/// doubted for it. A session that meets the ask again is told, in the correction's seat, that
+/// the attempt before it did not finish. Returns the note's id; `None` with no ask to keep it
+/// under.
+///
+/// # Errors
+///
+/// The creature's memory is frozen ([`crate::unfrozen`]), or the note file cannot be written.
+pub fn stopped(
+    world: &Path,
+    owner: &str,
+    why: &str,
+    changed: &[String],
+    verdict: &str,
+    asked: Option<&str>,
+) -> std::io::Result<Option<String>> {
+    let Some(asked) = asked.map(str::trim).filter(|a| !a.is_empty()) else {
+        return Ok(None);
+    };
+    crate::audit::unfrozen(world, owner)?;
+    let tier = Tier::Personal(owner.to_owned());
+    // One stop stands under an ask: an earlier one, of a session resumed and stopped again, is
+    // put to sleep by the one that follows it.
+    let earlier: Vec<String> = crate::note::fold(&crate::store::read(world, &tier)?.rows)
+        .into_values()
+        .filter(|n| {
+            n.status == Status::Grounded
+                && n.asked.as_deref().map(str::trim) == Some(asked)
+                && n.tags.iter().any(|t| t == "stopped")
+        })
+        .map(|n| n.id)
+        .collect();
+    for id in &earlier {
+        append(
+            world,
+            &tier,
+            id,
+            By::Gate,
+            Some(verdict.to_owned()),
+            Change::Status {
+                status: Status::Dormant,
+            },
+        )?;
+    }
+    let files = if changed.is_empty() {
+        "it had changed nothing".to_owned()
+    } else {
+        format!(
+            "it had changed {}",
+            changed
+                .iter()
+                .map(|p| format!("`{p}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
+    let text = said(&format!(
+        "an earlier session was asked this and stopped before anything landed ({why}); {files}"
+    ));
+    let note = format!("r{}", event_id(now_ms()));
+    append(
+        world,
+        &tier,
+        &note,
+        By::Gate,
+        Some(verdict.to_owned()),
+        Change::Create {
+            text,
+            tags: vec!["stopped".into()],
+            owner: Some(owner.to_owned()),
+            polarity: Polarity::Revise,
+            salience: 1.0,
+            confidence: 0.9,
+            source: Some(verdict.to_owned()),
+            evidence: Vec::new(),
+            links: Vec::new(),
+            depends_on: Vec::new(),
+            asked: Some(asked.to_owned()),
+        },
+    )?;
+    append(
+        world,
+        &tier,
+        &note,
+        By::Gate,
+        Some(verdict.to_owned()),
+        Change::Status {
+            status: Status::Grounded,
+        },
+    )?;
+    Ok(Some(note))
+}
+
+/// An ask that had stopped has since been answered: `owner`'s notes of the stop under `asked` —
+/// the harness's `stopped` note and the body's `handoff` — are put to sleep, citing the landing
+/// (`verdict`). They said the work was unfinished; it no longer is. Dormant, never deleted: out
+/// of recall, their events kept. What failed under the ask stays: a failure is a lesson, a stop
+/// was a state. Returns the ids put to sleep.
+///
+/// # Errors
+///
+/// The creature's memory is frozen ([`crate::unfrozen`]), or its note file cannot be read or
+/// written.
+pub fn answered(
+    world: &Path,
+    owner: &str,
+    asked: &str,
+    verdict: &str,
+) -> std::io::Result<Vec<String>> {
+    let asked = asked.trim();
+    let tier = Tier::Personal(owner.to_owned());
+    let notes = crate::note::fold(&crate::store::read(world, &tier)?.rows);
+    let over: Vec<String> = notes
+        .values()
+        .filter(|n| {
+            matches!(n.status, Status::Proposed | Status::Grounded)
+                && n.asked.as_deref().map(str::trim) == Some(asked)
+                && n.tags.iter().any(|t| t == "stopped" || t == "handoff")
+        })
+        .map(|n| n.id.clone())
+        .collect();
+    if over.is_empty() {
+        return Ok(over);
+    }
+    crate::audit::unfrozen(world, owner)?;
+    for id in &over {
+        append(
+            world,
+            &tier,
+            id,
+            By::Gate,
+            Some(verdict.to_owned()),
+            Change::Status {
+                status: Status::Dormant,
+            },
+        )?;
+    }
+    Ok(over)
+}
+
+/// What a session claimed of its work while answering `asked` — the ask's first line, as each
+/// note keeps it — in every tier, each note once: `(id, whether it is someone's personal note)`.
+/// These are what a correction of that answer speaks of. A lesson about the repository as a
+/// whole (`colony`) is no part of the answer: how the tests are run holds whether the fix was
+/// right or wrong, so it is left out, as are corrections themselves and a stop's handoff.
+///
+/// # Errors
+///
+/// A note file cannot be read.
+pub fn learned_under(world: &Path, asked: &str) -> std::io::Result<Vec<(String, bool)>> {
+    let asked = asked.trim();
+    let mut out: Vec<(String, bool)> = Vec::new();
+    for tier in tiers_of(world) {
+        let personal = matches!(tier, Tier::Personal(_));
+        let notes = crate::note::fold(&crate::store::read(world, &tier)?.rows);
+        for n in notes.values() {
+            let live = matches!(n.status, Status::Proposed | Status::Grounded);
+            let of_the_work = !n.tags.iter().any(|t| t == "colony" || t == "handoff");
+            if live
+                && of_the_work
+                && !n.polarity.dissents()
+                && n.asked.as_deref().map(str::trim) == Some(asked)
+                && !out.iter().any(|(id, _)| *id == n.id)
+            {
+                out.push((n.id.clone(), personal));
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// The human says an answer was wrong. Their words are a correction: one revise note in shared
+/// memory, the world's own, grounded at once by their word (`proof`, the journal entry that holds
+/// it), salience 1.0, confidence 1.0. It is kept under the ask it speaks of (`asked`, that ask's
+/// first line) and links what a session claimed of its work under that ask ([`learned_under`]),
+/// so it is recalled where those claims are, ahead of them, and whenever the ask comes again. Nothing is deleted and no note is
+/// retired by it: the human said the answer was wrong, not which note. Returns the correction's
+/// id and the notes it links.
+///
+/// # Errors
+///
+/// `said` or `asked` says nothing, or a note file cannot be read or written.
+pub fn corrected(
+    world: &Path,
+    words: &str,
+    asked: &str,
+    proof: &str,
+) -> std::io::Result<(String, Vec<String>)> {
+    let (text, asked) = (said(words), asked.trim());
+    if text.is_empty() || asked.is_empty() {
+        return Err(std::io::Error::other(
+            "a correction says what is wrong, and of which ask",
+        ));
+    }
+    let learned = learned_under(world, asked)?;
+    let links: Vec<crate::note::Link> = learned
+        .iter()
+        .map(|(id, _)| crate::note::Link {
+            note: id.clone(),
+            weight: 0.9,
+        })
+        .collect();
+    let note = format!("r{}", event_id(now_ms()));
+    append(
+        world,
+        &Tier::Shared,
+        &note,
+        By::Human,
+        Some(proof.to_owned()),
+        Change::Create {
+            text,
+            tags: vec!["correction".into()],
+            owner: None,
+            polarity: Polarity::Revise,
+            salience: 1.0,
+            confidence: 1.0,
+            source: Some(proof.to_owned()),
+            evidence: Vec::new(),
+            links,
+            depends_on: Vec::new(),
+            asked: Some(asked.to_owned()),
+        },
+    )?;
+    append(
+        world,
+        &Tier::Shared,
+        &note,
+        By::Human,
+        Some(proof.to_owned()),
+        Change::Status {
+            status: Status::Grounded,
+        },
+    )?;
+    Ok((note, learned.into_iter().map(|(id, _)| id).collect()))
+}
+
+/// Whether the note `id` was born as a correction the human said through their own door.
+fn humans_correction(rows: &[crate::note::Event], id: &str) -> bool {
+    rows.iter().any(|e| {
+        e.note == id
+            && matches!(e.by, By::Human)
+            && matches!(&e.change, Change::Create { tags, .. } if tags.iter().any(|t| t == "correction"))
+    })
+}
+
+/// The human's corrections kept under `asked` and still awake, oldest first: `(id, words)`. Only
+/// what the human said through their own door ([`corrected`]) is one: a note a body wrote is
+/// never the human's correction, whatever its tags say. Where one says what must come out, the
+/// harness holds a later answer to the same ask to it.
+///
+/// # Errors
+///
+/// The shared tier cannot be read.
+pub fn corrections_under(world: &Path, asked: &str) -> std::io::Result<Vec<(String, String)>> {
+    let asked = asked.trim();
+    // The events recall folds, and no other: one whose author or proof does not resolve is
+    // never held, as it is never told.
+    let rows = crate::audit::resolved(crate::store::read(world, &Tier::Shared)?.rows).0;
+    let mut notes: Vec<crate::note::Note> = crate::note::fold(&rows)
+        .into_values()
+        .filter(|n| {
+            n.status != Status::Dormant
+                && n.asked.as_deref().map(str::trim) == Some(asked)
+                && humans_correction(&rows, &n.id)
+        })
+        .collect();
+    notes.sort_by(|a, b| a.born.cmp(&b.born).then_with(|| a.id.cmp(&b.id)));
+    Ok(notes.into_iter().map(|n| (n.id, n.text)).collect())
+}
+
+/// What the human's correction `id` says, while it is awake; `None` when `id` names none.
+///
+/// # Errors
+///
+/// The shared tier cannot be read.
+pub fn correction(world: &Path, id: &str) -> std::io::Result<Option<String>> {
+    let rows = crate::audit::resolved(crate::store::read(world, &Tier::Shared)?.rows).0;
+    Ok(crate::note::fold(&rows)
+        .remove(id)
+        .filter(|n| n.status != Status::Dormant && humans_correction(&rows, id))
+        .map(|n| n.text))
+}
+
+/// The human takes back a correction of theirs: it goes to sleep by their word (`proof`, the
+/// journal entry that holds it). From then on it is neither told first when its ask comes again
+/// nor held. Nothing is deleted. Returns what it said.
+///
+/// # Errors
+///
+/// `id` names no correction of the human's that is awake, or the shared tier cannot be read or
+/// written.
+pub fn withdraw(world: &Path, id: &str, proof: &str) -> std::io::Result<String> {
+    let Some(text) = correction(world, id)? else {
+        return Err(std::io::Error::other(format!(
+            "{id} is no correction of yours that is awake"
+        )));
+    };
+    append(
+        world,
+        &Tier::Shared,
+        id,
+        By::Human,
+        Some(proof.to_owned()),
+        Change::Status {
+            status: Status::Dormant,
+        },
+    )?;
+    Ok(text)
 }
 
 /// One anchor recalled into a run, as reconsolidation weighs it.
@@ -597,6 +1000,7 @@ pub fn cache(world: &Path, body: &str, text: &str) -> std::io::Result<String> {
             evidence: Vec::new(),
             links: Vec::new(),
             depends_on: Vec::new(),
+            asked: None,
         },
     )?;
     Ok(note)
@@ -1150,6 +1554,7 @@ pub fn proposed(world: &Path, owner: &str, id: &str) -> std::io::Result<Option<C
             source: n.source.clone(),
             evidence: n.evidence.clone(),
             depends_on: n.depends_on.clone(),
+            asked: n.asked.clone(),
             standing: PhantomData,
         }))
 }

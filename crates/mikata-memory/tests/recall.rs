@@ -345,6 +345,500 @@ fn a_correction_stands_where_the_note_it_corrects_stands() {
 /// Against the 100-odd notes real runs wrote: each task's ask, over all of them, should find its
 /// own notes. A fixed saturation lets nearly every note clear the floor once memory is this large;
 /// the saturation that grows with the notes keeps most of what clears relevant (#196).
+/// A lesson is put in the words of what was found, not of what was asked. Kept with the first
+/// line of the ask it was learned under, it is recalled when that ask comes again; the same
+/// words kept without it are not.
+#[test]
+fn a_note_is_recalled_for_the_ask_it_was_learned_under() {
+    use mikata_memory::{gather, propose_on, propose_under};
+    let w = std::env::temp_dir().join(format!("mikata-recall-asked-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&w);
+    std::fs::create_dir_all(&w).unwrap();
+    let ask = "DuckDB: support NEAREST top-k joins\n\nA join may name how many rows it keeps.";
+    let lesson = "pushdown stops at the first source it cannot fill";
+    let learned = propose_under(
+        &w,
+        "summoner",
+        lesson,
+        vec!["law".into()],
+        ask.lines().next(),
+        vec![],
+    )
+    .unwrap();
+    assert_eq!(
+        learned.asked.as_deref(),
+        Some("DuckDB: support NEAREST top-k joins")
+    );
+    let other = propose_on(
+        &w,
+        "summoner",
+        "an index is counted from one in this dialect",
+        vec!["law".into()],
+        None,
+        vec![],
+    )
+    .unwrap();
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ask, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(ids(&r), [learned.note.as_str()], "{r:?}");
+    // The words are borrowed for the match alone: the note says what it said.
+    assert_eq!(r.anchors[0].note.text, lesson);
+    // Another ask does not find it by them, and a note kept under no ask borrows nothing.
+    let elsewhere = recall(
+        "Oracle: alternative quoting rejects most delimiters",
+        &memory.notes,
+        NOW,
+        6,
+        &Weights::default(),
+    );
+    assert!(elsewhere.anchors.is_empty(), "{elsewhere:?}");
+    assert!(
+        memory
+            .notes
+            .iter()
+            .any(|(n, _)| n.id == other.note && n.lent.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
+fn fresh_world(name: &str) -> std::path::PathBuf {
+    let w = std::env::temp_dir().join(format!("mikata-recall-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&w);
+    std::fs::create_dir_all(&w).unwrap();
+    w
+}
+
+const ASKED: &str = "Support NEAREST top-k joins";
+
+/// A first failure corrects no note: nothing had been recalled. It is remembered all the same,
+/// under the ask that failed, and the ask that comes again is told it in the correction's seat.
+/// Before, such a failure left nothing behind.
+#[test]
+fn a_first_failure_is_remembered_under_its_ask() {
+    use mikata_memory::{gather, lines, revise, revise_under};
+    let w = fresh_world("first-failure");
+    let failed =
+        ["verify: `pytest -q` failed: tests/test_join.py::test_nearest_keeps_k".to_owned()];
+    let verdict = "log.md ### [1] summoner — gate: FAIL";
+    // With no ask to keep it under and nothing recalled, a failure has nowhere to stand.
+    let unkept = revise(&w, "summoner", &failed, &[], verdict).unwrap();
+    assert!(unkept.is_empty(), "{unkept:?}");
+    let made = revise_under(&w, "summoner", &failed, &[], verdict, Some(ASKED)).unwrap();
+    assert_eq!(made.len(), 1, "one note for the one rule that failed");
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let again = format!("# {ASKED}\n\nA join may say how many rows it keeps.");
+    let r = recall(&again, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(ids(&r), [made[0].as_str()], "{r:?}");
+    let told = lines(&r, &memory.personal);
+    assert!(
+        told[0].starts_with(&format!("@M {} personal grounded revise: verify:", made[0])),
+        "{told:?}"
+    );
+    assert!(
+        !told.iter().any(|l| l.contains("dissent: none selected")),
+        "a correction was selected: {told:?}"
+    );
+    let other = recall(
+        "Oracle: alternative quoting rejects most delimiters",
+        &memory.notes,
+        NOW,
+        6,
+        &Weights::default(),
+    );
+    assert!(other.anchors.is_empty(), "{other:?}");
+    assert!(
+        mikata_memory::status(&w)
+            .unwrap()
+            .iter()
+            .all(|(_, f)| f.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
+/// A session that stops at a limit leaves an account under its ask: that it stopped, why, and
+/// what it had changed. It doubts no note.
+#[test]
+fn a_stop_is_remembered_under_its_ask() {
+    use mikata_memory::{gather, stopped};
+    let w = fresh_world("stopped");
+    let verdict = "log.md ### [1] summoner — stopped: steps: 200 taken";
+    assert_eq!(
+        stopped(&w, "summoner", "steps: 200 taken", &[], verdict, None).unwrap(),
+        None,
+        "with no ask to keep it under, nothing is written"
+    );
+    let id = stopped(
+        &w,
+        "summoner",
+        "steps: 200 taken",
+        &["src/join.js".into(), "test/join.test.js".into()],
+        verdict,
+        Some(ASKED),
+    )
+    .unwrap()
+    .unwrap();
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(ids(&r), [id.as_str()], "{r:?}");
+    let note = &r.anchors[0].note;
+    assert_eq!(
+        note.text,
+        "an earlier session was asked this and stopped before anything landed (steps: 200 \
+         taken); it had changed `src/join.js`, `test/join.test.js`"
+    );
+    assert_eq!(
+        (note.status, note.polarity),
+        (Status::Grounded, Polarity::Revise)
+    );
+    assert!(note.links.is_empty(), "a stop is laid at no note's door");
+    // Resumed and stopped again: the later stop stands, the earlier one sleeps.
+    let id = stopped(
+        &w,
+        "summoner",
+        "clock: 600 s",
+        &["src/join.js".into()],
+        "log.md ### [1b] summoner — stopped: clock: 600 s",
+        Some(ASKED),
+    )
+    .unwrap()
+    .unwrap();
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(
+        ids(&r),
+        [id.as_str()],
+        "one stop stands under an ask: {r:?}"
+    );
+    // The ask lands at last: the stop was a state, and is out of recall; a failure under the
+    // same ask is a lesson, and stays.
+    let failed = mikata_memory::revise_under(
+        &w,
+        "summoner",
+        &["verify: tests/join.test.js failed".to_owned()],
+        &[],
+        "log.md ### [2] summoner — gate: FAIL",
+        Some(ASKED),
+    )
+    .unwrap();
+    let landed = "log.md ### [3] summoner — gate: PASS";
+    assert_eq!(
+        mikata_memory::answered(&w, "summoner", ASKED, landed).unwrap(),
+        std::slice::from_ref(&id)
+    );
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(ids(&r), [failed[0].as_str()], "{r:?}");
+    assert!(
+        mikata_memory::answered(&w, "summoner", ASKED, landed)
+            .unwrap()
+            .is_empty(),
+        "nothing left to settle"
+    );
+    assert!(
+        mikata_memory::status(&w)
+            .unwrap()
+            .iter()
+            .all(|(_, f)| f.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
+/// The human says an answer was wrong. Their words are shared, grounded, and kept under the ask:
+/// they link what a session learned under it and are recalled ahead of it, for the ask that comes
+/// again and wherever those notes are recalled.
+#[test]
+fn the_humans_word_corrects_what_was_learned_under_an_ask() {
+    use mikata_memory::{
+        Tier, corrected, fold, gather, learned_under, propose_on, propose_under, read,
+    };
+    let w = fresh_world("corrected");
+    let believed = propose_under(
+        &w,
+        "summoner",
+        "src/join.js the planner keeps the k nearest rows by sorting the whole input",
+        vec!["law".into()],
+        Some(ASKED),
+        vec![],
+    )
+    .unwrap();
+    let elsewhere = propose_on(
+        &w,
+        "summoner",
+        "an index is counted from one in this dialect",
+        vec!["law".into()],
+        None,
+        vec![],
+    )
+    .unwrap();
+    // A lesson about the repository, learned under the same ask: no part of the answer.
+    let place = propose_under(
+        &w,
+        "summoner",
+        "the tests of the planner run with make test-join",
+        vec!["colony".into()],
+        Some(ASKED),
+        vec![],
+    )
+    .unwrap();
+    assert_eq!(
+        learned_under(&w, ASKED).unwrap(),
+        [(believed.note.clone(), true)]
+    );
+    assert!(corrected(&w, "  ", ASKED, "log.md ### [2] human — wrong").is_err());
+    let (id, linked) = corrected(
+        &w,
+        "wrong: with ties the join returns more than k rows",
+        ASKED,
+        "log.md ### [2] human — wrong: Support NEAREST top-k joins",
+    )
+    .unwrap();
+    assert_eq!(linked, std::slice::from_ref(&believed.note));
+    let shared = fold(&read(&w, &Tier::Shared).unwrap().rows);
+    let note = &shared[&id];
+    assert_eq!(
+        (note.status, note.polarity),
+        (Status::Grounded, Polarity::Revise)
+    );
+    assert_eq!(note.owner, None, "the world's, not a creature's");
+    assert_eq!(note.asked.as_deref(), Some(ASKED));
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    // The ask again: the correction first, the belief it speaks of marked as corrected, and the
+    // lesson about the repository as it was.
+    let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
+    assert_eq!(ids(&r)[0], id.as_str(), "{r:?}");
+    let told = mikata_memory::lines(&r, &memory.personal);
+    assert!(
+        told.contains(&format!(
+            "@M {} personal proposed support: the tests of the planner run with make test-join",
+            place.note
+        )),
+        "{told:?}"
+    );
+    let told: Vec<String> = told
+        .into_iter()
+        .filter(|l| !l.contains(&place.note))
+        .collect();
+    assert_eq!(
+        told,
+        [
+            format!(
+                "@M {id} shared grounded revise: wrong: with ties the join returns more than k rows"
+            ),
+            format!(
+                "@M {} personal proposed support corrected: src/join.js the planner keeps the k \
+                 nearest rows by sorting the whole input",
+                believed.note
+            ),
+        ]
+    );
+    // And wherever the note it corrects is recalled, by that note's own words.
+    let by_words = recall(
+        "how does the planner sort its input rows",
+        &memory.notes,
+        NOW,
+        6,
+        &Weights::default(),
+    );
+    assert!(ids(&by_words).contains(&id.as_str()), "{by_words:?}");
+    assert!(!ids(&by_words).contains(&elsewhere.note.as_str()));
+    assert!(
+        mikata_memory::status(&w)
+            .unwrap()
+            .iter()
+            .all(|(_, f)| f.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
+/// The human's corrections under an ask are found for the harness to hold: theirs alone, oldest
+/// first, under that ask and no other. One they take back sleeps: found no more, told no more,
+/// and nothing is deleted.
+#[test]
+fn the_humans_corrections_under_an_ask_are_found_and_one_is_taken_back() {
+    const FIRST: &str = "`nearest(3)` must give `3 rows`; with ties it gives 4";
+    use mikata_memory::{
+        Tier, corrected, correction, corrections_under, fold, gather, propose_under, read, withdraw,
+    };
+    let w = fresh_world("corrections");
+    // A lesson a body wrote under the ask is no correction of the human's, whatever its tag.
+    propose_under(
+        &w,
+        "summoner",
+        "src/join.js `nearest(3)` must give `3 rows`",
+        vec!["correction".into()],
+        Some(ASKED),
+        vec![],
+    )
+    .unwrap();
+    assert_eq!(
+        corrections_under(&w, ASKED).unwrap(),
+        [] as [(String, String); 0],
+        "a body's own lesson is no correction"
+    );
+    let (first, _) = corrected(&w, FIRST, ASKED, "log.md ### [2] the human — wrong").unwrap();
+    let (second, _) = corrected(
+        &w,
+        "ties are still wrong",
+        ASKED,
+        "log.md ### [3] the human — wrong",
+    )
+    .unwrap();
+    let (other, _) = corrected(
+        &w,
+        "`f(1)` must give `2`",
+        "Another ask",
+        "log.md ### [4] the human — wrong",
+    )
+    .unwrap();
+    assert_eq!(
+        corrections_under(&w, ASKED).unwrap(),
+        [
+            (first.clone(), FIRST.to_owned()),
+            (second.clone(), "ties are still wrong".to_owned())
+        ]
+    );
+    assert_eq!(correction(&w, &first).unwrap().as_deref(), Some(FIRST));
+    assert_eq!(correction(&w, "r-no-such-note").unwrap(), None);
+    // Taken back: it sleeps by the human's word, and its ask is told and held to it no more.
+    assert_eq!(
+        withdraw(&w, &first, "log.md ### [5] the human — withdrawn").unwrap(),
+        FIRST
+    );
+    assert_eq!(
+        corrections_under(&w, ASKED).unwrap(),
+        [(second.clone(), "ties are still wrong".to_owned())]
+    );
+    assert_eq!(correction(&w, &first).unwrap(), None);
+    assert!(
+        withdraw(&w, &first, "log.md ### [6] the human — withdrawn").is_err(),
+        "it sleeps already"
+    );
+    let shared = fold(&read(&w, &Tier::Shared).unwrap().rows);
+    assert_eq!(shared[&first].status, Status::Dormant);
+    assert_eq!(shared[&first].text, FIRST, "nothing is deleted");
+    let memory = gather(&w, "summoner", |_| false).unwrap();
+    let r = recall(ASKED, &memory.notes, NOW, 6, &Weights::default());
+    assert!(!ids(&r).contains(&first.as_str()), "{r:?}");
+    assert!(ids(&r).contains(&second.as_str()), "{r:?}");
+    // The other ask's correction is its own.
+    assert_eq!(
+        corrections_under(&w, "Another ask").unwrap(),
+        [(other, "`f(1)` must give `2`".to_owned())]
+    );
+    assert!(
+        mikata_memory::status(&w)
+            .unwrap()
+            .iter()
+            .all(|(_, f)| f.is_empty())
+    );
+    let _ = std::fs::remove_dir_all(&w);
+}
+
+/// Measured on a carried campaign's own notes (`fixtures/carried-recall.json`: one body, ten
+/// tasks in one codebase, three rounds on one memory, 88 notes). A task that comes again must be
+/// shown a note its own earlier run wrote. Matched by their words alone, the notes of a long ask
+/// lose their seats to other tasks' notes that share the codebase's words; kept with the first
+/// line of the ask they were learned under, every one of the twenty returning asks finds its own.
+#[test]
+fn a_task_that_comes_again_finds_its_own_notes_among_a_codebases() {
+    let data: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/carried-recall.json")).unwrap();
+    let order: Vec<&str> = data["order"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t.as_str().unwrap())
+        .collect();
+    let ask = |task: &str| data["asks"][task].as_str().unwrap();
+    let first_line = |task: &str| {
+        ask(task)
+            .lines()
+            .map(|l| l.trim().trim_start_matches('#').trim())
+            .find(|l| !l.is_empty())
+            .unwrap()
+            .to_owned()
+    };
+    // Where a run stands in the campaign: its round, then its task's place in the order.
+    let at = |round: u64, task: &str| (round, order.iter().position(|t| *t == task).unwrap());
+    let written: Vec<(u64, &str, Note)> = data["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .enumerate()
+        .map(|(i, n)| {
+            let (round, task) = (n["round"].as_u64().unwrap(), n["task"].as_str().unwrap());
+            let note = Note {
+                tags: n["tags"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|t| t.as_str().unwrap().to_owned())
+                    .collect(),
+                owner: Some("summoner".into()),
+                salience: 0.6,
+                born: NOW - DAY + i as u64,
+                ..note(
+                    &format!("n{i:03}"),
+                    n["text"].as_str().unwrap(),
+                    Polarity::Support,
+                    Status::Proposed,
+                )
+            };
+            (round, task, note)
+        })
+        .collect();
+    assert!(written.len() >= 80, "{}", written.len());
+    // For each run of rounds 2 and 3: recall over what was written before it, and whether a
+    // note of its own task is among the anchors.
+    let found = |kept_with_their_ask: bool| {
+        let (mut own_shown, mut cases, mut own_seats, mut seats) = (0, 0, 0, 0);
+        for round in [2, 3] {
+            for task in &order {
+                let before: Vec<(Note, Relation)> = written
+                    .iter()
+                    .filter(|(r, t, _)| at(*r, t) < at(round, task))
+                    .map(|(_, t, n)| {
+                        let mut n = n.clone();
+                        if kept_with_their_ask {
+                            n.lent.push(first_line(t));
+                        }
+                        (n, Relation::Own)
+                    })
+                    .collect();
+                let own: Vec<&str> = written
+                    .iter()
+                    .filter(|(r, t, _)| t == task && at(*r, t) < at(round, task))
+                    .map(|(_, _, n)| n.id.as_str())
+                    .collect();
+                let r = recall(ask(task), &before, NOW, 6, &Weights::default());
+                let shown = ids(&r);
+                let mine = shown.iter().filter(|i| own.contains(i)).count();
+                cases += 1;
+                own_shown += usize::from(mine > 0);
+                own_seats += mine;
+                seats += shown.len();
+            }
+        }
+        (own_shown, cases, own_seats, seats)
+    };
+    let (by_words, cases, words_own, words_seats) = found(false);
+    let (with_ask, _, ask_own, ask_seats) = found(true);
+    assert_eq!(cases, 20);
+    assert!(
+        by_words < cases,
+        "by their words alone every ask found its own note: the fixture no longer shows the fault"
+    );
+    assert_eq!(
+        with_ask, cases,
+        "kept with its ask, a note is found when the ask comes again"
+    );
+    // And it takes the seats other tasks' notes held: twice as many of the six are its own.
+    assert!(
+        ask_own * words_seats >= 2 * words_own * ask_seats,
+        "own seats {ask_own} of {ask_seats} with the ask, {words_own} of {words_seats} by words"
+    );
+}
+
 #[test]
 fn a_large_memory_does_not_flood_the_floor() {
     use mikata_memory::text::{bm25, content_words};

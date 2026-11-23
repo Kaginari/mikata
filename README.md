@@ -21,8 +21,12 @@ harness, run twice a week apart ([the bench](docs/bench.md)):
 | Maki | 15 of 20 | $0.91 |
 | OpenCode | 14 of 20 | $0.87 |
 
-On passes the three are level: by the bar we wrote first, no difference is shown. The price per
-pass held in every screen.
+On passes the three are level: by the bar we wrote first, no difference is shown. On a second
+codebase (ten fixes in a JavaScript library) they are level again, 8, 7 and 6 of 10, and with a
+stronger model every one of them passes all ten. Mikata is not always the cheapest: on the
+JavaScript fixes, which are smaller, Maki's pass cost a third of Mikata's, and with the stronger
+model half. Writing down what done means and checking it takes calls; it pays where the work is
+hard for the model.
 
 **Say what done means, and the harness holds it.** Put lines under `## Done when` in your ask
 (`D1: ... must give ...`, `D2: ... must stay as it is today`), or name a reader, a model that
@@ -30,7 +34,9 @@ writes them from the ask alone. Mikata hands the harness one command a line. The
 what must stay from your code before anything changes, and runs every line when the answer
 lands. On the two asks our bench fails most, stated as prose: 1 pass in 6 without a list, 6 in 6
 with one held. With a reader named and nothing added to the ask, four prose asks passed 10 times
-in 12 on the release, where they passed 6 without one.
+in 12 on the release, where they passed 6 without one. The list is what does it: handed the same
+lists as a plain note, Mikata passed 11, and OpenCode and Maki 8 each where they had passed 5 and
+3. What the hold adds is a pass that names what verified it; it is not shown to add passes.
 
 **An ask that spans several projects is split by itself.** Name two or more folders that each hold
 a project of their own, and Mikata runs one body a project, at once, then checks each. Five whole
@@ -135,6 +141,12 @@ yours, mode `600`, and outside every world.
 **Give it your test command.** The end gate runs your project's verify line on every change.
 Until a world has one, nothing a session claims is grounded, and `mikatad memory status` suggests
 the line for your project (`cargo test --workspace`, `pytest`, `npm test`, …).
+
+**Say when it was wrong.** `mikatad memory wrong "<what still fails>"` keeps your words as a
+correction under that ask: the next session that meets it is told first. Say what must come out,
+as ``mikatad memory wrong "`total 1 2` must give `6`; it gives `3`"``, and the harness holds it:
+whenever that ask comes again the case is a line of its `Done when` list, and an answer that
+leaves it wrong does not land. `mikatad memory withdraw <note>` takes a correction back.
 
 ## Run it
 

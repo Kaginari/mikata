@@ -157,7 +157,10 @@ same request again, twice at most in a row, and the journal says so. Only an err
 could change is asked again.
 
 A checkpoint is an honest stop: the journal holds every beat, and `mikata resume <run>` picks
-up from it. An outward act cut mid-flight is never replayed: before its post's next act is
+up from it. A session of its own that stops this way also leaves an account for the session
+that may come instead of a resume: an entry in `.mikata/log.md` (the ask, why it stopped, the
+files changed and not landed, the command to resume) and a note of the stop under the ask
+([memory](07-memory.md#reconsolidation)). An outward act cut mid-flight is never replayed: before its post's next act is
 gated, its probe says whether it landed (settled, not asked again), never did (gated again as a
 new act) or cannot be told (`reconcile`, for the human) — [races](experimental/races.md).
 
@@ -321,7 +324,8 @@ room in the window checkpoints without one.
 
 **A clock death salvages**: one more turn, told to call no tool, sent with the tools and capped at 4096 tokens, in a grace of
 a tenth of the clock (2–60 s), to write down what the body did, learned and left. The
-checkpoint carries it.
+checkpoint carries it, and so do spent steps. In a session of its own those last words are kept:
+as the body's `handoff` note under the ask, and their `@U` lines as lessons.
 A tool the body calls anyway on a drain or salvage turn never runs: only its words are kept.
 
 **Changes mid-session append.** The system prompt and the tools are built once, when the run is
@@ -768,13 +772,22 @@ stay was tried before, and failed. So the harness holds the list, by code:
   lines. Only a command that does not do the same thing twice is refused. What the checks leave
   behind (`__pycache__` and the other test leftovers the harness knows) is no change to the code.
   Handed in after the code itself has changed, the line is read in a copy put back to the tree as
-  the ask found it, which the attic kept when the ask began.
+  the ask found it, which the attic kept when the ask began; the copy is lent the world's
+  `node_modules`, as the copies of [what changed](#what-changed-by-its-own-checks) are.
 - **A line that ran is held hard; a line that failed is not.** A line whose command printed
   something holds only while it prints the same: breaking what worked is refused. A line whose
   command failed holds while it fails the same way. When it no longer does, the harness cannot
   know whether the ask asked for that (asks are for making something work) or the work reached
   too far: the landing stands, the body is told once, never to add code only to keep a failure,
-  and the pass names the line for you.
+  and the pass names the line for you. The way a command failed is one line of what it said:
+  the last that begins with an error's name (`ValueError: ...`, `Error [ERR_MODULE_NOT_FOUND]:
+  ...`, `error[E0308]: ...`) or tells of a panic, wherever a runtime's own closing lines come
+  after it (Node ends every failure on its version), and whichever pipe it came down: a check
+  written with `2>&1` says its error in its output. The body is told that line when a check
+  fails, at the hand-in and at the gate. And a check is a failure when its command failed,
+  whatever it was piped into: `... 2>&1 | tail -1` ends well whatever came before it, so the
+  harness reads the first stage's own status from the shell. What the pipe let through of a
+  failed command is no output to hold a line to.
 - The same line and command handed in again asks how the line stands now. The check is kept as
   it came in.
 - A line with neither phrase takes either form.
@@ -840,6 +853,18 @@ about a third more a run ([the bench](bench.md#the-list-held)). It has not seen 
 where it states how the code spells an output it is guessing: read its list before you trust a
 pass by it.
 
+**What you said was wrong joins the list.** When you say an earlier answer was wrong
+(`mikatad memory wrong`) and your words say what must come out, `<input>` must give `<output>`,
+memory keeps them under that ask, and whenever the ask comes again the case is a line of its
+list, after the ask's own lines or a reader's: `D3: <your words, up to the output they state>`.
+The body is told the line is yours, that it is not its to rewrite, and that it is one case of
+the ask and not the whole of it. Each further correction adds a line, so what you said once is
+held from then on without your saying it again. You see one line when a session starts with
+such lines: `held from what you said was wrong when this was asked before: D3`. A landing they
+checked says so: `verified by the human's Done when list (1 line)`, or the ask's or the reader's
+list with `D3 from what the human said was wrong before`. Why it is held and not only told, and
+what it measured, is in [memory](07-memory.md#reconsolidation).
+
 What this does not do. Nothing here reads prose: the two phrases decide a line's kind, and equal
 text decides a pass. The checks are the body's own commands: one that does not print what its
 line is about holds nothing, and the harness cannot tell. The list is held right or wrong: a
@@ -866,9 +891,13 @@ When a light-coding answer lands and files changed, the harness runs the body's 
   print alike. The body's last 12, each once.
 - **Two copies, never the world.** Each check runs in a copy of the finished work, twice, and in
   a second copy put back to the tree as the ask found it, which the attic kept when the ask
-  began. The copies leave out `.git`, `.mikata`, `target`, `node_modules` and caches; what the
-  world ignores otherwise (a virtual environment) is copied, so a check finds its dependencies.
-  The commands run in the body's sandbox, with no gate to ask. Nothing is run in the world and
+  began. The copies leave out `.git`, `.mikata`, `target` and caches; what the world ignores
+  otherwise (a virtual environment) is copied, so a check finds its dependencies. `node_modules`
+  at the world's root is too large to copy and is lent instead: the copy holds a folder of
+  links, one to each package the world installed, which its commands may read and never write.
+  A link the world keeps there to a package of its own (a workspace) leads to the copy's code; a
+  tool's cache there (`node_modules/.cache` and the like) is left out, as every cache is. The
+  commands run in the body's sandbox, with no gate to ask. Nothing is run in the world and
   nothing is written there but the file below.
 - **What is set side by side** is what each check printed on its standard output. One that prints
   the same on both trees is counted. One that prints differently is shown: the lines that

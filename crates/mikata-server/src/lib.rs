@@ -19,6 +19,9 @@ pub use mikata_loop::challenge;
 /// An evolution drafted by a model, for a creature due.
 /// The human's homes, and the move of Mnemorph's folders to Mikata's names.
 pub use mikata_loop::dirs;
+/// What of the human's own words the harness can hold as a line of an ask's list: `memory wrong`
+/// tells the human whether theirs is one.
+pub use mikata_loop::done::held_line;
 pub use mikata_loop::draft;
 /// The human's door to the Oni's envelopes.
 pub use mikata_loop::envelope;

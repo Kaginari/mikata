@@ -1338,13 +1338,16 @@ pub(crate) fn checked_proof(
 /// path its diff changed is grounded — a claim about the world beyond the diff stays proposed.
 /// A child that did not answer, or whose gate proved nothing, keeps its words personal. Says what
 /// it did, as a note for the report, and returns each claim it left proposed, `(id, text)`: what
-/// the dispatcher may accept.
+/// the dispatcher may accept. `asked` is the first line of the ask a session's own body was
+/// answering, kept with each claim so recall finds it when that ask comes again; a commissioned
+/// body's claims carry none.
 pub(crate) fn remember(
     world: &Path,
     to: &str,
     ending: &Ending,
     proof: Option<&mikata_memory::Proof>,
     evidence: &[String],
+    asked: Option<&str>,
 ) -> (Option<String>, Vec<(String, String)>) {
     let Ending::Answered(text) = ending else {
         return (None, Vec::new());
@@ -1370,14 +1373,14 @@ pub(crate) fn remember(
     for u in said {
         let tags: Vec<String> = u.kind.map(|k| k.word().to_owned()).into_iter().collect();
         let (text, check) = mikata_memory::named_check(&u.text);
-        let claim = match mikata_memory::propose_on(world, to, text, tags, None, evidence.to_vec())
-        {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("mikata: {to}'s claim could not be remembered: {e}");
-                continue;
-            }
-        };
+        let claim =
+            match mikata_memory::propose_under(world, to, text, tags, asked, evidence.to_vec()) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("mikata: {to}'s claim could not be remembered: {e}");
+                    continue;
+                }
+            };
         proposed += 1;
         let id = claim.note.clone();
         let short: String = text.chars().take(80).collect();
@@ -1815,7 +1818,7 @@ fn report_for(
     let mut triage = file_facts(&c.world, ending, to);
     // A landing waiting on its challenge is written, not landed: said as a hole, never cut.
     triage.extend(pending.iter().cloned());
-    let (kept, offered) = remember(&c.world, to, ending, checked, evidence);
+    let (kept, offered) = remember(&c.world, to, ending, checked, evidence, None);
     notes.extend(kept);
     // Each claim left proposed is offered as a hole too: never cut, however much the body said.
     triage.extend(offered.iter().map(|(id, text)| {
@@ -2576,7 +2579,7 @@ mod write_rule_tests {
         let heading = "[2026-11-03T12:00:00+01:00] slime-s — gate: PASS";
         let proof = checked_proof("slime-s", Some((verdict, Some(heading))));
         let ending = Ending::Answered(report.to_owned());
-        let (said, _) = remember(&w, "slime-s", &ending, proof.as_ref(), &[]);
+        let (said, _) = remember(&w, "slime-s", &ending, proof.as_ref(), &[], None);
         let shared = fold(&read(&w, &Tier::Shared).unwrap().rows);
         let personal = fold(&read(&w, &Tier::Personal("slime-s".into())).unwrap().rows);
         let _ = std::fs::remove_dir_all(&w);
@@ -2691,7 +2694,7 @@ mod write_rule_tests {
             let proof = (!caught)
                 .then(|| checked_proof("slime-s", Some((&verdict, Some(heading.as_str())))))
                 .flatten();
-            let _ = remember(&w, "slime-s", &ending, proof.as_ref(), &[]);
+            let _ = remember(&w, "slime-s", &ending, proof.as_ref(), &[], None);
         }
         let shared = fold(&read(&w, &Tier::Shared).unwrap().rows);
         let personal = fold(&read(&w, &Tier::Personal("slime-s".into())).unwrap().rows);

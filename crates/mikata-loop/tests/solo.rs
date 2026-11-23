@@ -602,6 +602,325 @@ async fn a_solo_answer_keeps_its_claims_by_the_write_rule() {
     );
 }
 
+/// An answer to the human is markdown, and a body writes its lessons there as a list, in a code
+/// span, or in bold. Each is kept as a bare line is: read as the wire reads, every one of these
+/// was prose, and the session left an empty memory behind it.
+#[tokio::test]
+async fn a_solo_answer_that_lists_its_lessons_keeps_them() {
+    use mikata_memory::{Status, Tier, fold, read};
+    let w = World::new("solo-remembers-a-list");
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer(
+            "Done: out.txt says fixed.\n\n**Lessons**\n\n\
+             - @U law out.txt says fixed once the build is green — check=`grep -q fixed out.txt`\n\
+             - `@U colony run the build before answering`\n\
+             **@U colony** the tests need no network\n\
+             - the list ends here",
+        ),
+    ]));
+    let mut run = w.run(model.clone(), &["grep -q fixed out.txt"]);
+    let ending = ask(&mut run, "make out.txt say fixed").await;
+    assert!(matches!(ending, Ending::Answered(_)), "{ending:?}");
+    let mine = fold(
+        &read(&w.world(), &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
+    assert_eq!(mine.len(), 3, "three lessons, and no plain item: {mine:?}");
+    let of = |t: &str| {
+        mine.values()
+            .find(|n| n.text.starts_with(t))
+            .unwrap_or_else(|| panic!("{t}: {mine:?}"))
+    };
+    assert_eq!(
+        of("out.txt says fixed").status,
+        Status::Grounded,
+        "a listed claim about the passing diff is grounded by the check it names"
+    );
+    for (text, tag) in [
+        ("run the build before answering", "colony"),
+        ("the tests need no network", "colony"),
+    ] {
+        let note = of(text);
+        assert_eq!(note.text, text, "the marks around it are not part of it");
+        assert_eq!(note.status, Status::Proposed, "{text}");
+        assert_eq!(note.tags, [tag], "{text}");
+    }
+}
+
+/// A lesson is put in the words of what was found, not of what was asked. Kept with the first
+/// line of its ask, it is shown again when that ask comes again, though it shares no word with
+/// it; and the next ask of another thing is not shown it.
+#[tokio::test]
+async fn an_ask_that_comes_again_is_shown_what_was_learned_under_it() {
+    use mikata_memory::{Tier, fold, read};
+    let w = World::new("solo-asked-again");
+    let asked = "# Support NEAREST top-k joins\n\nA join may say how many rows it keeps.";
+    let lesson = "pushdown stops at the first source it cannot fill";
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer(&format!("Done.\n\n- @U law out.txt {lesson}")),
+        answer("Nothing left to do."),
+        answer("That is another matter."),
+    ]));
+    let mut run = w.run(model.clone(), &[]);
+    ask(&mut run, asked).await;
+    let mine = fold(
+        &read(&w.world(), &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
+    let kept = mine.values().next().unwrap_or_else(|| panic!("{mine:?}"));
+    assert_eq!(
+        kept.asked.as_deref(),
+        Some("Support NEAREST top-k joins"),
+        "the lesson is kept with the first line of its ask: {kept:?}"
+    );
+    let said = |i: usize| -> String {
+        model.requests()[i]
+            .messages
+            .iter()
+            .rev()
+            .find(|m| m.role == mikata_provider::Role::User)
+            .unwrap()
+            .content
+            .iter()
+            .filter_map(|b| match b {
+                Block::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    ask(&mut run, asked).await;
+    let again = said(2);
+    assert!(again.starts_with("Recalled from memory"), "{again}");
+    assert!(again.contains(&format!("out.txt {lesson}")), "{again}");
+    ask(
+        &mut run,
+        "Oracle: alternative quoting rejects most delimiters",
+    )
+    .await;
+    let other = said(3);
+    assert!(!other.contains(lesson), "{other}");
+}
+
+/// The user's words of request `i`, as the model was sent them.
+fn said_to(model: &ScriptedModel, i: usize) -> String {
+    model.requests()[i]
+        .messages
+        .iter()
+        .rev()
+        .find(|m| m.role == mikata_provider::Role::User)
+        .unwrap()
+        .content
+        .iter()
+        .filter_map(|b| match b {
+            Block::Text { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A first failure is remembered. Nothing had been recalled, so there was no note to correct,
+/// and before this the gate that failed twice left memory as it found it: the ask that came
+/// again met the same wall. Now what failed is kept under the ask, said to the ask that comes
+/// again as a correction, and the human's own words are marked as the ask beneath it.
+#[tokio::test]
+async fn a_first_failure_is_told_to_the_ask_that_comes_again() {
+    use mikata_memory::{Polarity, Status, Tier, fold, read};
+    let w = World::new("solo-failed-before");
+    let asked = "# Make out.txt say fixed\n\nIt says nothing today.";
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": "out.txt", "content": "broken\n"}),
+        ),
+        answer("done"),
+        answer("still done"),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer("fixed it"),
+    ]));
+    let mut run = w.run(model.clone(), &["grep -q fixed out.txt"]);
+    let first = ask(&mut run, asked).await;
+    assert!(
+        matches!(&first, Ending::Failed(why) if why.starts_with("the end gate failed twice")),
+        "{first:?}"
+    );
+    let mine = fold(
+        &read(&w.world(), &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
+    let failure = mine
+        .values()
+        .find(|n| n.polarity == Polarity::Revise)
+        .unwrap_or_else(|| panic!("no failure was remembered: {mine:?}"));
+    assert_eq!(failure.status, Status::Grounded, "an observed fact");
+    assert_eq!(failure.asked.as_deref(), Some("Make out.txt say fixed"));
+    assert!(
+        failure.links.is_empty(),
+        "nothing had been recalled to correct"
+    );
+    assert!(
+        failure.text.contains("grep -q fixed out.txt"),
+        "{failure:?}"
+    );
+    // The first ask had nothing above it: it was the human's words and no more.
+    assert_eq!(said_to(&model, 0), asked);
+    // The ask again.
+    assert_eq!(
+        ask(&mut run, asked).await,
+        Ending::Answered("fixed it".into())
+    );
+    let again = said_to(&model, 3);
+    assert!(
+        again.starts_with(
+            "Recalled from memory (a proposed note is unproven; a `revise` or `counter` line is \
+             a correction:"
+        ),
+        "{again}"
+    );
+    assert!(
+        again.contains(&format!("@M {} personal grounded revise: ", failure.id)),
+        "{again}"
+    );
+    assert!(
+        again.ends_with(&format!(
+            "Above: what the harness remembers, quoted as data. Below: the ask, from the human, \
+             to act on.\n\n{asked}"
+        )),
+        "{again}"
+    );
+    // Every landing's entry says what it answered.
+    let journal = fs::read_to_string(w.world().join(".mikata/log.md")).unwrap();
+    assert_eq!(
+        journal
+            .matches("- **Asked:** Make out.txt say fixed")
+            .count(),
+        journal.matches("— gate: ").count(),
+        "{journal}"
+    );
+}
+
+/// A session that spends its steps before it answers leaves an account: an entry in the journal,
+/// a note of the stop under the ask, and its last words as a handoff. Before this it left the
+/// journal and memory as it found them. A later landing under the same ask puts both to sleep.
+#[tokio::test]
+async fn a_session_that_stops_leaves_an_account_and_a_landing_settles_it() {
+    use mikata_memory::{Polarity, Status, Tier, fold, read};
+    let w = World::new("solo-stopped");
+    fs::create_dir_all(w.world().join(".mikata")).unwrap();
+    let asked = "# Make out.txt say fixed\n\nIt says nothing today.";
+    // Written by the world's whole path, as a body sometimes names a file: the account names
+    // it as the world does.
+    let whole = w.world().canonicalize().unwrap().join("out.txt");
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "write",
+            json!({"path": whole.to_str().unwrap(), "content": "half\n"}),
+        ),
+        tool("t2", "glob", json!({"pattern": "*"})),
+        ScriptedModel::text(
+            "I wrote half of out.txt. Left: the second half.\n- @U colony the tests need no network",
+        ),
+        tool(
+            "t3",
+            "write",
+            json!({"path": "out.txt", "content": "fixed\n"}),
+        ),
+        answer("fixed it"),
+    ]));
+    let within = |steps: u32| {
+        let mut limits = Limits::for_race(Race::Summoner);
+        limits.steps = steps;
+        w.run_under(model.clone(), &[], Arc::new(mikata_tools::NoHuman), limits)
+    };
+    let e = ask(&mut within(2), asked).await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, .. } if why.starts_with("steps")),
+        "{e:?}"
+    );
+    let journal = fs::read_to_string(w.world().join(".mikata/log.md")).unwrap();
+    for line in [
+        "summoner — stopped: steps: 2 taken",
+        "- **Asked:** Make out.txt say fixed",
+        "- **Changed, not landed:** `out.txt`",
+        "- **Resume:** `mikata resume ",
+        "- **By:** the session's end",
+    ] {
+        assert!(journal.contains(line), "{line}: {journal}");
+    }
+    let notes = || {
+        fold(
+            &read(&w.world(), &Tier::Personal("summoner".into()))
+                .unwrap()
+                .rows,
+        )
+    };
+    let mine = notes();
+    let tagged = |tag: &str| {
+        mine.values()
+            .find(|n| n.tags.iter().any(|t| t == tag))
+            .unwrap_or_else(|| panic!("no `{tag}` note: {mine:?}"))
+    };
+    let stop = tagged("stopped");
+    assert_eq!(
+        (stop.status, stop.polarity),
+        (Status::Grounded, Polarity::Revise)
+    );
+    assert!(stop.text.contains("steps: 2 taken") && stop.text.contains("`out.txt`"));
+    // The body's last words are its own: unproven.
+    let handoff = tagged("handoff");
+    assert_eq!(handoff.status, Status::Proposed, "{handoff:?}");
+    assert!(handoff.text.contains("Left: the second half."));
+    assert_eq!(tagged("colony").text, "the tests need no network");
+    for n in mine.values() {
+        assert_eq!(n.asked.as_deref(), Some("Make out.txt say fixed"), "{n:?}");
+    }
+    // The ask again, under a limit that lets it finish: told of the stop, and it lands.
+    assert_eq!(
+        ask(&mut within(20), asked).await,
+        Ending::Answered("fixed it".into())
+    );
+    let again = said_to(&model, 3);
+    assert!(
+        again.contains(&format!(
+            "@M {} personal grounded revise: an earlier session was asked this and stopped",
+            stop.id
+        )),
+        "{again}"
+    );
+    assert!(
+        again.contains("its last words: I wrote half of out.txt."),
+        "{again}"
+    );
+    // The ask has landed: the stop was a state, and sleeps.
+    let after = notes();
+    assert_eq!(after[&stop.id].status, Status::Dormant);
+    assert_eq!(after[&handoff.id].status, Status::Dormant);
+    assert!(
+        after
+            .values()
+            .any(|n| n.text == "the tests need no network" && n.status == Status::Proposed),
+        "a lesson is no state: it stays"
+    );
+}
+
 /// A claim about the world, which no check can ground, is corroborated when another creature said
 /// the same from other evidence: what the body read is the evidence it rests on.
 #[tokio::test]
@@ -980,6 +1299,61 @@ async fn a_landed_answer_is_followed_by_what_changed_by_the_bodys_own_checks() {
     );
 }
 
+/// A world whose code needs what is installed beside it: `node_modules`, which the world ignores
+/// and a copy does not carry. `lib.py` and `total.sh` both read from it.
+fn with_dependencies(w: &World) {
+    fs::create_dir_all(w.world().join("node_modules/dep")).unwrap();
+    fs::write(w.world().join(".gitignore"), "node_modules/\n").unwrap();
+    fs::write(w.world().join("node_modules/dep/base.py"), "BASE = 40\n").unwrap();
+    fs::write(w.world().join("node_modules/dep/zero.sh"), "ZERO=0\n").unwrap();
+}
+
+/// What changed is read on copies of the world, and a copy is lent the world's installed
+/// dependencies: a check that imports one runs there as it ran in the world, and is not counted
+/// as failing on the finished work.
+#[tokio::test]
+async fn what_changed_runs_a_check_that_needs_the_worlds_dependencies() {
+    if !python() {
+        eprintln!("no python3 here: skipped");
+        return;
+    }
+    let w = World::new("changes-deps");
+    with_dependencies(&w);
+    let lib = |add: u8| {
+        format!(
+            "import sys\nsys.path.insert(0, 'node_modules/dep')\nimport base\n\n\ndef f():\n    return base.BASE + {add}\n"
+        )
+    };
+    fs::write(w.world().join("lib.py"), lib(1)).unwrap();
+    let check = r#"PYTHONDONTWRITEBYTECODE=1 python3 -c "import lib; print('f() =', lib.f())""#;
+    let model = Arc::new(ScriptedModel::new([
+        tool("t1", "bash", json!({"command": check})),
+        tool("t2", "write", json!({"path": "lib.py", "content": lib(2)})),
+        tool("t3", "bash", json!({"command": check})),
+        answer("f adds two now"),
+    ]));
+    let mut run = w
+        .run(Arc::clone(&model), &["grep -q 'BASE + 2' lib.py"])
+        .with_mode("light-coding");
+    assert_eq!(
+        ask(&mut run, "make f add two").await,
+        Ending::Answered("f adds two now".into())
+    );
+    let said = changes_beats(&w);
+    assert_eq!(said.len(), 1, "{said:?}");
+    assert_eq!(
+        said[0].0,
+        "what changed: of Mikata's last 1 check, 1 prints differently than on the code you gave \
+         it:\n\n- f() = 41\n+ f() = 42\n\nthe 1 check whole: .mikata/tmp/what-changed.md"
+    );
+    // The world's dependencies are as they were: lent to be read.
+    let kept: Vec<String> = fs::read_dir(w.world().join("node_modules/dep"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(kept.len(), 2, "{kept:?}");
+}
+
 /// Outside light-coding, with `gate.changes` off, or when the answer changed no file, nothing is
 /// run again and nothing is said.
 #[tokio::test]
@@ -1164,6 +1538,129 @@ async fn an_asks_own_done_when_list_is_held_by_the_harness() {
     );
 }
 
+/// What checked each landing of a run, in order: whether nothing did, and what did.
+fn verified(w: &World) -> Vec<(bool, Vec<String>)> {
+    w.journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Gate {
+                unchecked,
+                verified_by,
+                ..
+            } => Some((unchecked, verified_by)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// What the human said must come out when an answer was wrong is held when that ask comes again.
+/// The case joins the ask's list, said after the ask as the human's own; an answer that leaves
+/// it untrue is handed back with what it printed; and the pass says whose list checked it. Words
+/// that state no output hold nothing, and a correction taken back holds nothing.
+#[tokio::test]
+async fn what_the_human_said_must_come_out_is_held_when_the_ask_comes_again() {
+    const DOUBLE: &str = "Make total.sh print twice the sum.";
+    let w = World::new("held-word");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    // The human's word on an earlier answer: one states what must come out, one is advice.
+    let (held, _) = mikata_memory::corrected(
+        &w.world(),
+        "Still wrong. `sh total.sh 1 2` must give `6`; it gives `3`.",
+        DOUBLE,
+        "log.md ### [1] the human — wrong",
+    )
+    .unwrap();
+    mikata_memory::corrected(
+        &w.world(),
+        "and the script is slow",
+        DOUBLE,
+        "log.md ### [2] the human — wrong",
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "6"}),
+        ),
+        // The answer the human called wrong, given again: the code as it was.
+        answer("it sums already"),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, DOUBLE).await,
+        Ending::Answered("doubled".into())
+    );
+    // Said after the ask: the line in the human's words up to the output they state, whose it
+    // is, and how the harness holds it. The advice is no line.
+    let first = told_after(&model, 0);
+    assert!(
+        first.contains(
+            "Make total.sh print twice the sum.\n\n## Done when\nD1: Still wrong. `sh total.sh 1 2` \
+             must give `6`\n\nD1 is the human's own word: they said an earlier answer to this ask \
+             was wrong, and this is what must come out. It is not yours to rewrite, and it is one \
+             case of the ask, not the whole of it: the ask stands as written.\n\nThe ask \
+             holds a `## Done when` list (D1)"
+        ),
+        "{first}"
+    );
+    assert!(!first.contains("D2:"), "{first}");
+    // Both of the human's words are told from memory, as before: held or not.
+    assert!(
+        first.contains(
+            "shared grounded revise: Still wrong. `sh total.sh 1 2` must give `6`; it gives `3`."
+        ) && first.contains("shared grounded revise: and the script is slow"),
+        "{first}"
+    );
+    // The human is told what is held.
+    assert!(
+        w.journal().read().unwrap().rows.iter().any(|b| matches!(
+            b,
+            Beat::Warning { text }
+                if text == "held from what you said was wrong when this was asked before: D1"
+        )),
+        "the human is told which lines are held"
+    );
+    // The first answer leaves the case untrue: handed back with what it printed.
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(
+        gates[0].len() == 1
+            && gates[0][0].starts_with(
+                "done when: D1 must give `6`: `sh total.sh 1 2` prints `3` on your work"
+            ),
+        "{gates:?}"
+    );
+    assert!(gates[1].is_empty(), "{gates:?}");
+    assert_eq!(
+        verified(&w)[1],
+        (
+            false,
+            vec!["the human's Done when list (1 line)".to_owned()]
+        )
+    );
+    // Taken back, the correction holds nothing: the same ask in a new session carries no list.
+    mikata_memory::withdraw(&w.world(), &held, "log.md ### [3] the human — withdrawn").unwrap();
+    let again = Arc::new(ScriptedModel::new([answer("nothing to change")]));
+    let mut run = w.run_light(Arc::clone(&again));
+    assert_eq!(
+        ask(&mut run, DOUBLE).await,
+        Ending::Answered("nothing to change".into())
+    );
+    let told = told_after(&again, 0);
+    assert!(!told.contains("## Done when"), "{told}");
+    assert!(told.contains("and the script is slow"), "{told}");
+}
+
 /// A body that ignores the list is refused twice, then let through: the landing fails for the
 /// lines with no check. Handed in after the code changed, a line that must stay is still read
 /// from the code as the ask found it, in a copy put back to it; and the pass says the checks
@@ -1232,6 +1729,52 @@ async fn a_check_handed_in_late_is_read_from_the_code_as_the_ask_found_it() {
         last.unwrap(),
         ["the ask's Done when list (2 lines; 2 checks handed in after the code had changed)"]
     );
+}
+
+/// The copy a late check is read from is lent the world's installed dependencies: a line that
+/// must stay is held to what its command printed on the code as the ask found it, not to the
+/// failure of a command that could not find what it imports.
+#[tokio::test]
+async fn a_late_check_that_needs_the_worlds_dependencies_is_read_with_them() {
+    let w = World::new("listed-late-deps");
+    with_dependencies(&w);
+    let sourced = |body: &str| format!(". ./node_modules/dep/zero.sh\nn=$ZERO\n{body}");
+    let total = sourced("for a in \"$@\"; do n=$((n + a)); done\necho $n\n");
+    let doubled = sourced("for a in \"$@\"; do n=$((n + a)); done\necho $((n * 2))\n");
+    fs::write(w.world().join("total.sh"), total).unwrap();
+    let write = |id: &str| tool(id, "write", json!({"path": "total.sh", "content": doubled}));
+    let model = Arc::new(ScriptedModel::new([
+        write("t1"),
+        write("t2"),
+        write("t3"),
+        answer("doubled"),
+        tool(
+            "t4",
+            "check",
+            json!({"line": "D1", "command": "sh total.sh 1 2", "gives": "`6`"}),
+        ),
+        tool(
+            "t5",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        answer("doubled, checked"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, LISTED).await,
+        Ending::Answered("doubled, checked".into())
+    );
+    let said = results(&w);
+    // D2's command printed 0 on the code as the ask found it, read in a copy that found the
+    // dependency; held to a failure there, the line would break on work that keeps it.
+    assert!(
+        !said[4].1 && said[4].0.contains("your command prints:\n0\n"),
+        "{said:?}"
+    );
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(gates[1].is_empty(), "{gates:?}");
 }
 
 /// Only the list failing gives the body more than the one chance the other checks give, and

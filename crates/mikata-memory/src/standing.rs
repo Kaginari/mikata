@@ -99,6 +99,7 @@ mod tests {
                 links: vec![],
                 evidence: vec![],
                 depends_on: vec![],
+                asked: None,
             },
         }
     }

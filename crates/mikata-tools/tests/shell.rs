@@ -255,6 +255,48 @@ fn guard() -> Option<PathBuf> {
     guard.is_file().then_some(guard)
 }
 
+/// A folder the harness lends a context is read by its commands under the guard, and never
+/// written; what lies beside the loan stays closed. The copies a check is run in are lent their
+/// world's installed dependencies this way, through links like the one here.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_command_reads_what_its_context_was_lent_and_no_more() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("lent");
+    let (home, kept) = (w.root.join("home"), w.outside().join("deps"));
+    fs::create_dir_all(&home).unwrap();
+    fs::create_dir_all(&kept).unwrap();
+    fs::write(kept.join("dep.txt"), "a dependency\n").unwrap();
+    fs::write(w.outside().join("other.txt"), "not lent\n").unwrap();
+    std::os::unix::fs::symlink(&kept, w.world().join("src/deps")).unwrap();
+    // What the classifier cannot see: a script's own reads and writes.
+    fs::write(w.world().join("src/peek.sh"), "cat src/deps/dep.txt\n").unwrap();
+    fs::write(
+        w.world().join("src/poke.sh"),
+        "echo x > src/deps/new.txt\ncat src/deps/../other.txt\n",
+    )
+    .unwrap();
+    let cx = || {
+        Context::new(Race::Slime, w.world(), &["src"])
+            .with_gate(Arc::new(Scripted::new([])))
+            .with_home(&home)
+            .with_sandbox(Sandbox::Guard(guard.clone()))
+    };
+    // Not lent, it is not read.
+    let o = bash(&mut cx(), "sh src/peek.sh");
+    assert!(o.is_error && !o.content.contains("a dependency"), "{o:?}");
+    let mut lent = cx();
+    lent.lend(&kept);
+    let o = bash(&mut lent, "sh src/peek.sh");
+    assert_eq!(o.content, "a dependency\n", "{o:?}");
+    let o = bash(&mut lent, "sh src/poke.sh");
+    assert!(o.is_error && !o.content.contains("not lent"), "{o:?}");
+    assert!(!kept.join("new.txt").exists());
+}
+
 /// The classifier judges words; the sandbox stops what words hide. An approval opens the
 /// network, never the filesystem beyond the world.
 #[cfg(target_os = "linux")]

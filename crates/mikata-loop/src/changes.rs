@@ -231,11 +231,12 @@ pub fn compare(
 /// What a check did on one tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Said {
-    /// Whether it ran to its end and left with 0.
+    /// Whether it ran to its end and left with 0: in a pipeline, its first stage as well as its
+    /// last.
     pub ok: bool,
     /// What it printed on its standard output, as far as it got.
     pub out: String,
-    /// The last line of what it said besides: its error, when it failed.
+    /// The line of what it said where its error names itself, when it failed.
     pub err: String,
 }
 
@@ -289,6 +290,29 @@ impl Copied {
         Ok(Self { at, cx, names })
     }
 
+    /// Lend this copy what `tree` keeps installed for its code ([`LENT`]): a folder of links in
+    /// the copy, and leave for the copy's commands to read where they lead, never to write
+    /// there. What the copy already holds under that name stays as it is, so this comes last:
+    /// after the copy was put back to another tree, which may hold that folder itself.
+    fn lend(&mut self, tree: &Path) {
+        for name in LENT {
+            let to = self.at.join(name);
+            // The tree's own folder only: a link standing in its place is not followed.
+            let Ok(from) = tree.join(name).canonicalize() else {
+                continue;
+            };
+            let own = fs::symlink_metadata(tree.join(name)).is_ok_and(|m| m.is_dir());
+            if !own || fs::symlink_metadata(&to).is_ok() {
+                continue;
+            }
+            if links(&from, &to, true).is_ok() {
+                self.cx.lend(&from);
+            } else {
+                let _ = fs::remove_dir_all(&to);
+            }
+        }
+    }
+
     /// What `command` does here, this copy's own path written `<world>`.
     fn says(&mut self, command: &str, tools: &[Box<dyn Tool>]) -> Said {
         let here = self.at.display().to_string();
@@ -314,18 +338,70 @@ pub(crate) fn said_of(o: &mikata_tools::Outcome, names: &[String]) -> Said {
         })
     };
     let out = stdout_of(&o.content);
-    // What it said besides: the last line of it, which is where an error names itself.
-    let err = o.content[out.len()..]
-        .lines()
-        .rev()
-        .map(str::trim)
-        .find(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+    // A pipeline ends as its last stage does, and `| tail -1` ends well whatever came before
+    // it. The command a check is about is the first stage: when that failed, the check failed,
+    // and what the pipe let through is no output to hold a line to. A first stage the pipe
+    // itself closed early did not fail.
+    let failed = o.is_error
+        || o.meta
+            .pipe
+            .is_some_and(|status| status != 0 && status != CLOSED);
+    // What it said besides its output: the line of it where an error names itself. A command
+    // that sends both down one pipe (`2>&1`) and fails said it in the output.
+    let err = named_error(&o.content[out.len()..])
+        .or_else(|| failed.then(|| named_error(out)).flatten())
         .unwrap_or_default();
     Said {
-        ok: !o.is_error,
+        ok: !failed,
         out: placed(out).trim_end().to_owned(),
         err: placed(err),
     }
+}
+
+/// How a stage ends when the stage after it stops reading (`... | head -1`): killed by the pipe
+/// closing, which the shell reports as 128 and the signal's number.
+const CLOSED: u8 = 141;
+
+/// The line of what a failed command said where the error names itself. The last line that
+/// begins with an error's name (`ValueError: …`, `Error [ERR_MODULE_NOT_FOUND]: …`, `error[E0308]:
+/// …`, `fatal: …`) or tells of a panic; failing that, the last line that is not a runtime's
+/// closing line (Node's `Node.js v22.1.0`, the brace that ends the error it printed, Rust's note
+/// on `RUST_BACKTRACE`, Go's `exit status 2`); failing that, the last line. `None` when it said
+/// nothing. Python and a shell end on the error itself; Node, Rust and Go do not, and there the
+/// last line is the same for every failure.
+fn named_error(said: &str) -> Option<&str> {
+    let lines: Vec<&str> = said
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && *l != "[stderr]" && !l.starts_with("[exit "))
+        .collect();
+    let last = |keep: fn(&str) -> bool| lines.iter().rev().copied().find(|l| keep(l));
+    last(names_an_error)
+        .or_else(|| last(|l| !closes(l)))
+        .or(lines.last().copied())
+}
+
+/// Whether a line begins with an error's name, or tells of a panic.
+fn names_an_error(line: &str) -> bool {
+    let first = line
+        .split(|c: char| c.is_whitespace() || c == ':' || c == '[')
+        .next()
+        .unwrap_or_default();
+    let name = first
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '.');
+    (name && (first.ends_with("Error") || first.ends_with("Exception")))
+        || matches!(first, "error" | "fatal" | "panic")
+        || line.contains(" panicked at ")
+}
+
+/// Whether a line is one a runtime ends every failure with, whatever failed.
+fn closes(line: &str) -> bool {
+    line.strip_prefix("Node.js v")
+        .is_some_and(|v| v.starts_with(|c: char| c.is_ascii_digit()))
+        || line.starts_with("note: run with `RUST_BACKTRACE")
+        || line.starts_with("exit status ")
+        || line.chars().all(|c| "{}[]();,".contains(c))
 }
 
 /// What a command does on a tree, from two runs of it there: the one thing it did, when it did
@@ -360,6 +436,7 @@ pub(crate) fn did_before(
         attic
             .export_into(&start.tree, &before.at)
             .map_err(|e| format!("the code as you found it could not be laid out: {e}"))?;
+        before.lend(world);
         before.cx.set_deadline(Some(Instant::now() + BUDGET));
         let (first, second) = (before.says(command, tools), before.says(command, tools));
         same_twice(first, &second)
@@ -394,8 +471,10 @@ pub fn printed(
 ) -> Result<Vec<Said>, String> {
     let root = scratch_root();
     let _ = fs::remove_dir_all(&root);
-    let out = Copied::of(tree, named, &root, "tree", from)
-        .map(|mut copy| checks.iter().map(|check| copy.says(check, tools)).collect());
+    let out = Copied::of(tree, named, &root, "tree", from).map(|mut copy| {
+        copy.lend(tree);
+        checks.iter().map(|check| copy.says(check, tools)).collect()
+    });
     let _ = fs::remove_dir_all(&root);
     out
 }
@@ -418,6 +497,9 @@ fn run_in_copies(
     attic
         .export_into(&start.tree, &before.at)
         .map_err(|e| format!("the code as the ask found it could not be laid out: {e}"))?;
+    // And what neither copy could afford to carry, each is lent.
+    now.lend(world);
+    before.lend(world);
     let until = Instant::now() + BUDGET;
     now.cx.set_deadline(Some(until));
     before.cx.set_deadline(Some(until));
@@ -458,8 +540,14 @@ fn run_in_copies(
 }
 
 /// The directories a copy leaves out at the world's root: the repository and the harness's own
-/// records (a check needs neither), and build output, which rebuilds.
+/// records (a check needs neither), build output, which rebuilds, and installed dependencies,
+/// which it is lent instead ([`LENT`]).
 const UNCOPIED: [&str; 4] = [".git", ".mikata", "target", "node_modules"];
+/// The folders at a world's root that hold what its code needs to run and a copy cannot afford
+/// to carry: installed dependencies, often many times the size of the world. A copy is lent
+/// them ([`Copied::lend`]): without them a check that imports one fails in the copy, whatever
+/// the code does.
+const LENT: [&str; 1] = ["node_modules"];
 /// The caches a copy leaves out wherever they lie: each was written for another tree.
 const CACHES: [&str; 5] = [
     "__pycache__",
@@ -505,6 +593,46 @@ fn copy_capped(
         }
     }
     Ok(true)
+}
+
+/// A folder of links at `to`, one for each entry of `from`, each leading to the entry itself. An
+/// entry that is a link already is kept as the link it is: a workspace's own package, linked
+/// there by its relative path, then leads to the copy's code and never back to the world's. A
+/// scope's folder (`@scope`) is made the same way, one level down.
+///
+/// A hidden folder at the top is lent only when it is part of what was installed ([`INSTALLED`]).
+/// Any other is a cache some tool keeps there, written for another tree: it is left out, as
+/// every cache is, and the tool makes its own in the copy, where it may write.
+#[cfg(unix)]
+fn links(from: &Path, to: &Path, top: bool) -> io::Result<()> {
+    use std::os::unix::fs::symlink;
+    fs::create_dir_all(to)?;
+    for e in fs::read_dir(from)? {
+        let e = e?;
+        let (kind, name) = (e.file_type()?, e.file_name());
+        let (dest, named) = (to.join(&name), name.to_string_lossy());
+        let folder = top && kind.is_dir();
+        let cache = folder && named.starts_with('.') && !INSTALLED.iter().any(|i| *i == named);
+        if kind.is_symlink() {
+            symlink(fs::read_link(e.path())?, &dest)?;
+        } else if folder && named.starts_with('@') {
+            links(&e.path(), &dest, false)?;
+        } else if !cache {
+            symlink(e.path(), &dest)?;
+        }
+    }
+    Ok(())
+}
+
+/// The hidden folders of a dependency folder that are part of what was installed: the commands
+/// its packages bring, and the store a package manager links them from.
+#[cfg(unix)]
+const INSTALLED: [&str; 2] = [".bin", ".pnpm"];
+
+/// Where a folder cannot be lent by links, it is not lent.
+#[cfg(not(unix))]
+fn links(_: &Path, _: &Path, _: bool) -> io::Result<()> {
+    Err(io::Error::other("no links on this system"))
 }
 
 /// One line of two outputs set side by side.
@@ -922,6 +1050,147 @@ pub fn file(world: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A failed command's error is the line where it names itself, whatever the runtime prints
+    /// after it, and whichever pipe it came down.
+    #[test]
+    fn a_failed_commands_error_is_the_line_that_names_it() {
+        // Python and a shell end on the error.
+        let python = "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nValueError: bad unit";
+        assert_eq!(named_error(python), Some("ValueError: bad unit"));
+        assert_eq!(
+            named_error("sh: 1: nope: not found"),
+            Some("sh: 1: nope: not found")
+        );
+        assert_eq!(named_error("not a number: x\n"), Some("not a number: x"));
+        // Node ends on its version, after the error it printed as an object.
+        let node = "node:internal/modules/esm/resolve:275\n    throw new ERR_MODULE_NOT_FOUND(\n          ^\n\n\
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<world>/src/entry/gen.js' imported from <world>/src/entry/main.js\n\
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)\n\
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {\n  code: 'ERR_MODULE_NOT_FOUND',\n  url: 'file:///x'\n}\n\nNode.js v22.23.4\n";
+        assert_eq!(
+            named_error(node),
+            Some(
+                "Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<world>/src/entry/gen.js' imported from <world>/src/entry/main.js"
+            )
+        );
+        let thrown = "file:///w/x.mjs:1\nthrow 1\n^\n1\n(Use `node --trace-uncaught ...` to show where the exception was thrown)\n\nNode.js v22.23.4";
+        assert_eq!(
+            named_error(thrown),
+            Some("(Use `node --trace-uncaught ...` to show where the exception was thrown)")
+        );
+        // Rust and Go.
+        let rust = "thread 'main' panicked at src/main.rs:2:5:\nno such unit\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace";
+        assert_eq!(
+            named_error(rust),
+            Some("thread 'main' panicked at src/main.rs:2:5:")
+        );
+        assert_eq!(
+            named_error("error[E0308]: mismatched types\n --> src/main.rs:2:5\n"),
+            Some("error[E0308]: mismatched types")
+        );
+        assert_eq!(
+            named_error(
+                "panic: no such unit\n\ngoroutine 1 [running]:\nmain.main()\nexit status 2"
+            ),
+            Some("panic: no such unit")
+        );
+        // The harness's own lines are no part of it; a killed command says so.
+        assert_eq!(named_error("[stderr]\n[exit 1]"), None);
+        assert_eq!(named_error(""), None);
+        assert_eq!(
+            named_error(
+                "[stderr]\nstarting\n[killed after 20.0s: the command and everything it started]"
+            ),
+            Some("[killed after 20.0s: the command and everything it started]")
+        );
+        // Down one pipe: a failed command's error is found in its output, a command that ran
+        // has none.
+        let failed = mikata_tools::Outcome::error("ValueError: bad unit\n[exit 1]".to_owned());
+        assert_eq!(said_of(&failed, &[]).err, "ValueError: bad unit");
+        let ran = mikata_tools::Outcome::ok(
+            "Error: not one, a line it printed\n".to_owned(),
+            mikata_races::ToolClass::Read,
+        );
+        assert_eq!(said_of(&ran, &[]).err, "");
+    }
+
+    /// A pipeline ends as its last stage does. A check whose first stage failed did fail,
+    /// whatever `| tail -1` let through; one whose first stage the pipe closed early did not.
+    #[test]
+    fn a_piped_check_is_judged_by_its_first_stage() {
+        let piped = |first: u8| {
+            let mut o = mikata_tools::Outcome::ok(
+                "  SELECT 1 OVER (PARTITION BY EXCLUDING a)\n".to_owned(),
+                mikata_races::ToolClass::Read,
+            );
+            o.meta.exit = Some(0);
+            o.meta.pipe = Some(first);
+            said_of(&o, &[])
+        };
+        let failed = piped(1);
+        assert!(!failed.ok, "{failed:?}");
+        assert_eq!(failed.err, "SELECT 1 OVER (PARTITION BY EXCLUDING a)");
+        for held in [0, CLOSED] {
+            let ran = piped(held);
+            assert!(ran.ok && ran.err.is_empty(), "{held}: {ran:?}");
+        }
+    }
+
+    /// A dependency folder is lent as a folder of links: a package leads to the world's own, a
+    /// scope is opened one level down, a tool's cache is left out, and a link the world keeps
+    /// there (a workspace's own package) stays the relative link it is, so it leads into the
+    /// copy.
+    #[cfg(unix)]
+    #[test]
+    fn a_dependency_folder_is_lent_as_links_and_a_workspace_link_stays_in_the_copy() {
+        let root = std::env::temp_dir().join(format!("mikata-lent-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        for d in [
+            "world/node_modules/dep",
+            "world/node_modules/@scope/inner",
+            "world/node_modules/.bin",
+            "world/node_modules/.cache/tool",
+            "world/packages/mine",
+            "copy/packages/mine",
+        ] {
+            fs::create_dir_all(root.join(d)).unwrap();
+        }
+        let (world, copy) = (root.join("world"), root.join("copy"));
+        fs::write(world.join("node_modules/dep/index.js"), "dep").unwrap();
+        fs::write(world.join("node_modules/@scope/inner/index.js"), "inner").unwrap();
+        fs::write(world.join("node_modules/.bin/run"), "run").unwrap();
+        fs::write(world.join("node_modules/.package-lock.json"), "{}").unwrap();
+        fs::write(world.join("packages/mine/index.js"), "the world's").unwrap();
+        fs::write(copy.join("packages/mine/index.js"), "the copy's").unwrap();
+        std::os::unix::fs::symlink("../packages/mine", world.join("node_modules/mine")).unwrap();
+        let from = world.join("node_modules").canonicalize().unwrap();
+        links(&from, &copy.join("node_modules"), true).unwrap();
+        let read = |p: &str| fs::read_to_string(copy.join("node_modules").join(p)).unwrap();
+        assert_eq!(read("dep/index.js"), "dep");
+        assert_eq!(read("@scope/inner/index.js"), "inner");
+        assert_eq!(read(".bin/run"), "run");
+        assert_eq!(read(".package-lock.json"), "{}");
+        assert_eq!(read("mine/index.js"), "the copy's");
+        let kind = |p: &str| {
+            fs::symlink_metadata(copy.join("node_modules").join(p))
+                .unwrap()
+                .file_type()
+        };
+        // Links, never copies; the scope alone is a folder of the copy's own.
+        assert!(kind("dep").is_symlink() && kind(".bin").is_symlink());
+        assert!(kind("@scope").is_dir() && kind("@scope/inner").is_symlink());
+        // The cache is not lent, and the copy may make its own.
+        assert!(!copy.join("node_modules/.cache").exists());
+        fs::create_dir_all(copy.join("node_modules/.cache/tool")).unwrap();
+        assert!(
+            fs::read_dir(world.join("node_modules/.cache/tool"))
+                .unwrap()
+                .next()
+                .is_none()
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn a_check_is_an_interpreter_handed_its_code() {

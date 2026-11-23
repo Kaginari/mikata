@@ -11,6 +11,107 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Security
+
+- **The URL library under the HTTP client is updated past an advisory published on 22 November
+  2026** (`url` 2.5.8 to 2.5.9, RUSTSEC-2026-0592): a `blob:` URL nested deep enough overflowed
+  the stack in `Url::origin()`. Mikata's own code does not call that function; the update is
+  the one the advisory names.
+
+### Added
+
+- **Say when an answer was wrong, and the next session is told first.** `mikatad memory wrong
+  "<what still fails, in your words>"` writes your words to the journal and keeps them as a
+  correction in shared memory, under the ask of the journal's last entry (or the one `--ask`
+  names by its first line). A session that meets that ask again is shown the correction ahead of
+  what the earlier session believed, with that belief marked `corrected`. Nothing is deleted.
+  It is the human's alone: a body's command is refused.
+- **What you say must come out is held.** A correction that says so in the words a `Done when`
+  list is read by, ``mikatad memory wrong "`total 1 2` must give `6`; it gives `3`"``, is now a
+  line of that ask's list whenever the ask comes again: after the ask's own lines or a
+  reader's, in the order you said them, the newest twelve. The body is told the lines are yours,
+  that they are not its to rewrite, and that they are cases of the ask and not the whole of it;
+  it hands in a check for each, and an answer that leaves one wrong does not land. The line is
+  your words up to the output they state. Words that state no output stay advice, as before,
+  and `memory wrong` now says which it was. On our bench a correction that was only told was
+  taken up by every run and then overruled by five runs of six where the fix was hard; held,
+  the case came out right in eight runs of eight, and with memory keeping three such words
+  seven of eight asks the small model fails came to pass.
+- **Take a correction back.** `mikatad memory withdraw <note>` puts a correction of yours to
+  sleep: it is told and held no more, the journal keeps the act, and nothing is deleted.
+- **A session that stops leaves an account.** When a session spends its steps, its clock, its
+  context or its budget before it answers, the journal now gets an entry (what was asked, why it
+  stopped, which files it had changed, how to resume) and memory a note of the stop under that
+  ask; the session's last words are kept as a handoff. Before, such a session left the journal
+  and memory as it found them: on our bench one task stopped at its step limit two rounds
+  running, 200 calls each, and each time the next session started it from nothing. When the ask
+  lands at last, the stop's notes go out of recall.
+
+### Changed
+
+- **Every entry the harness writes for a session says what it was asked** (`- **Asked:**`, the
+  ask's first line), so the journal reads as what happened to which ask.
+- **Where quoted memory ends and your ask begins is marked in words** whenever notes, facts or
+  journal entries stand above an ask. An ask with nothing above it is sent as you wrote it.
+- **A correction is said to be one.** When a recalled note is a correction, the line over the
+  notes says what that means and that it is not to be done that way again.
+
+### Fixed
+
+- **A stopped session's account names files as the world does.** A body that wrote a file by
+  the world's whole path had that path listed as changed, its own plan under `.mikata/` among
+  them. Paths are now said relative to the world, and the plan is left out whichever way it was
+  named.
+- **A first failure is remembered.** When the end gate failed twice, what failed was written to
+  memory only as a correction of the notes that ask had recalled. With none recalled, nothing
+  was written: the first failure on any task left no trace, and the same ask met the same wall.
+  It is now kept under the ask, and said first when the ask comes again.
+- **A task that comes again is shown what was learned on it.** Recall matched a note by its
+  own words, and a lesson is written in the words of what was found, not of what was asked. In
+  one codebase a long ask shares its words with half the memory, so other tasks' notes took the
+  seats: carried through ten tasks three times over, 18 of the 20 runs that met a task again
+  were shown a note of their own, and of about six notes shown 1.3 were their own task's. A
+  lesson is now kept with the first line of the ask it was learned under and matched with those
+  words too: 20 of 20, and 2.8 of the six. Measured with the product's own recall on that
+  campaign's 88 notes, which a test now holds. It is not shown to make a run cheaper: on that
+  campaign a body that passes every task cold passed every task with memory, in more calls.
+- **What a session learned is kept when it is written as a list.** At the end of an answer
+  Mikata writes down what it learned that is written nowhere, one line each, and the harness
+  keeps those lines as notes for later sessions. It read such a line only where it opened a line
+  of the answer. A model answering in markdown writes them as a list, inside a code span or in
+  bold, and each of those was dropped without a word. Counted over 284 kept runs of our bench:
+  one model lost 80 of its 440 lessons this way and the other 97 of 108. Of that model's 36 runs
+  that wrote a lesson, 32 left an empty memory behind them. A lesson is now read behind a list
+  mark, a number, a heading or a quote mark, and out of the code span or the bold that opens on
+  it. Nothing else is read that way: a status or a verdict still counts only where it opens a
+  line, and a marked line is a lesson only when it names its kind, so a heading that reads
+  `@U lines` stays a heading. A colon after the kind (`@U colony: ...`) is no part of the fact.
+- **In a JavaScript project, the harness's own copies of your code now find what is installed.**
+  "What changed" runs Mikata's checks again on two copies of the world, and a line of your list
+  that must stay, handed in after the code changed, is read from a copy as well. The copies left
+  `node_modules` out, so a check that imports a package failed there whatever the code did. Two
+  things followed, both wrong: every such check was counted as "fails on the finished work" and
+  nothing was shown; and a late `must stay` line was held to that failure, so a landing whose
+  lines held was failed. A copy is now lent the world's `node_modules`: a folder of links its
+  commands may read and never write. Found on the first run of our bench on a second codebase
+  (mathjs): of the 70 checks of ten runs, 8 ran in the copies and none could be compared. With
+  the fix 61 run, and both runs that failed their tests show a wrong value in the list.
+- **A check that fails is told how, whichever pipe the error came down and whatever the runtime
+  prints after it.** The harness took a failure's last line of standard error for the error. A
+  check written with `2>&1` has none there, so Mikata was told "it said nothing" of a command
+  that had printed why. And Node ends every uncaught error on its own version, so every failure
+  of a Node check read the same. Both also made a `must stay` line held to a failure hold for
+  any failure at all. The error is now the last line that begins with an error's name or tells
+  of a panic, found in the output too when the command failed. Seen in a run that fixed the
+  code, could not make its own checks run, and spent its steps on them.
+- **A check piped into `tail` or `grep` is judged by its command, not by the pipe.** A pipeline
+  ends as its last stage does, so a check whose command raised still "ran", and a line that
+  must stay was held hard to the last line of an error message. A reader had written such a
+  line for the very input an ask was about; the fix was right, the line "broke", and the
+  landing failed twice. The harness now reads the first stage's status from the shell, as its
+  stall detector already did: that check failed on the code as you gave it, so the line is held
+  as a failure is, and work that makes the command run is said once and refuses nothing.
+
 ## [1.1.0] - 2026-11-21
 
 Say what done means, and the harness holds it: a `## Done when` list in your ask, yours or one a
@@ -32,6 +133,21 @@ every run counted: 10 of 12. Three of the four asks pass every time; the fourth 
 3, and fails when the reader writes a unit in small letters where the code prints capitals. No
 pass of that screen was held by a check that only prints the words
 ([the bench](docs/bench.md#the-list-held)).
+
+**Measured that evening: the same lists, handed to every harness.** The twelve lists the reader
+wrote for that screen, given as a plain note after the ask and held by nothing: Mikata 11 of 12,
+and 8 of 12 in each of the two other harnesses run beside it, where those passed 5 and 3
+without. So the list is the gain, and holding it is not shown to add a pass: held, the same
+lists passed 10, for about four dollars in ten more a run. What the hold gives is a pass that
+names what verified it ([the bench](docs/bench.md#the-list-held)).
+
+**Measured that night: a second codebase and a second body.** On ten fixes in a JavaScript
+library the three harnesses are level again (Mikata 8, Maki 7, OpenCode 6), and Mikata's pass
+cost half of OpenCode's and three times Maki's. With a stronger model (Claude Haiku 5.5) all
+three pass all ten sqlglot fixes, and Mikata's pass costs what OpenCode's does and twice Maki's.
+So "about half their price a pass", above, is a count on one codebase with one small model, not
+a property of the harness. With that stronger model the four prose asks pass 12 times in 12
+with no reader ([the bench](docs/bench.md#a-second-codebase)).
 
 ### Added
 
