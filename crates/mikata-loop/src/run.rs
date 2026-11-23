@@ -292,6 +292,15 @@ pub const COMPACT_PCT: u64 = 60;
 pub const RECALL_K: usize = 6;
 /// The most of a stopped session's last words its handoff note keeps, in characters.
 const HANDOFF: usize = 700;
+/// The newest stash put back exactly as it was pushed, or left alone: exit 3 when the tree or
+/// the index has changed since the stash, 4 when a commit was made on top of it. A pop there
+/// would be a merge, and a merge can conflict.
+const POP_THE_STASH: &str = "git diff --quiet && git diff --cached --quiet || exit 3\n\
+pushed_on=$(git rev-parse -q --verify 'refs/stash^1')\n\
+[ \"$pushed_on\" = \"$(git rev-parse -q --verify HEAD)\" ] || exit 4\n\
+git stash pop --index";
+/// How long a stop's `git stash pop` may take: its own seconds, past a clock already spent.
+const STASH_POP: Duration = Duration::from_secs(20);
 /// What stands over the notes recall shows an ask.
 const RECALLED: &str = "Recalled from memory (a proposed note is unproven; name the id of a note \
                         that changes what you do, and only that):";
@@ -305,6 +314,28 @@ const RECALLED_WITH_A_CORRECTION: &str = "Recalled from memory (a proposed note 
 /// What marks the human's own words, whenever memory is quoted above them.
 const THE_ASK: &str = "Above: what the harness remembers, quoted as data. Below: the ask, from \
                        the human, to act on.";
+
+/// What an ask has to do with the stash, for the stop that may come before a pop
+/// ([`Run::settle_the_stash`]).
+#[derive(Default)]
+struct Stashes {
+    /// How many stashes the world's repository held when the ask began
+    /// ([`mikata_tools::stash_depth`]): what is above it at a stop is the ask's. `None` once a
+    /// stop has dealt with them, which it does once an ask.
+    before: Option<usize>,
+    /// What a stop said of a stash it could not put back: where the ask's work is.
+    left: Option<String>,
+}
+
+impl Stashes {
+    /// An ask that begins over `before` stashes.
+    fn found(before: usize) -> Self {
+        Self {
+            before: Some(before),
+            left: None,
+        }
+    }
+}
 
 /// One body's run.
 pub struct Run {
@@ -438,6 +469,8 @@ pub struct Run {
     verdicts: Vec<crate::gate::GateVerdict>,
     /// The trees this ask's landed writes left, and how many times each has stood.
     returns: crate::returns::Returns,
+    /// The stashes of this ask, for the stop that may come before a pop.
+    stash: Stashes,
     /// The mode the session opened in, on the session's own run: journaled with the law.
     mode: Option<&'static str>,
     /// On a resumed run, the mode its journal says it stopped in.
@@ -592,6 +625,7 @@ impl Run {
             commissioner: None,
             verdicts: Vec::new(),
             returns: crate::returns::Returns::default(),
+            stash: Stashes::default(),
             mode: None,
             stopped_in: None,
             landed: Vec::new(),
@@ -1493,9 +1527,18 @@ impl Run {
         lines
     }
 
-    fn end(&self, ending: Ending) -> Ending {
+    fn end(&mut self, ending: Ending) -> Ending {
         // A line sent too late for this turn is said with this turn's end.
         self.drop_steering();
+        // The body does not act after a checkpoint: a stash it left is put back, or named. Where
+        // no last turn carried the word, it stands in the conversation for the ask that goes on.
+        if matches!(ending, Ending::Checkpoint { .. })
+            && let Some(said) = self.settle_the_stash()
+        {
+            let text = format!("[{said}]");
+            self.record(&Beat::Note { text: text.clone() });
+            push_user(&mut self.messages, vec![Block::Text { text, cache: false }]);
+        }
         self.record_evolving(&ending);
         self.learn_mcp(&ending);
         if let Ending::Answered(text) = &ending {
@@ -1770,6 +1813,8 @@ impl Run {
         self.stress = Stress::for_steps(self.limits.steps);
         self.returns = crate::returns::Returns::default();
         self.noticed = false;
+        // A stash this ask pushes is counted from the stashes it found.
+        self.stash = Stashes::found(mikata_tools::stash_depth(self.cx.world()));
         // The clock reaches every command of this ask, the gate's verify lines included.
         self.cx
             .set_deadline(Some(self.started + self.limits.deadline));
@@ -2771,6 +2816,9 @@ impl Run {
                     .join(", ")
             },
         ));
+        if let Some(left) = &self.stash.left {
+            lines.push(("Left in the stash".to_owned(), left.clone()));
+        }
         lines.push((
             "Resume".to_owned(),
             format!("`mikata resume {}`", self.caller.run),
@@ -4529,9 +4577,11 @@ impl Run {
     /// body learned — then the checkpoint, carrying it.
     async fn salvage(&mut self, why: &str) -> Ending {
         let note = "You must stop now. In a few lines: what you did, what you learned, what is left. No tools.";
+        // Settled before the last words, which are then said of the tree as it is left.
+        let note = with_the_stash(note, self.settle_the_stash().as_deref());
         let grace =
             (self.limits.deadline / 10).clamp(Duration::from_secs(2), Duration::from_secs(60));
-        let salvage = self.last_turn(note, "salvage", grace).await;
+        let salvage = self.last_turn(&note, "salvage", grace).await;
         if let Some(text) = &salvage
             && self.caller.commission.is_none()
             && self.commissioner.is_none()
@@ -4542,6 +4592,70 @@ impl Run {
             why: why.to_owned(),
             salvage,
         })
+    }
+
+    /// A stop takes the tools away, and a stash this ask pushed and did not pop holds its work
+    /// out of the tree: the files read as the ask found them while the last words say what was
+    /// changed. Seen on our bench: `git stash && <a probe of the code as given>` was the last act
+    /// before the steps ran out, and the run ended with a clean tree, a hundred lines in the
+    /// stash and a failed row. So a stop puts the newest stash back as the body would have:
+    /// `git stash pop`, through `bash`, under the guard its own commands run under, and only
+    /// while nothing has moved since the push ([`POP_THE_STASH`]). A stash it leaves is named:
+    /// to the body before its last words, in the journal, and in the stop's account. Once an
+    /// ask; `None` when the ask left no stash.
+    fn settle_the_stash(&mut self) -> Option<String> {
+        let before = self.stash.before.take()?;
+        let world = self.cx.world().to_path_buf();
+        let pushed = mikata_tools::stash_depth(&world).saturating_sub(before);
+        if pushed == 0 {
+            return None;
+        }
+        let exit = if self.tools.iter().any(|t| t.name() == "bash") {
+            // The run's clock may be spent: the pop has its own seconds, as a last turn has.
+            let clock = self.cx.deadline();
+            self.cx.set_deadline(Some(Instant::now() + STASH_POP));
+            let args = serde_json::json!({
+                "command": POP_THE_STASH,
+                "timeout_ms": u64::try_from(STASH_POP.as_millis()).unwrap_or(u64::MAX),
+            })
+            .to_string();
+            let ran = call(&self.tools, "bash", &args, &mut self.cx);
+            self.cx.set_deadline(clock);
+            ran.meta.exit
+        } else {
+            None
+        };
+        let left = mikata_tools::stash_depth(&world).saturating_sub(before);
+        let said = if left < pushed {
+            let mut said = String::from(
+                "a `git stash` of this ask was not popped when it stopped: it was popped at the \
+                 stop, and the work is back in the tree",
+            );
+            if left > 0 {
+                let _ = write!(
+                    said,
+                    "; {left} older one{} of this ask still hold{} work: `git stash list`",
+                    if left == 1 { "" } else { "s" },
+                    if left == 1 { "s" } else { "" },
+                );
+            }
+            said
+        } else {
+            let why = match exit {
+                Some(3) => "the tree has changed since",
+                Some(4) => "a commit was made since",
+                _ => "it could not be popped at the stop",
+            };
+            format!(
+                "a `git stash` of this ask was not popped when it stopped, and {why}: the work is \
+                 in the stash, not in the tree, and `git stash pop` puts it back"
+            )
+        };
+        if left > 0 {
+            self.stash.left = Some(said.clone());
+        }
+        self.record(&Beat::Warning { text: said.clone() });
+        Some(said)
     }
 
     /// What a body said when it was told to stop — what it did, what it learned, what is left —
@@ -4746,6 +4860,7 @@ impl Run {
                     what is not durable, one line each: `@U <law|colony|territory> <fact>` for \
                     what you learned that is written nowhere — naming the file it is about — then what is left. \
                     No tools.";
+        let note = with_the_stash(note, self.settle_the_stash().as_deref());
         self.drains += 1;
         // The clock is not spent: the drain may take what is left of it, up to two minutes.
         let grace = self
@@ -4753,7 +4868,7 @@ impl Run {
             .deadline
             .saturating_sub(self.started.elapsed())
             .clamp(Duration::from_secs(2), DRAIN_GRACE);
-        let mut salvage = self.last_turn(note, "drain", grace).await;
+        let mut salvage = self.last_turn(&note, "drain", grace).await;
         if let Some(text) = salvage.as_mut() {
             let (notes, facts) = self.keep_unsaid(text);
             if notes + facts > 0 {
@@ -4859,6 +4974,15 @@ impl Run {
             }
             _ => None,
         }
+    }
+}
+
+/// A last turn's note, with what the stop did about a stash the ask left said after it
+/// ([`Run::settle_the_stash`]).
+fn with_the_stash(note: &str, stash: Option<&str>) -> String {
+    match stash {
+        Some(said) => format!("{note}\n[{said}]"),
+        None => note.to_owned(),
     }
 }
 

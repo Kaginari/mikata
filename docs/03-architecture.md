@@ -1796,7 +1796,8 @@ flowchart LR
   (`.mikata/tmp/kept/<snapshot>/<path>`), where the body's own commands reach it and a plain copy
   brings it back. A `git checkout -- file`, or a copy laid over a file, takes work and leaves no
   trace in the tree; this is read from the files, never from the command's words. A stash the
-  command pushed holds what it took, so nothing is said of it. The world's `.git` is kept another way: its objects are
+  command pushed holds what it took, so nothing is said of it; a stop that comes before the body
+  pops it puts it back ([the loop](02-loop.md#budgets-are-readings)). The world's `.git` is kept another way: its objects are
   hard-linked into the attic (copied, across devices) and its refs copied, so a command that
   deletes or breaks `.git` finds it put back after it ends. A hard link shares the file, so it
   survives a deletion, not a write in place: deleting or changing `.git` or the world's records
