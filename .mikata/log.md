@@ -7873,3 +7873,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **A plan corrected before it was built:** I told the owner a budget on what memory shows was the likeliest way to make memory cheap. Measured on the kept runs first: memory opens a session of the stronger body with about 2,800 characters (median 916 of notes and 1,920 of journal), some 700 tokens. That cannot carry 20 to 51% more dollars; the cost is in the work the body then does (17 to 32% more tool uses). The budget moves to last, with a small effect expected.
 - **Not done as asked:** the owner asked for several agents working at once on this machine. Hivemind's hook refuses Claude Code's own agents, and Hivemind's delegation answers 401 to this thread. One piece at a time until that is repaired; five briefs are written.
 
+### [2026-11-23T13:35:00+00:00] aibo Summoner — the code goes on, and memory's passes are not shown
+- **Why:** steps 60 to 64 started the code over at every attempt; a real tree keeps it. Bench step 65 reran the third attempt on the code the second attempt left, both arms alike but for memory. Bar first: memory passes at least two more of 7.
+- **Result:** 2 and 2: missed. Memory kept the first named case right in 7 of 7; the session without it broke it in 3 runs that began on code that had it right. Hidden cases wrong 7 against 15. \$2.83.
+- **Corrected in the book:** "7 of the 8 asks pass by the fourth attempt" now says it was with the code starting over, and that with the code kept the two pass alike. The bench page, the memory page and the roadmap.
+- **Mine:** I expected 4 and 3. My watchdog ended the first three runs: 3.6 GB of file cache from my builds was charged to the service. Dropped without root (POSIX_FADV_DONTNEED), and the watchdog now drops it before it ends a run.
+

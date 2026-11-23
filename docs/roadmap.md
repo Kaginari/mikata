@@ -135,10 +135,10 @@ half more dollars than the same tasks cold ([the bench](bench.md#memory-carried-
 Three faults found on the way are fixed: lessons written as a list were dropped, a marked heading
 was kept as a lesson, and a task that came again was not always shown its own notes.
 
-Where it has begun to pay is on work that fails and is asked again. Told what was wrong one
-case at a time, with each word kept and held, seven of eight asks the small model fails pass by
-the fourth attempt, where a session without memory makes the first mistake again
-([the bench](bench.md#memory-told-it-was-wrong)). What comes next, in order:
+On work that fails and is asked again, memory keeping the human's corrections keeps every case
+they named right, where a session without it breaks one it had right, and leaves fewer cases
+wrong. More passes are shown only with the code starting over at each attempt; with the code
+kept, the two pass alike ([the bench](bench.md#memory-told-it-was-wrong)). What comes next, in order:
 
 - **The same rounds with a verify line.** Everything measured ran with nothing configured: no
   check behind a landing, so no note is ever grounded, the body is shown every note as unproven

@@ -97,11 +97,12 @@ The same three harnesses, each as released, on two more screens, each task once
   memory or in the ask, every run takes the case up and, where the fix is hard, five of six then
   rewrite their own line and answer "done": 0 passes of 8 either way. Held by the harness, a
   line the model cannot rewrite, the named case is right in 8 of 8. And with memory keeping each
-  word as a held line, the words add up: **7 of the 8 asks pass by the fourth attempt**, the
-  human having typed nothing but the ask and three sentences. A fresh session told only the
-  newest word makes the first mistake again in 5 of 7 and stands at 2 of 8 after its third
-  attempt. By the bars written first: two missed, one missed by one, two met
-  ([measured](#memory-told-it-was-wrong)).
+  word as a held line, 7 of the 8 asks passed by the fourth attempt, **with the code starting
+  over at every attempt**. Run again with the code kept, as a real tree keeps it, memory and a
+  fresh session told the newest word passed the same, 2 of 7 each. What memory still does: it
+  kept every case the human named right (7 of 7, where the fresh session broke the first one in
+  3, on code that had it right) and left half as many hidden cases wrong. By the bars written
+  first: three missed, one missed by one, two met ([measured](#memory-told-it-was-wrong)).
 - **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
   light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
   a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
@@ -784,10 +785,25 @@ attempt before it still gets wrong.
   third word, found the same way, is the first word's own case again in 5 of its 6 open pairs:
   its next attempt would be the second attempt over again, which passed none of those five.
 
+**Then the code was kept.** These attempts started the code over each time. Step 65 ran the
+third attempt again on the code the second attempt left (the bench's `--carry-tree`), both arms
+the same but for memory. Bar first: memory passes at least two more of the 7.
+
+| The third attempt, of 7 | Passes | The first word's case right | Hidden cases wrong | Dollars |
+|---|---|---|---|---|
+| memory keeps both words, code anew | 3 | 7 | 5 | 2.42 |
+| the newest word only, code anew | 1 | 2 | 17 | 1.36 |
+| memory keeps both words, **the code kept** | **2** | **7** | **7** | 1.31 |
+| the newest word only, **the code kept** | **2** | **4** | **15** | 1.51 |
+
+**Missed: 2 and 2.** The passes memory showed came with the code starting over. What stands: the
+session without memory broke the first named case in 3 runs that began on code that had it
+right, and memory broke none.
+
 **What this says.** On asks this model fails, told what is wrong one case at a time: a correction
-that is told is overruled, a correction that is held sticks, and with memory keeping each word
-the words add up to a pass, where a session without it is brought back to the first mistake.
-The human's part was one sentence an attempt, each said once.
+that is told is overruled, and a correction that is held sticks. Memory keeping each word keeps
+every case the human named right and leaves fewer cases wrong. That it passes more asks is shown
+only with the code starting over at each attempt, and is not shown with the code kept.
 
 **What it does not say.** That memory pays on work that already passes: the campaign above
 found it does not. That the two chains differ by the bar at the same attempt: at the third they
