@@ -7864,3 +7864,10 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Mine:** I compiled on the bench host beside running lanes, twice, and the memory watchdog ended three paid runs ($0.30; one had a passing tree and is in no count). The watchdog had never been able to end a carrying run; fixed. A full test build filled the host's disk at midnight; freed by removing the code trees of old kept worlds, their journals kept. The bench threw away runs that had waited out a provider's 429; fixed in the bench, with a test.
 - **Held by tests:** the case a correction states and what stays advice; the list's third source and how it is said; the correction held when its ask comes again, a wrong answer handed back, a withdrawn one holding nothing; the door's two answers and the taking back. 1,145 tests across the crates touched, lints clean.
 - **Spent:** $19.03 over 75 paid runs, caps $33. **Kept:** Kaginari/bench pull request 63 (rows, the five notes with their bars and verdicts, the words, the readings, the tools, the report).
+
+### [2026-11-23T11:18:00+00:00] aibo Summoner — the human's word, in the session
+- **Why:** the chain of corrections passed 7 of 8 failing asks, but a person could only say "wrong" through a separate command of the core, and learned only after keeping it whether their words were held.
+- **Built:** `/wrong <words>` in the terminal UI shows `held:` with the line, or `advice:` with how to say it so it is held, and the ask it goes under; `/keep` keeps, `/drop` drops, `/withdraw` takes back the last one kept. The act moved into one function (`mikata_loop::word`: `preview`, `keep`, `take_back`) used by the core's command and the session; the core prints what it printed before, and its tests pass unchanged.
+- **Held by tests:** a preview writes nothing; what is kept is what was shown and can be taken back once; the session shows before it keeps and keeps once; `/withdraw` with no id takes the last kept. 1,003 tests of the loop, the UI, the core and the server; lints clean.
+- **Left:** the web board; a correction read from the human's next message by a reader model; no screen yet.
+

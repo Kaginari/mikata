@@ -43,6 +43,8 @@ pub use mikata_loop::prove;
 pub use mikata_loop::session_metrics;
 /// The wire, for the commands that speak it without a session (`check`).
 pub use mikata_loop::wire;
+/// The human's word on an answer, said at the door or in a session.
+pub use mikata_loop::word;
 /// The world, for the commands that read it without a session (`onto owner`).
 pub use mikata_loop::world;
 /// The configuration, for the commands that read the human's global file (`board`, `housekeep`).

@@ -20,6 +20,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **Say an answer was wrong from inside the session.** `/wrong <what is wrong>` in the terminal
+  UI shows, before anything is kept, whether your words will be held as a line of that ask's
+  `Done when` list or kept as advice, and under which ask. `/keep` keeps it, `/drop` keeps
+  nothing, `/withdraw` takes back the last one kept. It is the same act as
+  `mikatad memory wrong`, now one function for both.
 - **Say when an answer was wrong, and the next session is told first.** `mikatad memory wrong
   "<what still fails, in your words>"` writes your words to the journal and keeps them as a
   correction in shared memory, under the ask of the journal's last entry (or the one `--ask`

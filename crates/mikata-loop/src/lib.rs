@@ -42,6 +42,7 @@ pub mod summon_tool;
 pub mod verdict_tool;
 pub mod verify_tool;
 pub mod wear_tool;
+pub mod word;
 pub mod workboard;
 
 pub use beats::{Beat, Facts, conversation};

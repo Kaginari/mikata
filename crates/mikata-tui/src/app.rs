@@ -114,6 +114,10 @@ pub enum Msg {
     Terminate,
     /// A line for the human from off the UI thread: what a command came to.
     Said(String),
+    /// What `/wrong` would keep, read off the UI thread; or why there is nothing to keep.
+    Previewed(Result<mikata_loop::word::Preview, String>),
+    /// What `/keep` kept; or why it could not.
+    Kept(Result<mikata_loop::word::Kept, String>),
 }
 
 /// Work for the runtime.
@@ -150,6 +154,12 @@ pub enum Cmd {
         /// Why.
         reason: String,
     },
+    /// Read what saying the last answer was wrong would keep, in these words: nothing written.
+    Wrong(String),
+    /// Keep the correction the human saw and confirmed.
+    Keep(mikata_loop::word::Preview),
+    /// Take a correction of the human's back, by its id.
+    Withdraw(String),
     /// Put text on the clipboard: the terminal's (OSC 52) and the desktop's, where a tool is.
     Copy(String),
     /// Leave.
@@ -243,6 +253,10 @@ pub struct Model {
     pub unfocused: bool,
     /// The window after a probe that timed out, in which its replies may still arrive as keys.
     pub late: crate::probe::Late,
+    /// A correction shown and not yet kept or dropped: `/keep` keeps it, `/drop` drops it.
+    pub wrong: Option<mikata_loop::word::Preview>,
+    /// The id of the last correction kept in this session: what `/withdraw` takes back.
+    pub kept: Option<String>,
 }
 
 /// The surveys: the next one's number, and the newest whose reading was applied.
@@ -277,7 +291,7 @@ pub(crate) struct Hits {
 }
 
 /// The commands typed with a slash.
-pub const COMMANDS: &str = "/send <text> steer the running turn · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /clear · /quit · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
+pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /clear · /quit · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
 
 impl Model {
     /// A model for a session of `header`, in `variant`, at `size`.
@@ -308,6 +322,8 @@ impl Model {
             pictures: crate::pictures::Pictures::default(),
             unfocused: false,
             late: crate::probe::Late::default(),
+            wrong: None,
+            kept: None,
         }
     }
 
@@ -523,6 +539,14 @@ fn apply(m: &mut Model, msg: Msg) -> Vec<Cmd> {
         }
         Msg::Said(text) => {
             m.said(text);
+            Vec::new()
+        }
+        Msg::Previewed(said) => {
+            previewed(m, said);
+            Vec::new()
+        }
+        Msg::Kept(kept) => {
+            was_kept(m, kept);
             Vec::new()
         }
     }
@@ -992,6 +1016,39 @@ fn theme(m: &mut Model, arg: &str) {
     );
 }
 
+/// What `/wrong` would keep, shown before anything is kept.
+fn previewed(m: &mut Model, said: Result<mikata_loop::word::Preview, String>) {
+    match said {
+        Ok(p) => {
+            m.info(format!(
+                "{}\n/keep keeps it · /drop drops it",
+                mikata_loop::word::shown(&p)
+            ));
+            m.wrong = Some(p);
+        }
+        Err(why) => m.info(format!("nothing to keep: {why}")),
+    }
+}
+
+/// What `/keep` kept: its id, which `/withdraw` takes back.
+fn was_kept(m: &mut Model, kept: Result<mikata_loop::word::Kept, String>) {
+    match kept {
+        Ok(k) => {
+            m.info(format!(
+                "kept as {}: {}. /withdraw takes it back",
+                k.id,
+                if k.held.is_some() {
+                    "held from now on when that ask comes again"
+                } else {
+                    "advice, told when that ask comes again"
+                }
+            ));
+            m.kept = Some(k.id);
+        }
+        Err(why) => m.info(format!("not kept: {why}")),
+    }
+}
+
 /// A line the human sent: a command, or an ask that runs now or waits its turn.
 fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
     m.viewport.update(ViewportMsg::Bottom);
@@ -1011,6 +1068,25 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
                 m.info(format!("sent: {arg}"));
                 return vec![Cmd::Steer(arg.to_owned())];
             }
+            // The human's word on the last answer: shown first, kept only on `/keep`.
+            "wrong" if arg.is_empty() => m.info(
+                "/wrong <what is wrong>: say the last answer was wrong. Say what must come out \
+                 (`<input>` must give `<output>`) and the harness holds it when the ask comes again",
+            ),
+            "wrong" => return vec![Cmd::Wrong(arg.to_owned())],
+            "keep" => match m.wrong.take() {
+                Some(p) => return vec![Cmd::Keep(p)],
+                None => m.info("nothing to keep: say /wrong <what is wrong> first"),
+            },
+            "drop" => match m.wrong.take() {
+                Some(_) => m.info("dropped: nothing was kept"),
+                None => m.info("nothing to drop"),
+            },
+            "withdraw" => match (arg, m.kept.clone()) {
+                ("", Some(id)) => return vec![Cmd::Withdraw(id)],
+                ("", None) => m.info("/withdraw <note>: no correction was kept in this session"),
+                (id, _) => return vec![Cmd::Withdraw(id.to_owned())],
+            },
             "waive" => match arg.split_once(char::is_whitespace) {
                 Some((landing, reason)) if !reason.trim().is_empty() => {
                     return vec![Cmd::Waive {
@@ -1047,6 +1123,77 @@ pub fn view(m: &Model, f: &mut Frame<'_>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every info line the session showed, joined.
+    fn said(m: &Model) -> String {
+        m.transcript
+            .entries()
+            .iter()
+            .filter_map(|e| match e {
+                crate::transcript::Entry::Info(text) => Some(text.as_str()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn preview(held: Option<&str>) -> mikata_loop::word::Preview {
+        mikata_loop::word::Preview {
+            words: "`total 1 2` must give `6`; it gives `3`".to_owned(),
+            asked: "total skips blanks".to_owned(),
+            held: held.map(str::to_owned),
+        }
+    }
+
+    /// Saying an answer was wrong is shown before anything is kept: what would be held, or that
+    /// it is advice, and under which ask. Only `/keep` keeps it; `/drop` keeps nothing.
+    #[test]
+    fn wrong_in_the_session_is_shown_before_it_is_kept() {
+        let mut m = Model::new(Header::default(), Variant::Dark, (100, 30));
+        assert!(matches!(
+            submit(&mut m, "/wrong `total 1 2` must give `6`".into()).as_slice(),
+            [Cmd::Wrong(w)] if w == "`total 1 2` must give `6`"
+        ));
+        let held = preview(Some("`total 1 2` must give `6`"));
+        update(&mut m, Msg::Previewed(Ok(held.clone())));
+        let shown = said(&m);
+        assert!(
+            shown.contains("held: when \"total skips blanks\" is asked again")
+                && shown.contains("/keep keeps it · /drop drops it"),
+            "{shown}"
+        );
+        assert!(matches!(submit(&mut m, "/keep".into()).as_slice(), [Cmd::Keep(p)] if *p == held));
+        assert!(submit(&mut m, "/keep".into()).is_empty(), "kept once");
+        // Advice says so, and how to have it held; dropped, nothing is asked of the runtime.
+        update(&mut m, Msg::Previewed(Ok(preview(None))));
+        assert!(said(&m).contains("your words state no output"));
+        assert!(submit(&mut m, "/drop".into()).is_empty());
+        assert!(m.wrong.is_none());
+        assert!(said(&m).contains("dropped: nothing was kept"));
+    }
+
+    /// What was kept says its id, and `/withdraw` with no id takes back the last one kept here.
+    #[test]
+    fn the_last_correction_kept_in_the_session_is_taken_back_by_withdraw() {
+        let mut m = Model::new(Header::default(), Variant::Dark, (100, 30));
+        assert!(submit(&mut m, "/withdraw".into()).is_empty());
+        update(
+            &mut m,
+            Msg::Kept(Ok(mikata_loop::word::Kept {
+                id: "r1".into(),
+                asked: "total skips blanks".into(),
+                linked: Vec::new(),
+                held: Some("`total 1 2` must give `6`".into()),
+            })),
+        );
+        assert!(said(&m).contains("kept as r1: held from now on"));
+        assert!(
+            matches!(submit(&mut m, "/withdraw".into()).as_slice(), [Cmd::Withdraw(id)] if id == "r1")
+        );
+        assert!(
+            matches!(submit(&mut m, "/withdraw r9".into()).as_slice(), [Cmd::Withdraw(id)] if id == "r9")
+        );
+    }
 
     #[test]
     fn a_row_is_copied_without_its_panel_and_with_its_own_indent() {

@@ -853,6 +853,13 @@ about a third more a run ([the bench](bench.md#the-list-held)). It has not seen 
 where it states how the code spells an output it is guessing: read its list before you trust a
 pass by it.
 
+**Say it in the session.** After an answer, type `/wrong <what is wrong>`. Before anything is
+kept you see what it would be: `held:` and the line, when your words say what must come out, or
+`advice:` and how to say it so it is held; and the ask it goes under, the journal's last. `/keep`
+keeps it, `/drop` keeps nothing, and `/withdraw` takes back the last one kept in the session (or
+`/withdraw <note>` any other). It is the same act as the core's command below: one function,
+the same journal entry and the same note.
+
 **What you said was wrong joins the list.** When you say an earlier answer was wrong
 (`mikatad memory wrong`) and your words say what must come out, `<input>` must give `<output>`,
 memory keeps them under that ask, and whenever the ask comes again the case is a line of its
