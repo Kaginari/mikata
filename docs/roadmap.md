@@ -128,12 +128,17 @@ next:
 
 ## Next: a memory that pays
 
-Memory is kept, carried, recalled and used, and it has not paid yet. Carried through ten tasks
-three times over with two models, it changed no pass in sixty runs and saved no calls by the bar
-written first; with the stronger model the rounds cost a fifth to a half more dollars than the
-same tasks cold ([the bench](bench.md#memory-carried-from-task-to-task)). Three faults found on the way are
-fixed: lessons written as a list were dropped, a marked heading was kept as a lesson, and a task
-that came again was not always shown its own notes. What comes next, in order:
+Memory is kept, carried, recalled and used, and on work that already passes it has not paid.
+Carried through ten tasks three times over with two models, it changed no pass in sixty runs and
+saved no calls by the bar written first; with the stronger model the rounds cost a fifth to a
+half more dollars than the same tasks cold ([the bench](bench.md#memory-carried-from-task-to-task)).
+Three faults found on the way are fixed: lessons written as a list were dropped, a marked heading
+was kept as a lesson, and a task that came again was not always shown its own notes.
+
+Where it has begun to pay is on work that fails and is asked again. Told what was wrong one
+case at a time, with each word kept and held, seven of eight asks the small model fails pass by
+the fourth attempt, where a session without memory makes the first mistake again
+([the bench](bench.md#memory-told-it-was-wrong)). What comes next, in order:
 
 - **The same rounds with a verify line.** Everything measured ran with nothing configured: no
   check behind a landing, so no note is ever grounded, the body is shown every note as unproven
@@ -141,14 +146,26 @@ that came again was not always shown its own notes. What comes next, in order:
   project's own test command, which the README asks for. To do first, bar first: the three
   rounds and their cold arm with a verify line, on the codebase where the bench has one. About
   $15, two bodies.
-- **Learning from a mistake, measured.** Built after that campaign, because it showed memory
-  could not: a first failure is now remembered under its ask, a session that stops leaves an
-  account, and the human can say an answer was wrong (`mikatad memory wrong`), which the next
-  session with that ask is told first ([memory](07-memory.md#reconsolidation)). Tests hold each
-  step. What is not shown yet is that a second attempt passes for it: that is the next screen,
-  bar first, on the asks the small model fails.
+- **Learning from a mistake: what is shown, and what is left.** Built because the campaign
+  showed memory could not: a first failure is remembered under its ask, a session that stops
+  leaves an account, the human can say an answer was wrong (`mikatad memory wrong`), and what
+  they say must come out is held as a line of that ask's list from then on
+  ([memory](07-memory.md#reconsolidation)). Five screens: a correction that is told is taken up
+  and overruled; held, it sticks; kept by memory, three of them brought 7 asks of 8 to pass.
+  Left to show: the same with a body that needs it less; the session without memory run as far
+  as the one with it (it was stopped at its third attempt, where its next word was the first
+  again); a tree that keeps its code between attempts, as a real one does; and the two other
+  paths, a failure by the gate and a stop, which have their tests and one sighting each in a
+  paid run, and no screen.
 - **The human's word, in the session.** The door is a command of the core today. To do: the
-  same act from inside a session, where the human is looking at the answer.
+  same act from inside a session, where the human is looking at the answer, and the line the
+  harness would hold shown back before it is kept: a word is held only when it says what must
+  come out, and a person does not always say it so.
+- **A check that cannot run is not a check that fails.** Twice a run on a JavaScript codebase
+  handed in checks that load a file a source tree does not have, was told at hand-in and at
+  every failed landing, and never repaired them; the second time its code was right on every
+  case it had been given. The gate cannot tell the two apart. To do, bar first: say them apart,
+  at hand-in and at the gate.
 - **The same lesson, written by every session.** Thirty runs left 28 copies of one fact, 16 of
   them written by a session that had it in its ask. Their words differ too much to drop a copy
   by its words (two share a median 0.18). To try: say at the hand-in which lessons are already

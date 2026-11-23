@@ -92,6 +92,16 @@ The same three harnesses, each as released, on two more screens, each task once
   dollars than the same tasks cold. For that model memory had been empty all along, by a fault
   now fixed. All of it measured without a verify line, which is where the design's own proof comes
   from ([measured](#memory-carried-from-task-to-task)).
+- **Told what was wrong, memory learns, when the harness holds what it was told.** On eight asks
+  the small model fails, a human says one wrong case after each attempt. Told as words, by
+  memory or in the ask, every run takes the case up and, where the fix is hard, five of six then
+  rewrite their own line and answer "done": 0 passes of 8 either way. Held by the harness, a
+  line the model cannot rewrite, the named case is right in 8 of 8. And with memory keeping each
+  word as a held line, the words add up: **7 of the 8 asks pass by the fourth attempt**, the
+  human having typed nothing but the ask and three sentences. A fresh session told only the
+  newest word makes the first mistake again in 5 of 7 and stands at 2 of 8 after its third
+  attempt. By the bars written first: two missed, one missed by one, two met
+  ([measured](#memory-told-it-was-wrong)).
 - **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
   light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
   a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
@@ -744,13 +754,50 @@ attempt left.
 
 So a correction is built to be held: a word of the human's that says what must come out is a
 line of that ask's list whenever the ask comes again, and each further word adds a line
-([memory](07-memory.md#reconsolidation)). What these screens do not show is a pass that follows
-from it; whether a second word, joined to the first by memory, gets there is the next screen.
+([memory](07-memory.md#reconsolidation)). Then the same eight asks were taken further, on that
+build, to see whether a second word **joins** the first. Two chains from the same second
+attempt. In one, **memory keeps every word**: the human says each through the door once and
+types nothing but the ask. In the other, a fresh session is told **the newest word only**, as a
+human with no memory would say it, held the same way. Each new word is the first case the
+attempt before it still gets wrong.
 
-**Limits.** Eight pairs, three asks, two codebases, one small model, one second attempt each.
-The words are ours, one case each, found by running the code. The code starts over between
-attempts, which a real tree does not. No verify line. $14.34 over 57 paid runs, caps $23; rows,
-notes with their bars, and the readers are in the bench repository
+| After | Memory keeps every word | Cases wrong | The newest word only | Cases wrong |
+|---|---|---|---|---|
+| The first attempt | 0 of 8 | 31 | 0 of 8 | 31 |
+| The second, one word held | 1 of 8 | 16 | 1 of 8 | 16 |
+| The third, two words | 4 of 8 | 5 | 2 of 8 | 17 |
+| The fourth, three words | **7 of 8** | 1 | not run | |
+
+- **At the third attempt the bar was missed by one.** Written first: with memory keeping both
+  words, at least 4 of the 7 pairs still open pass, and three more than the fresh session. It
+  was 3 against 1.
+- **Memory kept what was said once; the fresh session went in a circle.** The first word's case
+  came out right in 7 runs of 7 with memory. Told only the second word, the fresh session got
+  that one right in 7 of 7 and made the first mistake again in 5 of 7. Its count of wrong cases
+  stood where it was, 17 after 16; with memory it fell to 5.
+- **At the fourth attempt the chain arrived.** A third word on the four pairs still open: 3 of 4
+  pass, the bar being 2. The ask where the fix is hard, which failed in all 18 counted runs
+  before, passes in all three of its pairs with two or three words held. The fourth pair has its
+  three named cases right and could not land: its checks load a file a source tree does not
+  have, it was told so five times, and it never repaired them.
+- **The fresh chain was not run a fourth time, and that is a limit of the comparison.** Its
+  third word, found the same way, is the first word's own case again in 5 of its 6 open pairs:
+  its next attempt would be the second attempt over again, which passed none of those five.
+
+**What this says.** On asks this model fails, told what is wrong one case at a time: a correction
+that is told is overruled, a correction that is held sticks, and with memory keeping each word
+the words add up to a pass, where a session without it is brought back to the first mistake.
+The human's part was one sentence an attempt, each said once.
+
+**What it does not say.** That memory pays on work that already passes: the campaign above
+found it does not. That the two chains differ by the bar at the same attempt: at the third they
+stood 4 and 2 of 8. That a person will say what is wrong this exactly: every word here is one
+input and the output it must give, found by running the code. Eight asks, three of them
+distinct, two codebases, one small model, one run a cell. The code starts over between
+attempts, which a real tree does not. No verify line.
+
+$19.03 over 75 paid runs, caps $33. Two bars missed, one missed by one, two met. Rows, the five
+notes with their bars, the words and the readers are in the bench repository
 (`studies/told-once/`).
 
 ### The modes against each other

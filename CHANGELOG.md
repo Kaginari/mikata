@@ -35,7 +35,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   your words up to the output they state. Words that state no output stay advice, as before,
   and `memory wrong` now says which it was. On our bench a correction that was only told was
   taken up by every run and then overruled by five runs of six where the fix was hard; held,
-  the case came out right in eight runs of eight.
+  the case came out right in eight runs of eight, and with memory keeping three such words
+  seven of eight asks the small model fails came to pass.
 - **Take a correction back.** `mikatad memory withdraw <note>` puts a correction of yours to
   sleep: it is told and held no more, the journal keeps the act, and nothing is deleted.
 - **A session that stops leaves an account.** When a session spends its steps, its clock, its

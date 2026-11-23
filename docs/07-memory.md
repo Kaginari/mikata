@@ -466,7 +466,10 @@ with it are told apart.
   state no output stay advice, as do words that say something `must stay`: what the code does
   today may be the very answer the human called wrong. The door says which it was, in the line
   as it will be held. Held on the same asks, the named case came out right in 8 runs of 8, and
-  one run that handed the line in again with the opposite output was refused. Only what recall
+  one run that handed the line in again with the opposite output was refused. Kept by memory
+  from one attempt to the next, a second and a third word joined the first: what was said once
+  stayed right in every run (a session with no memory made the first mistake again in 5 of 7),
+  and 7 of the 8 asks passed by the fourth attempt. Only what recall
   itself would tell is held: a note whose author or proof does not resolve is neither.
   `mikatad memory withdraw <note>` takes a correction back: it sleeps by the human's word, is
   told and held no more, and nothing is deleted.
