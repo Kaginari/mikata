@@ -63,6 +63,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **A check that cannot run is no longer called a failure of your work.** A check whose command
+  could not load what it names (a program that is not installed, a module or file that is not
+  there) was told "fails on your work" at the gate, in the same words as a wrong value. One run
+  with right code was sent back four times and ended as failed. The body is now told at hand-in
+  that such a command stops before it reaches the work, and the gate says it `cannot run here`
+  and shows nothing of the work when it fails as it did then. The line still does not land. A
+  command that fails any other way, unchanged by the work, is said to be unmoved by it.
 - **A stopped session's account names files as the world does.** A body that wrote a file by
   the world's whole path had that path listed as changed, its own plan under `.mikata/` among
   them. Paths are now said relative to the world, and the plan is left out whichever way it was
@@ -116,6 +123,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   landing failed twice. The harness now reads the first stage's status from the shell, as its
   stall detector already did: that check failed on the code as you gave it, so the line is held
   as a failure is, and work that makes the command run is said once and refuses nothing.
+- **A session stopped between `git stash` and its pop no longer ends with its work out of the
+  tree.** Mikata often puts its edits aside for a moment to see what the code as you gave it
+  prints: `git stash && <a probe> && git stash pop`. A checkpoint that fell in between (steps,
+  clock, budget or context spent, or a stall) took the tools away, and nothing popped the stash
+  or said it was there: the files read as you gave them, the work sat in `git stash`, and the
+  last words said what had been changed. A checkpoint now puts that stash back, before the last
+  words are asked, with `git stash pop --index` run under the same guard as Mikata's own
+  commands, and only while nothing has moved since the stash: the tree and the index clean, no
+  commit made. Otherwise the stash is left, and named with the way to bring it back: on your
+  screen, in the journal, in the stop's account, and to the body, in its last turn's note or
+  in the conversation for the ask that goes on. A stash that was there when the ask began is
+  never touched. Counted over 490 kept runs of our bench: 146 put their edits aside this way,
+  and one was stopped in between. It ended with 103 lines in the stash and was scored a
+  failure on a tree it had not changed.
 
 ## [1.1.0] - 2026-11-21
 

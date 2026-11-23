@@ -317,6 +317,260 @@ async fn spent_steps_keep_what_the_body_learned() {
     assert_eq!(model.requests().len(), 3);
 }
 
+/// The world as a repository of its own with one committed file, `f.txt`, and an identity in
+/// its own config: a stash is a commit, and the tests' home names nobody.
+fn repo(w: &World) {
+    fs::write(w.world().join("f.txt"), "one\n").unwrap();
+    for args in [
+        &["init", "-q"][..],
+        &["config", "user.name", "t"],
+        &["config", "user.email", "t@t"],
+        &["config", "commit.gpgsign", "false"],
+        &["add", "-A"],
+        &["commit", "-q", "-m", "w"],
+    ] {
+        git(w, args);
+    }
+}
+
+fn git(w: &World, args: &[&str]) {
+    let ok = std::process::Command::new("git")
+        .arg("-C")
+        .arg(w.world())
+        .args(args)
+        .status()
+        .unwrap()
+        .success();
+    assert!(ok, "git {args:?}");
+}
+
+/// The text the body was last sent: on a last turn, the note that asks for its last words.
+fn last_said(model: &ScriptedModel) -> String {
+    model
+        .requests()
+        .last()
+        .and_then(|r| r.messages.last().cloned())
+        .map(|m| {
+            m.content
+                .iter()
+                .filter_map(|b| match b {
+                    Block::Text { text, .. } => Some(text.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .unwrap_or_default()
+}
+
+fn warned_of_a_stash(w: &World) -> Vec<String> {
+    w.journal()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|b| match b {
+            Beat::Warning { text } if text.contains("git stash") => Some(text),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The run this is for: `git stash && <a probe of the code as given>` was a body's last act
+/// before its steps ran out. The stop took the tools, the pop never came, and the run ended with
+/// a clean tree and its work in the stash. A stop now pops it, before the last words are asked.
+#[tokio::test]
+async fn a_stash_left_at_the_step_limit_is_popped() {
+    let w = World::new("stash-popped");
+    repo(&w);
+    let model = Arc::new(ScriptedModel::new([
+        tool("t0", "bash", json!({"command": "echo two >> f.txt"})),
+        tool("t1", "bash", json!({"command": "git stash && cat f.txt"})),
+        ScriptedModel::text("I added a line to f.txt."),
+    ]));
+    let mut run = w.run(
+        model.clone(),
+        Limits {
+            steps: 2,
+            ..limits()
+        },
+    );
+    let e = ask(&mut run, "add a line").await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, salvage: Some(_) } if why.starts_with("steps")),
+        "{e:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("f.txt")).unwrap(),
+        "one\ntwo\n",
+        "the work is back in the tree"
+    );
+    assert_eq!(mikata_tools::stash_depth(&w.world()), 0);
+    let note = last_said(&model);
+    assert!(
+        note.starts_with("You must stop now.") && note.contains("it was popped at the stop"),
+        "the body is told before its last words: {note}"
+    );
+    let warned = warned_of_a_stash(&w);
+    assert_eq!(warned.len(), 1, "said once: {warned:?}");
+    assert!(
+        warned[0].contains("the work is back in the tree"),
+        "{warned:?}"
+    );
+}
+
+/// A stop with no last turn — a stall — pops it too: every checkpoint ends the same way.
+#[tokio::test]
+async fn a_stash_left_at_a_stall_is_popped() {
+    let w = World::new("stash-stall");
+    repo(&w);
+    let mut calls = vec![
+        tool("t0", "bash", json!({"command": "echo two >> f.txt"})),
+        tool("t1", "bash", json!({"command": "git stash"})),
+    ];
+    calls.extend((0..5).map(|i| tool(&format!("g{i}"), "glob", json!({"pattern": "*.txt"}))));
+    calls.push(answer("The line is there."));
+    let model = Arc::new(ScriptedModel::new(calls));
+    let mut run = w.run(model.clone(), limits());
+    let e = ask(&mut run, "add a line").await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, salvage: None } if why == "stall: loop"),
+        "{e:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("f.txt")).unwrap(),
+        "one\ntwo\n"
+    );
+    assert_eq!(mikata_tools::stash_depth(&w.world()), 0);
+    assert_eq!(warned_of_a_stash(&w).len(), 1);
+    // No last turn carried the word: the ask that goes on reads it in the conversation.
+    assert_eq!(
+        ask(&mut run, "go on").await,
+        Ending::Answered("The line is there.".into())
+    );
+    let sent = format!("{:?}", model.requests().last().unwrap().messages);
+    assert!(sent.contains("it was popped at the stop"), "{sent}");
+}
+
+/// A clock death leaves the pop no time of the run's own: it has its own seconds, as the last
+/// turn has, and the command the clock stopped had already put the work aside.
+#[tokio::test]
+async fn a_stash_left_at_a_clock_death_is_popped() {
+    let w = World::new("stash-clock");
+    repo(&w);
+    let model = Arc::new(ScriptedModel::new([
+        tool(
+            "t0",
+            "bash",
+            json!({"command": "echo two >> f.txt && git stash -q && sleep 30"}),
+        ),
+        ScriptedModel::text("I was checking the code as given."),
+    ]));
+    let mut run = w.run(
+        model,
+        Limits {
+            deadline: Duration::from_secs(3),
+            ..limits()
+        },
+    );
+    let e = ask(&mut run, "add a line").await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, salvage: Some(_) } if why.starts_with("clock")),
+        "{e:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("f.txt")).unwrap(),
+        "one\ntwo\n"
+    );
+    assert_eq!(mikata_tools::stash_depth(&w.world()), 0);
+    assert_eq!(warned_of_a_stash(&w).len(), 1);
+}
+
+/// A pop over a tree that has changed since the stash would be a merge: the stash is left where
+/// it is, and the body, the journal and the human are told where the work is.
+#[tokio::test]
+async fn a_stash_under_a_changed_tree_is_named_not_popped() {
+    let w = World::new("stash-named");
+    repo(&w);
+    let model = Arc::new(ScriptedModel::new([
+        tool("t0", "bash", json!({"command": "echo two >> f.txt"})),
+        tool("t1", "bash", json!({"command": "git stash"})),
+        tool("t2", "bash", json!({"command": "echo three >> f.txt"})),
+        ScriptedModel::text("I was trying another way."),
+    ]));
+    let mut run = w.run(
+        model.clone(),
+        Limits {
+            steps: 3,
+            ..limits()
+        },
+    );
+    let e = ask(&mut run, "add a line").await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, .. } if why.starts_with("steps")),
+        "{e:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("f.txt")).unwrap(),
+        "one\nthree\n",
+        "the tree is left as the stop found it"
+    );
+    assert_eq!(
+        mikata_tools::stash_depth(&w.world()),
+        1,
+        "the stash is kept"
+    );
+    let note = last_said(&model);
+    assert!(
+        note.contains("the tree has changed since")
+            && note.contains("in the stash, not in the tree")
+            && note.contains("`git stash pop` puts it back"),
+        "{note}"
+    );
+    let warned = warned_of_a_stash(&w);
+    assert_eq!(warned.len(), 1, "{warned:?}");
+    assert!(
+        warned[0].contains("the tree has changed since"),
+        "{warned:?}"
+    );
+}
+
+/// A stash the ask found is the human's: a stop counts from it, and leaves it alone.
+#[tokio::test]
+async fn a_stash_the_ask_found_is_left_alone() {
+    let w = World::new("stash-found");
+    repo(&w);
+    fs::write(w.world().join("f.txt"), "one\nmine\n").unwrap();
+    git(&w, &["stash", "-q"]);
+    let model = Arc::new(ScriptedModel::new([
+        tool("t0", "glob", json!({"pattern": "a*"})),
+        tool("t1", "glob", json!({"pattern": "b*"})),
+        ScriptedModel::text("Nothing found."),
+    ]));
+    let mut run = w.run(
+        model.clone(),
+        Limits {
+            steps: 2,
+            ..limits()
+        },
+    );
+    let e = ask(&mut run, "look").await;
+    assert!(
+        matches!(&e, Ending::Checkpoint { why, .. } if why.starts_with("steps")),
+        "{e:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(w.world().join("f.txt")).unwrap(),
+        "one\n"
+    );
+    assert_eq!(mikata_tools::stash_depth(&w.world()), 1);
+    assert!(
+        !last_said(&model).contains("stash"),
+        "nothing is said of it"
+    );
+    assert_eq!(warned_of_a_stash(&w), Vec::<String>::new());
+}
+
 /// A body alone — no lane below, no one above — has no one to hand the turn to: three failed
 /// acts in a row warn it to change approach, and the run goes on.
 #[tokio::test]

@@ -175,6 +175,10 @@ pub struct Check {
     /// which, so it refuses nothing and the pass names the line ([`List::by`]). Never set for a
     /// check that came in late: what its command did before the work is not known then.
     pub already: bool,
+    /// How its command failed when it was handed in, for a line that states an output: `None`
+    /// when it ran. A command that fails the same way when the answer lands has not been moved
+    /// by the work, and one that failed to load never reached it ([`CANNOT_RUN`]).
+    pub failed: Option<String>,
 }
 
 /// What a check's command must do on the work.
@@ -502,10 +506,12 @@ from the code as you found it: hand it in before the first change.",
             must,
             late: !pristine,
             already: false,
+            failed: None,
         };
-        let (said, prints) = said_of(&check, tools, cx);
+        let (said, prints, failed) = said_of(&check, tools, cx);
         // Only the code as the ask found it says what a check will show of the work.
         check.already = pristine && prints;
+        check.failed = failed;
         self.checks.retain(|c| c.line != line);
         self.told.retain(|t| *t != line);
         self.checks.push(check);
@@ -551,6 +557,26 @@ from the code as you found it: hand it in before the first change.",
                 Must::Give(must) if now.ok && loose(&now.out) == loose(must) => {
                     judged.hold += 1;
                     judged.loosely += 1;
+                }
+                // The command fails as it did when it was handed in: nothing the body did
+                // since has changed what it does. One that failed to load never reached the
+                // work, so it shows nothing of it, and saying only "fails on your work" sends a
+                // body with right code back to change that code.
+                Must::Give(must) if !now.ok && c.failed.as_deref() == Some(now.err.as_str()) => {
+                    let must = clipped(must);
+                    let err = failure(&now.err);
+                    judged.failures.push(if unloaded(&now.err) {
+                        format!(
+                            "{SAID} {line} must give `{must}`: `{command}` {CANNOT_RUN}: it \
+fails as it did when you handed it in ({err}), before it reaches your work. That shows nothing of \
+your work, right or wrong: hand {line} in again with a command that runs"
+                        )
+                    } else {
+                        format!(
+                            "{SAID} {line} must give `{must}`: `{command}` fails ({err}) on \
+your work, as it did when you handed it in: your work has not changed what this command does"
+                        )
+                    });
                 }
                 Must::Give(must) => judged.failures.push(format!(
                     "{SAID} {line} must give `{}`: `{command}` {did} on your work",
@@ -853,10 +879,36 @@ fn failure(err: &str) -> &str {
     }
 }
 
+/// What the gate says of a check whose command failed to load when it was handed in and fails
+/// the same way on the finished work. The gate's note and the journal find such a failure by
+/// these words.
+pub const CANNOT_RUN: &str = "cannot run here";
+
+/// Whether an error says a command could not load what it names: a program that is not
+/// installed, a module or a file that is not there. Such a command stops before it reaches what
+/// its line is about. Kept narrow: an error of any other kind may be the very thing the ask is
+/// there to change.
+fn unloaded(err: &str) -> bool {
+    const SIGNS: [&str; 7] = [
+        "ERR_MODULE_NOT_FOUND",
+        "Cannot find module",
+        "ModuleNotFoundError",
+        "No module named",
+        "command not found",
+        "No such file or directory",
+        "can't open file",
+    ];
+    SIGNS.iter().any(|sign| err.contains(sign)) || err.trim_end().ends_with(": not found")
+}
+
 /// What the body is told of a check just taken: what it is held to, and for a stated output,
 /// what its command does on the world as it stands. With it, whether the command prints that
-/// stated output now, letter case and blanks set aside.
-fn said_of(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> (String, bool) {
+/// stated output now, letter case and blanks set aside, and how it failed if it did.
+fn said_of(
+    check: &Check,
+    tools: &[Box<dyn Tool>],
+    cx: &mut Context,
+) -> (String, bool, Option<String>) {
     let line = &check.line;
     let must = match &check.must {
         Must::Print(must) if must.is_empty() => {
@@ -864,7 +916,7 @@ fn said_of(check: &Check, tools: &[Box<dyn Tool>], cx: &mut Context) -> (String,
                 "{line} is held. On the code as you found it, your command prints nothing and \
 succeeds. Your work must do the same."
             );
-            return (said, false);
+            return (said, false, None);
         }
         Must::Print(must) => {
             let said = format!(
@@ -872,7 +924,7 @@ succeeds. Your work must do the same."
 work must print the same.",
                 clipped(must)
             );
-            return (said, false);
+            return (said, false, None);
         }
         Must::Fail(must) => {
             let said = format!(
@@ -882,13 +934,24 @@ way, you are told once, and it refuses nothing: never add code only to keep it f
 failure is in the command itself and not what the line is about, hand the line in again.",
                 failure(must)
             );
-            return (said, false);
+            return (said, false, None);
         }
         Must::Give(must) => must,
     };
     let now = run(&check.command, tools, cx);
     let prints = now.ok && loose(&now.out) == loose(must);
-    let state = if !now.ok {
+    let state = if !now.ok && unloaded(&now.err) {
+        // Said at once, while the body can still write another command: at the gate it is a
+        // failed landing, and a body told only that its command "fails" has gone on to change
+        // code that was right.
+        format!(
+            "Now the command fails ({}). That is the command failing to load something, before \
+it reaches what {line} is about. Unless your work is to make that exist, this command cannot run \
+here and will show nothing of your work: hand {line} in again with a command that runs. It must \
+print that when you are done.",
+            failure(&now.err)
+        )
+    } else if !now.ok {
         format!(
             "Now the command fails ({}): it must print that when you are done.",
             failure(&now.err)
@@ -907,7 +970,7 @@ failure is in the command itself and not what the line is about, hand the line i
         "{line} is held: your command must print:\n{}\n{state}",
         clipped(must)
     );
-    (said, prints)
+    (said, prints, (!now.ok).then(|| now.err.clone()))
 }
 
 /// How a check already held stands on the world as it is: what a body asks by handing the same
@@ -1046,8 +1109,9 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
 #[cfg(test)]
 mod tests {
     use super::{
-        CHECK, CORRECTED_LINES, CheckTool, Judged, Kind, List, Must, READER, SAID, and, clipped,
-        held_line, kind, loose, moved_note, read_lines, runs, stated, states, words,
+        CANNOT_RUN, CHECK, CORRECTED_LINES, CheckTool, Judged, Kind, List, Must, READER, SAID, and,
+        clipped, held_line, kind, loose, moved_note, read_lines, runs, stated, states, unloaded,
+        words,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -1918,6 +1982,124 @@ you gave it; 1 check handed in after the code had changed)"
                 )),
             "{judged:?}"
         );
+    }
+
+    /// The mathjs case, with its real error: three checks loaded the library from a file a
+    /// source tree does not have, the body was told "fails on your work" at four landings, and
+    /// its code was right all along. A command that failed to load when it was handed in and
+    /// fails the same way on the finished work is said to be a command that cannot run: at
+    /// hand-in while another can still be written, and at the gate apart from a wrong value.
+    #[test]
+    fn a_check_that_cannot_load_is_told_apart_from_one_the_work_breaks() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        let missing = "Error [ERR_MODULE_NOT_FOUND]: Cannot find module \
+'/w/src/entry/pureFunctionsAny.generated.js' imported from /w/src/entry/mainAny.js";
+        let fails = |err: &str| format!("echo \"{err}\" >&2\necho 'Node.js v22.0.0' >&2\nexit 1\n");
+        script(&fails(missing));
+        let ask =
+            "Shift right.\n\n## Done when\nD1: `rightLogShift(-1, 0)` must give `4294967295`\n";
+        let mut list = List::of(ask);
+        let hand = r#"{"line": "D1", "command": "sh strict.sh 2>&1", "gives": "4294967295"}"#;
+        let o = call_in(&mut list, &mut cx, hand, true);
+        assert!(
+            o.content
+                .contains(&format!("Now the command fails ({missing}).")),
+            "{}",
+            o.content
+        );
+        assert!(
+            o.content
+                .contains("failing to load something, before it reaches what D1 is about")
+                && o.content
+                    .contains("hand D1 in again with a command that runs"),
+            "{}",
+            o.content
+        );
+        // The work is done and the command is as it was: the gate does not call the work wrong.
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!((judged.failures.len(), judged.hold), (1, 0), "{judged:?}");
+        let said = &judged.failures[0];
+        assert!(
+            said.contains(&format!(
+                "D1 must give `4294967295`: `sh strict.sh 2>&1` {CANNOT_RUN}: it fails as it \
+did when you handed it in ({missing}), before it reaches your work."
+            )) && said.contains("hand D1 in again with a command that runs")
+                && !said.contains("on your work"),
+            "{said}"
+        );
+        // The same line and command handed in again asks how it stands, and is told the same.
+        let o = call_in(&mut list, &mut cx, hand, false);
+        assert!(
+            o.content.contains("failing to load something"),
+            "{}",
+            o.content
+        );
+        // Work that makes the missing thing exist is what the check was for: it holds.
+        script("echo 4294967295\n");
+        let judged = list.judge(&registry(), &mut cx);
+        assert_eq!((judged.failures.len(), judged.hold), (0, 1), "{judged:?}");
+        // Failing another way is a failure on the work, said as before.
+        script(&fails("RangeError: shift out of range"));
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.failures[0].contains("fails (RangeError: shift out of range) on your work")
+                && !judged.failures[0].contains(CANNOT_RUN),
+            "{judged:?}"
+        );
+    }
+
+    /// A command that fails when handed in for a reason the ask may be there to change (the
+    /// function is not written yet) is not called a command that cannot run. Failing the same
+    /// way on the finished work, it is said to be unmoved by the work, which is true whether the
+    /// work or the command is at fault.
+    #[test]
+    fn a_check_the_work_did_not_move_is_said_to_be_unmoved() {
+        let (dir, mut cx) = world();
+        let script = |text: &str| std::fs::write(dir.path().join("strict.sh"), text).unwrap();
+        let unwritten = "TypeError: math.rightLogShift is not a function";
+        script(&format!("echo '{unwritten}' >&2\nexit 1\n"));
+        let mut list = List::of("Shift right.\n\n## Done when\nD1: `f(1)` must give `2`\n");
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh", "gives": "2"}"#,
+            true,
+        );
+        assert!(
+            o.content.contains(&format!(
+                "Now the command fails ({unwritten}): it must print that"
+            )) && !o.content.contains("failing to load"),
+            "{}",
+            o.content
+        );
+        let judged = list.judge(&registry(), &mut cx);
+        assert!(
+            judged.failures[0].contains(&format!(
+                "`sh strict.sh` fails ({unwritten}) on your work, as it did when you handed it \
+in: your work has not changed what this command does"
+            )) && !judged.failures[0].contains(CANNOT_RUN),
+            "{judged:?}"
+        );
+        // Each sign of a failure to load, and what is not one.
+        for err in [
+            "sh: 1: pytest: not found",
+            "bash: line 1: pytest: command not found",
+            "ModuleNotFoundError: No module named 'sqlglot'",
+            "/usr/bin/python3: No module named pytest",
+            "python3: can't open file '/w/t.py': [Errno 2] No such file or directory",
+            "Error: Cannot find module './src/index.js'",
+        ] {
+            assert!(unloaded(err), "{err}");
+        }
+        for err in [
+            "",
+            "AssertionError: 3 != 6",
+            "KeyError: 'unit not found in table'",
+            "ImportError: cannot import name 'slice_sql' from 'sqlglot.generator'",
+        ] {
+            assert!(!unloaded(err), "{err}");
+        }
     }
 
     /// A check that pipes its command into `tail` ends well whatever the command did. A line

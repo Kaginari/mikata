@@ -328,6 +328,19 @@ checkpoint carries it, and so do spent steps. In a session of its own those last
 as the body's `handoff` note under the ask, and their `@U` lines as lessons.
 A tool the body calls anyway on a drain or salvage turn never runs: only its words are kept.
 
+**A stop puts a stash back.** A body often puts its edits aside for a moment, to see what the
+code as it found it prints (`git stash && <a probe> && git stash pop`), and a stop can fall
+before the pop: its work would sit in `git stash` while the tree reads as the ask found it. So
+every checkpoint counts the stashes the ask pushed and has not popped, from git's own files and
+from the count the ask began at. The newest is popped (`git stash pop --index`, through `bash`,
+under the guard the body's own commands run under) while nothing has moved since it was pushed:
+the tree and the index clean, no commit made. That comes before a drain or salvage turn is
+asked, so the last words are said of the tree as it is left. A stash that cannot be put back
+that way is left where it is and named with the way to bring it back. What the stop did is
+said to you as a warning, and to the body: in its last turn's note, or, at a stop with no last
+turn, as a note in the conversation for the ask that goes on. A stash left is in the stop's
+account too. A stash the ask found is the human's, and is never touched.
+
 **Changes mid-session append.** The system prompt and the tools are built once, when the run is
 made. A model fallback, a new date, working directory or mode, or a reloaded configuration is
 said to the body as a `[context update]` line before its next request, and journaled as a note,
@@ -788,6 +801,19 @@ stay was tried before, and failed. So the harness holds the list, by code:
   whatever it was piped into: `... 2>&1 | tail -1` ends well whatever came before it, so the
   harness reads the first stage's own status from the shell. What the pipe let through of a
   failed command is no output to hold a line to.
+- **A check that cannot run is said to be one.** A check for a stated output remembers how its
+  command failed when it was handed in. If that was a failure to load (a program that is not
+  installed, a module or a file that is not there), the body is told at once that the command
+  stops before it reaches what the line is about, and to hand in one that runs unless its work
+  is to make the missing thing exist. When the answer comes and the command fails exactly as it
+  did then, the gate does not say the work is wrong: it says the command `cannot run here`, that
+  this shows nothing of the work, right or wrong, and to hand the line in again. A landing
+  failed only by such commands is told to leave the code and repair the commands. The line
+  still does not land: nothing checked it. A command that failed another way when handed in
+  (the function is not written yet) and fails the same way on the finished work is said to be
+  unmoved by the work, which is true whichever of the two is at fault. The journal, the
+  session's ending and the failure memory keeps under the ask carry the same words, so the
+  next session is told it was the checks.
 - The same line and command handed in again asks how the line stands now. The check is kept as
   it came in.
 - A line with neither phrase takes either form.

@@ -162,11 +162,13 @@ the fourth attempt, where a session without memory makes the first mistake again
   and the session share one act. Left: the web board; a correction read from the human's next
   message when a reader model is named (offered, never kept without `/keep`); and a screen that
   shows people phrase it so that it is held.
-- **A check that cannot run is not a check that fails.** Twice a run on a JavaScript codebase
-  handed in checks that load a file a source tree does not have, was told at hand-in and at
-  every failed landing, and never repaired them; the second time its code was right on every
-  case it had been given. The gate cannot tell the two apart. To do, bar first: say them apart,
-  at hand-in and at the gate.
+- **A check that cannot run is not a check that fails: built, not measured.** Twice a run on a
+  JavaScript codebase handed in checks that load a file a source tree does not have, was told
+  "fails on your work" at every landing, and never repaired them; the second time its code was
+  right on every case it had been given. The harness now says the two apart, at hand-in and at
+  the gate ([the loop](02-loop.md#a-done-when-list-in-the-ask)). Tests replay the case with its
+  real error. Not shown: that a body told so repairs its command. To screen, bar first, on the
+  ask where it happened.
 - **The same lesson, written by every session.** Thirty runs left 28 copies of one fact, 16 of
   them written by a session that had it in its ask. Their words differ too much to drop a copy
   by its words (two share a median 0.18). To try: say at the hand-in which lessons are already
