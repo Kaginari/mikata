@@ -99,10 +99,11 @@ The same three harnesses, each as released, on two more screens, each task once
   line the model cannot rewrite, the named case is right in 8 of 8. And with memory keeping each
   word as a held line, 7 of the 8 asks passed by the fourth attempt, **with the code starting
   over at every attempt**. Run again with the code kept, as a real tree keeps it, memory and a
-  fresh session told the newest word passed the same, 2 of 7 each. What memory still does: it
-  kept every case the human named right (7 of 7, where the fresh session broke the first one in
-  3, on code that had it right) and left half as many hidden cases wrong. By the bars written
-  first: three missed, one missed by one, two met ([measured](#memory-told-it-was-wrong)).
+  fresh session told the newest word passed the same, 2 of 7 each. What memory does: over 18
+  more runs, no answer it gave had broken a case the human named before (one run broke it
+  mid-work and never answered), where a session without it answered with it broken in 4, all on
+  the hard ask; and it left about half as many hidden cases wrong. By the bars written first:
+  four missed, two missed by one, two met ([measured](#memory-told-it-was-wrong)).
 - **Separate projects in one ask: one body a project.** Five whole repositories asked as one: one
   light-coding body fixed 2.5 of 5 on average, 3.5 given 400 steps. Light-coding now runs one body
   a project, at once, each in its own folder: 5 and 4 of 5, about 19 minutes and $1.72 a run.
@@ -799,6 +800,20 @@ the same but for memory. Bar first: memory passes at least two more of the 7.
 **Missed: 2 and 2.** The passes memory showed came with the code starting over. What stands: the
 session without memory broke the first named case in 3 runs that began on code that had it
 right, and memory broke none.
+
+**Then that, measured alone.** Step 66 ran the same setup three times per arm on six of the
+pairs (one was left out: its second word named a case its starting code already had right).
+Bar first: memory breaks the first named case in at most 1 of 18 runs, and the session without
+it in at least 4 more.
+
+| 18 runs each | The first named case broken | Of them answered as done | Passes | Hidden cases wrong | Dollars |
+|---|---|---|---|---|---|
+| memory keeps both words | 1 | 0 | 8 | 11 | 3.23 |
+| the newest word only | 4 | 4 | 6 | 21 | 3.64 |
+
+**Missed by one.** Memory's one break was a run that spent its 200 steps mid-work and never
+answered; the line it held would have refused that landing. All four breaks without memory were
+answered as done, and all of them are on the ask where the fix is hard.
 
 **What this says.** On asks this model fails, told what is wrong one case at a time: a correction
 that is told is overruled, and a correction that is held sticks. Memory keeping each word keeps

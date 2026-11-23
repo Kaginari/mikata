@@ -471,7 +471,8 @@ with it are told apart.
   stayed right in every run (a session with no memory made the first mistake again in 5 of 7),
   and 7 of the 8 asks passed by the fourth attempt with the code starting over each time. With
   the code kept between attempts, memory and a fresh session passed alike (2 of 7 each), and
-  memory still kept every named case right where the fresh session broke one in 3. Only what recall
+  memory still kept every named case right where the fresh session broke one in 3. Run 18 times
+  more an arm: no answer with memory broke a named case, without it 4 did (bar missed by one). Only what recall
   itself would tell is held: a note whose author or proof does not resolve is neither.
   `mikatad memory withdraw <note>` takes a correction back: it sleeps by the human's word, is
   told and held no more, and nothing is deleted.

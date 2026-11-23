@@ -7884,3 +7884,8 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Held by tests:** a preview writes nothing; what is kept is what was shown and can be taken back once; the session shows before it keeps and keeps once; `/withdraw` with no id takes the last kept. 1,003 tests of the loop, the UI, the core and the server; lints clean.
 - **Left:** the web board; a correction read from the human's next message by a reader model; no screen yet.
 
+### [2026-11-23T17:08:00+00:00] aibo Summoner — said once, never broken? missed by one
+- **Why:** the owner saw it in step 65's table: memory never broke a case they had named, the fresh session did. Bench step 66 measured that alone, bar first: memory at most 1 of 18, the fresh session at least 4 more.
+- **Result:** 1 and 4: missed by one. Memory's one break never reached the human (a run that spent its 200 steps mid-work; its held line would have refused the landing); all four without memory were answered as done, all on the hard ask. Passes 8 and 6; hidden cases wrong 11 and 21. \$6.87 of \$9.
+- **The book:** the benchmark page's plain words and section, and the memory page, say it with these numbers.
+
