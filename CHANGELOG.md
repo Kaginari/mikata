@@ -58,6 +58,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **A check that cannot run is no longer called a failure of your work.** A check whose command
+  could not load what it names (a program that is not installed, a module or file that is not
+  there) was told "fails on your work" at the gate, in the same words as a wrong value. One run
+  with right code was sent back four times and ended as failed. The body is now told at hand-in
+  that such a command stops before it reaches the work, and the gate says it `cannot run here`
+  and shows nothing of the work when it fails as it did then. The line still does not land. A
+  command that fails any other way, unchanged by the work, is said to be unmoved by it.
 - **A stopped session's account names files as the world does.** A body that wrote a file by
   the world's whole path had that path listed as changed, its own plan under `.mikata/` among
   them. Paths are now said relative to the world, and the plan is left out whichever way it was
