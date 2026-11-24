@@ -875,6 +875,9 @@ fn composed(run: Run, config: &Config) -> (Run, Vec<String>) {
             holes.push(format!("{id}: {e}"));
         }
     }
+    // Applied as the session opens, every safe point allowing it: a unit of the prompt is held
+    // as the prompt was made, and the journal says the composition before the first ask.
+    run.compose_at_open();
     (run, holes)
 }
 

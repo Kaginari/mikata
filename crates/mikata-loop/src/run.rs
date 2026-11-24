@@ -2172,6 +2172,11 @@ impl Run {
         self
     }
 
+    /// The changes asked so far applied now, as the session opens, journaled and said.
+    pub fn compose_at_open(&mut self) {
+        self.compose(SafePoint::Session);
+    }
+
     /// Asks for the unit `id` on or off, at its next safe point: the human's `/unit`, `/plugin`,
     /// `--units` and `[units]`. A unit already as asked is left as it is.
     ///

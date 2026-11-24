@@ -162,3 +162,50 @@ async fn the_plan_unit_off_drops_its_two_bullets_and_nothing_else() {
     assert_eq!(kept.join("\n"), off_text);
     assert_eq!(on["tools"], off["tools"], "the tools are the same");
 }
+
+/// The `plan` unit off in the human's global file is off in the run as well as in the prompt:
+/// the session's journal says so before the first ask is answered.
+#[tokio::test]
+async fn the_plan_unit_off_is_journaled_as_the_session_opens() {
+    let w = world("plan-journal", &[]);
+    let global = w.with_extension("toml");
+    fs::write(&global, "[units]\nplan = false\n").unwrap();
+    let model = Arc::new(ScriptedModel::new([ScriptedModel::text("done")]));
+    let config = Config::load(&Paths::with_global(global.clone(), &w)).unwrap();
+    let attic = w.with_extension("attic");
+    let mut opened = open_with(
+        &w,
+        &config,
+        Bound {
+            model,
+            model_id: "scripted-model",
+            attic: Some(&attic),
+        },
+        Arc::new(mikata_tools::NoHuman),
+        Arc::new(|_: &mikata_loop::Seen| {}),
+        |_| None,
+    )
+    .unwrap();
+    assert!(
+        opened
+            .session
+            .run()
+            .units()
+            .active()
+            .iter()
+            .all(|(id, _)| *id != "plan"),
+        "off in the run before any ask"
+    );
+    opened.session.run().ask("say done", &mut |_| {}).await;
+    let journal = fs::read_dir(w.join(".mikata/instruments/loop"))
+        .unwrap()
+        .map(|e| fs::read_to_string(e.unwrap().path()).unwrap())
+        .collect::<String>();
+    assert!(
+        journal.contains(r#""beat":"units","op":"unload","id":"plan""#),
+        "{journal}"
+    );
+    let _ = fs::remove_dir_all(&w);
+    let _ = fs::remove_dir_all(&attic);
+    let _ = fs::remove_file(&global);
+}
