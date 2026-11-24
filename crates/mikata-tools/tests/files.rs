@@ -862,6 +862,8 @@ fn use_tool(cx: &mut Context, name: &str, args: &serde_json::Value) -> Outcome {
 /// Several edits, in order, all or none.
 #[test]
 fn multiedit_writes_all_or_nothing() {
+    // No session is offered it any more; a run that already used it is still answered.
+    assert!(registry().iter().all(|t| t.name() != "multiedit"));
     let w = World::new("multiedit");
     w.put("src/a.rs", "fn one() {}\nfn two() {}\n");
     let mut cx = w.cx();

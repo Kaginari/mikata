@@ -1373,3 +1373,52 @@ fn a_pipelines_stages_exit_statuses_are_reported() {
     assert_eq!(o.meta.pipe, None, "a heredoc's command runs as written");
     assert_eq!(o.content, "hi\n", "{o:?}");
 }
+
+/// A denial names why the command was put to the human and the route that needs no approval: a
+/// body that writes its scratch file to `/tmp` is told where scratch goes. The reasons the
+/// command was merely a write (`python3` runs code) are not named: they are not what was denied.
+#[test]
+fn a_denied_write_outside_names_its_reason_and_the_scratch() {
+    let w = World::new("denied-scratch");
+    let gate = Arc::new(Scripted::new([Answer::Deny("no human is attached".into())]));
+    let mut cx = w.cx(Race::Slime, gate).with_shelf(&[
+        ToolClass::Read,
+        ToolClass::Write,
+        ToolClass::Outward,
+    ]);
+    let o = bash(
+        &mut cx,
+        "cat > /tmp/mikata-denied-chk.py <<'X'\nprint(1)\nX\npython3 /tmp/mikata-denied-chk.py",
+    );
+    assert!(o.is_error && o.meta.denied, "{o:?}");
+    assert!(
+        o.content
+            .contains("a redirect writes outside the world: /tmp/mikata-denied-chk.py"),
+        "{}",
+        o.content
+    );
+    assert!(
+        o.content
+            .contains("keep scratch files under `.mikata/tmp/`"),
+        "{}",
+        o.content
+    );
+    assert!(!o.content.contains("runs code"), "{}", o.content);
+    assert!(!std::path::Path::new("/tmp/mikata-denied-chk.py").exists());
+}
+
+/// A denied act that writes nothing outside is not told about scratch files.
+#[test]
+fn a_denied_install_is_not_told_about_scratch() {
+    let w = World::new("denied-install");
+    let gate = Arc::new(Scripted::new([Answer::Deny("no human is attached".into())]));
+    let mut cx = w.cx(Race::Slime, gate).with_shelf(&[
+        ToolClass::Read,
+        ToolClass::Write,
+        ToolClass::Outward,
+    ]);
+    let o = bash(&mut cx, "pip install left-pad-not-a-package");
+    assert!(o.is_error, "{o:?}");
+    assert!(o.content.contains("reaches the registry"), "{}", o.content);
+    assert!(!o.content.contains(".mikata/tmp"), "{}", o.content);
+}

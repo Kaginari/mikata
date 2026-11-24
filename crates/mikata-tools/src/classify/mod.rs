@@ -224,6 +224,22 @@ pub fn classify_reach(command: &str, place: &Place) -> (Verdict, Vec<OutwardKind
     (tally.verdict(), acts, pushes)
 }
 
+/// Why a gate asks about `command` run at `place`: the reasons found at class outward or above,
+/// each once, in the order found. Empty for a command no gate asks about. What a denial tells
+/// the body, so the reasons a command is merely a write (`python3` runs code) are left out.
+#[must_use]
+pub fn gated_reasons(command: &str, place: &Place) -> Vec<String> {
+    let mut walker = Walker {
+        place,
+        cwd: Some(place.cwd.clone()),
+        depth: 0,
+        tainted: false,
+    };
+    let mut tally = Tally::default();
+    walker.source(command, &mut tally);
+    tally.gated
+}
+
 /// How far `sh -c` and `eval` strings nest before the classifier stops reading and refuses.
 const MAX_DEPTH: u8 = 8;
 
@@ -243,6 +259,8 @@ pub(crate) fn rank(class: ToolClass) -> u8 {
 pub(crate) struct Tally {
     class: Option<ToolClass>,
     why: Vec<String>,
+    /// The reasons found at a class a gate asks about (outward or above), each once.
+    gated: Vec<String>,
     refused: Option<(Rule, String)>,
     pub(crate) outside: Vec<PathBuf>,
     /// The kinds of outward act found.
@@ -275,7 +293,11 @@ impl Tally {
 
     fn lift(&mut self, class: ToolClass, why: impl Into<String>) {
         if class != ToolClass::Read {
-            self.why.push(why.into());
+            let why = why.into();
+            if rank(class) >= rank(ToolClass::Outward) && !self.gated.contains(&why) {
+                self.gated.push(why.clone());
+            }
+            self.why.push(why);
         }
         if self.class.is_none_or(|c| rank(class) > rank(c)) {
             self.class = Some(class);
@@ -315,6 +337,11 @@ impl Tally {
         for w in other.why {
             if !self.why.contains(&w) {
                 self.why.push(w);
+            }
+        }
+        for w in other.gated {
+            if !self.gated.contains(&w) {
+                self.gated.push(w);
             }
         }
     }

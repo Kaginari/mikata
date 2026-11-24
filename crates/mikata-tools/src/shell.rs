@@ -80,7 +80,7 @@ impl Tool for Bash {
     }
 
     fn description(&self) -> &'static str {
-        "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call."
+        "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. A write outside the world is outward, `/tmp` included: keep scratch files under `.mikata/tmp/`. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call."
     }
 
     fn schema(&self) -> Value {
@@ -405,6 +405,32 @@ fn stays_on_the_machine(acts: &[OutwardKind]) -> bool {
     })
 }
 
+/// What a denied command is told besides the gate's own word: why it was put to the human, each
+/// reason once, and the route that needs no approval where there is one — scratch files written
+/// outside the world have a place inside it.
+fn denial_reasons(why: &[String], writes_outside: bool) -> String {
+    if why.is_empty() {
+        return String::new();
+    }
+    let shown = why.len().min(DENIAL_REASONS);
+    let mut said = format!(
+        ". It was put to the human because: {}",
+        why[..shown].join("; ")
+    );
+    if why.len() > shown {
+        let _ = write!(said, "; and {} more", why.len() - shown);
+    }
+    if writes_outside {
+        said.push_str(
+            ". A write inside the world needs no approval: keep scratch files under `.mikata/tmp/`",
+        );
+    }
+    said
+}
+
+/// The most reasons a denial names.
+const DENIAL_REASONS: usize = 4;
+
 fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Outcome> {
     let place = Place {
         world: cx.world().to_path_buf(),
@@ -470,9 +496,15 @@ fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Ou
         outside: outside.clone(),
         fingerprint: Some(plan.clone()),
     };
+    // The reasons are kept for the body: a denial that names them lets it take the lawful route
+    // at its next call, where a bare "not approved" leaves it to guess which part was the act.
+    let because = denial_reasons(
+        &crate::classify::gated_reasons(command, &place),
+        !outside.is_empty(),
+    );
     if let Answer::Deny(reason) = cx.gate().ask(&ask) {
         let mut denied = Outcome::error(format!(
-            "the human gate did not approve this {class} command ({}): {reason}",
+            "the human gate did not approve this {class} command ({}): {reason}{because}",
             plan.short()
         ));
         denied.meta.denied = true;

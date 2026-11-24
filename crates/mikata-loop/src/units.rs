@@ -84,8 +84,9 @@ pub const STRESS: &str = "stress";
 
 /// Memory ([`mikata_memory`]): what the ask recalls, the corrections held from it, and every
 /// note the run writes — claims, lessons, credit and retirement, a stop's account, a drain's and
-/// a salvage's words. Off, the ask recalls nothing and the run writes nothing to memory; the
-/// prompt still asks for `@U` lessons (the frame never changes), and they are not kept. It
+/// a salvage's words. Off, the ask recalls nothing and the run writes nothing to memory. Off as
+/// the session opens, the prompt does not ask for `@U` lessons ([`crate::solo::LESSONS`]);
+/// switched off later, it still asks (the frame never changes) and they are not kept. It
 /// switches between asks. Off loosens what a held correction guards, so a world file may not
 /// switch it off.
 pub const MEMORY: &str = "memory";

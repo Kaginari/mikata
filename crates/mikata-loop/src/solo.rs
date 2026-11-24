@@ -29,13 +29,16 @@ it undone, say so in your answer, and go on.
 index (its symbols and their line ranges) and read with the read tool — a large file by range, \
 `offset` and `end` or `path#symbol`, never whole: they see the whole repository, cost less and \
 show more than cat, grep, find or ls through bash. Read the lines you will edit.
-- Change files with edit (an exact string, matched once), multiedit (several edits to one file, all \
-or none), patch (a unified diff across files, all or none) or write (a whole file); rename with move; \
+- One message may carry several tool calls; they run in the order you wrote them. Send together \
+what does not wait on a result — the searches and reads that map the code, the edits of one change \
+— rather than one call a turn.
+- Change files with edit (an exact string, matched once), patch (a unified diff across files, all \
+or none) or write (a whole file); rename with move; \
 remove a file with delete (the attic keeps a copy). \
 Run commands with \
 bash, for running things — tests, builds, a script: each call is a fresh shell at the repository \
 root, and background processes end with the call. Stay in the repository: it is the root named \
-below.
+below, and scratch files go under `.mikata/tmp/`.
 - Every command is classified and runs under a kernel guard. A refusal names its reason and the \
 lawful route; never work around it — say what you need instead.
 - Acts that leave the machine (push, a pull request, publish, deploy) are yours when the ask needs \
@@ -65,6 +68,20 @@ pub const PLAN_BULLETS: [&str; 2] = [
     "- Before you write any code, write .mikata/tmp/plan.md.",
     "- Before you answer, run every line under `## Done when`",
 ];
+
+/// The prompt's ask for lessons, the part of [`SOLO_PROMPT`] the `memory` unit holds
+/// ([`crate::units::MEMORY`]): the `@U` lines an answer ends with, which memory keeps. With
+/// memory off as a session opens there is nothing to keep them, and the prompt does not ask.
+pub const LESSONS: &str = " Then, one line each, what you learned that is written nowhere and the \
+next session should know: `@U law <path> <fact> check=<verify line or test>` for a rule of a file \
+you changed — name the path and the check that tests it: only that check, passing in this work's \
+gate, proves it — or `@U colony <fact>` for how this repository is worked.";
+
+/// `system` without the ask for lessons ([`LESSONS`]); every other word as it was.
+#[must_use]
+pub fn without_lessons(system: &str) -> String {
+    system.replace(LESSONS, "")
+}
 
 /// `system` without the `plan` unit's bullets ([`PLAN_BULLETS`]); every other line as it was.
 #[must_use]

@@ -632,24 +632,17 @@ fn build(
     // the prompt says so.
     // The composition the human asked for as the session opens: a profile, then `--units`.
     let composition = asked_units(config, &env)?;
-    // The `plan` unit is the prompt's: off by the human's ask or global file, its bullets are not
-    // said.
-    let plan_off = composition
-        .changes()
-        .iter()
-        .rev()
-        .find(|c| c.id == crate::units::PLAN)
-        .map_or_else(
-            || {
-                config
-                    .unit(crate::units::PLAN)
-                    .is_some_and(|u| !u.on && !u.from_world())
-            },
-            |c| !c.on,
-        );
-    if plan_off {
+    // The prompt is made once, as the session opens, and says only what the composition holds:
+    // a unit off by the human's ask or global file takes its words with it — the plan's two
+    // bullets, memory's ask for lessons, and, further down, the gate's line.
+    let off = |id: &str| off_at_open(config, &composition, id);
+    if off(crate::units::PLAN) {
         body.system = crate::solo::without_plan(&body.system);
     }
+    if off(crate::units::MEMORY) {
+        body.system = crate::solo::without_lessons(&body.system);
+    }
+    let gate_said = !off(crate::units::GATE);
     let cx = if mode == Mode::Light {
         cx
     } else {
@@ -778,8 +771,10 @@ fn build(
         },
     };
     let gate = session_gate(world, &body.name, config);
-    // The prompt says what checks the work, and only what does.
-    body.system.push_str(&crate::solo::gate_line(&gate));
+    // The prompt says what checks the work, and only what does: with the gate off, nothing.
+    if gate_said {
+        body.system.push_str(&crate::solo::gate_line(&gate));
+    }
     let run = if resuming {
         resumed(body, limits, setup, model_id)?
     } else {
@@ -898,6 +893,21 @@ fn composed(run: Run, config: &Config, asked: &Composition) -> Result<(Run, Vec<
     // as the prompt was made, and the journal says the composition before the first ask.
     run.compose_at_open();
     Ok((run, holes))
+}
+
+/// Whether the human set the unit `id` off as the session opens: the last word of the composition
+/// asked for (a profile, `--units`), else the global file's `[units]`. A world's file does not
+/// count: no file in the world shapes the prompt.
+fn off_at_open(config: &Config, asked: &Composition, id: &str) -> bool {
+    asked
+        .changes()
+        .iter()
+        .rev()
+        .find(|c| c.id == id)
+        .map_or_else(
+            || config.unit(id).is_some_and(|u| !u.on && !u.from_world()),
+            |c| !c.on,
+        )
 }
 
 /// The composition the human asks for as a session opens: the global file's profile

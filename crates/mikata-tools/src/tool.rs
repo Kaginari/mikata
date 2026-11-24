@@ -55,7 +55,6 @@ pub fn registry() -> Vec<Box<dyn Tool>> {
         Box::new(crate::index::Index),
         Box::new(files::Write),
         Box::new(files::Edit),
-        Box::new(files::MultiEdit),
         Box::new(files::Move),
         Box::new(files::Delete),
         Box::new(crate::patch::Patch),
@@ -63,6 +62,18 @@ pub fn registry() -> Vec<Box<dyn Tool>> {
         Box::new(files::Grep),
         Box::new(shell::Bash),
     ]
+}
+
+/// A tool no session is offered any more, by the name a session that already used it may still
+/// call: answered as it always was, so a resumed run's own history stays true.
+///
+/// `multiedit` is the one: its edits were an array of objects holding code, the shape a model's
+/// tool call breaks on most (one call in eight came back as no JSON, where `edit`'s flat
+/// arguments never did). Several edits are several `edit` calls in one message.
+#[must_use]
+pub fn retired(name: &str) -> Option<&'static dyn Tool> {
+    static MULTIEDIT: files::MultiEdit = files::MultiEdit;
+    (name == MULTIEDIT.name()).then_some(&MULTIEDIT as &dyn Tool)
 }
 
 /// What a call returned.
@@ -1043,7 +1054,8 @@ impl Context {
 /// Call `name` with the raw JSON the model sent. Bad JSON, unknown fields and missing fields are
 /// named errors returned to the model; the tool does not run on input it cannot read.
 pub fn call(tools: &[Box<dyn Tool>], name: &str, raw_args: &str, cx: &mut Context) -> Outcome {
-    let Some(tool) = tools.iter().find(|t| t.name() == name) else {
+    let listed = tools.iter().find(|t| t.name() == name).map(AsRef::as_ref);
+    let Some(tool) = listed.or_else(|| retired(name)) else {
         let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
         return Outcome::error(format!(
             "there is no tool `{name}`; the tools are: {}",
