@@ -169,6 +169,12 @@ kept, the two pass alike ([the bench](bench.md#memory-told-it-was-wrong)). What 
   the gate ([the loop](02-loop.md#a-done-when-list-in-the-ask)). Tests replay the case with its
   real error. Not shown: that a body told so repairs its command. To screen, bar first, on the
   ask where it happened.
+- **A check that runs another case.** A held line is held to what its check prints. Twice with
+  Claude Haiku 5.5 the check for the human's line ran the case the other way round (read Trino,
+  write DuckDB, where the line says DuckDB written for Trino), printed the stated output, and the
+  answer landed with the human's case wrong. To try, bar first: the harness runs a human's
+  `must give` line itself when its input is a call it can make (the line names the code to run),
+  or shows the human the check beside their line before it is held.
 - **The same lesson, written by every session.** Thirty runs left 28 copies of one fact, 16 of
   them written by a session that had it in its ask. Their words differ too much to drop a copy
   by its words (two share a median 0.18). To try: say at the hand-in which lessons are already

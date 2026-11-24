@@ -7889,3 +7889,7 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Result:** 1 and 4: missed by one. Memory's one break never reached the human (a run that spent its 200 steps mid-work; its held line would have refused the landing); all four without memory were answered as done, all on the hard ask. Passes 8 and 6; hidden cases wrong 11 and 21. \$6.87 of \$9.
 - **The book:** the benchmark page's plain words and section, and the memory page, say it with these numbers.
 
+### [2026-11-24T00:50:00+00:00] aibo Summoner — a stronger body breaks nothing; and a check that runs another case
+- **Step 67:** step 66 again with Claude Haiku 5.5: the first named case broken 0 of 18 with memory, 0 of 18 without. Bar missed: nothing to protect. Passes 14 and 15; \$0.84.
+- **Found beside:** two runs, one an arm, passed the human's held line with a check that ran the case the other way round and printed the stated output; they landed with the case wrong. The harness takes a check's command on the body's word. In the roadmap, bar first.
+
