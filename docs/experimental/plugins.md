@@ -20,7 +20,7 @@ Ground: the analysis in `Kaginari/harness-lab` (`plugin-kernel/`, above all
 
 - **Undo takes back registrations** (hooks, tools, services, preface text), never what a unit
   already did: files written, journal rows, tokens spent, words already said. Memory notes carry
-  the unit and version that wrote them (`by`), so a bad unit's notes can be found and withdrawn.
+  the unit and version that wrote them (`unit`), so a bad unit's notes can be found and withdrawn.
 - **The frame (system prompt and tool list) stays sealed for the session.** A swap reaches the
   body as a context update in the uncached tail ([`Run::update`]). A unit that brings frame text
   is held until the next epoch: a resume, or a re-frame between asks that the human's global file
@@ -210,8 +210,10 @@ hook_ms = 2000
 - In a session: `/units` lists the composition and its digest; `/unit off <id>`, `/unit on <id>`,
   `/plugin load <id>`, `/plugin unload <id>`, `/plugin swap <old> <new>`; the server's JSON-RPC has
   `units.list` and `units.change`. A change is applied at the unit's next safe point.
-- Memory notes and events carry `by: Option<String>` (`unit@version`), written by the memory unit;
+- Memory notes and events carry `unit: Option<String>` (`unit@version`; the event's `by` already
+  names who wrote it), set by wrapping a write in `mikata_memory::as_unit`;
   `mikatad memory withdraw --by <unit@version>` withdraws them.
+- The `--units` composition rides on `Opened::units` (lane D applies it).
 
 ## The loop (lane D)
 
