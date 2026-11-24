@@ -45,9 +45,9 @@ pub type Registry = mikata_kernel::Registry<Cx>;
 pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
     match id {
         Returns::ID => Some(Box::new(Returns::default())),
-        MEMORY | READER => Some(switch(id, SafePoint::Ask, false)),
+        MEMORY | READER | GATE | HOLD | CHALLENGE => Some(switch(id, SafePoint::Ask, false)),
+        FOLD | STRESS => Some(switch(id, SafePoint::Batch, false)),
         WHAT_CHANGED => Some(switch(id, SafePoint::Ask, true)),
-        STRESS => Some(switch(id, SafePoint::Batch, false)),
         PLAN => Some(Box::new(Switch::new(
             Manifest::new(PLAN, env!("CARGO_PKG_VERSION"))
                 .safe_point(SafePoint::Session)
@@ -90,6 +90,25 @@ pub const STRESS: &str = "stress";
 /// switch it off.
 pub const MEMORY: &str = "memory";
 
+/// The end gate ([`crate::gate`]): the pinned verify lines and the test-tampering checks an answer
+/// that changed files is judged by, with one chance to fix a failure. Off, an answer lands
+/// unjudged. It switches between asks, by the human alone.
+pub const GATE: &str = "gate";
+
+/// The held `Done when` list ([`crate::done`]): a write refused while a line has no check, and the
+/// list's checks run as part of the gate's verdict. Off, the list is the body's notes and nothing
+/// holds it. By the human alone.
+pub const HOLD: &str = "hold";
+
+/// The context fold ([`crate::compact`]): the oldest exchanges folded once the context nears its
+/// line. Off, the context grows to the stress line, where the run drains or compacts as before.
+/// It switches between tool batches, by the human alone.
+pub const FOLD: &str = "fold";
+
+/// The Dark Elf challenge ([`crate::challenge`]): a landing in a domain the roster routes is held
+/// for review. Off, it lands at once. By the human alone.
+pub const CHALLENGE: &str = "challenge";
+
 /// The plan ([`crate::solo::PLAN_BULLETS`]): the prompt's two bullets that have the body write
 /// down what done means and its paths before the code, and run each line before it answers. It is
 /// the prompt's, so it is decided when the session opens, by the human's global file alone, and
@@ -101,8 +120,9 @@ pub const PLAN: &str = "plan";
 ///
 /// - `small-fix`: the `plan` unit off. With Claude Haiku 5.5, on ten small sqlglot fixes and four
 ///   prose asks, it took 74% and 78% of the default's calls and two thirds of the dollars, 41
-///   passes of 42 against 42 (plugin-kernel stage 5, 2026-11-24). Not for a small body on prose
-///   asks, where the plan's `Done when` list is what passed them.
+///   passes of 42 against 42 (plugin-kernel stage 5, 2026-11-24). With qwen on the same fixes it
+///   changed nothing shown: 8 and 8 passes, 94% of the calls (stage 6). Not for a small body on
+///   prose asks, where the plan's `Done when` list is what passed them.
 pub const PROFILES: &[(&str, &str)] = &[("small-fix", "-plan")];
 
 /// The build's profile `name`, as a composition.
@@ -113,7 +133,18 @@ pub fn profile(name: &str) -> Option<mikata_config::Composition> {
 }
 
 /// The ids of the native units, in the order the default composition loads them.
-pub const NATIVE: &[&str] = &[Returns::ID, MEMORY, WHAT_CHANGED, READER, STRESS, PLAN];
+pub const NATIVE: &[&str] = &[
+    Returns::ID,
+    MEMORY,
+    WHAT_CHANGED,
+    READER,
+    STRESS,
+    PLAN,
+    GATE,
+    HOLD,
+    FOLD,
+    CHALLENGE,
+];
 
 /// A native unit whose part of the loop is still the run's own code: the run asks whether it is
 /// on ([`Registry::active`]) where that code runs. It hooks no point and says nothing.

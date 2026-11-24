@@ -2269,6 +2269,9 @@ impl Run {
     /// The gate's verdict on an answer, the `Done when` list the harness holds judged with it;
     /// `None` for a run with no gate.
     fn verdict_on(&mut self, answer: &str) -> Option<crate::gate::GateVerdict> {
+        if !self.unit_on(crate::units::GATE) {
+            return None;
+        }
         let (Some(gate), Some(before)) = (&self.gate, &self.before) else {
             return None;
         };
@@ -2276,7 +2279,7 @@ impl Run {
         // The list is run over the work as it stands. An answer that changed nothing and handed
         // in no check is an answer, or a question back: not judged.
         self.done_judged = crate::done::Judged::default();
-        if !verdict.changed.is_empty() || self.done.any() {
+        if (!verdict.changed.is_empty() || self.done.any()) && self.unit_on(crate::units::HOLD) {
             let mut judged = self.done.judge(&self.tools, &mut self.cx);
             if judged.failures.is_empty() && judged.hold > 0 {
                 verdict.listed = judged.hold;
@@ -2489,7 +2492,7 @@ impl Run {
     /// no state directory, a refusal, a disk or lock error — is held as unrecorded, never passed
     /// as landed.
     fn open_challenge(&mut self, changed: &[PathBuf]) -> Held {
-        if changed.is_empty() {
+        if changed.is_empty() || !self.unit_on(crate::units::CHALLENGE) {
             return Held::Not;
         }
         let world = self.cx.world().to_path_buf();
@@ -3334,6 +3337,9 @@ impl Run {
     /// prefix holds between folds), and once per ask tell the body to write down what is not
     /// durable while there is room.
     fn ease_context(&mut self) {
+        if !self.unit_on(crate::units::FOLD) {
+            return;
+        }
         let line = self.stress_line();
         if self.last_occupancy * 100 >= line * COMPACT_PCT {
             let point = fold_point(&self.messages);
@@ -4271,7 +4277,8 @@ impl Run {
     /// carries a `Done when` list and a line of it has no check yet. The body's own notes
     /// (`.mikata/`, its plan) are never held back.
     fn write_waits(&mut self, name: &str, input: &str) -> Option<String> {
-        if self.done.is_empty() || !WRITE_TOOLS.contains(&name) {
+        if self.done.is_empty() || !WRITE_TOOLS.contains(&name) || !self.unit_on(crate::units::HOLD)
+        {
             return None;
         }
         let args: serde_json::Value = serde_json::from_str(input).ok()?;
