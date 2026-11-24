@@ -719,6 +719,29 @@ pub fn channel() -> (Sender<Msg>, Receiver<Msg>) {
     mpsc::channel()
 }
 
+/// The session's units as the run last listed them, for the human.
+fn listed(desk: &mikata_loop::units::Desk) -> String {
+    use std::fmt::Write as _;
+    let mut said = String::from("units:");
+    for (id, version, state) in &desk.listed {
+        let _ = write!(said, "\n  {id} {version} {state}");
+    }
+    if desk.listed.is_empty() {
+        said.push_str(" none listed yet");
+    }
+    if !desk.asked.is_empty() {
+        let _ = write!(
+            said,
+            "\n  {} change(s) waiting for the next safe point",
+            desk.asked.len()
+        );
+    }
+    for why in desk.refused.iter().rev().take(3) {
+        let _ = write!(said, "\n  refused: {why}");
+    }
+    said
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -830,27 +853,4 @@ mod tests {
         );
         assert_eq!(display_world(Path::new("/srv/w"), Some(home)), "/srv/w");
     }
-}
-
-/// The session's units as the run last listed them, for the human.
-fn listed(desk: &mikata_loop::units::Desk) -> String {
-    use std::fmt::Write as _;
-    let mut said = String::from("units:");
-    for (id, version, state) in &desk.listed {
-        let _ = write!(said, "\n  {id} {version} {state}");
-    }
-    if desk.listed.is_empty() {
-        said.push_str(" none listed yet");
-    }
-    if !desk.asked.is_empty() {
-        let _ = write!(
-            said,
-            "\n  {} change(s) waiting for the next safe point",
-            desk.asked.len()
-        );
-    }
-    for why in desk.refused.iter().rev().take(3) {
-        let _ = write!(said, "\n  refused: {why}");
-    }
-    said
 }
