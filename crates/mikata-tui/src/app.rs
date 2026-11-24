@@ -1070,8 +1070,9 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
             }
             // The human's word on the last answer: shown first, kept only on `/keep`.
             "wrong" if arg.is_empty() => m.info(
-                "/wrong <what is wrong>: say the last answer was wrong. Say what must come out \
-                 (`<input>` must give `<output>`) and the harness holds it when the ask comes again",
+                "/wrong <what is wrong> [--check <command>]: say the last answer was wrong. Say \
+                 what must come out (`<input>` must give `<output>`) and the harness holds it when \
+                 the ask comes again; with --check, to what your own command prints",
             ),
             "wrong" => return vec![Cmd::Wrong(arg.to_owned())],
             "keep" => match m.wrong.take() {
@@ -1142,6 +1143,7 @@ mod tests {
             words: "`total 1 2` must give `6`; it gives `3`".to_owned(),
             asked: "total skips blanks".to_owned(),
             held: held.map(str::to_owned),
+            check: None,
         }
     }
 

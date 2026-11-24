@@ -239,6 +239,9 @@ pub struct List {
     /// The lines that are the human's corrections of earlier answers to this ask
     /// ([`List::holding`]), by name: said after the ask, which did not hold them.
     humans: Vec<String>,
+    /// The human's lines checked by the human's own command, by name, with the command: handed
+    /// in when the ask opens, never replaced by a command of the body's ([`List::pin`]).
+    pinned: Vec<(String, String)>,
 }
 
 impl List {
@@ -303,6 +306,30 @@ impl List {
         &self.humans
     }
 
+    /// The name of the human's line that holds `text`, if it is one ([`List::holding`]).
+    #[must_use]
+    pub fn human_line(&self, text: &str) -> Option<&str> {
+        self.lines
+            .iter()
+            .find(|(name, held)| held == text && self.humans.contains(name))
+            .map(|(name, _)| name.as_str())
+    }
+
+    /// Hold the human's line `line` to the human's own `command`, handed in already: from now on
+    /// a `check` of the body's for that line is refused. A body's check that runs another case
+    /// prints what the line states as well as one that runs the human's, and the harness cannot
+    /// tell them apart; the human's command is the human's case.
+    pub fn pin(&mut self, line: &str, command: &str) {
+        self.pinned.retain(|(name, _)| name != line);
+        self.pinned.push((line.to_owned(), command.to_owned()));
+    }
+
+    /// The human's lines checked by their own command: `(line, command)`.
+    #[must_use]
+    pub fn pinned(&self) -> &[(String, String)] {
+        &self.pinned
+    }
+
     /// What goes after the ask when a list is held: the lines the ask's own words did not carry
     /// (a reader's list, and what the human's corrections say must come out, with whose words
     /// those are), then how the harness holds the list ([`List::note`]). Nothing for an ask with
@@ -337,6 +364,13 @@ impl List {
 what must come out. {they_are} not yours to rewrite, and {cases} of the ask, not the whole of it: \
 the ask stands as written.",
                 runs(&names)
+            );
+        }
+        for (name, command) in &self.pinned {
+            let _ = write!(
+                said,
+                "\n{name} is checked by the human's own command, handed in already: `{}`.",
+                clipped(command)
             );
         }
         Some(format!("{said}\n\n{note}"))
@@ -470,6 +504,18 @@ from the code as you found it: hand it in before the first change.",
         }
         // A model on some hosts sends an optional string as an empty one: that is none.
         let gives = a.gives.as_deref().map(stated).filter(|g| !g.is_empty());
+        if let Some((_, theirs)) = self
+            .pinned
+            .iter()
+            .find(|(name, theirs)| *name == line && *theirs != command)
+        {
+            return corrected(format!(
+                "refused: {line} is checked by the human's own command, `{}`: it is handed in \
+already and not yours to replace. It must print what {line} states when you are done. Hand in \
+checks of your own for the other lines.",
+                clipped(theirs)
+            ));
+        }
         let text = match self.text_of(&line) {
             Ok(text) => text,
             Err(refusal) => return corrected(refusal),
@@ -508,10 +554,25 @@ from the code as you found it: hand it in before the first change.",
             already: false,
             failed: None,
         };
-        let (said, prints, failed) = said_of(&check, tools, cx);
+        let (mut said, prints, failed) = said_of(&check, tools, cx);
         // Only the code as the ask found it says what a check will show of the work.
         check.already = pristine && prints;
         check.failed = failed;
+        // The human said this case comes out wrong. A command that prints what they want before
+        // any work most often runs another case: the input, or which way it is written, read
+        // otherwise. Said once, here, while another command can still be written.
+        if check.already
+            && self.humans.contains(&line)
+            && !self.pinned.iter().any(|(n, _)| *n == line)
+        {
+            let _ = write!(
+                said,
+                "\nThe human said this case comes out wrong, and your command prints what they want \
+before any work. Unless the code was changed since they said so, your command runs another case. \
+Read {line} again, its input and which way it is written, and hand in a command that runs exactly \
+that."
+            );
+        }
         self.checks.retain(|c| c.line != line);
         self.told.retain(|t| *t != line);
         self.checks.push(check);
@@ -2100,6 +2161,36 @@ in: your work has not changed what this command does"
         ] {
             assert!(!unloaded(err), "{err}");
         }
+    }
+
+    /// A body's command for a line the human said comes out wrong, which prints what they want
+    /// before any work, is told at once that it most often runs another case.
+    #[test]
+    fn a_check_for_the_humans_case_that_prints_the_answer_before_any_work_is_questioned() {
+        let (dir, mut cx) = world();
+        std::fs::write(dir.path().join("strict.sh"), "echo 6\n").unwrap();
+        let line = "Still wrong. `total 1 2` must give `6`".to_owned();
+        let mut list = List::of("Sum.\n").holding(&[line]);
+        let o = call_in(
+            &mut list,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh", "gives": "6"}"#,
+            true,
+        );
+        assert!(
+            o.content.contains("The human said this case comes out wrong, and your command prints what they want before any work"),
+            "{}",
+            o.content
+        );
+        // A line of the ask's own is not questioned so.
+        let mut own = List::of("Sum.\n\n## Done when\nD1: `total 1 2` must give `6`\n");
+        let o = call_in(
+            &mut own,
+            &mut cx,
+            r#"{"line": "D1", "command": "sh strict.sh", "gives": "6"}"#,
+            true,
+        );
+        assert!(!o.content.contains("The human said"), "{}", o.content);
     }
 
     /// A check that pipes its command into `tail` ends well whatever the command did. A line

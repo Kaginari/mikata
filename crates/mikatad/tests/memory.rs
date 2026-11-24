@@ -548,3 +548,56 @@ fn the_human_takes_a_correction_back() {
     assert_eq!(status(&world, false).0, Some(0));
     let _ = fs::remove_dir_all(&world);
 }
+
+/// The human may name the command that shows their case: it is kept with the correction and
+/// said to be the line's check; with words that state no output it holds nothing, and says so.
+#[test]
+fn the_human_names_the_command_that_shows_their_case() {
+    let world = world_that_answered("wrong-check");
+    let out = mikatad(
+        &world,
+        &[
+            "memory",
+            "wrong",
+            "`sh total.sh 1 2` must give `6`; it gives `3`",
+            "--check",
+            "sh total.sh 1 2",
+        ],
+        None,
+    );
+    let said = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        said.contains(
+            "checked by your command, which no command of a body's stands in for: sh total.sh 1 2"
+        ),
+        "{said}"
+    );
+    let kept =
+        mikata_server::world::memory::corrections_checked_under(&world, "Make out.txt say fixed")
+            .unwrap();
+    assert_eq!(
+        kept.last().map(|(_, _, c)| c.clone()),
+        Some(Some("sh total.sh 1 2".to_owned()))
+    );
+    let advice = mikatad(
+        &world,
+        &[
+            "memory",
+            "wrong",
+            "it is slow",
+            "--check",
+            "time sh total.sh",
+        ],
+        None,
+    );
+    assert!(
+        String::from_utf8_lossy(&advice.stdout).contains("your command is kept, but holds nothing"),
+        "{}",
+        String::from_utf8_lossy(&advice.stdout)
+    );
+}

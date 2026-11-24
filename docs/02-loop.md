@@ -879,6 +879,17 @@ about a third more a run ([the bench](bench.md#the-list-held)). It has not seen 
 where it states how the code spells an output it is guessing: read its list before you trust a
 pass by it.
 
+**Your own command for your case.** A held line is held to what its check prints, and a check
+the model writes can run another case and print what your line states: twice, with Claude Haiku
+5.5, a check ran the human's case the other way round (read Trino, write DuckDB, where the line
+said DuckDB written for Trino) and the answer landed with the case wrong. So you may name the
+command that shows your case: `mikatad memory wrong "<words>" --check "<command>"`, or
+`/wrong <words> --check <command>`. It is kept with the correction. When the ask comes again the
+harness hands it in as that line's check as the ask opens, says so after the ask, and refuses a
+check of the model's for that line. Without a command of yours, a check the model hands in for
+your line that prints what you want before any work is questioned at once: you said that case
+comes out wrong, so unless the code changed since, the command most likely runs another case.
+
 **Say it in the session.** After an answer, type `/wrong <what is wrong>`. Before anything is
 kept you see what it would be: `held:` and the line, when your words say what must come out, or
 `advice:` and how to say it so it is held; and the ask it goes under, the journal's last. `/keep`

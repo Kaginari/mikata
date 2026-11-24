@@ -21,9 +21,10 @@ pub use recall::{Hit, Memory, Recalled, Relation, Weights, gather, lines, recall
 pub use standing::{Standing, standing};
 pub use store::{Tier, inherit, read, union_merge};
 pub use write::{
-    Anchor, Claim, Evidence, Grounded, Proof, Proposed, Retired, Route, Seconded, amend, answered,
-    attributable, cache, changed, confirm, corrected, correction, corrections_under, corroborate,
-    distilled, ground, learned_under, named_check, pending, proposals, propose, propose_on,
-    propose_resting, propose_under, proposed, retire, retired, retired_in, retired_note, revise,
-    revise_under, seen, stopped, vouch, wake, wake_by, withdraw,
+    Anchor, CHECK_TAG, Claim, Evidence, Grounded, Proof, Proposed, Retired, Route, Seconded, amend,
+    answered, attributable, cache, changed, confirm, corrected, corrected_checked, correction,
+    corrections_checked_under, corrections_under, corroborate, distilled, ground, learned_under,
+    named_check, pending, proposals, propose, propose_on, propose_resting, propose_under, proposed,
+    retire, retired, retired_in, retired_note, revise, revise_under, seen, stopped, vouch, wake,
+    wake_by, withdraw,
 };
