@@ -490,7 +490,7 @@ mod tests {
             "/not/a/file.jsonl".into(),
             "-v".into(),
         ];
-        assert_eq!(d.as_server().reads, [dir.clone()]);
+        assert_eq!(d.as_server().reads, std::slice::from_ref(&dir));
         d.args.clear();
         assert!(
             d.as_server().reads.is_empty(),
