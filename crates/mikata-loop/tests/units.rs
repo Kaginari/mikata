@@ -233,7 +233,9 @@ fn catalog(
             args,
             env: Vec::new(),
             grants: grants.iter().map(|g| (*g).to_owned()).collect(),
-            races: Race::ALL.to_vec(),
+            // The body's race alone, as the human's file names it (`mikata`): a plugin joins the
+            // body, not the race its tools' context runs as.
+            races: vec![Race::Summoner],
             enabled: true,
         }],
         hook_ms: 2000,

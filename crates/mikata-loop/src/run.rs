@@ -2157,7 +2157,7 @@ impl Run {
     pub fn with_catalog(mut self, mut catalog: crate::units::Catalog) -> Self {
         catalog.host = Some(crate::plugins::Host {
             world: self.cx.world().to_path_buf(),
-            race: self.cx.race(),
+            race: self.body.race,
             sandbox: self.cx.sandbox().clone(),
             unguarded: self.cx.allows_unguarded(),
         });
