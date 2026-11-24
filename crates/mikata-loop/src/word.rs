@@ -21,6 +21,9 @@ pub struct Preview {
     /// The line the harness holds whenever that ask comes again; `None` when the words state no
     /// output and stay advice.
     pub held: Option<String>,
+    /// The command the human said shows the case: the line is held to what it prints, and no
+    /// command of a body's stands in for it.
+    pub check: Option<String>,
 }
 
 /// A correction, kept.
@@ -58,7 +61,19 @@ pub fn preview(world: &Path, words: &str, ask: Option<&str>) -> Result<Preview, 
         held: crate::done::held_line(words),
         words: words.to_owned(),
         asked,
+        check: None,
     })
+}
+
+/// `words` as typed in a session, the command after ` --check ` taken apart: `(words, command)`.
+#[must_use]
+pub fn with_check(typed: &str) -> (String, Option<String>) {
+    match typed.split_once(" --check ") {
+        Some((words, check)) if !check.trim().is_empty() => {
+            (words.trim().to_owned(), Some(check.trim().to_owned()))
+        }
+        _ => (typed.trim().to_owned(), None),
+    }
 }
 
 /// Keep what `preview` showed: the words go to the journal, then to memory as a correction,
@@ -68,13 +83,17 @@ pub fn preview(world: &Path, words: &str, ask: Option<&str>) -> Result<Preview, 
 /// # Errors
 /// The world keeps no journal, or the journal or memory cannot be written.
 pub fn keep(world: &Path, said: &Preview) -> Result<Kept, String> {
+    let mut lines = vec![
+        (ASKED.to_owned(), said.asked.clone()),
+        ("Said".to_owned(), said.words.clone()),
+    ];
+    if let Some(check) = &said.check {
+        lines.push(("Check".to_owned(), format!("`{check}`")));
+    }
     let entry = Entry {
         body: "the human".to_owned(),
         title: format!("wrong: {}", said.asked),
-        lines: vec![
-            (ASKED.to_owned(), said.asked.clone()),
-            ("Said".to_owned(), said.words.clone()),
-        ],
+        lines,
     };
     let heading = match append_entry(world, &entry) {
         Ok(Some(h)) => h,
@@ -83,11 +102,12 @@ pub fn keep(world: &Path, said: &Preview) -> Result<Kept, String> {
         }
         Err(e) => return Err(format!("the journal cannot be written: {e}")),
     };
-    let (id, linked) = memory::corrected(
+    let (id, linked) = memory::corrected_checked(
         world,
         &said.words,
         &said.asked,
         &format!("log.md {heading}"),
+        said.check.as_deref(),
     )
     .map_err(|e| format!("the correction could not be kept: {e}"))?;
     // Read from the words as memory keeps them: that is what a later session holds.
@@ -168,6 +188,12 @@ pub fn take_back_by(world: &Path, unit: &str) -> Result<Vec<memory::Written>, St
 #[must_use]
 pub fn shown(p: &Preview) -> String {
     match &p.held {
+        Some(line) if p.check.is_some() => format!(
+            "held: when \"{}\" is asked again, this is a line of its Done when list, checked by \
+             your own command (`{}`), and an answer that leaves it wrong does not land: {line}",
+            p.asked,
+            p.check.as_deref().unwrap_or_default()
+        ),
         Some(line) => format!(
             "held: when \"{}\" is asked again, this is a line of its Done when list, and an \
              answer that leaves it wrong does not land: {line}",
@@ -226,6 +252,27 @@ mod tests {
             before,
             "nothing written"
         );
+    }
+
+    /// The human's command, typed after ` --check `, is kept with the correction, said in the
+    /// preview and read back with it.
+    #[test]
+    fn the_humans_command_is_kept_with_the_correction() {
+        assert_eq!(
+            super::with_check("`f 1` must give `2` --check python3 f.py 1"),
+            (
+                "`f 1` must give `2`".to_owned(),
+                Some("python3 f.py 1".to_owned())
+            )
+        );
+        assert_eq!(super::with_check("it is slow").1, None);
+        let dir = answered();
+        let mut p = preview(dir.path(), "`total 1 2` must give `6`", None).unwrap();
+        p.check = Some("sh total.sh 1 2".to_owned());
+        assert!(shown(&p).contains("checked by your own command (`sh total.sh 1 2`)"));
+        let kept = keep(dir.path(), &p).unwrap();
+        let read = mikata_world::memory::corrections_checked_under(dir.path(), &p.asked).unwrap();
+        assert_eq!(read, [(kept.id, p.words.clone(), p.check.clone())]);
     }
 
     /// What is kept is what was shown, and taking it back names the words it said.

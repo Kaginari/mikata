@@ -839,6 +839,27 @@ pub fn corrected(
     asked: &str,
     proof: &str,
 ) -> std::io::Result<(String, Vec<String>)> {
+    corrected_checked(world, words, asked, proof, None)
+}
+
+/// What a correction's tag says of the human's own command that shows its case: `check:` and
+/// the command.
+pub const CHECK_TAG: &str = "check:";
+
+/// [`corrected`], with the command the human said shows the case ([`CHECK_TAG`]): when the ask
+/// comes again the harness holds the line to what that command prints, and no command of a
+/// body's stands in for it.
+///
+/// # Errors
+///
+/// As [`corrected`].
+pub fn corrected_checked(
+    world: &Path,
+    words: &str,
+    asked: &str,
+    proof: &str,
+    check: Option<&str>,
+) -> std::io::Result<(String, Vec<String>)> {
     let (text, asked) = (said(words), asked.trim());
     if text.is_empty() || asked.is_empty() {
         return Err(std::io::Error::other(
@@ -862,7 +883,14 @@ pub fn corrected(
         Some(proof.to_owned()),
         Change::Create {
             text,
-            tags: vec!["correction".into()],
+            tags: std::iter::once("correction".to_owned())
+                .chain(
+                    check
+                        .map(str::trim)
+                        .filter(|c| !c.is_empty())
+                        .map(|c| format!("{CHECK_TAG}{c}")),
+                )
+                .collect(),
             owner: None,
             polarity: Polarity::Revise,
             salience: 1.0,
@@ -919,6 +947,31 @@ pub fn corrections_under(world: &Path, asked: &str) -> std::io::Result<Vec<(Stri
         .collect();
     notes.sort_by(|a, b| a.born.cmp(&b.born).then_with(|| a.id.cmp(&b.id)));
     Ok(notes.into_iter().map(|n| (n.id, n.text)).collect())
+}
+
+/// [`corrections_under`], each with the command the human said shows its case, if they gave one
+/// ([`corrected_checked`]): `(id, words, command)`.
+///
+/// # Errors
+///
+/// The shared tier cannot be read.
+pub fn corrections_checked_under(
+    world: &Path,
+    asked: &str,
+) -> std::io::Result<Vec<(String, String, Option<String>)>> {
+    let rows = crate::audit::resolved(crate::store::read(world, &Tier::Shared)?.rows).0;
+    let folded = crate::note::fold(&rows);
+    Ok(corrections_under(world, asked)?
+        .into_iter()
+        .map(|(id, words)| {
+            let check = folded.get(&id).and_then(|n| {
+                n.tags
+                    .iter()
+                    .find_map(|t| t.strip_prefix(CHECK_TAG).map(str::to_owned))
+            });
+            (id, words, check)
+        })
+        .collect())
 }
 
 /// What the human's correction `id` says, while it is awake; `None` when `id` names none.

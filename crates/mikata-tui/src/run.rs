@@ -227,6 +227,24 @@ impl Host {
         })
     }
 
+    /// `/units` lists the session's units; `/unit` and `/plugin` ask the run for a change at its
+    /// next safe point, through the desk it shares.
+    fn units(&self, change: Option<(String, bool)>) {
+        let mut desk = self.units.lock().unwrap_or_else(PoisonError::into_inner);
+        let said = match change {
+            None => listed(&desk),
+            Some((id, on)) => {
+                let said = format!(
+                    "asked: `{id}` {} at its next safe point",
+                    if on { "on" } else { "off" }
+                );
+                desk.asked.push_back((id, on));
+                said
+            }
+        };
+        let _ = self.tx.send(Msg::Said(said));
+    }
+
     /// Run a command; `false` when it is the one to leave.
     pub fn run(&self, cmd: Cmd) -> bool {
         match cmd {
@@ -241,21 +259,7 @@ impl Host {
                 .unwrap_or_else(PoisonError::into_inner)
                 .push_back(line),
             Cmd::Interrupt => self.interrupt.fire(),
-            Cmd::Units(change) => {
-                let mut desk = self.units.lock().unwrap_or_else(PoisonError::into_inner);
-                let said = match change {
-                    None => listed(&desk),
-                    Some((id, on)) => {
-                        let said = format!(
-                            "asked: `{id}` {} at its next safe point",
-                            if on { "on" } else { "off" }
-                        );
-                        desk.asked.push_back((id, on));
-                        said
-                    }
-                };
-                let _ = self.tx.send(Msg::Said(said));
-            }
+            Cmd::Units(change) => self.units(change),
             Cmd::Answer(pending, answer) => {
                 let _ = pending.answer(answer);
             }
@@ -300,9 +304,10 @@ impl Host {
             Cmd::Wrong(words) => {
                 let (tx, world) = (self.tx.clone(), self.world.clone());
                 self.runtime.spawn_blocking(move || {
-                    let _ = tx.send(Msg::Previewed(mikata_loop::word::preview(
-                        &world, &words, None,
-                    )));
+                    let (words, check) = mikata_loop::word::with_check(&words);
+                    let previewed = mikata_loop::word::preview(&world, &words, None)
+                        .map(|p| mikata_loop::word::Preview { check, ..p });
+                    let _ = tx.send(Msg::Previewed(previewed));
                 });
             }
             Cmd::Keep(said) => {

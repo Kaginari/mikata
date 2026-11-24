@@ -1900,13 +1900,17 @@ fn confirm(world: &Path, id: &str) -> ExitCode {
 /// `memory wrong`'s own words: what is wrong, in as many words as the human types, the ask it is
 /// said of when `--ask` names one, and the world.
 fn wrong_said(args: &[String]) -> ExitCode {
-    let (mut world, mut ask, mut said) = (None, None, Vec::new());
+    let (mut world, mut ask, mut check, mut said) = (None, None, None, Vec::new());
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--world" => match it.next() {
                 Some(v) => world = Some(PathBuf::from(v)),
                 None => return refused(&"--world needs a value"),
+            },
+            "--check" => match it.next() {
+                Some(v) => check = Some(v.clone()),
+                None => return refused(&"--check needs the command that shows the case"),
             },
             "--ask" => match it.next() {
                 Some(v) => ask = Some(v.clone()),
@@ -1922,13 +1926,13 @@ fn wrong_said(args: &[String]) -> ExitCode {
         return refused(&"the current directory cannot be read");
     };
     let world = world.map_or_else(|| cwd.clone(), |w| absolute(&cwd, &w));
-    wrong(&world, &said.join(" "), ask.as_deref())
+    wrong(&world, &said.join(" "), ask.as_deref(), check)
 }
 
 /// `memory wrong <what is wrong>`: the human says an answer was wrong. Their words go to the
 /// journal and are kept as a correction — shared, grounded by their word — under the ask they
 /// speak of: the journal's last, or the one `--ask` names by its first line. A body never says it.
-fn wrong(world: &Path, words: &str, ask: Option<&str>) -> ExitCode {
+fn wrong(world: &Path, words: &str, ask: Option<&str>, check: Option<String>) -> ExitCode {
     use mikata_server::word;
     if let Ok(body) = std::env::var("MIKATA_BODY") {
         return refused(&format!(
@@ -1940,7 +1944,7 @@ fn wrong(world: &Path, words: &str, ask: Option<&str>) -> ExitCode {
             &"say what is wrong: mikatad memory wrong <what still fails, in your words>",
         );
     }
-    let Ok(said) = word::preview(world, words, ask) else {
+    let Ok(said) = word::preview(world, words, ask).map(|p| word::Preview { check, ..p }) else {
         return refused(
             &"no entry of the journal says what it was asked: name the ask with --ask \"<its \
               first line>\"",
@@ -1972,6 +1976,16 @@ fn wrong(world: &Path, words: &str, ask: Option<&str>) -> ExitCode {
                     "kept as advice, which a body may overrule. To have the harness hold it, say \
                      what must come out: <input> must give <output>"
                 ),
+            }
+            match (&kept.held, &said.check) {
+                (Some(_), Some(check)) => println!(
+                    "checked by your command, which no command of a body's stands in for: {}",
+                    field(check)
+                ),
+                (None, Some(_)) => {
+                    println!("your command is kept, but holds nothing: your words state no output");
+                }
+                _ => {}
             }
             println!("to take it back: mikatad memory withdraw {}", kept.id);
             ExitCode::SUCCESS

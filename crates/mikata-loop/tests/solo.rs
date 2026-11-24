@@ -1556,6 +1556,67 @@ fn verified(w: &World) -> Vec<(bool, Vec<String>)> {
         .collect()
 }
 
+/// The human's own command for their case is the line's check: handed in as the ask opens, a
+/// body's command for that line is refused, and an answer that leaves the human's case untrue is
+/// handed back by what the human's command prints, whatever a body's command would print.
+#[tokio::test]
+async fn the_humans_own_command_checks_their_line_and_no_body_replaces_it() {
+    const DOUBLE: &str = "Make total.sh print twice the sum.";
+    let w = World::new("held-own-check");
+    fs::write(w.world().join("total.sh"), TOTAL).unwrap();
+    mikata_memory::corrected_checked(
+        &w.world(),
+        "Still wrong. `sh total.sh 1 2` must give `6`; it gives `3`.",
+        DOUBLE,
+        "log.md ### [1] the human — wrong",
+        Some("sh total.sh 1 2"),
+    )
+    .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        // Another case, which prints what the line states without the work: refused.
+        tool(
+            "t1",
+            "check",
+            json!({"line": "D1", "command": "echo 6", "gives": "6"}),
+        ),
+        answer("it sums already"),
+        tool(
+            "t2",
+            "write",
+            json!({"path": "total.sh", "content": DOUBLED}),
+        ),
+        answer("doubled"),
+    ]));
+    let mut run = w.run_light(Arc::clone(&model));
+    assert_eq!(
+        ask(&mut run, DOUBLE).await,
+        Ending::Answered("doubled".into())
+    );
+    let first = told_after(&model, 0);
+    assert!(
+        first.contains(
+            "D1 is checked by the human's own command, handed in already: `sh total.sh 1 2`."
+        ),
+        "{first}"
+    );
+    // The tool's answer to the body's own command for D1, as the next request carries it.
+    let refused = format!("{:?}", model.requests()[1].messages);
+    assert!(
+        refused.contains("refused: D1 is checked by the human's own command, `sh total.sh 1 2`"),
+        "{refused}"
+    );
+    let gates = gate_beats(&w);
+    assert_eq!(gates.len(), 2, "{gates:?}");
+    assert!(
+        gates[0].len() == 1
+            && gates[0][0].starts_with(
+                "done when: D1 must give `6`: `sh total.sh 1 2` prints `3` on your work"
+            ),
+        "{gates:?}"
+    );
+    assert!(gates[1].is_empty(), "{gates:?}");
+}
+
 /// What the human said must come out when an answer was wrong is held when that ask comes again.
 /// The case joins the ask's list, said after the ask as the human's own; an answer that leaves
 /// it untrue is handed back with what it printed; and the pass says whose list checked it. Words

@@ -147,7 +147,9 @@ correction under that ask: the next session that meets it is told first. Say wha
 as ``mikatad memory wrong "`total 1 2` must give `6`; it gives `3`"``, and the harness holds it:
 whenever that ask comes again the case is a line of its `Done when` list, and an answer that
 leaves it wrong does not land. `mikatad memory withdraw <note>` takes a correction back.
-In a session, type `/wrong <what is wrong>` after an answer: it shows whether your words will be
+Add `--check "<command>"` to name the command that shows your case: the harness then holds the
+line to what your command prints, and no command the model writes stands in for it. In a session,
+type `/wrong <what is wrong>` after an answer (with `--check <command>` the same way): it shows whether your words will be
 held or kept as advice, and under which ask, and keeps them only on `/keep` (`/drop` keeps
 nothing). `/withdraw` takes back the last one you kept.
 
