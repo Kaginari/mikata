@@ -30,7 +30,15 @@ fn a_stamp_is_unit_at_version() {
     assert_eq!(s.as_str(), "plugin:cognee@0.1.0");
     assert_eq!(s, UnitStamp::new("plugin:cognee", "0.1.0").unwrap());
     assert_eq!(s.to_string(), "plugin:cognee@0.1.0");
-    for bad in ["memory", "@1", "memory@", "memory@1@2", "mem ory@1", "memory@1 ", "mémoire@1"] {
+    for bad in [
+        "memory",
+        "@1",
+        "memory@",
+        "memory@1@2",
+        "mem ory@1",
+        "memory@1 ",
+        "mémoire@1",
+    ] {
         assert!(bad.parse::<UnitStamp>().is_err(), "{bad}");
     }
     assert!(UnitStamp::new(&"a".repeat(65), "1").is_err());
@@ -75,30 +83,46 @@ fn a_unit_stamps_what_it_writes_and_no_more() {
     let memory: UnitStamp = "memory@1.0.0".parse().unwrap();
     let other: UnitStamp = "plugin:cognee@0.1.0".parse().unwrap();
     let personal = Tier::Personal("slime-s".into());
-    let (a, b, c) = as_unit(&memory, || {
-        let a = propose(&w, "slime-s", "the lexer lives in src/lexer.rs", vec![], None).unwrap();
-        let b = as_unit(&other, || {
-            propose(&w, "slime-s", "the parser lives in src/parser.rs", vec![], None).unwrap()
+    let (lexer, parser, tests) = as_unit(&memory, || {
+        let lexer = propose(
+            &w,
+            "slime-s",
+            "the lexer lives in src/lexer.rs",
+            vec![],
+            None,
+        )
+        .unwrap();
+        let parser = as_unit(&other, || {
+            propose(
+                &w,
+                "slime-s",
+                "the parser lives in src/parser.rs",
+                vec![],
+                None,
+            )
+            .unwrap()
         });
-        let c = propose(&w, "slime-s", "the tests live in tests/", vec![], None).unwrap();
+        let tests = propose(&w, "slime-s", "the tests live in tests/", vec![], None).unwrap();
         // Another thread writes as no unit.
         let w2 = w.clone();
         std::thread::spawn(move || propose(&w2, "slime-s", "unstamped", vec![], None).unwrap())
             .join()
             .unwrap();
-        (a.note, b.note, c.note)
+        (lexer.note, parser.note, tests.note)
     });
-    let d = propose(&w, "slime-s", "after", vec![], None).unwrap().note;
+    let after = propose(&w, "slime-s", "after", vec![], None).unwrap().note;
     let caught = std::panic::catch_unwind(|| as_unit::<()>(&other, || panic!("a unit failed")));
     assert!(caught.is_err());
-    let e = propose(&w, "slime-s", "after the panic", vec![], None).unwrap().note;
+    let after_panic = propose(&w, "slime-s", "after the panic", vec![], None)
+        .unwrap()
+        .note;
     let notes = fold(&read(&w, &personal).unwrap().rows);
     let unit = |id: &str| notes[id].unit.clone();
-    assert_eq!(unit(&a).as_deref(), Some("memory@1.0.0"));
-    assert_eq!(unit(&b).as_deref(), Some("plugin:cognee@0.1.0"));
-    assert_eq!(unit(&c).as_deref(), Some("memory@1.0.0"));
-    assert_eq!(unit(&d), None);
-    assert_eq!(unit(&e), None);
+    assert_eq!(unit(&lexer).as_deref(), Some("memory@1.0.0"));
+    assert_eq!(unit(&parser).as_deref(), Some("plugin:cognee@0.1.0"));
+    assert_eq!(unit(&tests).as_deref(), Some("memory@1.0.0"));
+    assert_eq!(unit(&after), None);
+    assert_eq!(unit(&after_panic), None);
     let unstamped = notes.values().find(|n| n.text == "unstamped").unwrap();
     assert_eq!(unstamped.unit, None);
     let _ = fs::remove_dir_all(&w);
@@ -129,13 +153,23 @@ fn withdraw_by_puts_every_note_a_unit_wrote_to_sleep() {
         (g, p, c)
     });
     let kept = as_unit(&good, || {
-        propose(&w, "slime-s", "the lexer lives in src/lexer.rs", vec![], None).unwrap()
+        propose(
+            &w,
+            "slime-s",
+            "the lexer lives in src/lexer.rs",
+            vec![],
+            None,
+        )
+        .unwrap()
     })
     .note;
     let plain = propose(&w, "slime-s", "plain words", vec![], None)
         .unwrap()
         .note;
-    assert_eq!(status_in(&w, &Tier::Shared, &grounded), Some(Status::Grounded));
+    assert_eq!(
+        status_in(&w, &Tier::Shared, &grounded),
+        Some(Status::Grounded)
+    );
 
     let mut found: Vec<(String, String)> = written_by(&w, &bad)
         .unwrap()
@@ -170,7 +204,7 @@ fn withdraw_by_puts_every_note_a_unit_wrote_to_sleep() {
     assert_eq!(last.proof.as_deref(), Some("log.md 2026-11-24 withdrawn"));
     assert_eq!(last.unit, None);
     // A second withdrawal finds nothing awake.
-    assert!(withdraw_by(&w, &bad, "log.md again").unwrap().is_empty());
-    assert!(mikata_memory::findings(&w, "slime-s").unwrap().is_empty());
+    assert_eq!(withdraw_by(&w, &bad, "log.md again").unwrap(), []);
+    assert_eq!(mikata_memory::findings(&w, "slime-s").unwrap(), []);
     let _ = fs::remove_dir_all(&w);
 }

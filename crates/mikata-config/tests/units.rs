@@ -61,10 +61,10 @@ impl Drop for Ground {
 fn no_unit_is_switched_until_a_file_says() {
     let g = Ground::new("none");
     let c = g.load().unwrap();
-    assert!(c.units().is_empty());
+    assert_eq!(c.units(), []);
     assert!(c.unit("memory").is_none());
     let p = c.plugins().unwrap();
-    assert!(p.plugins.is_empty());
+    assert_eq!(p.plugins, []);
     assert_eq!(p.hook_ms, HOOK_MS);
 }
 
@@ -86,7 +86,7 @@ fn the_global_file_switches_units_either_way_with_their_origin() {
     let explained = c.explain("units");
     assert_eq!(explained.len(), 2);
     assert!(explained.iter().all(|e| e.origin.layer == Layer::Global));
-    assert!(c.holes().is_empty());
+    assert_eq!(c.holes(), []);
 }
 
 /// A world's files may switch a unit off, and the switch says it came from the world, so the loop
@@ -99,7 +99,10 @@ fn a_world_file_may_only_switch_a_unit_off() {
     g.tracked("[units]\nmemory = true\nwhat_changed = false\n");
     g.local("[units]\nreader = false\nwhat_changed = true\n");
     let c = g.load().unwrap();
-    assert!(!c.unit("memory").unwrap().on, "the global file's off stands");
+    assert!(
+        !c.unit("memory").unwrap().on,
+        "the global file's off stands"
+    );
     let wc = c.unit("what_changed").unwrap();
     assert!(!wc.on);
     assert_eq!(wc.origin.layer, Layer::Tracked);
@@ -131,7 +134,10 @@ fn a_unit_id_is_lawful_and_a_switch_is_a_boolean() {
     let g = Ground::new("lawful");
     g.global("[units]\n\"plugin:x\" = false\n");
     let e = g.load().unwrap_err();
-    assert!(e.contains("units.plugin:x") && e.contains("[plugins.<id>]"), "{e}");
+    assert!(
+        e.contains("units.plugin:x") && e.contains("[plugins.<id>]"),
+        "{e}"
+    );
     g.global("[units]\nMemory = false\n");
     assert!(g.load().is_err());
     g.global("[units]\nmemory = \"off\"\n");
@@ -171,7 +177,7 @@ fn a_plugin_is_read_from_the_global_file() {
     assert!(nfp.enabled);
     let watcher = &p.plugins[1];
     assert_eq!(watcher.grants, ["observe"], "none named: observe alone");
-    assert!(watcher.races.is_empty());
+    assert_eq!(watcher.races, []);
     assert!(!watcher.enabled);
     let explained = c.explain("plugins.no-force-push");
     assert_eq!(explained.len(), 5);
@@ -184,13 +190,15 @@ fn a_plugin_is_read_from_the_global_file() {
 fn a_world_file_never_loads_a_plugin_or_widens_a_grant() {
     let g = Ground::new("plugin-world");
     g.global("[plugins.watcher]\ncommand = \"watch\"\ngrants = [\"observe\"]\n");
-    g.tracked("[plugins.evil]\ncommand = \"sh\"\n\n[plugins.watcher]\ngrants = [\"veto\", \"stop\"]\n");
+    g.tracked(
+        "[plugins.evil]\ncommand = \"sh\"\n\n[plugins.watcher]\ngrants = [\"veto\", \"stop\"]\n",
+    );
     g.local("[plugins.watcher]\nenabled = true\nraces = [\"slime\"]\n\n[plugins.timeouts]\nhook_ms = 60000\n");
     let c = g.load().unwrap();
     let p = c.plugins().unwrap();
     assert_eq!(p.plugins.len(), 1);
     assert_eq!(p.plugins[0].grants, ["observe"]);
-    assert!(p.plugins[0].races.is_empty());
+    assert_eq!(p.plugins[0].races, []);
     assert_eq!(p.hook_ms, HOOK_MS);
     let mut holes: Vec<_> = c
         .holes()
@@ -209,7 +217,11 @@ fn a_world_file_never_loads_a_plugin_or_widens_a_grant() {
             (Layer::Local, "plugins.watcher.races"),
         ]
     );
-    for key in ["plugins.x.command", "plugins.x.grants", "plugins.timeouts.hook_ms"] {
+    for key in [
+        "plugins.x.command",
+        "plugins.x.grants",
+        "plugins.timeouts.hook_ms",
+    ] {
         assert!(global_only(key), "{key}");
     }
 }
@@ -220,7 +232,10 @@ fn a_world_file_never_loads_a_plugin_or_widens_a_grant() {
 fn a_plugin_that_does_not_read_is_an_error() {
     let g = Ground::new("plugin-bad");
     for (text, says) in [
-        ("[plugins.x]\ncommand = \"c\"\ngrants = [\"root\"]\n", "no grant `root`"),
+        (
+            "[plugins.x]\ncommand = \"c\"\ngrants = [\"root\"]\n",
+            "no grant `root`",
+        ),
         ("[plugins.X]\ncommand = \"c\"\n", "a plugin's id"),
         ("[plugins.timeouts]\nhook_ms = 0\n", "from 1 to"),
         ("[plugins.timeouts]\nhook_ms = 60001\n", "from 1 to"),
@@ -239,7 +254,10 @@ fn a_plugin_that_does_not_read_is_an_error() {
         }
     }
     g.global("[plugins.x]\nenabled = true\n");
-    assert_eq!(g.load().unwrap().plugins().unwrap_err(), "plugins.x: no command");
+    assert_eq!(
+        g.load().unwrap().plugins().unwrap_err(),
+        "plugins.x: no command"
+    );
     g.global("[plugins.x]\ncommand = \"c\"\nraces = [\"dragon\"]\n");
     assert_eq!(
         g.load().unwrap().plugins().unwrap_err(),
@@ -270,10 +288,7 @@ fn a_composition_reads_from_the_command_line() {
     );
     assert_eq!(c.changes()[2].plugin(), Some("no-force-push"));
     assert_eq!(c.changes()[0].plugin(), None);
-    assert_eq!(
-        c.to_string(),
-        "-memory,-what_changed,+plugin:no-force-push"
-    );
+    assert_eq!(c.to_string(), "-memory,-what_changed,+plugin:no-force-push");
     assert_eq!(c.to_string().parse::<Composition>(), Ok(c));
     assert!(Composition::parse("").unwrap().is_empty());
     assert!(Composition::parse("  ").unwrap().is_empty());

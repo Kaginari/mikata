@@ -46,7 +46,10 @@ fn a_composition_is_refused_where_it_does_not_belong() {
             "given once",
         ),
         (&["--units", "-memory"][..], "--units goes with run"),
-        (&["status", "--units", "-memory"][..], "--units goes with run"),
+        (
+            &["status", "--units", "-memory"][..],
+            "--units goes with run",
+        ),
     ] {
         let e = parse(&args(a)).unwrap_err();
         assert!(e.contains(says), "{a:?}: {e}");

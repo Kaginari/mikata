@@ -47,7 +47,10 @@ fn the_human_withdraws_a_unit_s_notes_by_its_stamp() {
         &["memory", "withdraw", "--by", "plugin:noisy@0.2.0"],
         Some("summoner"),
     );
-    assert!(!ok && err.contains("the human's act, never a body's"), "{err}");
+    assert!(
+        !ok && err.contains("the human's act, never a body's"),
+        "{err}"
+    );
     let (ok, _, err) = said(&world, &["memory", "withdraw", "--by", "noisy"], None);
     assert!(!ok && err.contains("no unit's stamp"), "{err}");
     let (ok, _, err) = said(&world, &["memory", "withdraw", "--by"], None);
@@ -69,7 +72,11 @@ fn the_human_withdraws_a_unit_s_notes_by_its_stamp() {
         "{}",
         journal()
     );
-    let notes = fold(&read(&world, &Tier::Personal("summoner".into())).unwrap().rows);
+    let notes = fold(
+        &read(&world, &Tier::Personal("summoner".into()))
+            .unwrap()
+            .rows,
+    );
     assert_eq!(notes[&note].status, Status::Dormant);
     assert_eq!(notes[&other].status, Status::Proposed);
 

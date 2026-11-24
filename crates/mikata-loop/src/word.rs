@@ -269,11 +269,18 @@ mod tests {
             journal.contains("the human — withdrawn: the notes of plugin:noisy@0.2.0"),
             "{journal}"
         );
-        let notes = fold(&read(dir.path(), &Tier::Personal("summoner".into())).unwrap().rows);
+        let notes = fold(
+            &read(dir.path(), &Tier::Personal("summoner".into()))
+                .unwrap()
+                .rows,
+        );
         assert_eq!(notes[&note].status, Status::Dormant);
         assert_eq!(notes[&other].status, Status::Proposed);
         let e = super::take_back_by(dir.path(), "plugin:noisy@0.2.0").unwrap_err();
-        assert!(e.contains("no note plugin:noisy@0.2.0 wrote is awake"), "{e}");
+        assert!(
+            e.contains("no note plugin:noisy@0.2.0 wrote is awake"),
+            "{e}"
+        );
         let after = std::fs::read_to_string(dir.path().join(".mikata/log.md")).unwrap();
         assert_eq!(after, journal, "a refusal writes nothing");
     }

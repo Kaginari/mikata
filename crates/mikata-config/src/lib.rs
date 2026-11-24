@@ -235,8 +235,12 @@ pub fn global_only(key: &str) -> bool {
 }
 
 /// Why `key`, read from a file of `layer`, is refused before anything else: a key file named
-/// from inside a world, which would choose which file's contents are sent to a provider.
-fn refused_in_a_world(key: &str, layer: Layer) -> Option<&'static str> {
+/// from inside a world, which would choose which file's contents are sent to a provider; a
+/// plugin, or a unit switched on, from inside a world ([`units`]).
+fn refused_in_a_world(key: &str, value: &Value, layer: Layer) -> Option<&'static str> {
+    if let Some(why) = units::refused_from_world(key, value, layer) {
+        return Some(why);
+    }
     (matches!(layer, Layer::Local | Layer::Tracked)
         && key.starts_with("providers.")
         && key.ends_with(".key_file"))
@@ -796,7 +800,7 @@ impl Config {
         let mut leaves = Vec::new();
         flatten(table, "", &mut leaves);
         for (key, value) in leaves {
-            if let Some(why) = refused_in_a_world(&key, origin.layer) {
+            if let Some(why) = refused_in_a_world(&key, &value, origin.layer) {
                 self.holes.push(Hole {
                     key,
                     origin: origin.clone(),
@@ -813,14 +817,6 @@ impl Config {
                 continue;
             };
             check_kind(&key, &value, kind, origin)?;
-            if let Some(why) = units::refused_from_world(&key, &value, origin.layer) {
-                self.holes.push(Hole {
-                    key,
-                    origin: origin.clone(),
-                    why: why.into(),
-                });
-                continue;
-            }
             if origin.layer == Layer::Local && global_only(&key) {
                 self.holes.push(Hole {
                     key,

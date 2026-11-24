@@ -213,7 +213,11 @@ impl Config {
 }
 
 /// Why a `units.*` or `plugins.*` key from a world's file is not taken, when it is not.
-pub(crate) fn refused_from_world(key: &str, value: &toml::Value, layer: Layer) -> Option<&'static str> {
+pub(crate) fn refused_from_world(
+    key: &str,
+    value: &toml::Value,
+    layer: Layer,
+) -> Option<&'static str> {
     if !matches!(layer, Layer::Tracked | Layer::Local) {
         return None;
     }

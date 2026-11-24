@@ -24,9 +24,9 @@ pub use standing::{Standing, standing};
 pub use store::{Tier, as_unit, inherit, read, union_merge};
 pub use write::{
     Anchor, Claim, Evidence, Grounded, Proof, Proposed, Retired, Route, Seconded, Written, amend,
-    answered,
-    attributable, cache, changed, confirm, corrected, correction, corrections_under, corroborate,
-    distilled, ground, learned_under, named_check, pending, proposals, propose, propose_on,
-    propose_resting, propose_under, proposed, retire, retired, retired_in, retired_note, revise,
-    revise_under, seen, stopped, vouch, wake, wake_by, withdraw, withdraw_by, written_by,
+    answered, attributable, cache, changed, confirm, corrected, correction, corrections_under,
+    corroborate, distilled, ground, learned_under, named_check, pending, proposals, propose,
+    propose_on, propose_resting, propose_under, proposed, retire, retired, retired_in,
+    retired_note, revise, revise_under, seen, stopped, vouch, wake, wake_by, withdraw, withdraw_by,
+    written_by,
 };
