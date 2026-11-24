@@ -201,9 +201,69 @@ pub struct Event {
     /// The proof an event that claims a standing cites: a `log.md` entry, a commit, a verdict.
     #[serde(default)]
     pub proof: Option<String>,
+    /// The unit that wrote it, as `unit@version` ([`UnitStamp`]), when one did: so a bad unit's
+    /// notes can be found and withdrawn. Rows written before units have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
     /// What it does.
     #[serde(flatten)]
     pub change: Change,
+}
+
+/// Which unit wrote an event, and which version of it: `memory@1.2.0`, `plugin:cognee@0.1.0`.
+/// The unit's id and its version are each printable ASCII without spaces or `@`, at most 64
+/// characters.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UnitStamp(String);
+
+impl UnitStamp {
+    /// The stamp of version `version` of unit `id`.
+    ///
+    /// # Errors
+    ///
+    /// Either part is empty, longer than 64 characters, or holds a space, a control character, a
+    /// character outside ASCII or `@`.
+    pub fn new(id: &str, version: &str) -> Result<Self, String> {
+        let lawful = |part: &str| {
+            !part.is_empty()
+                && part.len() <= 64
+                && part.chars().all(|c| c.is_ascii_graphic() && c != '@')
+        };
+        if lawful(id) && lawful(version) {
+            Ok(Self(format!("{id}@{version}")))
+        } else {
+            Err(format!(
+                "`{id}@{version}` is no unit's stamp: unit@version, each part printable ASCII \
+                 without spaces or `@`, at most 64 characters"
+            ))
+        }
+    }
+
+    /// The stamp as it is written: `unit@version`.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::str::FromStr for UnitStamp {
+    type Err = String;
+
+    /// Read `unit@version`.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.split_once('@') {
+            Some((id, version)) => Self::new(id, version),
+            None => Err(format!(
+                "`{s}` is no unit's stamp: unit@version, as `memory@1.2.0`"
+            )),
+        }
+    }
+}
+
+impl std::fmt::Display for UnitStamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
 }
 
 /// A note as its events leave it.
@@ -255,6 +315,8 @@ pub struct Note {
     pub groundings: Vec<String>,
     /// When it was last grounded, in milliseconds since the epoch.
     pub grounded_at: Option<u64>,
+    /// The unit that wrote its creation, as `unit@version`, when one did.
+    pub unit: Option<String>,
 }
 
 impl Note {
@@ -328,6 +390,7 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
                     review: None,
                     groundings: Vec::new(),
                     grounded_at: None,
+                    unit: e.unit.clone(),
                 });
             }
             Change::Version { text, depends_on } => {

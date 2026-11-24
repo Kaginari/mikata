@@ -233,6 +233,13 @@ pub struct Opened {
     pub mode: Mode,
     /// Why it opened in that mode, in words for the human.
     pub mode_why: String,
+    /// The composition the human's command line asked for (`mikata run --units`, `mikatad
+    /// --units`): changes over the configured units, empty when none was asked for. Like the law
+    /// and the mode, it is the command line's alone. Experimental: carried, not yet applied.
+    // TODO(lane D): take it into `open_from` and apply it to the run's registry before the first
+    // ask, over `Config::units()` and `Config::plugins()`, and journal each change as a
+    // `Beat::Units` row; until then nothing reads it.
+    pub units: mikata_config::Composition,
 }
 
 /// Which run a session opens on.
@@ -811,6 +818,7 @@ fn build(
         law,
         mode,
         mode_why,
+        units: mikata_config::Composition::default(),
     })
 }
 

@@ -687,21 +687,42 @@ async fn drive(
 }
 
 /// The opener for a world directory: its configuration, its backend, keys from this process's
-/// environment; in the mode the human asked for on the core's command line, or the world's own.
-pub fn opener(world: std::path::PathBuf, mode: Option<mikata_loop::Mode>) -> Opener {
+/// environment; in the mode the human asked for on the core's command line, or the world's own,
+/// carrying the composition asked for there (`--units`; empty when none was).
+pub fn opener(
+    world: std::path::PathBuf,
+    mode: Option<mikata_loop::Mode>,
+    units: mikata_loop::config::Composition,
+) -> Opener {
     Box::new(move |gate, observer| {
         mikata_loop::open_mode(&world, mode, mikata_loop::Law::On, gate, observer, |var| {
             std::env::var(var).ok()
+        })
+        .map(|mut opened| {
+            // TODO(lane D): the loop applies it; until then it is carried.
+            opened.units = units.clone();
+            opened
         })
     })
 }
 
 /// The opener that resumes a stopped run of a world — its id, or `last` — through the same
 /// opening as [`opener`]'s: a refusal is the `initialize` call's error.
-pub fn resumer(world: std::path::PathBuf, run: String, mode: Option<mikata_loop::Mode>) -> Opener {
+pub fn resumer(
+    world: std::path::PathBuf,
+    run: String,
+    mode: Option<mikata_loop::Mode>,
+    units: mikata_loop::config::Composition,
+) -> Opener {
     Box::new(move |gate, observer| {
         mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| {
             std::env::var(var).ok()
+        })
+        .map(|mut opened| {
+            // TODO(lane D): a resume rebuilds the composition from the journal's `Units` beats,
+            // then applies this over it.
+            opened.units = units.clone();
+            opened
         })
     })
 }

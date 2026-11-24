@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use mikata_ledger::{Journal, ReadBack};
 
-use crate::note::{By, Change, Event};
+use crate::note::{By, Change, Event, UnitStamp};
 
 /// A memory tier.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +65,32 @@ pub fn now_ms() -> u64 {
         .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 }
 
+std::thread_local! {
+    /// The unit writing on this thread, while [`as_unit`] runs.
+    static STAMP: std::cell::RefCell<Option<UnitStamp>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Puts the stamp that was in force back when it is dropped, a panic included.
+struct Restore(Option<UnitStamp>);
+
+impl Drop for Restore {
+    fn drop(&mut self) {
+        let before = self.0.take();
+        STAMP.with_borrow_mut(|s| *s = before);
+    }
+}
+
+/// Run `write` with every event it appends on this thread stamped as written by `unit`
+/// ([`Event::unit`]): every writer of this crate — [`crate::propose`], [`crate::ground`] and the
+/// rest — appends through one door, so a unit stamps its notes without a writer taking a new
+/// argument. A stamp in force before is put back afterwards; the inner one wins while it runs.
+/// Writes on other threads are not stamped.
+pub fn as_unit<T>(unit: &UnitStamp, write: impl FnOnce() -> T) -> T {
+    let before = STAMP.with_borrow_mut(|s| s.replace(unit.clone()));
+    let _restore = Restore(before);
+    write()
+}
+
 /// Append `change` about `note` to `tier`, by `by`, citing `proof`: one full line, synced. Inside
 /// the crate only: outside it, a body's words land through [`crate::propose`], and a standing
 /// through [`crate::ground`] with its route's proof.
@@ -87,6 +113,7 @@ pub(crate) fn append(
         note: note.to_owned(),
         by,
         proof,
+        unit: STAMP.with_borrow(|s| s.as_ref().map(|u| u.as_str().to_owned())),
         change,
     };
     tier.journal(world).append(&event)?;

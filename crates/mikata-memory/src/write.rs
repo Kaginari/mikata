@@ -6,7 +6,7 @@
 use std::marker::PhantomData;
 use std::path::Path;
 
-use crate::note::{By, Change, Dependency, Note, Polarity, Status};
+use crate::note::{By, Change, Dependency, Note, Polarity, Status, UnitStamp};
 use crate::store::{Tier, append, event_id, now_ms};
 
 /// A claim said, not proved.
@@ -959,6 +959,91 @@ pub fn withdraw(world: &Path, id: &str, proof: &str) -> std::io::Result<String> 
         },
     )?;
     Ok(text)
+}
+
+/// A note a unit wrote, still awake in one tier.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Written {
+    /// The tier it is awake in.
+    pub tier: Tier,
+    /// Its id.
+    pub note: String,
+    /// What it says.
+    pub text: String,
+}
+
+/// The notes `unit` wrote that are still awake (proposed or grounded), in every tier: shared
+/// memory, each creature's and each body's short tier. A note is the unit's when an event
+/// stamped with it ([`crate::as_unit`]) created it in any tier; its copies in other tiers — a
+/// grounding's restatement in shared memory — are listed too, each in its tier.
+///
+/// # Errors
+///
+/// A tier's file cannot be read.
+pub fn written_by(world: &Path, unit: &UnitStamp) -> std::io::Result<Vec<Written>> {
+    let mut tiers = tiers_of(world);
+    let mut short: Vec<String> = std::fs::read_dir(world.join(".mikata/memory/short"))
+        .map(|rd| {
+            rd.filter_map(Result::ok)
+                .map(|e| e.path())
+                .filter(|p| p.extension().is_some_and(|x| x == "jsonl"))
+                .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+                .collect()
+        })
+        .unwrap_or_default();
+    short.sort();
+    tiers.extend(short.into_iter().map(Tier::Short));
+    let mut folded = Vec::new();
+    for tier in tiers {
+        let notes = crate::note::fold(&crate::store::read(world, &tier)?.rows);
+        folded.push((tier, notes));
+    }
+    let ids: std::collections::BTreeSet<&str> = folded
+        .iter()
+        .flat_map(|(_, notes)| notes.values())
+        .filter(|n| n.unit.as_deref() == Some(unit.as_str()))
+        .map(|n| n.id.as_str())
+        .collect();
+    Ok(folded
+        .iter()
+        .flat_map(|(tier, notes)| {
+            notes
+                .values()
+                .filter(|n| {
+                    ids.contains(n.id.as_str())
+                        && matches!(n.status, Status::Proposed | Status::Grounded)
+                })
+                .map(|n| Written {
+                    tier: tier.clone(),
+                    note: n.id.clone(),
+                    text: n.text.clone(),
+                })
+        })
+        .collect())
+}
+
+/// The human withdraws every note `unit` wrote ([`written_by`]): each goes to sleep in its tier by
+/// their word (`proof`, the journal entry that holds it), recalled no more. Nothing is deleted.
+/// Returns what was withdrawn.
+///
+/// # Errors
+///
+/// A tier's file cannot be read or written.
+pub fn withdraw_by(world: &Path, unit: &UnitStamp, proof: &str) -> std::io::Result<Vec<Written>> {
+    let written = written_by(world, unit)?;
+    for w in &written {
+        append(
+            world,
+            &w.tier,
+            &w.note,
+            By::Human,
+            Some(proof.to_owned()),
+            Change::Status {
+                status: Status::Dormant,
+            },
+        )?;
+    }
+    Ok(written)
 }
 
 /// One anchor recalled into a run, as reconsolidation weighs it.

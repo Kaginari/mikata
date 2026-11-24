@@ -131,6 +131,39 @@ pub fn take_back(world: &Path, id: &str) -> Result<String, String> {
     Ok(said)
 }
 
+/// Take back every note a unit wrote (`unit@version`): written to the journal, and each note
+/// sleeps in every tier it reached, recalled no more. Nothing is deleted. Returns what was taken
+/// back.
+///
+/// # Errors
+/// The stamp does not read, no note the unit wrote is awake, or the journal or memory cannot be
+/// read or written.
+pub fn take_back_by(world: &Path, unit: &str) -> Result<Vec<memory::Written>, String> {
+    let stamp: memory::UnitStamp = unit.parse()?;
+    let awake =
+        memory::written_by(world, &stamp).map_err(|e| format!("memory cannot be read: {e}"))?;
+    if awake.is_empty() {
+        return Err(format!("no note {stamp} wrote is awake"));
+    }
+    let mut ids: Vec<&str> = awake.iter().map(|w| w.note.as_str()).collect();
+    ids.sort_unstable();
+    ids.dedup();
+    let entry = Entry {
+        body: "the human".to_owned(),
+        title: format!("withdrawn: the notes of {stamp}"),
+        lines: vec![("Notes".to_owned(), ids.join(", "))],
+    };
+    let heading = match append_entry(world, &entry) {
+        Ok(Some(h)) => h,
+        Ok(None) => {
+            return Err("this world keeps no journal (.mikata/log.md) to write it in".to_owned());
+        }
+        Err(e) => return Err(format!("the journal cannot be written: {e}")),
+    };
+    memory::withdraw_by(world, &stamp, &format!("log.md {heading}"))
+        .map_err(|e| format!("the notes could not be withdrawn: {e}"))
+}
+
 /// What a preview says to the human, in one line or two: held or advice, and under which ask.
 #[must_use]
 pub fn shown(p: &Preview) -> String {
@@ -211,5 +244,37 @@ mod tests {
         let said = take_back(dir.path(), &kept.id).unwrap();
         assert!(said.contains("must give `6`"), "{said}");
         assert!(take_back(dir.path(), &kept.id).is_err(), "taken back once");
+    }
+
+    /// Every note a unit wrote is taken back by its stamp, in the journal first; a stamp that does
+    /// not read, or one whose notes are all asleep, is refused and writes nothing.
+    #[test]
+    fn a_unit_s_notes_are_taken_back_by_its_stamp() {
+        use mikata_world::memory::{Status, Tier, UnitStamp, as_unit, fold, propose, read};
+        let dir = answered();
+        let stamp: UnitStamp = "plugin:noisy@0.2.0".parse().unwrap();
+        let note = as_unit(&stamp, || {
+            propose(dir.path(), "summoner", "skip the slow tests", vec![], None).unwrap()
+        })
+        .note;
+        let other = propose(dir.path(), "summoner", "the lexer is in src/", vec![], None)
+            .unwrap()
+            .note;
+        assert!(super::take_back_by(dir.path(), "plugin:noisy").is_err());
+        let gone = super::take_back_by(dir.path(), "plugin:noisy@0.2.0").unwrap();
+        assert_eq!(gone.len(), 1);
+        assert_eq!(gone[0].note, note);
+        let journal = std::fs::read_to_string(dir.path().join(".mikata/log.md")).unwrap();
+        assert!(
+            journal.contains("the human — withdrawn: the notes of plugin:noisy@0.2.0"),
+            "{journal}"
+        );
+        let notes = fold(&read(dir.path(), &Tier::Personal("summoner".into())).unwrap().rows);
+        assert_eq!(notes[&note].status, Status::Dormant);
+        assert_eq!(notes[&other].status, Status::Proposed);
+        let e = super::take_back_by(dir.path(), "plugin:noisy@0.2.0").unwrap_err();
+        assert!(e.contains("no note plugin:noisy@0.2.0 wrote is awake"), "{e}");
+        let after = std::fs::read_to_string(dir.path().join(".mikata/log.md")).unwrap();
+        assert_eq!(after, journal, "a refusal writes nothing");
     }
 }

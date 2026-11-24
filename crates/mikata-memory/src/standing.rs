@@ -88,6 +88,7 @@ mod tests {
             note: note.into(),
             by: By::Record,
             proof: None,
+            unit: None,
             change: Change::Create {
                 text: text.into(),
                 tags: vec![],
@@ -111,6 +112,7 @@ mod tests {
             note: note.into(),
             by: By::Route,
             proof: Some("log.md".into()),
+            unit: None,
             change: Change::Status { status },
         }
     }

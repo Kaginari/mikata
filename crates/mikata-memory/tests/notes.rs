@@ -23,6 +23,7 @@ fn create(note: &str, time: u64, source: Option<&str>) -> Event {
         note: note.into(),
         by: By::Record,
         proof: None,
+        unit: None,
         change: Change::Create {
             text: format!("{note} holds"),
             tags: vec![],
@@ -46,6 +47,7 @@ fn status(note: &str, time: u64, id: &str, status: Status) -> Event {
         note: note.into(),
         by: By::Route,
         proof: Some(format!("log.md#{id}")),
+        unit: None,
         change: Change::Status { status },
     }
 }
@@ -253,6 +255,7 @@ fn colliding_events_fold_the_same_in_any_order() {
         note: "n".into(),
         by: By::Gate,
         proof: None,
+        unit: None,
         change: Change::Confidence { confidence: c },
     };
     let one = vec![a.clone(), b.clone(), conf(0.2), conf(0.9)];

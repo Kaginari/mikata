@@ -64,13 +64,19 @@ fn main() -> ExitCode {
             gate_tty,
             no_law,
             mode,
-        } => ask_once(
-            ask,
-            world,
-            json,
-            gate_tty,
-            (if no_law { Law::Off } else { Law::On }, mode),
-        ),
+        } => {
+            let units = match mikata_tui::cli::units(&args) {
+                Ok(u) => u.unwrap_or_default(),
+                Err(e) => return fail(&e, 2),
+            };
+            ask_once(
+                ask,
+                world,
+                json,
+                gate_tty,
+                (if no_law { Law::Off } else { Law::On }, mode, units),
+            )
+        }
         Command::Status { world, mode } => status(world, mode),
     }
 }
@@ -102,7 +108,7 @@ fn ask_once(
     world: Option<PathBuf>,
     json: bool,
     gate_tty: bool,
-    (law, mode): (Law, Option<Mode>),
+    (law, mode, units): (Law, Option<Mode>, mikata_loop::config::Composition),
 ) -> ExitCode {
     let ask = match ask {
         Some(a) => a,
@@ -137,10 +143,12 @@ fn ask_once(
         headless::observer(tx.clone()),
         |v| std::env::var(v).ok(),
     );
-    let opened = match opened {
+    let mut opened = match opened {
         Ok(o) => o,
         Err(e) => return fail(&e, 2),
     };
+    // The composition asked for rides with the session; TODO(lane D): the loop applies it.
+    opened.units = units;
     #[cfg(unix)]
     if let Err(e) = headless::on_ctrl_c(opened.session.interrupt(), gate) {
         return fail(&format!("ctrl+c could not be caught: {e}"), 2);
