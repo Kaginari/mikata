@@ -160,6 +160,8 @@ pub enum Cmd {
     Keep(mikata_loop::word::Preview),
     /// Take a correction of the human's back, by its id.
     Withdraw(String),
+    /// The session's units: listed (`None`), or one switched on or off at its next safe point.
+    Units(Option<(String, bool)>),
     /// Put text on the clipboard: the terminal's (OSC 52) and the desktop's, where a tool is.
     Copy(String),
     /// Leave.
@@ -291,7 +293,7 @@ pub(crate) struct Hits {
 }
 
 /// The commands typed with a slash.
-pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /clear · /quit · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
+pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /clear · /quit · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
 
 impl Model {
     /// A model for a session of `header`, in `variant`, at `size`.
@@ -1049,6 +1051,22 @@ fn was_kept(m: &mut Model, kept: Result<mikata_loop::word::Kept, String>) {
     }
 }
 
+/// The changes `/unit on|off <id>` and `/plugin load|unload <id>` or `/plugin swap <old> <new>`
+/// ask for, or how the command is written.
+fn unit_change(name: &str, arg: &str) -> Result<Vec<(String, bool)>, String> {
+    let words: Vec<&str> = arg.split_whitespace().collect();
+    let plugin = |id: &str| format!("plugin:{}", id.trim_start_matches("plugin:"));
+    match (name, words.as_slice()) {
+        ("unit", ["on", id]) => Ok(vec![((*id).to_owned(), true)]),
+        ("unit", ["off", id]) => Ok(vec![((*id).to_owned(), false)]),
+        ("plugin", ["load", id]) => Ok(vec![(plugin(id), true)]),
+        ("plugin", ["unload", id]) => Ok(vec![(plugin(id), false)]),
+        ("plugin", ["swap", old, new]) => Ok(vec![(plugin(old), false), (plugin(new), true)]),
+        ("unit", _) => Err("/unit on|off <id>: switch a unit at its next safe point; /units lists them".into()),
+        _ => Err("/plugin load|unload <id> or /plugin swap <old> <new>: a plugin your global file declares".into()),
+    }
+}
+
 /// A line the human sent: a command, or an ask that runs now or waits its turn.
 fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
     m.viewport.update(ViewportMsg::Bottom);
@@ -1098,6 +1116,11 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
                     m.info("/waive <landing> <reason>: the reason says why, 20 characters or more");
                 }
             },
+            "units" => return vec![Cmd::Units(None)],
+            "unit" | "plugin" => match unit_change(name, arg) {
+                Ok(changes) => return changes.into_iter().map(|c| Cmd::Units(Some(c))).collect(),
+                Err(usage) => m.info(usage),
+            },
             _ => m.info(format!("no command /{name}; {COMMANDS}")),
         }
         return Vec::new();
@@ -1123,6 +1146,32 @@ pub fn view(m: &Model, f: &mut Frame<'_>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unit_commands_ask_for_changes_or_say_how_they_are_written() {
+        assert_eq!(
+            unit_change("unit", "off returns"),
+            Ok(vec![("returns".into(), false)])
+        );
+        assert_eq!(
+            unit_change("plugin", "load no-force-push"),
+            Ok(vec![("plugin:no-force-push".into(), true)])
+        );
+        assert_eq!(
+            unit_change("plugin", "swap a plugin:b"),
+            Ok(vec![("plugin:a".into(), false), ("plugin:b".into(), true)])
+        );
+        assert!(
+            unit_change("unit", "returns")
+                .unwrap_err()
+                .starts_with("/unit on|off")
+        );
+        assert!(
+            unit_change("plugin", "")
+                .unwrap_err()
+                .starts_with("/plugin load")
+        );
+    }
 
     /// Every info line the session showed, joined.
     fn said(m: &Model) -> String {

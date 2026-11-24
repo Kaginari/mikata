@@ -169,6 +169,7 @@ pub struct Host {
     lines: tokio::sync::mpsc::UnboundedSender<String>,
     interrupt: Arc<Interrupt>,
     steer: Steer,
+    units: mikata_loop::units::UnitDesk,
     runtime: tokio::runtime::Runtime,
 }
 
@@ -188,6 +189,7 @@ impl Host {
         let (lines, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
         let world = opened.world.clone();
         let mut session = opened.session;
+        let units = session.run().unit_desk();
         let home = opened.world;
         let done = tx.clone();
         let deltas = tx.clone();
@@ -220,6 +222,7 @@ impl Host {
             lines,
             interrupt,
             steer,
+            units,
             runtime,
         })
     }
@@ -238,6 +241,21 @@ impl Host {
                 .unwrap_or_else(PoisonError::into_inner)
                 .push_back(line),
             Cmd::Interrupt => self.interrupt.fire(),
+            Cmd::Units(change) => {
+                let mut desk = self.units.lock().unwrap_or_else(PoisonError::into_inner);
+                let said = match change {
+                    None => listed(&desk),
+                    Some((id, on)) => {
+                        let said = format!(
+                            "asked: `{id}` {} at its next safe point",
+                            if on { "on" } else { "off" }
+                        );
+                        desk.asked.push_back((id, on));
+                        said
+                    }
+                };
+                let _ = self.tx.send(Msg::Said(said));
+            }
             Cmd::Answer(pending, answer) => {
                 let _ = pending.answer(answer);
             }
@@ -812,4 +830,27 @@ mod tests {
         );
         assert_eq!(display_world(Path::new("/srv/w"), Some(home)), "/srv/w");
     }
+}
+
+/// The session's units as the run last listed them, for the human.
+fn listed(desk: &mikata_loop::units::Desk) -> String {
+    use std::fmt::Write as _;
+    let mut said = String::from("units:");
+    for (id, version, state) in &desk.listed {
+        let _ = write!(said, "\n  {id} {version} {state}");
+    }
+    if desk.listed.is_empty() {
+        said.push_str(" none listed yet");
+    }
+    if !desk.asked.is_empty() {
+        let _ = write!(
+            said,
+            "\n  {} change(s) waiting for the next safe point",
+            desk.asked.len()
+        );
+    }
+    for why in desk.refused.iter().rev().take(3) {
+        let _ = write!(said, "\n  refused: {why}");
+    }
+    said
 }
