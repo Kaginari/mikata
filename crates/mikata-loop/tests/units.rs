@@ -385,3 +385,52 @@ async fn memory_off_keeps_no_lesson_and_on_again_keeps_it() {
     run.ask("second", &mut |_| {}).await;
     assert_eq!(kept(&w), ["run the build before answering"]);
 }
+
+/// The owner's example: the native memory off and a third party's on, from the human's file. One
+/// session keeps a lesson through the plugin; the next is shown it in its preface; the native
+/// memory keeps nothing.
+#[tokio::test]
+async fn a_plugin_memory_stands_in_for_the_native_one() {
+    if std::process::Command::new("python3")
+        .arg("-V")
+        .output()
+        .is_err()
+    {
+        eprintln!("skipped: no python3 on PATH to run the example plugin");
+        return;
+    }
+    use mikata_memory::{Tier, fold, read};
+    let w = World::new("plugin-memory");
+    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../examples/plugins/notes_memory.py")
+        .canonicalize()
+        .unwrap();
+    let session = |model: Arc<ScriptedModel>| {
+        let mut run = w.run(model).with_catalog(catalog(
+            "notes",
+            "python3",
+            vec![script.display().to_string()],
+            &["advise"],
+        ));
+        run.change_units(Change::Unload(mikata_loop::units::MEMORY.into()));
+        run.switch_unit("plugin:notes", true).unwrap();
+        run
+    };
+    let first = Arc::new(ScriptedModel::new([ScriptedModel::text(
+        "Done.\n\n- @U colony the parser tests need the duckdb dialect loaded first",
+    )]));
+    session(first)
+        .ask("fix the parser tests", &mut |_| {})
+        .await;
+    let second = Arc::new(ScriptedModel::new([ScriptedModel::text("ok")]));
+    session(second.clone())
+        .ask("the parser tests fail again", &mut |_| {})
+        .await;
+    let said = format!("{:?}", second.requests()[0].messages);
+    assert!(
+        said.contains("[plugin:notes] What earlier sessions learned (the notes plugin):\\n- the parser tests need the duckdb dialect loaded first"),
+        "{said}"
+    );
+    let native = read(&w.world(), &Tier::Personal("summoner".into())).map(|r| fold(&r.rows).len());
+    assert_eq!(native.unwrap_or(0), 0, "the native memory kept nothing");
+}

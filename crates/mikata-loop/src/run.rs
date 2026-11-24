@@ -1979,7 +1979,11 @@ impl Run {
             _ => mikata_kernel::Verdict::Unverified,
         };
         let landed = UnitEvent::AnswerLanded {
-            answer: ending.words(),
+            // The answer's own text when the body answered; how the ask ended otherwise.
+            answer: match ending {
+                Ending::Answered(text) => text.clone(),
+                other => other.words(),
+            },
             verdict,
             heading: None,
         };
