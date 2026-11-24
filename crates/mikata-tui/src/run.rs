@@ -282,9 +282,10 @@ impl Host {
             Cmd::Wrong(words) => {
                 let (tx, world) = (self.tx.clone(), self.world.clone());
                 self.runtime.spawn_blocking(move || {
-                    let _ = tx.send(Msg::Previewed(mikata_loop::word::preview(
-                        &world, &words, None,
-                    )));
+                    let (words, check) = mikata_loop::word::with_check(&words);
+                    let previewed = mikata_loop::word::preview(&world, &words, None)
+                        .map(|p| mikata_loop::word::Preview { check, ..p });
+                    let _ = tx.send(Msg::Previewed(previewed));
                 });
             }
             Cmd::Keep(said) => {

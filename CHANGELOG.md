@@ -20,6 +20,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **Your own command for your case.** `mikatad memory wrong "<words>" --check "<command>"` (and
+  `/wrong <words> --check <command>`) keeps the command that shows your case with the correction.
+  When the ask comes again the harness hands it in as that line's check and refuses a check of the
+  model's for it: a model's check could run your case the other way round and print what your
+  line states. Without one, a model's check for your line that prints what you want before any
+  work is questioned at once.
 - **Say an answer was wrong from inside the session.** `/wrong <what is wrong>` in the terminal
   UI shows, before anything is kept, whether your words will be held as a line of that ask's
   `Done when` list or kept as advice, and under which ask. `/keep` keeps it, `/drop` keeps

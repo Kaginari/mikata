@@ -2583,17 +2583,53 @@ impl Run {
     /// commissioned body: the human corrects the answer to their own ask. A memory that cannot
     /// be read holds nothing: the ask goes on as it would have.
     fn corrected_cases(&self, ask: &str) -> Vec<String> {
+        self.corrected_checked(ask)
+            .into_iter()
+            .map(|(line, _)| line)
+            .collect()
+    }
+
+    /// [`Run::corrected_cases`], each with the command the human said shows it, if they gave
+    /// one.
+    fn corrected_checked(&self, ask: &str) -> Vec<(String, Option<String>)> {
         if self.caller.commission.is_some() {
             return Vec::new();
         }
         let Some(asked) = crate::lessons::first_line(ask) else {
             return Vec::new();
         };
-        mikata_memory::corrections_under(self.cx.world(), asked)
+        mikata_memory::corrections_checked_under(self.cx.world(), asked)
             .unwrap_or_default()
-            .iter()
-            .filter_map(|(_, words)| crate::done::held_line(words))
+            .into_iter()
+            .filter_map(|(_, words, check)| crate::done::held_line(&words).map(|l| (l, check)))
             .collect()
+    }
+
+    /// Hand in the human's own commands for their lines, as the ask opens and the code is as it
+    /// was found, and pin them: no command of the body's stands in for one.
+    fn hand_in_the_humans(&mut self, ask: &str) {
+        for (line, check) in self.corrected_checked(ask) {
+            let (Some(command), Some(name)) =
+                (check, self.done.human_line(&line).map(str::to_owned))
+            else {
+                continue;
+            };
+            let Some(gives) = line.rsplit('`').nth(1).map(str::to_owned) else {
+                continue;
+            };
+            let input = serde_json::json!({"line": name, "command": command, "gives": gives});
+            let o = self.hand_in(&input.to_string());
+            if o.is_error {
+                self.record(&Beat::Warning {
+                    text: format!(
+                        "the human's command for {name} could not be held: {}",
+                        o.content
+                    ),
+                });
+            } else {
+                self.done.pin(&name, &command);
+            }
+        }
     }
 
     /// The files this ask changed, by the body's own acts: written, edited, moved, deleted or
@@ -3208,6 +3244,7 @@ impl Run {
         } else {
             crate::done::List::default()
         };
+        self.hand_in_the_humans(text);
         if !self.done.humans().is_empty() {
             let lines: Vec<&str> = self.done.humans().iter().map(String::as_str).collect();
             self.record(&Beat::Warning {
