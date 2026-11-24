@@ -20,6 +20,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **Experimental: every part of the loop is a unit, and plugins load while a session runs.**
+  Memory, the end gate, the held `Done when` list, the fold, the stress signals, what-changed,
+  the reader and the challenge switch on and off (`[units]` in your global file, `--units` on
+  `mikata run`, `/units`, `/unit on|off <id>` in the terminal UI, `units/list` and `units/change`
+  over the server); a world's file may only switch off what loosens nothing. A plugin is a
+  program you declare in `[plugins.<id>]`: it speaks MCP plus `mikata/hook`, runs in the body's
+  sandbox with a deadline on every hook and three strikes before it is taken out, and is loaded,
+  unloaded or swapped mid-session (`/plugin load|unload|swap`). Examples and a one-file Python
+  SDK are in `examples/plugins/`, among them a memory that stands in for the native one. The
+  prompt never changes while a session runs; the journal records every change of units, and a
+  resume rebuilds them. See `docs/experimental/plugins.md`.
+- **Profiles: `mikata run --profile small-fix`.** A named mix of units for a kind of work;
+  `[profiles.<name>] units = "…"` in your global file names more. `small-fix` leaves out the
+  prompt's plan (write a `Done when` list and run each line before answering): with Claude Haiku
+  5.5 it took three quarters of the calls and two thirds of the dollars on small fixes and prose
+  asks, 41 passes of 42 against 42; with qwen on small fixes it changed nothing measured. The
+  default keeps the plan.
 - **Your own command for your case.** `mikatad memory wrong "<words>" --check "<command>"` (and
   `/wrong <words> --check <command>`) keeps the command that shows your case with the correction.
   When the ask comes again the harness hands it in as that line's check and refuses a check of the
