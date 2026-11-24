@@ -36,6 +36,7 @@ flowchart TB
       WORLD["world<br/>creatures · territory · dispatch · gate"]
       RACES["races<br/>the compiled law"]
       WIRE["wire<br/>envelope"]
+      KERNEL["kernel<br/>units · registry · hooks"]
       TOOLS["tools<br/>read · write · bash · git · gh"]
       SANDBOX["sandbox<br/>landlock · seccomp · Seatbelt"]
       PROV["provider<br/>Anthropic · OpenAI-compatible"]
@@ -60,6 +61,8 @@ flowchart TB
       LOOP --> MEM
       LOOP --> RACES
       LOOP --> WIRE
+      LOOP --> KERNEL
+      TOOLS --> KERNEL
       WORLD --> WIRE
       WORLD --> LEDGER
       WORLD --> MEM
@@ -75,7 +78,7 @@ flowchart TB
     classDef ts fill:#fde7f3,stroke:#db2777,stroke-width:1.5px,color:#500724
     class BOARD,SDK,PROTO ts
     classDef rs fill:#ffedd5,stroke:#ea580c,stroke-width:1.5px,color:#431407
-    class TUI,D,SERVER,LOOP,WORLD,RACES,WIRE,TOOLS,PROV,LEDGER,MEM,CONFIG,PROVING rs
+    class TUI,D,SERVER,LOOP,WORLD,RACES,WIRE,KERNEL,TOOLS,PROV,LEDGER,MEM,CONFIG,PROVING rs
     classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
     class SANDBOX gate
     style ts fill:#fdf2f8,stroke:#db2777
@@ -103,6 +106,7 @@ mikata/
 ├─ crates/
 │  ├─ mikata-wire       envelope types, parser, encoder            (no I/O)
 │  ├─ mikata-races      Race enum, shelves, dispatch, scores, falls (no I/O)
+│  ├─ mikata-kernel     units, manifests, registry, undo, hooks     (no I/O)
 │  ├─ mikata-ledger     usage + value ledgers, budgets, prices      (files)
 │  ├─ mikata-proving    Dark Elf finding records, coverage ledgers  (reads the tree)
 │  ├─ mikata-provider   streaming clients, retry ladder, caching,   (network)
@@ -126,6 +130,21 @@ mikata/
 ├─ .mikata/             Mikata builds itself as a world
 └─ justfile              one entry point for every task
 ```
+
+### The plugin kernel
+
+`mikata-kernel` holds what makes a part of the loop a **unit** that can be switched on, off or
+swapped while a session runs: its manifest (the points it hooks and in which band, the services
+it provides and needs, the units it runs after, the earliest safe point it may change at, what it
+asks to be granted), the hook vocabulary every unit and plugin speaks (`Point`, `Event`, `Reply`,
+`Grant`, plain JSON), and the registry. The registry applies a requested change only at a safe
+point the unit allows, runs hooks in an order that is a function of the set of units alone
+(bands, then `after` edges and service needs, ties by id), cuts each reply to the unit's grant and
+to the points where it counts, and takes a unit's registrations back newest first when it leaves,
+dependents first. A unit whose hook panics is quarantined and answers `Pass`. It depends on no
+other crate of the workspace; the tools crate's plugin host and the loop build on it. The plan of
+record is [plugins](experimental/plugins.md). (The canvas above is drawn before the kernel; the
+Mermaid sketch has it.)
 
 ### Choices, and why
 
