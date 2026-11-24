@@ -36,6 +36,7 @@ flowchart TB
       WORLD["world<br/>creatures · territory · dispatch · gate"]
       RACES["races<br/>the compiled law"]
       WIRE["wire<br/>envelope"]
+      KERNEL["kernel<br/>units · registry · hooks"]
       TOOLS["tools<br/>read · write · bash · git · gh"]
       SANDBOX["sandbox<br/>landlock · seccomp · Seatbelt"]
       PROV["provider<br/>Anthropic · OpenAI-compatible"]
@@ -60,6 +61,8 @@ flowchart TB
       LOOP --> MEM
       LOOP --> RACES
       LOOP --> WIRE
+      LOOP --> KERNEL
+      TOOLS --> KERNEL
       WORLD --> WIRE
       WORLD --> LEDGER
       WORLD --> MEM
@@ -75,7 +78,7 @@ flowchart TB
     classDef ts fill:#fde7f3,stroke:#db2777,stroke-width:1.5px,color:#500724
     class BOARD,SDK,PROTO ts
     classDef rs fill:#ffedd5,stroke:#ea580c,stroke-width:1.5px,color:#431407
-    class TUI,D,SERVER,LOOP,WORLD,RACES,WIRE,TOOLS,PROV,LEDGER,MEM,CONFIG,PROVING rs
+    class TUI,D,SERVER,LOOP,WORLD,RACES,WIRE,KERNEL,TOOLS,PROV,LEDGER,MEM,CONFIG,PROVING rs
     classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
     class SANDBOX gate
     style ts fill:#fdf2f8,stroke:#db2777
@@ -103,6 +106,7 @@ mikata/
 ├─ crates/
 │  ├─ mikata-wire       envelope types, parser, encoder            (no I/O)
 │  ├─ mikata-races      Race enum, shelves, dispatch, scores, falls (no I/O)
+│  ├─ mikata-kernel     units, manifests, registry, undo, hooks     (no I/O)
 │  ├─ mikata-ledger     usage + value ledgers, budgets, prices      (files)
 │  ├─ mikata-proving    Dark Elf finding records, coverage ledgers  (reads the tree)
 │  ├─ mikata-provider   streaming clients, retry ladder, caching,   (network)
@@ -126,6 +130,21 @@ mikata/
 ├─ .mikata/             Mikata builds itself as a world
 └─ justfile              one entry point for every task
 ```
+
+### The plugin kernel
+
+`mikata-kernel` holds what makes a part of the loop a **unit** that can be switched on, off or
+swapped while a session runs: its manifest (the points it hooks and in which band, the services
+it provides and needs, the units it runs after, the earliest safe point it may change at, what it
+asks to be granted), the hook vocabulary every unit and plugin speaks (`Point`, `Event`, `Reply`,
+`Grant`, plain JSON), and the registry. The registry applies a requested change only at a safe
+point the unit allows, runs hooks in an order that is a function of the set of units alone
+(bands, then `after` edges and service needs, ties by id), cuts each reply to the unit's grant and
+to the points where it counts, and takes a unit's registrations back newest first when it leaves,
+dependents first. A unit whose hook panics is quarantined and answers `Pass`. It depends on no
+other crate of the workspace; the tools crate's plugin host and the loop build on it. The plan of
+record is [plugins](experimental/plugins.md). (The canvas above is drawn before the kernel; the
+Mermaid sketch has it.)
 
 ### Choices, and why
 
@@ -2084,6 +2103,67 @@ repo = "owner/name"
 allow = ["git push origin feat/*", "gh pr comment * --repo owner/name --body *"]
 signed = 2026-10-24                # expires 2026-11-23, unless `expires` says sooner
 uses = 50                          # optional: at most 50 acts in all
+```
+
+#### Units and plugins (experimental)
+
+**Experimental, being built on the branch `plugin-kernel`** ([the plan](experimental/plugins.md)).
+The keys below load and are checked, and `--units` is read; the loop does not act on them yet.
+
+Mikata's loop is being split into **units**: memory, what-changed, the reader, the `Done when`
+list and the rest, each one a part that can be switched off and measured on its own. A unit is a
+native one, compiled in, or a **plugin**: a separate program, in any language, that the session
+starts and asks at fixed points of the loop.
+
+- **`[units]`** switches native units by id: `memory = false`. The default is every unit on, so a
+  file that names none changes nothing. The human's global file may switch a unit either way. A
+  world's file, tracked or local, may only switch a unit off: `true` there is a hole that says so.
+  Even off, a world's switch counts only for a unit whose own manifest says switching it off
+  tightens what the body faces (the loop checks that, not the configuration): a repository can
+  take a helper away, never a check. A unit's id is a lower-case letter, then lower-case letters,
+  digits, `_` and `-`, at most 32 characters.
+- **`[plugins.<id>]`** names a plugin: `command`, `args`, `env` (variables passed by name, as for
+  an MCP server), `grants`, `races` and `enabled` (on unless `false`). Every `plugins.*` key is
+  honoured only from the global file: from a world's file each is a hole, so a repository can
+  never load a plugin, widen what one may do, or move its deadline. A plugin's id is lower-case
+  letters, digits and dashes, at most 24, and not `timeouts`; in a composition it is
+  `plugin:<id>`.
+- **`grants`** says what a plugin may do, from `observe` (it sees events; every answer is read as
+  nothing), `advise` (notes to the body and text in the ask's preface), `veto` (refuse a tool call
+  or hand an answer back), `stop` (end an ask at the meter) and `tools` (offer its own tools
+  through the MCP doors). None named is `observe` alone. An unknown grant is an error. A plugin's
+  own ask is cut down to these.
+- **`races`** names the bodies whose sessions the plugin joins, as for an MCP server (`mikata`
+  for the light-coding body); none named, none.
+- **`[plugins.timeouts] hook_ms`** is the deadline on each call to a plugin, in milliseconds:
+  2,000 unless set, from 1 to 60,000. A plugin that misses it is answered as if it said nothing.
+- **`--units`**: `mikata run --units "-memory,-what_changed,+plugin:no-force-push"` (and
+  `mikatad --units …`) asks one run for another composition: `-<id>` switches a unit off, `+<id>`
+  on, `+plugin:<id>` loads a plugin the global file names. Changes are split by commas, each unit
+  named once; anything else is refused before the run starts. It is a command-line flag only, as
+  the mode and the law are: no file a world holds sets it. It is how one build runs a bench's
+  arms.
+- **Memory remembers which unit wrote a note**: a note event may carry `unit` (`memory@1.0.0`,
+  `plugin:cognee@0.1.0`); rows written before have none and read as before.
+  `mikatad memory withdraw --by <unit@version>` takes back every note that unit wrote, in every
+  tier, written to the journal first; nothing is deleted.
+
+Each of these leaves keeps its origin, the layer and the file, as every other key does, and
+`mikata status` lists the holes.
+
+```toml
+# ~/.config/mikata/config.toml
+[units]
+what_changed = false               # every unit is on unless a file says
+
+[plugins.no-force-push]
+command = "python3"
+args = ["/home/me/plugins/no_force_push.py"]
+grants = ["advise", "veto"]
+races = ["mikata"]
+
+[plugins.timeouts]
+hook_ms = 2000
 ```
 
 ### Provider cassettes

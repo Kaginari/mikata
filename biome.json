@@ -18,7 +18,8 @@
       "!packages/protocol/src/generated",
       "!crates/mikata-proving/fixtures",
       "!crates/mikata-tools/src/index/fixtures",
-      "!crates/mikata-provider/tests/cassettes"
+      "!crates/mikata-provider/tests/cassettes",
+      "!crates/mikata-loop/tests/golden"
     ]
   },
   "formatter": {

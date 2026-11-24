@@ -9,6 +9,7 @@
 
 pub mod board;
 pub mod protocol;
+pub mod units;
 
 /// How a session's bodies work together: what the core's `--mode` option asks for.
 pub use mikata_loop::Mode;
@@ -384,6 +385,7 @@ fn beat_events(beat: &Beat) -> Vec<Event> {
         | Beat::Prefix { .. }
         | Beat::Tree { .. }
         | Beat::Rides { .. }
+        | Beat::Units { .. }
         | Beat::Law { .. } => {
             vec![]
         }
@@ -514,6 +516,8 @@ async fn main_lane(
     let mut steer = None;
     let mut interrupt = None;
     let mut driver = None;
+    // The run's desk once a session is open: the loop lists into it and takes its changes.
+    let mut units = units::Units::default();
     while let Some(msg) = inbox.recv().await {
         let id = msg.id.as_ref();
         let method = msg.method.clone().unwrap_or_default();
@@ -526,7 +530,7 @@ async fn main_lane(
                 let seeing = Arc::clone(&core);
                 let observer: Observer = Arc::new(move |seen: &Seen| seeing.see(seen));
                 match session_maker(Arc::new(ClientGate(Arc::clone(&core))), observer) {
-                    Ok(opened) => {
+                    Ok(mut opened) => {
                         core.reply(id, &hello(&opened, &version));
                         *core.ids.lock().unwrap_or_else(PoisonError::into_inner) = (
                             opened.session_id.clone(),
@@ -535,6 +539,7 @@ async fn main_lane(
                         );
                         interrupt = Some(opened.session.interrupt());
                         steer = Some(opened.session.steer());
+                        units.desk = Some(opened.session.run().unit_desk());
                         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
                         prompts = Some(tx);
                         driver = Some(tokio::spawn(drive(opened, rx, Arc::clone(&core))));
@@ -573,6 +578,14 @@ async fn main_lane(
                 core.release("the human interrupted");
                 core.reply(id, &json!({}));
             }
+            "units/list" => match units.list() {
+                Ok(listed) => core.reply(id, &listed),
+                Err((number, why)) => core.fail(id, number, &why),
+            },
+            "units/change" => match units.change(&msg.params) {
+                Ok(queued) => core.reply(id, &queued),
+                Err((number, why)) => core.fail(id, number, &why),
+            },
             "session/events" => replay(&core, id, msg.params["since"].as_u64().unwrap_or(0)),
             "shutdown" => {
                 core.reply(id, &json!({}));
@@ -687,21 +700,43 @@ async fn drive(
 }
 
 /// The opener for a world directory: its configuration, its backend, keys from this process's
-/// environment; in the mode the human asked for on the core's command line, or the world's own.
-pub fn opener(world: std::path::PathBuf, mode: Option<mikata_loop::Mode>) -> Opener {
+/// environment; in the mode the human asked for on the core's command line, or the world's own,
+/// carrying the composition asked for there (`--units`; empty when none was).
+pub fn opener(
+    world: std::path::PathBuf,
+    mode: Option<mikata_loop::Mode>,
+    units: mikata_loop::config::Composition,
+) -> Opener {
     Box::new(move |gate, observer| {
-        mikata_loop::open_mode(&world, mode, mikata_loop::Law::On, gate, observer, |var| {
-            std::env::var(var).ok()
-        })
+        let asked = units.to_string();
+        mikata_loop::open_mode(
+            &world,
+            mode,
+            mikata_loop::Law::On,
+            gate,
+            observer,
+            |var| match var {
+                "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+                _ => std::env::var(var).ok(),
+            },
+        )
     })
 }
 
 /// The opener that resumes a stopped run of a world — its id, or `last` — through the same
 /// opening as [`opener`]'s: a refusal is the `initialize` call's error.
-pub fn resumer(world: std::path::PathBuf, run: String, mode: Option<mikata_loop::Mode>) -> Opener {
+pub fn resumer(
+    world: std::path::PathBuf,
+    run: String,
+    mode: Option<mikata_loop::Mode>,
+    units: mikata_loop::config::Composition,
+) -> Opener {
     Box::new(move |gate, observer| {
-        mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| {
-            std::env::var(var).ok()
+        // The resumed run rebuilds its composition from its journal; this goes over it.
+        let asked = units.to_string();
+        mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| match var {
+            "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+            _ => std::env::var(var).ok(),
         })
     })
 }

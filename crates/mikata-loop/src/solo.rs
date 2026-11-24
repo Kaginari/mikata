@@ -58,6 +58,24 @@ next session should know: `@U law <path> <fact> check=<verify line or test>` for
 you changed — name the path and the check that tests it: only that check, passing in this work's \
 gate, proves it — or `@U colony <fact>` for how this repository is worked.";
 
+/// The bullets of [`SOLO_PROMPT`] the `plan` unit holds ([`crate::units::PLAN`]): write down what
+/// done means and how, before the code; run each line before answering. Each is one line of the
+/// prompt, found by how it begins.
+pub const PLAN_BULLETS: [&str; 2] = [
+    "- Before you write any code, write .mikata/tmp/plan.md.",
+    "- Before you answer, run every line under `## Done when`",
+];
+
+/// `system` without the `plan` unit's bullets ([`PLAN_BULLETS`]); every other line as it was.
+#[must_use]
+pub fn without_plan(system: &str) -> String {
+    system
+        .split('\n')
+        .filter(|line| !PLAN_BULLETS.iter().any(|b| line.starts_with(b)))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// Light-coding's shelf: Mikata reads, writes, and acts outside the machine — a push, a pull
 /// request, a publish — each outward or destructive act put to the human first, as the guard and
 /// the gate put every one.

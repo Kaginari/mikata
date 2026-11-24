@@ -23,6 +23,7 @@ fn by_hand(w: &Path, tier: &Tier, note: &str, by: By, proof: Option<&str>, chang
         note: note.into(),
         by,
         proof: proof.map(str::to_owned),
+        unit: None,
         change,
     };
     let mut f = fs::OpenOptions::new()

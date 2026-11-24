@@ -11,6 +11,7 @@ mod roster;
 const HELP: &str = "mikatad — the Mikata core
 
 Usage: mikatad [--world <dir>] [--resume <run|last>] [--mode auto|light-coding|structured-coding|collective-coding]
+               [--units <list>]
        mikatad runs [--world <dir>] [--json]
        mikatad runs --metrics <run|last> [--world <dir>] [--json]
        mikatad runs --session [<dir>] [--world <dir>] [--json]
@@ -28,6 +29,7 @@ Usage: mikatad [--world <dir>] [--resume <run|last>] [--mode auto|light-coding|s
        mikatad memory confirm <claim> [--world <dir>]
        mikatad memory wrong <what is wrong> [--ask <its first line>] [--world <dir>]
        mikatad memory withdraw <note> [--world <dir>]
+       mikatad memory withdraw --by <unit@version> [--world <dir>]
        mikatad incident list | open <post> <act> [--why <text>] | settle <post> <act>
                  [--why <text>] | lesson <post> <act> test <path> | verify <path>:<line>
                  | thought <id>   [--world <dir>]
@@ -129,7 +131,10 @@ Say what must come out, as <input> must give <output>, and the harness holds it:
 ask comes again the case is a line of its Done when list, the body hands in a check for it, and
 an answer whose check prints something else does not land. Words that state no output that way
 are advice, which a body may overrule. `memory withdraw <note>` takes a correction of yours
-back: it sleeps, and is neither told nor held from then on.
+back: it sleeps, and is neither told nor held from then on. `memory withdraw --by
+<unit@version>` (experimental, with plugins) takes back every note one unit wrote — a native unit
+such as memory@1.0.0, or a plugin such as plugin:cognee@0.1.0 — in every tier, written to the
+journal first; nothing is deleted.
 
 `incident` is the human's door to the Kijin's incidents. An outward act that was rolled back or
 corrected stays an open incident until four receipts are recorded: undone (its undo observed),
@@ -367,7 +372,7 @@ fn main() -> ExitCode {
     if let Some(command) = all.first().and_then(|w| admin(w)) {
         return command(&all[1..]);
     }
-    let (mut resume, mut mode) = (None, None);
+    let (mut resume, mut mode, mut units) = (None, None, None);
     let mut args = all.into_iter();
     // Help and the version answer before any world is looked for.
     while let Some(arg) = args.next() {
@@ -404,9 +409,21 @@ fn main() -> ExitCode {
                     );
                 }
             },
+            // Experimental: the composition, as `mikata run --units` takes it.
+            "--units" => match args.next() {
+                Some(list) if units.is_none() => {
+                    match mikata_server::config::Composition::parse(&list) {
+                        Ok(c) => units = Some(c),
+                        Err(e) => return fail(&e),
+                    }
+                }
+                Some(_) => return fail("--units is given once, every change in one list"),
+                None => return fail("--units needs a list, as \"-memory,+plugin:<id>\""),
+            },
             other => return fail(&format!("unknown argument `{other}`; see --help")),
         }
     }
+    let units = units.unwrap_or_default();
     let world = match world.map_or_else(std::env::current_dir, Ok) {
         Ok(w) => w,
         Err(e) => return fail(&format!("the current directory: {e}")),
@@ -428,8 +445,8 @@ fn main() -> ExitCode {
     }
     let input = BufReader::new(std::io::stdin());
     let opener = match resume {
-        Some(run) => mikata_server::resumer(world, run, mode),
-        None => mikata_server::opener(world, mode),
+        Some(run) => mikata_server::resumer(world, run, mode, units),
+        None => mikata_server::opener(world, mode, units),
     };
     match mikata_server::serve(input, std::io::stdout(), &version(), opener) {
         Ok(()) => ExitCode::SUCCESS,
@@ -1977,9 +1994,10 @@ fn wrong(world: &Path, words: &str, ask: Option<&str>, check: Option<String>) ->
     }
 }
 
-/// `memory withdraw`'s own words: the correction's id, and the world.
+/// `memory withdraw`'s own words: the correction's id, or `--by` and a unit's stamp, and the
+/// world.
 fn withdraw_said(args: &[String]) -> ExitCode {
-    let (mut world, mut id) = (None, None);
+    let (mut world, mut id, mut by) = (None, None, None);
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -1987,18 +2005,56 @@ fn withdraw_said(args: &[String]) -> ExitCode {
                 Some(v) => world = Some(PathBuf::from(v)),
                 None => return refused(&"--world needs a value"),
             },
+            "--by" => match it.next() {
+                Some(v) if by.is_none() && !v.starts_with("--") => by = Some(v.clone()),
+                _ => return refused(&"--by needs one unit's stamp: unit@version"),
+            },
             other if id.is_none() && !other.starts_with("--") => id = Some(other.to_owned()),
             other => return refused(&format!("unknown argument `{other}`; see --help")),
         }
     }
-    let Some(id) = id else {
-        return refused(&"withdraw needs the correction's id");
-    };
     let Ok(cwd) = std::env::current_dir() else {
         return refused(&"the current directory cannot be read");
     };
     let world = world.map_or_else(|| cwd.clone(), |w| absolute(&cwd, &w));
-    withdraw(&world, &id)
+    match (id, by) {
+        (Some(id), None) => withdraw(&world, &id),
+        (None, Some(by)) => withdraw_by(&world, &by),
+        (Some(_), Some(_)) => refused(&"withdraw takes a correction's id or --by, not both"),
+        (None, None) => refused(&"withdraw needs the correction's id, or --by <unit@version>"),
+    }
+}
+
+/// `memory withdraw --by <unit@version>`: the human takes back every note one unit wrote. It is
+/// written to the journal and each note sleeps in every tier it reached. A body never runs it.
+fn withdraw_by(world: &Path, by: &str) -> ExitCode {
+    if let Ok(body) = std::env::var("MIKATA_BODY") {
+        return refused(&format!(
+            "{body} runs this: taking a unit's notes back is the human's act, never a body's"
+        ));
+    }
+    match mikata_server::word::take_back_by(world, by) {
+        Ok(gone) => {
+            for w in &gone {
+                println!(
+                    "withdrawn: {} in {}: {}",
+                    w.note,
+                    w.tier.file().display(),
+                    field(&w.text)
+                );
+            }
+            let mut notes: Vec<&str> = gone.iter().map(|w| w.note.as_str()).collect();
+            notes.sort_unstable();
+            notes.dedup();
+            println!(
+                "{} note(s) {} wrote sleep, recalled no more; nothing is deleted",
+                notes.len(),
+                field(by)
+            );
+            ExitCode::SUCCESS
+        }
+        Err(e) => refused(&e),
+    }
 }
 
 /// `memory withdraw <note>`: the human takes back a correction of theirs. It is written to the

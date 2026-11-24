@@ -8,7 +8,7 @@
 //!
 //! The tracked file may only tighten the human gate. What loosens it — guard rules that ask
 //! instead of refusing, a gate turned off, standing approvals, Oni envelopes, running unguarded —
-//! and what reaches further — an MCP server, a provider, a spending cap — is honoured only from
+//! and what reaches further — an MCP server, a plugin, a provider, a spending cap — is honoured only from
 //! the global file: the local file lives inside the world, where a body's command or a
 //! repository's script may write it, so there those keys are holes too. Nothing else feeds them:
 //! not the environment, not a flag. An envelope is bounded besides: it is
@@ -26,6 +26,8 @@
 //! journal corrected, downstream told, a lesson — and while it is open the envelopes that read the
 //! act are [`suspended`].
 //!
+//! A world's files may switch a native unit off (`[units]`), never on ([`UnitSwitch`]).
+//!
 //! Unknown keys are reported as holes and the session goes on; a file that does not parse, a
 //! value of the wrong type, a floor rule asked to ask, a destructive envelope or a fallback cycle
 //! is an error that names its file.
@@ -39,6 +41,7 @@ mod receipt;
 pub mod refresh;
 mod runner;
 pub mod scout;
+mod units;
 mod write;
 
 use std::collections::BTreeMap;
@@ -64,6 +67,10 @@ pub use receipt::{
 pub use runner::{
     Hands, OUTWARD, OutwardTool, PAIR_ASKS, Paired, Refusal, Report, Request, Runner, Sandboxed,
     UNDO_ASKS,
+};
+pub use units::{
+    Composition, GRANTS, HOOK_MS, HOOK_MS_CEILING, PLUGIN_PREFIX, Plugin, Plugins, UnitChange,
+    UnitSwitch, lawful_plugin_id, lawful_unit_id,
 };
 pub use write::{revoke, set};
 
@@ -215,20 +222,32 @@ const MCP_RESTARTS_CEILING: u64 = 10;
 const MCP_PREFIX_ASKS_FLOOR: u64 = 10;
 
 /// Whether only the human's global file may set `key`: everything that loosens the gate, an MCP
-/// server, a provider (where a key is sent), every spending cap, every decision setting (who
-/// decides, how sure it must be) and what the board reads. The
-/// local file lives inside the world, where whatever runs there may write it.
+/// server, a plugin, a provider (where a key is sent), every spending cap, every decision setting
+/// (who decides, how sure it must be) and what the board reads. The
+/// local file lives inside the world, where whatever runs there may write it. (`units.*` is not
+/// here: a world's file may switch a unit off, never on.)
 #[must_use]
 pub fn global_only(key: &str) -> bool {
     LOOSENING.contains(&key)
-        || ["mcp.", "providers.", "budget.", "board."]
-            .iter()
-            .any(|p| key.starts_with(p))
+        || [
+            "mcp.",
+            "plugins.",
+            "profiles.",
+            "providers.",
+            "budget.",
+            "board.",
+        ]
+        .iter()
+        .any(|p| key.starts_with(p))
 }
 
 /// Why `key`, read from a file of `layer`, is refused before anything else: a key file named
-/// from inside a world, which would choose which file's contents are sent to a provider.
-fn refused_in_a_world(key: &str, layer: Layer) -> Option<&'static str> {
+/// from inside a world, which would choose which file's contents are sent to a provider; a
+/// plugin, or a unit switched on, from inside a world ([`units`]).
+fn refused_in_a_world(key: &str, value: &Value, layer: Layer) -> Option<&'static str> {
+    if let Some(why) = units::refused_from_world(key, value, layer) {
+        return Some(why);
+    }
     (matches!(layer, Layer::Local | Layer::Tracked)
         && key.starts_with("providers.")
         && key.ends_with(".key_file"))
@@ -390,6 +409,15 @@ const SCHEMA: &[(&str, Kind)] = &[
     ("board.open", Kind::Bool),
     ("board.port", Kind::Int),
     ("board.prune_after_days", Kind::Int),
+    ("units.*", Kind::Bool),
+    ("plugins.timeouts.hook_ms", Kind::Int),
+    ("plugins.*.command", Kind::Str),
+    ("plugins.*.args", Kind::StrList),
+    ("plugins.*.env", Kind::StrList),
+    ("plugins.*.grants", Kind::StrList),
+    ("plugins.*.races", Kind::StrList),
+    ("plugins.*.enabled", Kind::Bool),
+    ("profiles.*.units", Kind::Str),
 ];
 
 /// A configuration layer, lowest first.
@@ -780,7 +808,7 @@ impl Config {
         let mut leaves = Vec::new();
         flatten(table, "", &mut leaves);
         for (key, value) in leaves {
-            if let Some(why) = refused_in_a_world(&key, origin.layer) {
+            if let Some(why) = refused_in_a_world(&key, &value, origin.layer) {
                 self.holes.push(Hole {
                     key,
                     origin: origin.clone(),
@@ -951,6 +979,7 @@ impl Config {
                 "gate.challenge_reviewers" => reviewers(&leaf.value, at)?,
                 k if k.starts_with("board.") => board_bound(k, &leaf.value, at)?,
                 "tools.read.range_over" => range_over(&leaf.value, at)?,
+                k if units::owns(k) => units::check(k, &leaf.value, at)?,
                 "evolution.min_net_wins" => net_wins(&leaf.value, at)?,
                 "oni.envelope_days"
                     if !leaf
@@ -1762,6 +1791,7 @@ impl Config {
                     .to_owned(),
                 network: flag(&at("network")),
                 timeout,
+                reads: Vec::new(),
             });
         }
         let d = Settings::default();

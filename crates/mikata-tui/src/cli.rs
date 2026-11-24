@@ -40,6 +40,14 @@ Options:
                     opening — for a bench's law-off arm; the tools, the gates and the sandbox stay.
                     A command-line flag only: no configuration sets it. The run's journal and
                     --json's result line (`law`) say which it was
+  --profile <name>  with run, experimental: a named composition of units, the build's
+                    (`small-fix`: the plan off, for a strong body on small fixes) or one your
+                    global file names in [profiles.<name>]; --units goes over it
+  --units <list>    with run, experimental: the composition, as changes over the configured one,
+                    split by commas: -<unit> switches a native unit off, +<unit> on, and
+                    +plugin:<id> loads a plugin your global file names, as
+                    \"-memory,-what_changed,+plugin:no-force-push\". A command-line flag only:
+                    no configuration sets it. Read and carried; the loop does not apply it yet
   -h, --help        this help
   -V, --version     the version
 
@@ -150,6 +158,8 @@ struct Flags {
     gate_tty: bool,
     no_law: bool,
     web: bool,
+    units: Option<mikata_loop::config::Composition>,
+    profile: Option<String>,
     words: Vec<String>,
 }
 
@@ -200,6 +210,20 @@ fn flags(args: &[String]) -> Result<Flags, String> {
                     return Err("--core needs a path".into());
                 }
             }
+            "--units" => match it.next() {
+                Some(list) if f.units.is_none() => {
+                    f.units = Some(mikata_loop::config::Composition::parse(list)?);
+                }
+                Some(_) => return Err("--units is given once, every change in one list".into()),
+                None => return Err("--units needs a list, as \"-memory,+plugin:<id>\"".into()),
+            },
+            "--profile" => match it.next() {
+                Some(name) if f.profile.is_none() && !name.starts_with('-') => {
+                    f.profile = Some(name.clone());
+                }
+                Some(_) if f.profile.is_some() => return Err("--profile is given once".into()),
+                _ => return Err("--profile needs a name, as `small-fix`".into()),
+            },
             "--probe" => f.probe = true,
             "--web" => f.web = true,
             "--json" => f.json = true,
@@ -212,6 +236,38 @@ fn flags(args: &[String]) -> Result<Flags, String> {
         }
     }
     Ok(f)
+}
+
+/// The composition `run --units` asks for, read from the same arguments as [`parse`]; `None` when
+/// none was given. It is kept apart from [`Command::Run`] so the command's shape stays as it was;
+/// call it after [`parse`] succeeded, which refuses `--units` anywhere but on `run`.
+///
+/// # Errors
+///
+/// What [`parse`] refuses on.
+pub fn units(args: &[String]) -> Result<Option<mikata_loop::config::Composition>, String> {
+    if args
+        .iter()
+        .any(|a| matches!(a.as_str(), "-h" | "--help" | "-V" | "--version"))
+    {
+        return Ok(None);
+    }
+    Ok(flags(args)?.units)
+}
+
+/// The profile `run --profile` asks for, read as [`units`] reads `--units`; `None` when none.
+///
+/// # Errors
+///
+/// What [`parse`] refuses on.
+pub fn profile(args: &[String]) -> Result<Option<String>, String> {
+    if args
+        .iter()
+        .any(|a| matches!(a.as_str(), "-h" | "--help" | "-V" | "--version"))
+    {
+        return Ok(None);
+    }
+    Ok(flags(args)?.profile)
 }
 
 /// Read the arguments (without the program's name).
@@ -237,10 +293,18 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
         gate_tty,
         no_law,
         web,
+        units,
+        profile,
         words,
     } = flags(args)?;
     let first = words.first().map(String::as_str);
     if first != Some("run") {
+        if units.is_some() {
+            return Err("--units goes with run".into());
+        }
+        if profile.is_some() {
+            return Err("--profile goes with run".into());
+        }
         if json {
             return Err("--json goes with run".into());
         }

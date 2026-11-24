@@ -64,13 +64,28 @@ fn main() -> ExitCode {
             gate_tty,
             no_law,
             mode,
-        } => ask_once(
-            ask,
-            world,
-            json,
-            gate_tty,
-            (if no_law { Law::Off } else { Law::On }, mode),
-        ),
+        } => {
+            let units = match mikata_tui::cli::units(&args) {
+                Ok(u) => u.unwrap_or_default(),
+                Err(e) => return fail(&e, 2),
+            };
+            let profile = match mikata_tui::cli::profile(&args) {
+                Ok(p) => p.unwrap_or_default(),
+                Err(e) => return fail(&e, 2),
+            };
+            ask_once(
+                ask,
+                world,
+                json,
+                gate_tty,
+                (
+                    if no_law { Law::Off } else { Law::On },
+                    mode,
+                    units,
+                    profile,
+                ),
+            )
+        }
         Command::Status { world, mode } => status(world, mode),
     }
 }
@@ -102,7 +117,7 @@ fn ask_once(
     world: Option<PathBuf>,
     json: bool,
     gate_tty: bool,
-    (law, mode): (Law, Option<Mode>),
+    (law, mode, units, profile): (Law, Option<Mode>, mikata_loop::config::Composition, String),
 ) -> ExitCode {
     let ask = match ask {
         Some(a) => a,
@@ -129,18 +144,25 @@ fn ask_once(
     let gate = headless::gate(tx.clone(), gate_tty);
     // The law switch and the mode asked for are the human's command line alone: no configuration
     // a world holds sets either.
+    // The composition asked for is read as the session opens: a unit of the prompt cannot wait.
+    let asked = units.to_string();
     let opened = mikata_loop::open_mode(
         &world,
         mode,
         law,
         gate.clone(),
         headless::observer(tx.clone()),
-        |v| std::env::var(v).ok(),
+        |v| match v {
+            "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+            "MIKATA_PROFILE" if !profile.is_empty() => Some(profile.clone()),
+            _ => std::env::var(v).ok(),
+        },
     );
     let opened = match opened {
         Ok(o) => o,
         Err(e) => return fail(&e, 2),
     };
+
     #[cfg(unix)]
     if let Err(e) = headless::on_ctrl_c(opened.session.interrupt(), gate) {
         return fail(&format!("ctrl+c could not be caught: {e}"), 2);

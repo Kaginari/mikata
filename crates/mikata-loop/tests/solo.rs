@@ -2325,3 +2325,23 @@ async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
         ]]
     );
 }
+
+/// The end gate is a unit: off, an answer that changed files lands unjudged, where on the same
+/// verify line fails it.
+#[tokio::test]
+async fn the_gate_off_lets_an_answer_land_unjudged() {
+    let w = World::new("gate-off");
+    let model = Arc::new(ScriptedModel::new([
+        tool("t1", "write", json!({"path": "out.txt", "content": "x\n"})),
+        answer("wrote out.txt"),
+    ]));
+    let mut run = w.run(model, &["false"]);
+    run.change_units(mikata_kernel::Change::Unload(
+        mikata_loop::units::GATE.into(),
+    ));
+    assert_eq!(
+        ask(&mut run, "make out.txt").await,
+        Ending::Answered("wrote out.txt".into())
+    );
+    assert!(gate_beats(&w).is_empty(), "nothing judged it");
+}
