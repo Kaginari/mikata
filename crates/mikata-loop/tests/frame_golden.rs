@@ -31,6 +31,11 @@ fn world(case: &str, files: &[(&str, &str)]) -> PathBuf {
 /// The frame the first request of a session in `w` carries, as JSON with the world's path and
 /// the attic's replaced by placeholders.
 async fn frame(w: &Path, global: Option<&str>) -> Value {
+    frame_with(w, global, &[]).await
+}
+
+/// [`frame`], the human's environment carrying `env` (`MIKATA_UNITS`, `MIKATA_PROFILE`).
+async fn frame_with(w: &Path, global: Option<&str>, env: &[(&str, &str)]) -> Value {
     let model = Arc::new(ScriptedModel::new([ScriptedModel::text("done")]));
     let global_path = w.join("../").join(format!(
         "{}-global.toml",
@@ -54,7 +59,11 @@ async fn frame(w: &Path, global: Option<&str>) -> Value {
         },
         Arc::new(mikata_tools::NoHuman),
         Arc::new(|_: &mikata_loop::Seen| {}),
-        |_| None,
+        |v| {
+            env.iter()
+                .find(|(k, _)| *k == v)
+                .map(|(_, x)| (*x).to_owned())
+        },
     )
     .unwrap();
     opened.session.run().ask("say done", &mut |_| {}).await;
@@ -208,4 +217,38 @@ async fn the_plan_unit_off_is_journaled_as_the_session_opens() {
     let _ = fs::remove_dir_all(&w);
     let _ = fs::remove_dir_all(&attic);
     let _ = fs::remove_file(&global);
+}
+
+/// The plan off on the command line (`--units -plan`) or by a profile in the global file is the
+/// same frame as off in `[units]`: the prompt is made with the composition the human asked for.
+#[tokio::test]
+async fn the_plan_off_by_the_command_line_or_a_profile_is_the_same_frame() {
+    let by_list = frame_with(&world("plan-cli", &[]), None, &[("MIKATA_UNITS", "-plan")]).await;
+    golden("plan-off", &by_list);
+    let profile = "[profiles.small-fix]\nunits = \"-plan\"\n";
+    let by_profile = frame_with(
+        &world("plan-profile", &[]),
+        Some(profile),
+        &[("MIKATA_PROFILE", "small-fix")],
+    )
+    .await;
+    golden("plan-off", &by_profile);
+    // The command line goes over the profile: `+plan` keeps the bullets.
+    let back = frame_with(
+        &world("plan-back", &[]),
+        Some(profile),
+        &[("MIKATA_PROFILE", "small-fix"), ("MIKATA_UNITS", "+plan")],
+    )
+    .await;
+    golden("bare", &back);
+}
+
+/// The build's `small-fix` profile is the plan off, with no line in the human's file.
+#[tokio::test]
+async fn the_builds_small_fix_profile_is_the_plan_off() {
+    let w = world("plan-builtin", &[]);
+    golden(
+        "plan-off",
+        &frame_with(&w, None, &[("MIKATA_PROFILE", "small-fix")]).await,
+    );
 }

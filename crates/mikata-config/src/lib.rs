@@ -229,9 +229,16 @@ const MCP_PREFIX_ASKS_FLOOR: u64 = 10;
 #[must_use]
 pub fn global_only(key: &str) -> bool {
     LOOSENING.contains(&key)
-        || ["mcp.", "plugins.", "providers.", "budget.", "board."]
-            .iter()
-            .any(|p| key.starts_with(p))
+        || [
+            "mcp.",
+            "plugins.",
+            "profiles.",
+            "providers.",
+            "budget.",
+            "board.",
+        ]
+        .iter()
+        .any(|p| key.starts_with(p))
 }
 
 /// Why `key`, read from a file of `layer`, is refused before anything else: a key file named
@@ -410,6 +417,7 @@ const SCHEMA: &[(&str, Kind)] = &[
     ("plugins.*.grants", Kind::StrList),
     ("plugins.*.races", Kind::StrList),
     ("plugins.*.enabled", Kind::Bool),
+    ("profiles.*.units", Kind::Str),
 ];
 
 /// A configuration layer, lowest first.
@@ -971,9 +979,7 @@ impl Config {
                 "gate.challenge_reviewers" => reviewers(&leaf.value, at)?,
                 k if k.starts_with("board.") => board_bound(k, &leaf.value, at)?,
                 "tools.read.range_over" => range_over(&leaf.value, at)?,
-                k if k.starts_with("units.") || k.starts_with("plugins.") => {
-                    units::check(k, &leaf.value, at)?;
-                }
+                k if units::owns(k) => units::check(k, &leaf.value, at)?,
                 "evolution.min_net_wins" => net_wins(&leaf.value, at)?,
                 "oni.envelope_days"
                     if !leaf

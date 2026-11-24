@@ -135,22 +135,24 @@ fn ask_once(
     let gate = headless::gate(tx.clone(), gate_tty);
     // The law switch and the mode asked for are the human's command line alone: no configuration
     // a world holds sets either.
+    // The composition asked for is read as the session opens: a unit of the prompt cannot wait.
+    let asked = units.to_string();
     let opened = mikata_loop::open_mode(
         &world,
         mode,
         law,
         gate.clone(),
         headless::observer(tx.clone()),
-        |v| std::env::var(v).ok(),
+        |v| match v {
+            "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+            _ => std::env::var(v).ok(),
+        },
     );
-    let mut opened = match opened {
+    let opened = match opened {
         Ok(o) => o,
         Err(e) => return fail(&e, 2),
     };
-    // The composition asked for, over the configuration's.
-    if let Err(e) = opened.compose(units) {
-        return fail(&e, 2);
-    }
+
     #[cfg(unix)]
     if let Err(e) = headless::on_ctrl_c(opened.session.interrupt(), gate) {
         return fail(&format!("ctrl+c could not be caught: {e}"), 2);

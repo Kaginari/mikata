@@ -135,6 +135,15 @@ pub struct Plugins {
 }
 
 impl Config {
+    /// The composition the human's global file names `name` (`[profiles.<name>] units = "…"`),
+    /// or `None` when it names none: a mix of units for a kind of work, asked for with
+    /// `--profile <name>`.
+    #[must_use]
+    pub fn profile(&self, name: &str) -> Option<Composition> {
+        let leaf = self.leaves.get(&format!("profiles.{name}.units"))?;
+        Composition::parse(leaf.value.as_str()?).ok()
+    }
+
     /// The `[units]` switches every layer set, by id, each with the file that set it last. A unit
     /// not listed is on (the default composition is every unit on).
     #[must_use]
@@ -251,7 +260,22 @@ pub(crate) fn refused_from_world(
 
 /// A `units.*` or `plugins.*` value checked when the configuration loads: a lawful unit id, a
 /// lawful plugin id, known grants, a deadline within bounds.
+/// Whether `key` is one [`check`] reads: `units.*`, `plugins.*` or `profiles.*`.
+pub(crate) fn owns(key: &str) -> bool {
+    ["units.", "plugins.", "profiles."]
+        .iter()
+        .any(|p| key.starts_with(p))
+}
+
 pub(crate) fn check(key: &str, value: &toml::Value, at: &Origin) -> Result<(), String> {
+    if key.starts_with("profiles.") {
+        return match value.as_str() {
+            Some(text) => Composition::parse(text)
+                .map(|_| ())
+                .map_err(|e| format!("{at}: {key}: {e}")),
+            None => Ok(()),
+        };
+    }
     if let Some(id) = key.strip_prefix("units.") {
         if !lawful_unit_id(id) {
             return Err(format!(

@@ -210,7 +210,16 @@ hook_ms = 2000
 ```
 
 - `mikata run --units "-memory,-what_changed,+plugin:no-force-push"`: the bench's arms are
-  compositions of one build.
+  compositions of one build. The list is read as the session opens (it reaches the open path as
+  `MIKATA_UNITS`), so a unit of the prompt can be in it.
+- **Profiles:** `[profiles.<name>] units = "-plan"` in the global file names a composition for a
+  kind of work; `MIKATA_PROFILE=<name>` asks for it as a session opens, and `--units` goes over it
+  (a later change to a unit wins). A profile ships in the build only when a screen earns it:
+  `small-fix` (the plan off) is the first, from stage 5; one the global file names the same goes
+  over it.
+- **Units of the prompt** (`FramePolicy::Frame`, today `plan`): decided as the session opens, by
+  the global file, a profile or `--units`; `/unit`, `units/change` and a resume's journal never
+  switch one, so the prompt and the composition always agree.
 - In a session: `/units` lists the composition and its digest; `/unit off <id>`, `/unit on <id>`,
   `/plugin load <id>`, `/plugin unload <id>`, `/plugin swap <old> <new>`; the server's JSON-RPC has
   `units/list` and `units/change` (`{"op": "on" | "off" | "swap", "id", "with"}`), reaching the
@@ -258,7 +267,9 @@ A missed bar is reported as missed; a stage that misses is not built on until it
 | Native units | `returns` (moved out of the loop), `memory`, `what_changed`, `reader`, `stress` (switches: their code is still the run's, the run asks whether each is on) |
 | Stage 1, the tracer | met, 2026-11-24 |
 | Stage 2, no regression | met, 2026-11-24: main 10 of 10 in 338 calls, the branch 10 of 10 in 337 (Haiku, sqlglot ten, $0.78) |
-| Stage 3, hosting a plugin | running |
+| Stage 3, hosting a plugin | met, 2026-11-24: an observer hooking every point loaded in ten runs, 10 of 10, 311 calls against 337, wall time level |
+| Stage 4, parts (first screen) | 2026-11-24: `plan` off 208 calls against 370, 10 of 10 each; `stress` off level |
+| Stage 5, where the plan pays | 2026-11-24: fixes, plan off 29 of 30 in 744 calls against 30 of 30 in 1,000; prose 12 and 12, 257 calls against 331 (Haiku). The `small-fix` profile |
 
 A switch unit is the first step for a part: it can be measured off before its code moves. Its
 code leaves `run.rs` when a measurement or a second implementation asks for it.

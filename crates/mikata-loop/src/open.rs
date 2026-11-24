@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use mikata_config::{Config, Paths};
+use mikata_config::{Composition, Config, Paths};
 use mikata_ledger::Journal;
 use mikata_provider::{
     Anthropic, Caller, HttpTransport, OpenAiCompatible, Policy, anthropic_prices,
@@ -235,7 +235,8 @@ pub struct Opened {
     pub mode_why: String,
     /// The composition the human's command line asked for (`mikata run --units`, `mikatad
     /// --units`): changes over the configured units, empty when none was asked for. Like the law
-    /// and the mode, it is the command line's alone; [`Opened::compose`] applies it.
+    /// and the mode, it is the command line's alone, read as the session opens
+    /// ([`asked_units`]).
     pub units: mikata_config::Composition,
 }
 
@@ -629,11 +630,24 @@ fn build(
     let (mut body, cx) = solo_as(world, model_id, law);
     // The lab's throne hands outward work to a Kijin: off light-coding, its race's own shelf, and
     // the prompt says so.
-    // The `plan` unit is the prompt's: off in the human's global file, its bullets are not said.
-    if config
-        .unit(crate::units::PLAN)
-        .is_some_and(|u| !u.on && !u.from_world())
-    {
+    // The composition the human asked for as the session opens: a profile, then `--units`.
+    let composition = asked_units(config, &env)?;
+    // The `plan` unit is the prompt's: off by the human's ask or global file, its bullets are not
+    // said.
+    let plan_off = composition
+        .changes()
+        .iter()
+        .rev()
+        .find(|c| c.id == crate::units::PLAN)
+        .map_or_else(
+            || {
+                config
+                    .unit(crate::units::PLAN)
+                    .is_some_and(|u| !u.on && !u.from_world())
+            },
+            |c| !c.on,
+        );
+    if plan_off {
         body.system = crate::solo::without_plan(&body.system);
     }
     let cx = if mode == Mode::Light {
@@ -797,7 +811,7 @@ fn build(
     // The journal says the mode the session opened in, beside the law.
     let run = run.with_mode(mode.word());
     // The units the human's configuration composes, over the build's default.
-    let (run, unit_holes) = composed(run, config);
+    let (run, unit_holes) = composed(run, config, &composition)?;
     // Light-coding's asks are read apart, when the human names a reader.
     let run = if mode == Mode::Light {
         run.with_reader(config.reader())
@@ -825,7 +839,7 @@ fn build(
         law,
         mode,
         mode_why,
-        units: mikata_config::Composition::default(),
+        units: composition,
     })
 }
 
@@ -833,7 +847,7 @@ fn build(
 /// switch, and every enabled plugin loaded at the session's first ask. What cannot be done is a
 /// hole, said when the session opens; a world file that switches off a unit a world may not is
 /// one of them.
-fn composed(run: Run, config: &Config) -> (Run, Vec<String>) {
+fn composed(run: Run, config: &Config, asked: &Composition) -> Result<(Run, Vec<String>), String> {
     let mut holes = Vec::new();
     let catalog = match config.plugins() {
         Ok(p) => crate::units::Catalog {
@@ -875,32 +889,61 @@ fn composed(run: Run, config: &Config) -> (Run, Vec<String>) {
             holes.push(format!("{id}: {e}"));
         }
     }
+    // The human's own ask goes over the configuration's; one that cannot be done refuses to open.
+    for change in asked.changes() {
+        run.switch_frame_unit(&change.id, change.on)
+            .map_err(|e| format!("--units: {e}"))?;
+    }
     // Applied as the session opens, every safe point allowing it: a unit of the prompt is held
     // as the prompt was made, and the journal says the composition before the first ask.
     run.compose_at_open();
-    (run, holes)
+    Ok((run, holes))
 }
 
-impl Opened {
-    /// The composition the human's command line asked for (`--units`), applied over the
-    /// configuration's at the session's first ask, and kept in [`Opened::units`].
-    ///
-    /// # Errors
-    ///
-    /// A change that names no unit, or one that cannot be loaded: the command line is refused.
-    pub fn compose(&mut self, asked: mikata_config::Composition) -> Result<(), String> {
-        for change in asked.changes() {
-            let id = change
-                .plugin()
-                .map_or_else(|| change.id.clone(), |p| format!("plugin:{p}"));
-            self.session
-                .run()
-                .switch_unit(&id, change.on)
-                .map_err(|e| format!("--units: {e}"))?;
+/// The composition the human asks for as a session opens: the global file's profile
+/// `MIKATA_PROFILE` names (`mikata run --profile`), then the changes `MIKATA_UNITS` lists
+/// (`mikata run --units`), a later change to a unit winning over an earlier one.
+///
+/// # Errors
+///
+/// A profile the global file does not name, or a list that does not read.
+pub fn asked_units(
+    config: &Config,
+    env: &impl Fn(&str) -> Option<String>,
+) -> Result<Composition, String> {
+    let mut changes: Vec<mikata_config::UnitChange> = Vec::new();
+    let mut add = |c: &Composition| {
+        for change in c.changes() {
+            changes.retain(|k| k.id != change.id);
+            changes.push(change.clone());
         }
-        self.units = asked;
-        Ok(())
+    };
+    if let Some(name) = env("MIKATA_PROFILE").filter(|n| !n.trim().is_empty()) {
+        let name = name.trim();
+        let profile = config
+            .profile(name)
+            .or_else(|| crate::units::profile(name))
+            .ok_or_else(|| {
+                let builds: Vec<String> = crate::units::PROFILES
+                    .iter()
+                    .map(|(n, _)| format!("`{n}`"))
+                    .collect();
+                format!(
+                    "--profile {name}: no profile goes by that name; the build's are {}, and your global file may name more in `[profiles.<name>]`",
+                    builds.join(", ")
+                )
+            })?;
+        add(&profile);
     }
+    if let Some(list) = env("MIKATA_UNITS").filter(|n| !n.trim().is_empty()) {
+        add(&Composition::parse(&list).map_err(|e| format!("--units: {e}"))?);
+    }
+    let text = changes
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    Composition::parse(&text)
 }
 
 /// The mode a session in `world` would open in and why, or why the mode `asked` for is not

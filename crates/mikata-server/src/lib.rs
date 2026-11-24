@@ -708,10 +708,18 @@ pub fn opener(
     units: mikata_loop::config::Composition,
 ) -> Opener {
     Box::new(move |gate, observer| {
-        mikata_loop::open_mode(&world, mode, mikata_loop::Law::On, gate, observer, |var| {
-            std::env::var(var).ok()
-        })
-        .and_then(|mut opened| opened.compose(units.clone()).map(|()| opened))
+        let asked = units.to_string();
+        mikata_loop::open_mode(
+            &world,
+            mode,
+            mikata_loop::Law::On,
+            gate,
+            observer,
+            |var| match var {
+                "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+                _ => std::env::var(var).ok(),
+            },
+        )
     })
 }
 
@@ -724,10 +732,11 @@ pub fn resumer(
     units: mikata_loop::config::Composition,
 ) -> Opener {
     Box::new(move |gate, observer| {
-        mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| {
-            std::env::var(var).ok()
+        // The resumed run rebuilds its composition from its journal; this goes over it.
+        let asked = units.to_string();
+        mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| match var {
+            "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+            _ => std::env::var(var).ok(),
         })
-        // The resumed run rebuilt its composition from its journal; this goes over it.
-        .and_then(|mut opened| opened.compose(units.clone()).map(|()| opened))
     })
 }

@@ -96,6 +96,22 @@ pub const MEMORY: &str = "memory";
 /// never switched while a session runs.
 pub const PLAN: &str = "plan";
 
+/// The build's own profiles: a composition for a kind of work, named, each one earned by a screen.
+/// A profile the human's global file names the same goes over the build's.
+///
+/// - `small-fix`: the `plan` unit off. With Claude Haiku 5.5, on ten small sqlglot fixes and four
+///   prose asks, it took 74% and 78% of the default's calls and two thirds of the dollars, 41
+///   passes of 42 against 42 (plugin-kernel stage 5, 2026-11-24). Not for a small body on prose
+///   asks, where the plan's `Done when` list is what passed them.
+pub const PROFILES: &[(&str, &str)] = &[("small-fix", "-plan")];
+
+/// The build's profile `name`, as a composition.
+#[must_use]
+pub fn profile(name: &str) -> Option<mikata_config::Composition> {
+    let (_, list) = PROFILES.iter().find(|(n, _)| *n == name)?;
+    mikata_config::Composition::parse(list).ok()
+}
+
 /// The ids of the native units, in the order the default composition loads them.
 pub const NATIVE: &[&str] = &[Returns::ID, MEMORY, WHAT_CHANGED, READER, STRESS, PLAN];
 
@@ -253,6 +269,10 @@ impl Units {
         }) else {
             return;
         };
+        // A unit of the prompt follows the prompt the resume makes, never the journal.
+        let frame = |id: &str| {
+            native(id).is_some_and(|u| u.manifest().frame == mikata_kernel::FramePolicy::Frame)
+        };
         let held: Vec<String> = digest
             .split(',')
             .filter(|s| !s.is_empty())
@@ -262,12 +282,14 @@ impl Units {
                     .map_or(stamp, |(id, _)| id)
                     .to_owned()
             })
+            .filter(|id| !frame(id))
             .collect();
         let active: Vec<String> = self
             .registry
             .active()
             .iter()
             .map(|(id, _)| (*id).to_owned())
+            .filter(|id| !frame(id))
             .collect();
         for id in active.iter().filter(|id| !held.contains(id)) {
             self.registry
