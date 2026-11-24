@@ -137,3 +137,28 @@ async fn a_world_with_an_mcp_server_opens_with_its_golden_frame() {
         "[mcp.servers.notes]\ncommand = \"/bin/false\"\nraces = [\"slime\", \"summoner\"]\n";
     golden("mcp", &frame(&w, Some(global)).await);
 }
+
+/// The `plan` unit off in the human's global file: the frame loses its two bullets, and nothing
+/// else; on in the default, the frame is the bare world's.
+#[tokio::test]
+async fn the_plan_unit_off_drops_its_two_bullets_and_nothing_else() {
+    let off = frame(&world("plan-off", &[]), Some("[units]\nplan = false\n")).await;
+    golden("plan-off", &off);
+    let on = frame(&world("plan-on", &[]), None).await;
+    let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
+    let (on_text, off_text) = (text(&on), text(&off));
+    for bullet in mikata_loop::solo::PLAN_BULLETS {
+        assert!(on_text.contains(bullet), "{bullet}");
+        assert!(!off_text.contains(bullet), "{bullet}");
+    }
+    let kept: Vec<&str> = on_text
+        .lines()
+        .filter(|l| {
+            !mikata_loop::solo::PLAN_BULLETS
+                .iter()
+                .any(|b| l.starts_with(b))
+        })
+        .collect();
+    assert_eq!(kept.join("\n"), off_text);
+    assert_eq!(on["tools"], off["tools"], "the tools are the same");
+}

@@ -48,6 +48,11 @@ pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
         MEMORY | READER => Some(switch(id, SafePoint::Ask, false)),
         WHAT_CHANGED => Some(switch(id, SafePoint::Ask, true)),
         STRESS => Some(switch(id, SafePoint::Batch, false)),
+        PLAN => Some(Box::new(Switch::new(
+            Manifest::new(PLAN, env!("CARGO_PKG_VERSION"))
+                .safe_point(SafePoint::Session)
+                .frame(mikata_kernel::FramePolicy::Frame),
+        ))),
         _ => None,
     }
 }
@@ -85,8 +90,14 @@ pub const STRESS: &str = "stress";
 /// switch it off.
 pub const MEMORY: &str = "memory";
 
+/// The plan ([`crate::solo::PLAN_BULLETS`]): the prompt's two bullets that have the body write
+/// down what done means and its paths before the code, and run each line before it answers. It is
+/// the prompt's, so it is decided when the session opens, by the human's global file alone, and
+/// never switched while a session runs.
+pub const PLAN: &str = "plan";
+
 /// The ids of the native units, in the order the default composition loads them.
-pub const NATIVE: &[&str] = &[Returns::ID, MEMORY, WHAT_CHANGED, READER, STRESS];
+pub const NATIVE: &[&str] = &[Returns::ID, MEMORY, WHAT_CHANGED, READER, STRESS, PLAN];
 
 /// A native unit whose part of the loop is still the run's own code: the run asks whether it is
 /// on ([`Registry::active`]) where that code runs. It hooks no point and says nothing.
@@ -149,6 +160,12 @@ pub struct Catalog {
 }
 
 impl Catalog {
+    /// Whether the native unit `id` is part of the prompt ([`mikata_kernel::FramePolicy::Frame`]).
+    #[must_use]
+    pub fn unit_frame(&self, id: &str) -> bool {
+        native(id).is_some_and(|u| u.manifest().frame == mikata_kernel::FramePolicy::Frame)
+    }
+
     /// Whether a unit goes by `id`, without starting it.
     #[must_use]
     pub fn knows(&self, id: &str) -> bool {

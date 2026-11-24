@@ -2179,6 +2179,20 @@ impl Run {
     ///
     /// No unit goes by `id`, or it cannot be started.
     pub fn switch_unit(&mut self, id: &str, on: bool) -> Result<(), String> {
+        if self.units.catalog.unit_frame(id) {
+            return Err(format!(
+                "`{id}` is part of the prompt, which never changes while a session runs: switch it in the [units] of your global file, for the next session"
+            ));
+        }
+        self.switch_frame_unit(id, on)
+    }
+
+    /// [`Run::switch_unit`], for a unit of the prompt too: only as the session opens.
+    ///
+    /// # Errors
+    ///
+    /// As [`Run::switch_unit`].
+    pub fn switch_frame_unit(&mut self, id: &str, on: bool) -> Result<(), String> {
         let held = self
             .units
             .registry

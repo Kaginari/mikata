@@ -629,6 +629,13 @@ fn build(
     let (mut body, cx) = solo_as(world, model_id, law);
     // The lab's throne hands outward work to a Kijin: off light-coding, its race's own shelf, and
     // the prompt says so.
+    // The `plan` unit is the prompt's: off in the human's global file, its bullets are not said.
+    if config
+        .unit(crate::units::PLAN)
+        .is_some_and(|u| !u.on && !u.from_world())
+    {
+        body.system = crate::solo::without_plan(&body.system);
+    }
     let cx = if mode == Mode::Light {
         cx
     } else {
@@ -854,7 +861,12 @@ fn composed(run: Run, config: &Config) -> (Run, Vec<String>) {
             ));
             continue;
         }
-        if let Err(e) = run.switch_unit(&switch.id, switch.on) {
+        let said = if switch.id == crate::units::PLAN {
+            run.switch_frame_unit(&switch.id, switch.on)
+        } else {
+            run.switch_unit(&switch.id, switch.on)
+        };
+        if let Err(e) = said {
             holes.push(format!("units.{}: {e}", switch.id));
         }
     }
