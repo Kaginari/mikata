@@ -1391,9 +1391,10 @@ fn a_denied_write_outside_names_its_reason_and_the_scratch() {
         "cat > /tmp/mikata-denied-chk.py <<'X'\nprint(1)\nX\npython3 /tmp/mikata-denied-chk.py",
     );
     assert!(o.is_error && o.meta.denied, "{o:?}");
+    // The path is named as it resolves: on macOS `/tmp` is `/private/tmp`.
     assert!(
-        o.content
-            .contains("a redirect writes outside the world: /tmp/mikata-denied-chk.py"),
+        o.content.contains("a redirect writes outside the world: ")
+            && o.content.contains("tmp/mikata-denied-chk.py"),
         "{}",
         o.content
     );
