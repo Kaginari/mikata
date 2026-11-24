@@ -815,6 +815,14 @@ it in at least 4 more.
 answered; the line it held would have refused that landing. All four breaks without memory were
 answered as done, and all of them are on the ask where the fix is hard.
 
+**With a stronger body, nothing to protect.** Step 67 ran step 66 again with Claude Haiku 5.5 as
+the body: the first named case was broken in 0 of 18 runs with memory and 0 of 18 without (passes
+14 and 15, $0.84). Memory's protection is for a body that breaks what it was told; this one does
+not. Beside it, two runs, one in each arm, passed a held line with a check that ran the human's
+case the other way round (read Trino and wrote DuckDB, where the line says DuckDB written for
+Trino), and landed with the case wrong: the harness holds a line to what its check prints, and
+cannot tell that the check runs the case the line names.
+
 **What this says.** On asks this model fails, told what is wrong one case at a time: a correction
 that is told is overruled, and a correction that is held sticks. Memory keeping each word keeps
 every case the human named right and leaves fewer cases wrong. That it passes more asks is shown
