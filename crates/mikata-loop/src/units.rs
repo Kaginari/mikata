@@ -34,6 +34,9 @@ impl Cx {
     }
 }
 
+/// A unit ready to load, with what the human grants it.
+pub type Granted = (Box<dyn Unit<Cx>>, Vec<mikata_kernel::Grant>);
+
 /// The run's registry of units.
 pub type Registry = mikata_kernel::Registry<Cx>;
 
@@ -49,9 +52,9 @@ pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
 /// The ids of the native units, in the order the default composition loads them.
 pub const NATIVE: &[&str] = &[Returns::ID];
 
-/// Whether switching the native unit `id` off only takes away something the body faces — a
-/// check, a refusal — so a world file may do it. A unit that only reads, or that the body leans
-/// on, may be switched off by the human alone.
+/// Whether a world file may switch the native unit `id` off: its manifest says switching it off
+/// loosens nothing the human relies on (it only reads, or only adds refusals of its own kind).
+/// Any other unit is switched off by the human alone: a world is not trusted to drop a guard.
 #[must_use]
 pub fn tightens_when_off(id: &str) -> bool {
     native(id).is_some_and(|u| u.manifest().tightens_when_off)
@@ -71,12 +74,57 @@ pub fn default_registry(cx: &mut Cx) -> Registry {
     registry
 }
 
-/// A run's units: what it lends them, and the registry holding them.
+/// Where the run finds a unit by its id: the native units, and the plugins the human's global
+/// configuration declares.
+#[derive(Debug, Clone, Default)]
+pub struct Catalog {
+    /// The plugins declared, enabled or not.
+    pub plugins: Vec<mikata_config::Plugin>,
+    /// How long a plugin's hook may take, in milliseconds.
+    pub hook_ms: u64,
+}
+
+impl Catalog {
+    /// Whether a unit goes by `id`, without starting it.
+    #[must_use]
+    pub fn knows(&self, id: &str) -> bool {
+        NATIVE.contains(&id)
+            || id
+                .strip_prefix("plugin:")
+                .is_some_and(|name| self.plugins.iter().any(|p| p.id == name))
+    }
+
+    /// The unit `id` (`returns`, `plugin:<id>`), ready to load, and what the human grants it.
+    ///
+    /// # Errors
+    ///
+    /// No native unit and no declared plugin goes by that id, or the plugin cannot be started.
+    pub fn unit(&self, id: &str) -> Result<Granted, String> {
+        if let Some(unit) = native(id) {
+            return Ok((unit, Vec::new()));
+        }
+        let Some(name) = id.strip_prefix("plugin:") else {
+            return Err(format!("there is no unit `{id}`"));
+        };
+        let Some(plugin) = self.plugins.iter().find(|p| p.id == name) else {
+            return Err(format!(
+                "the plugin `{name}` is not declared in the human's global configuration"
+            ));
+        };
+        crate::plugins::unit(plugin, self.hook_ms)
+    }
+}
+
+/// A run's units: what it lends them, the registry holding them, and where it finds more.
 pub struct Units {
     /// What the run lends its units at a point.
     pub cx: Cx,
     /// The composition.
     pub registry: Registry,
+    /// Where units are found by id.
+    pub catalog: Catalog,
+    /// Units a resumed journal held that wait for the catalog to be found: plugins.
+    pub wanted: Vec<String>,
 }
 
 impl Default for Units {
@@ -84,7 +132,55 @@ impl Default for Units {
     fn default() -> Self {
         let mut cx = Cx::default();
         let registry = default_registry(&mut cx);
-        Self { cx, registry }
+        Self {
+            cx,
+            registry,
+            catalog: Catalog::default(),
+            wanted: Vec::new(),
+        }
+    }
+}
+
+impl Units {
+    /// The composition a resumed journal last held, rebuilt over the default without journaling
+    /// it again: the last `units` beat's fingerprint names every unit that was on. A native unit
+    /// is loaded or unloaded at once; a plugin waits in [`Units::wanted`] for the catalog.
+    pub fn replay(&mut self, beats: &[Beat]) {
+        let Some(digest) = beats.iter().rev().find_map(|b| match b {
+            Beat::Units { digest, .. } => Some(digest.clone()),
+            _ => None,
+        }) else {
+            return;
+        };
+        let held: Vec<String> = digest
+            .split(',')
+            .filter(|s| !s.is_empty())
+            .map(|stamp| {
+                stamp
+                    .rsplit_once('@')
+                    .map_or(stamp, |(id, _)| id)
+                    .to_owned()
+            })
+            .collect();
+        let active: Vec<String> = self
+            .registry
+            .active()
+            .iter()
+            .map(|(id, _)| (*id).to_owned())
+            .collect();
+        for id in active.iter().filter(|id| !held.contains(id)) {
+            self.registry
+                .request(mikata_kernel::Change::Unload(id.clone()));
+        }
+        for id in held.iter().filter(|id| !active.contains(id)) {
+            match native(id) {
+                Some(unit) => self
+                    .registry
+                    .request(mikata_kernel::Change::Load(unit, Vec::new())),
+                None => self.wanted.push(id.clone()),
+            }
+        }
+        let _ = self.registry.reconcile(SafePoint::Session, &mut self.cx);
     }
 }
 
@@ -118,6 +214,7 @@ impl Returns {
             .at(Point::ToolBefore, Band::Native)
             .at(Point::ToolAfter, Band::Native)
             .safe_point(SafePoint::Batch)
+            .tightens_when_off()
     }
 }
 

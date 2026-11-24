@@ -699,11 +699,7 @@ pub fn opener(
         mikata_loop::open_mode(&world, mode, mikata_loop::Law::On, gate, observer, |var| {
             std::env::var(var).ok()
         })
-        .map(|mut opened| {
-            // TODO(lane D): the loop applies it; until then it is carried.
-            opened.units = units.clone();
-            opened
-        })
+        .and_then(|mut opened| opened.compose(units.clone()).map(|()| opened))
     })
 }
 
@@ -719,11 +715,7 @@ pub fn resumer(
         mikata_loop::resume_mode(&world, &run, mode, gate, observer, |var| {
             std::env::var(var).ok()
         })
-        .map(|mut opened| {
-            // TODO(lane D): a resume rebuilds the composition from the journal's `Units` beats,
-            // then applies this over it.
-            opened.units = units.clone();
-            opened
-        })
+        // The resumed run rebuilt its composition from its journal; this goes over it.
+        .and_then(|mut opened| opened.compose(units.clone()).map(|()| opened))
     })
 }

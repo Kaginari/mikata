@@ -147,8 +147,10 @@ fn ask_once(
         Ok(o) => o,
         Err(e) => return fail(&e, 2),
     };
-    // The composition asked for rides with the session; TODO(lane D): the loop applies it.
-    opened.units = units;
+    // The composition asked for, over the configuration's.
+    if let Err(e) = opened.compose(units) {
+        return fail(&e, 2);
+    }
     #[cfg(unix)]
     if let Err(e) = headless::on_ctrl_c(opened.session.interrupt(), gate) {
         return fail(&format!("ctrl+c could not be caught: {e}"), 2);

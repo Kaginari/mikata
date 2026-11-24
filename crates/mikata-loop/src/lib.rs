@@ -26,6 +26,7 @@ pub mod mcp_journal;
 pub mod metrics;
 pub mod model;
 pub mod open;
+pub mod plugins;
 pub mod prove;
 pub mod queue_tool;
 pub mod resume;

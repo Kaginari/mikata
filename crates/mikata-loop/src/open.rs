@@ -235,10 +235,7 @@ pub struct Opened {
     pub mode_why: String,
     /// The composition the human's command line asked for (`mikata run --units`, `mikatad
     /// --units`): changes over the configured units, empty when none was asked for. Like the law
-    /// and the mode, it is the command line's alone. Experimental: carried, not yet applied.
-    // TODO(lane D): take it into `open_from` and apply it to the run's registry before the first
-    // ask, over `Config::units()` and `Config::plugins()`, and journal each change as a
-    // `Beat::Units` row; until then nothing reads it.
+    /// and the mode, it is the command line's alone; [`Opened::compose`] applies it.
     pub units: mikata_config::Composition,
 }
 
@@ -792,6 +789,8 @@ fn build(
     );
     // The journal says the mode the session opened in, beside the law.
     let run = run.with_mode(mode.word());
+    // The units the human's configuration composes, over the build's default.
+    let (run, unit_holes) = composed(run, config);
     // Light-coding's asks are read apart, when the human names a reader.
     let run = if mode == Mode::Light {
         run.with_reader(config.reader())
@@ -808,6 +807,7 @@ fn build(
         holes: holes(config, unread, world)
             .into_iter()
             .chain(mcp_holes)
+            .chain(unit_holes)
             .collect(),
         budget,
         key: None,
@@ -820,6 +820,71 @@ fn build(
         mode_why,
         units: mikata_config::Composition::default(),
     })
+}
+
+/// `run` with the units the configuration composes: where plugins are found, each `[units]`
+/// switch, and every enabled plugin loaded at the session's first ask. What cannot be done is a
+/// hole, said when the session opens; a world file that switches off a unit a world may not is
+/// one of them.
+fn composed(run: Run, config: &Config) -> (Run, Vec<String>) {
+    let mut holes = Vec::new();
+    let catalog = match config.plugins() {
+        Ok(p) => crate::units::Catalog {
+            plugins: p.plugins,
+            hook_ms: p.hook_ms,
+        },
+        Err(e) => {
+            holes.push(format!("plugins: {e}"));
+            crate::units::Catalog::default()
+        }
+    };
+    let enabled: Vec<String> = catalog
+        .plugins
+        .iter()
+        .filter(|p| p.enabled)
+        .map(mikata_config::Plugin::unit_id)
+        .collect();
+    let mut run = run.with_catalog(catalog);
+    for switch in config.units() {
+        if !switch.on && switch.from_world() && !crate::units::tightens_when_off(&switch.id) {
+            holes.push(format!(
+                "units.{}: a world file may not switch this unit off; only the human's global file may",
+                switch.id
+            ));
+            continue;
+        }
+        if let Err(e) = run.switch_unit(&switch.id, switch.on) {
+            holes.push(format!("units.{}: {e}", switch.id));
+        }
+    }
+    for id in enabled {
+        if let Err(e) = run.switch_unit(&id, true) {
+            holes.push(format!("{id}: {e}"));
+        }
+    }
+    (run, holes)
+}
+
+impl Opened {
+    /// The composition the human's command line asked for (`--units`), applied over the
+    /// configuration's at the session's first ask, and kept in [`Opened::units`].
+    ///
+    /// # Errors
+    ///
+    /// A change that names no unit, or one that cannot be loaded: the command line is refused.
+    pub fn compose(&mut self, asked: mikata_config::Composition) -> Result<(), String> {
+        for change in asked.changes() {
+            let id = change
+                .plugin()
+                .map_or_else(|| change.id.clone(), |p| format!("plugin:{p}"));
+            self.session
+                .run()
+                .switch_unit(&id, change.on)
+                .map_err(|e| format!("--units: {e}"))?;
+        }
+        self.units = asked;
+        Ok(())
+    }
 }
 
 /// The mode a session in `world` would open in and why, or why the mode `asked` for is not
