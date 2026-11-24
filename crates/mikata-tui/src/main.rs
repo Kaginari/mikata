@@ -69,12 +69,21 @@ fn main() -> ExitCode {
                 Ok(u) => u.unwrap_or_default(),
                 Err(e) => return fail(&e, 2),
             };
+            let profile = match mikata_tui::cli::profile(&args) {
+                Ok(p) => p.unwrap_or_default(),
+                Err(e) => return fail(&e, 2),
+            };
             ask_once(
                 ask,
                 world,
                 json,
                 gate_tty,
-                (if no_law { Law::Off } else { Law::On }, mode, units),
+                (
+                    if no_law { Law::Off } else { Law::On },
+                    mode,
+                    units,
+                    profile,
+                ),
             )
         }
         Command::Status { world, mode } => status(world, mode),
@@ -108,7 +117,7 @@ fn ask_once(
     world: Option<PathBuf>,
     json: bool,
     gate_tty: bool,
-    (law, mode, units): (Law, Option<Mode>, mikata_loop::config::Composition),
+    (law, mode, units, profile): (Law, Option<Mode>, mikata_loop::config::Composition, String),
 ) -> ExitCode {
     let ask = match ask {
         Some(a) => a,
@@ -145,6 +154,7 @@ fn ask_once(
         headless::observer(tx.clone()),
         |v| match v {
             "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
+            "MIKATA_PROFILE" if !profile.is_empty() => Some(profile.clone()),
             _ => std::env::var(v).ok(),
         },
     );

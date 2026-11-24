@@ -55,3 +55,16 @@ fn a_composition_is_refused_where_it_does_not_belong() {
         assert!(e.contains(says), "{a:?}: {e}");
     }
 }
+
+/// `run --profile <name>` names a composition; it is read beside the command, once, on `run` only.
+#[test]
+fn run_takes_a_profile_by_name() {
+    use mikata_tui::cli::profile;
+    let a = args(&["run", "go", "--profile", "small-fix"]);
+    assert!(matches!(parse(&a), Ok(Command::Run { ask: Some(ref s), .. }) if s == "go"));
+    assert_eq!(profile(&a), Ok(Some("small-fix".to_owned())));
+    assert_eq!(profile(&args(&["run", "go"])), Ok(None));
+    assert!(parse(&args(&["run", "go", "--profile"])).is_err());
+    assert!(parse(&args(&["run", "go", "--profile", "a", "--profile", "b"])).is_err());
+    assert!(parse(&args(&["status", "--profile", "small-fix"])).is_err());
+}
