@@ -64,6 +64,9 @@ pub fn registry() -> Vec<Box<dyn Tool>> {
     ]
 }
 
+/// The folder of a context's scratch its commands see as `/tmp` ([`Context::private_tmp`]).
+pub const SLASH_TMP: &str = "slash-tmp";
+
 /// A tool no session is offered any more, by the name a session that already used it may still
 /// call: answered as it always was, so a resumed run's own history stays true.
 ///
@@ -608,6 +611,33 @@ impl Context {
                 .unwrap_or_else(|| self.world.join(".mikata/tmp/.none"));
         }
         self.world.join(".mikata/tmp")
+    }
+
+    /// The directory this context's commands see as `/tmp`, where the guard gives each one a
+    /// `/tmp` of its own ([`mikata_sandbox::Sandbox::private_tmp`]): a folder of the scratch, so
+    /// a file a command keeps in `/tmp` is kept in the world's scratch and nowhere else. `None`
+    /// where the machine cannot do it, and for a context any of whose own places — its world,
+    /// its home, a folder it was lent, a deploy root — lies under the machine's `/tmp`, which a
+    /// mount there would hide. A command the human let reach the network is not given one
+    /// either (the shell's own rule): it keeps the machine's `/tmp`, an agent's socket included.
+    #[must_use]
+    pub fn private_tmp(&self) -> Option<PathBuf> {
+        if !self.sandbox.private_tmp() {
+            return None;
+        }
+        let under_tmp = |p: &Path| {
+            p.canonicalize()
+                .unwrap_or_else(|_| p.to_path_buf())
+                .starts_with("/tmp")
+        };
+        let places = [self.world.as_path(), self.home.as_path()]
+            .into_iter()
+            .chain(self.lent.iter().map(PathBuf::as_path))
+            .chain(self.deploy_roots.iter().map(PathBuf::as_path));
+        if places.into_iter().any(under_tmp) {
+            return None;
+        }
+        Some(self.scratch().join(SLASH_TMP))
     }
 
     /// Whether this body could have written `path` (absolute). Under a kernel guard a commissioned

@@ -7,7 +7,10 @@
 //! - **Linux**: the command is started through `mikata-guard`, which restricts itself with
 //!   landlock (the file rules) and seccomp (no sockets without network; no `ptrace`, `mount`,
 //!   `unshare`, `bpf`, `io_uring`, … ever), then execs the command. No namespaces are needed, so
-//!   it works where unprivileged user namespaces are restricted.
+//!   it works where unprivileged user namespaces are restricted. Where they are not, the guard
+//!   also gives the command a `/tmp` of its own ([`Policy::tmp_at`]): a folder of its scratch
+//!   mounted there for it alone, so a scratch file kept in `/tmp` needs nobody's approval and
+//!   touches nothing of the machine's.
 //! - **macOS**: the command is started through `sandbox-exec` with a generated Seatbelt profile.
 //!
 //! [`Sandbox::status`] says what is actually in force, or `none — <reason>`: containment is
@@ -199,6 +202,10 @@ pub struct Policy {
     /// The command is killed when the thread that started it ends (Linux): a long-lived process
     /// such as an MCP server never outlives the harness.
     pub die_with_parent: bool,
+    /// The directory the command sees as `/tmp`, mounted there for it alone (Linux, where
+    /// [`Sandbox::private_tmp`] holds): its scratch files land here, and the machine's `/tmp`
+    /// is out of its reach. `None`: `/tmp` is the machine's, which no rule lets it touch.
+    pub tmp_at: Option<PathBuf>,
 }
 
 impl Policy {
@@ -235,6 +242,7 @@ impl Policy {
             network,
             refused,
             die_with_parent: false,
+            tmp_at: None,
         }
     }
 
@@ -365,6 +373,12 @@ impl Sandbox {
                 if policy.die_with_parent {
                     cmd.arg("--die-with-parent");
                 }
+                // Only on a machine whose probe took it, and only a directory that is there.
+                if let Some(dir) = policy.tmp_at.as_ref().filter(|d| d.is_dir())
+                    && self.private_tmp()
+                {
+                    cmd.arg("--tmp").arg(dir);
+                }
                 cmd.arg("--").arg(program).args(args);
                 cmd
             }
@@ -391,8 +405,31 @@ impl Sandbox {
         }
     }
 
+    /// Whether a command can be given a `/tmp` of its own on this machine ([`Policy::tmp_at`]):
+    /// the guard is asked once, with a probe that makes the mount and restricts itself as a
+    /// command would, and the answer is kept for the life of the process. Linux only, and only
+    /// where the kernel lets an unprivileged process make a user namespace and mount in it;
+    /// elsewhere the guard works as it always did, without namespaces.
+    #[must_use]
+    pub fn private_tmp(&self) -> bool {
+        static PROBED: std::sync::Mutex<Vec<(PathBuf, bool)>> = std::sync::Mutex::new(Vec::new());
+        let Self::Guard(guard) = self else {
+            return false;
+        };
+        let mut probed = PROBED
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some((_, took)) = probed.iter().find(|(g, _)| g == guard) {
+            return *took;
+        }
+        let took = probe_private_tmp(guard);
+        probed.push((guard.clone(), took));
+        took
+    }
+
     /// What is in force, in one line — `landlock ABI 1 + seccomp, network off`, or
-    /// `none — <reason>`. On Linux the guard restricts a probe and reports what the kernel did.
+    /// `none — <reason>`. On Linux the guard restricts a probe and reports what the kernel did,
+    /// and whether a command gets a `/tmp` of its own.
     #[must_use]
     pub fn status(&self, network: bool) -> String {
         match self {
@@ -403,6 +440,13 @@ impl Sandbox {
                     probe.arg("--network");
                 }
                 match probe.output() {
+                    // A command the human let reach the network keeps the machine's `/tmp`.
+                    Ok(out) if out.status.success() && !network && self.private_tmp() => {
+                        format!(
+                            "{}, private /tmp",
+                            String::from_utf8_lossy(&out.stdout).trim()
+                        )
+                    }
                     Ok(out) if out.status.success() => {
                         String::from_utf8_lossy(&out.stdout).trim().to_owned()
                     }
@@ -419,6 +463,33 @@ impl Sandbox {
             Self::None(reason) => format!("none — {reason}"),
         }
     }
+}
+
+/// Ask the guard at `guard` whether it can give a command a `/tmp` of its own: a probe that
+/// mounts a fresh empty directory there and restricts itself. False on any refusal.
+fn probe_private_tmp(guard: &Path) -> bool {
+    if !cfg!(target_os = "linux") {
+        return false;
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let dir =
+        std::env::temp_dir().join(format!("mikata-tmp-probe-{}-{stamp:x}", std::process::id()));
+    if std::fs::create_dir(&dir).is_err() {
+        return false;
+    }
+    let out = Command::new(guard)
+        .arg("--probe")
+        .arg("--tmp")
+        .arg(&dir)
+        .env_clear()
+        .envs(scrubbed_env())
+        .output();
+    let _ = std::fs::remove_dir(&dir);
+    out.is_ok_and(|o| {
+        o.status.success() && String::from_utf8_lossy(&o.stdout).contains("private /tmp")
+    })
 }
 
 /// Make this process unreadable to the commands it starts: on Linux it becomes non-dumpable,

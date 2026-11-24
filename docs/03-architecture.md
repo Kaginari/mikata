@@ -1668,6 +1668,20 @@ flowchart LR
     and, when it wrote outside the world, that scratch files go under `.mikata/tmp/`: with no
     human attached, Claude Haiku 5.5 was denied 115 times in 190 runs, 100 of them for a scratch
     file in `/tmp`, and a denial said nothing of which part was the act.
+    **A `/tmp` of the command's own.** Where the kernel lets an unprivileged process make a user
+    namespace and mount in it, the guard gives each command its own `/tmp`: a folder of the
+    world's scratch (`.mikata/tmp/slash-tmp/`) mounted there for that command alone, before
+    landlock and seccomp are applied. The command keeps its user and group, holds no capability
+    once it execs, and can make no further namespace or mount; the machine's `/tmp` is out of its
+    reach, and nothing outside sees the mount. The classifier then judges a path under `/tmp`
+    where it lands — the scratch, inside the world — so a scratch file kept in `/tmp`, which is
+    where most programs and most models keep one, is a plain write that asks nobody. It is asked
+    of the guard once, by a probe (`Sandbox::private_tmp`; `mikata status` says `private /tmp`),
+    and never used: for a world, a home, a lent folder or a deploy root that itself lies under
+    `/tmp` (the mount would hide it); for a command the human approved to reach outside, which
+    keeps the machine's `/tmp` (an ssh agent's socket lives there) and is classified and shown
+    that way; on macOS; or where the kernel refuses (Ubuntu's restricted user namespaces, most
+    containers). There a write to `/tmp` is outward, as it was, and its denial names the scratch.
     Layered, landlock refuses what it can, the tools refuse by name, and the end gate's *right
     author* judges every changed file the snapshot sees; what git ignores is build output and is
     not judged. **What a body reads of other processes:** `/proc` is readable, but landlock

@@ -1422,3 +1422,76 @@ fn a_denied_install_is_not_told_about_scratch() {
     assert!(o.content.contains("reaches the registry"), "{}", o.content);
     assert!(!o.content.contains(".mikata/tmp"), "{}", o.content);
 }
+
+/// Under the guard, where the kernel allows it, a command's `/tmp` is a folder of its own
+/// scratch: a scratch file written there asks nobody, lands in the world's scratch, and never
+/// reaches the machine's `/tmp`.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_scratch_file_in_tmp_asks_nobody_under_the_guard() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let sandbox = Sandbox::Guard(guard);
+    if !sandbox.private_tmp() {
+        eprintln!("skipped: this kernel lets no unprivileged process mount in a user namespace");
+        return;
+    }
+    // Beside the test binaries: a world under the machine's `/tmp` is given no `/tmp` of its own.
+    let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("mikata-shell-own-tmp-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("world/src")).unwrap();
+    fs::create_dir_all(root.join("home")).unwrap();
+    let gate = Arc::new(Scripted::new([]));
+    let mut cx = Context::new(Race::Slime, root.join("world"), &["src"])
+        .with_gate(gate.clone())
+        .with_home(root.join("home"))
+        .with_sandbox(sandbox);
+    let name = format!("mikata-own-tmp-{}.py", std::process::id());
+    let o = bash(
+        &mut cx,
+        &format!("cat > /tmp/{name} <<'X'\nprint(40 + 2)\nX\npython3 /tmp/{name}"),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(o.content.trim(), "42");
+    assert_eq!(o.meta.class, Some(ToolClass::Write));
+    assert_eq!(
+        gate.asked(),
+        [] as [mikata_tools::Ask; 0],
+        "nobody was asked"
+    );
+    assert!(
+        root.join("world/.mikata/tmp")
+            .join(mikata_tools::SLASH_TMP)
+            .join(&name)
+            .is_file(),
+        "it is kept in the world's scratch"
+    );
+    assert!(!std::path::Path::new("/tmp").join(&name).exists());
+    // The next command sees it again: the folder is the session's.
+    let o = bash(&mut cx, &format!("python3 /tmp/{name} && rm /tmp/{name}"));
+    assert!(!o.is_error && o.content.trim() == "42", "{o:?}");
+    let _ = fs::remove_dir_all(&root);
+}
+
+/// A world that itself lies under the machine's `/tmp` is given no `/tmp` of its own: the mount
+/// would hide it. A scratch file in `/tmp` is then put to the human, as before.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_world_under_tmp_is_given_no_tmp_of_its_own() {
+    let Some(guard) = guard() else {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    };
+    let w = World::new("under-tmp");
+    if !w.world().canonicalize().unwrap().starts_with("/tmp") {
+        eprintln!("skipped: the tests' temporary directory is not under /tmp here");
+        return;
+    }
+    let cx = Context::new(Race::Slime, w.world(), &["src"])
+        .with_home("/h")
+        .with_sandbox(Sandbox::Guard(guard));
+    assert_eq!(cx.private_tmp(), None);
+}

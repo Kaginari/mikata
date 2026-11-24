@@ -1,7 +1,7 @@
 //! The Linux side: the guard restricts its own process, then execs the command.
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use landlock::{
     ABI, Access, AccessFs, CompatLevel, Compatible, LandlockStatus, Ruleset, RulesetAttr,
@@ -81,6 +81,55 @@ const NAMESPACE_FLAGS: [libc::c_int; 7] = [
     libc::CLONE_NEWPID,
     libc::CLONE_NEWNET,
 ];
+
+/// Give this process, and everything it starts, a `/tmp` of its own: `dir` mounted there, in a
+/// mount namespace nothing else shares. The machine's `/tmp` is then out of reach from inside,
+/// and nothing outside sees the mount: a command that keeps a scratch file in `/tmp`, as most
+/// do, keeps it in `dir`.
+///
+/// A mount namespace takes a user namespace. The process keeps its user and its group, each
+/// mapped to itself, and holds no capability once it execs a program; the seccomp filter that
+/// follows refuses any further namespace or mount. It works only where the kernel lets an
+/// unprivileged process make a user namespace and mount in it, which the harness asks first with
+/// a probe ([`crate::Sandbox::private_tmp`]): it is never tried on a machine that refused it.
+///
+/// # Errors
+///
+/// What the kernel refused. The process may then stand in a namespace it cannot use, so the
+/// caller runs nothing.
+pub fn private_tmp(dir: &Path) -> Result<(), String> {
+    use rustix::mount::{MountPropagationFlags, mount_bind, mount_change};
+    use rustix::thread::{UnshareFlags, unshare_unsafe};
+    let (uid, gid) = (
+        rustix::process::getuid().as_raw(),
+        rustix::process::getgid().as_raw(),
+    );
+    // SAFETY: the guard is a single thread here, before it execs, and holds nothing — no open
+    // directory stream, no lock, no other thread's view of the mounts — that a new user and
+    // mount namespace would leave dangling.
+    #[allow(
+        unsafe_code,
+        reason = "unshare(2) has no safe wrapper; the guard is single-threaded here"
+    )]
+    unsafe { unshare_unsafe(UnshareFlags::NEWUSER | UnshareFlags::NEWNS) }
+        .map_err(|e| format!("a namespace of its own: {e}"))?;
+    let map =
+        |file: &str, text: String| std::fs::write(file, text).map_err(|e| format!("{file}: {e}"));
+    // An unprivileged process may map its group only once it can no longer change its groups.
+    map("/proc/self/setgroups", "deny".into())?;
+    map("/proc/self/uid_map", format!("{uid} {uid} 1"))?;
+    map("/proc/self/gid_map", format!("{gid} {gid} 1"))?;
+    // Nothing mounted from here on spreads back to the machine's own mounts.
+    mount_change(
+        "/",
+        MountPropagationFlags::PRIVATE | MountPropagationFlags::REC,
+    )
+    .map_err(|e| format!("its mounts made private: {e}"))?;
+    mount_bind(dir, "/tmp").map_err(|e| format!("{} on /tmp: {e}", dir.display()))
+}
+
+/// What the status line says when the command has a `/tmp` of its own.
+pub const PRIVATE_TMP: &str = "private /tmp";
 
 /// Lower a limit to `cap`, never raise it.
 fn cap(resource: Resource, cap: u64) -> Result<(), String> {

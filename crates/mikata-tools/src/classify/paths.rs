@@ -104,6 +104,13 @@ pub(crate) fn locate(text: Option<&str>, cwd: Option<&Path>, place: &Place) -> S
     let Some(lexical) = join(cwd, &globless(text)) else {
         return Spot::Unknown;
     };
+    // Where the guard gives the command a `/tmp` of its own, a path under `/tmp` lands in that
+    // directory: it is judged there, links and all. (`/tmp/../etc` was folded to `/etc` above,
+    // as the kernel resolves it from inside the mount.)
+    let lexical = match (&place.tmp, lexical.strip_prefix("/tmp")) {
+        (Some(own), Ok(rest)) => own.join(rest),
+        _ => lexical,
+    };
     if let Some(device) = device(&lexical) {
         return Spot::Device(device);
     }

@@ -250,7 +250,7 @@
     {
       "cache": false,
       "defer": false,
-      "description": "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. A write outside the world is outward, `/tmp` included: keep scratch files under `.mikata/tmp/`. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call.",
+      "description": "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. A write outside the world is outward: keep scratch files under `.mikata/tmp/`, not in `/tmp`. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call.",
       "fill": true,
       "input_schema": {
         "additionalProperties": false,

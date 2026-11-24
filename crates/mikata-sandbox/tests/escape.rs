@@ -96,7 +96,11 @@ fn the_sandbox_is_in_force_and_says_so() {
     let off = s.status(false);
     let on = s.status(true);
     assert!(!off.starts_with("none"), "{off}");
-    assert!(off.ends_with("network off"), "{off}");
+    // Where the kernel allows it the line also says the command has a `/tmp` of its own.
+    assert!(
+        off.ends_with("network off") || off.ends_with("network off, private /tmp"),
+        "{off}"
+    );
     assert!(on.ends_with("network on"), "{on}");
     if cfg!(target_os = "linux") {
         assert!(
@@ -634,4 +638,131 @@ fn the_boards_nonce_and_launcher_cannot_be_read() {
             assert!(!out.contains("open-"), "network {network}: {out}");
         }
     }
+}
+
+/// A ground that does not lie under the machine's `/tmp`, which a `/tmp` of the command's own
+/// would hide: beside the test binaries.
+#[cfg(target_os = "linux")]
+fn ground_off_tmp(name: &str) -> PathBuf {
+    let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("mikata-own-tmp-{name}-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    for d in ["world", "home", "scratch/slash-tmp"] {
+        fs::create_dir_all(root.join(d)).unwrap();
+    }
+    root.canonicalize().unwrap()
+}
+
+/// Where the kernel allows it, a command is given a `/tmp` of its own: what it keeps there is
+/// kept in the directory the policy names and nowhere else, the machine's `/tmp` is out of its
+/// reach, it is still itself (its user, no capability), and everything else is refused as before.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_command_keeps_its_tmp_files_in_a_tmp_of_its_own() {
+    let s = sandbox();
+    if !s.private_tmp() {
+        eprintln!("skipped: this kernel lets no unprivileged process mount in a user namespace");
+        return;
+    }
+    let root = ground_off_tmp("own");
+    let own = root.join("scratch/slash-tmp");
+    let marker =
+        std::env::temp_dir().join(format!("mikata-real-tmp-marker-{}", std::process::id()));
+    fs::write(&marker, "the machine's\n").unwrap();
+    let mut policy = Policy::new(
+        &root.join("world"),
+        &root.join("home"),
+        &root.join("scratch"),
+        false,
+    );
+    policy.tmp_at = Some(own.clone());
+    let script = format!(
+        "echo hi > /tmp/chk.txt && cat /tmp/chk.txt && ls /tmp && id -u \
+         && (cat {m} 2>&1 | tail -1) && (ls /tmp/{name} 2>&1 | tail -1) \
+         && grep CapEff /proc/self/status && (unshare -U true 2>&1 | tail -1) \
+         && (echo no > /etc/mikata-own-tmp 2>&1 | tail -1) && mkdir -p /tmp/a/b && rm -rf /tmp/a && echo cleaned",
+        m = marker.display(),
+        name = marker.file_name().unwrap().to_string_lossy(),
+    );
+    let out = s
+        .command(
+            &policy,
+            "/bin/bash",
+            &["--noprofile", "--norc", "-c", &script],
+        )
+        .current_dir(root.join("world"))
+        .env("HOME", root.join("home"))
+        .output()
+        .expect("the sandbox starts");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let _ = fs::remove_file(&marker);
+    assert!(out.status.success(), "{text}");
+    assert!(
+        text.starts_with("hi\nchk.txt\n"),
+        "its own /tmp holds its file alone: {text}"
+    );
+    assert!(
+        text.contains(&format!("\n{}\n", rustix::process::getuid().as_raw())),
+        "it is still itself: {text}"
+    );
+    assert!(
+        text.contains("No such file or directory"),
+        "the machine's /tmp is out of reach: {text}"
+    );
+    assert!(
+        text.contains("CapEff:\t0000000000000000"),
+        "it holds no capability: {text}"
+    );
+    assert!(
+        text.contains("Operation not permitted"),
+        "no further namespace: {text}"
+    );
+    assert!(
+        text.contains("Permission denied"),
+        "the rest is refused as before: {text}"
+    );
+    assert!(
+        text.contains("\ncleaned\n"),
+        "it makes and removes what it likes there: {text}"
+    );
+    assert_eq!(fs::read_to_string(own.join("chk.txt")).unwrap(), "hi\n");
+    assert!(
+        !std::path::Path::new("/tmp/chk.txt").exists(),
+        "nothing reached the machine's /tmp"
+    );
+    let _ = fs::remove_dir_all(&root);
+}
+
+/// A policy that names no `/tmp` of its own leaves the machine's where it was: out of reach.
+#[cfg(target_os = "linux")]
+#[test]
+fn without_a_tmp_of_its_own_the_machines_tmp_stays_closed() {
+    let root = ground_off_tmp("closed");
+    let policy = Policy::new(
+        &root.join("world"),
+        &root.join("home"),
+        &root.join("scratch"),
+        false,
+    );
+    let out = sandbox()
+        .command(
+            &policy,
+            "/bin/bash",
+            &[
+                "--noprofile",
+                "--norc",
+                "-c",
+                "echo hi > /tmp/mikata-closed.txt",
+            ],
+        )
+        .current_dir(root.join("world"))
+        .output()
+        .expect("the sandbox starts");
+    assert!(!out.status.success());
+    assert!(!std::path::Path::new("/tmp/mikata-closed.txt").exists());
+    let _ = fs::remove_dir_all(&root);
 }

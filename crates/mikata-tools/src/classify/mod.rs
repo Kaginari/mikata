@@ -42,6 +42,9 @@ pub struct Place {
     /// The directories outside the world a deploy may write: a write anywhere else outside is
     /// no post's act.
     pub roots: Vec<PathBuf>,
+    /// The directory the command sees as `/tmp`, when the guard gives it one of its own: a path
+    /// under `/tmp` is judged where it really lands. `None`: `/tmp` is the machine's.
+    pub tmp: Option<PathBuf>,
 }
 
 impl Place {
@@ -53,6 +56,7 @@ impl Place {
             world,
             home: home.into(),
             roots: Vec::new(),
+            tmp: None,
         }
     }
 

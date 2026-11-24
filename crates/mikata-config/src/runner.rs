@@ -1791,6 +1791,8 @@ impl<'a> Runner<'a> {
             home: self.cx.home().to_path_buf(),
             cwd: self.cx.world().to_path_buf(),
             roots: self.cx.deploy_roots().to_vec(),
+            // A typed act is an outward one: it runs with the machine's own `/tmp`.
+            tmp: None,
         }
     }
 

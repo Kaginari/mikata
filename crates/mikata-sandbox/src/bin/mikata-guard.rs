@@ -1,6 +1,9 @@
-//! `mikata-guard [--read P]… [--write P]… [--rules FILE] [--network] [--die-with-parent] -- PROGRAM ARGS…`
+//! `mikata-guard [--read P]… [--write P]… [--rules FILE] [--tmp DIR] [--network] [--die-with-parent] -- PROGRAM ARGS…`
 //!
-//! `--rules` reads `r`/`w` and a path, each NUL-terminated, from FILE and removes it.
+//! `--rules` reads `r`/`w` and a path, each NUL-terminated, from FILE and removes it. `--tmp`
+//! mounts DIR on `/tmp` for PROGRAM alone, in a mount namespace of its own, before anything is
+//! restricted: the harness passes it only on a machine whose probe took it, and a guard the
+//! kernel then refuses runs nothing.
 //!
 //! Restricts its own process with landlock and seccomp, then execs PROGRAM in its place, so the
 //! command and everything it starts inherit the restriction. `--probe` restricts and prints the
@@ -19,6 +22,7 @@ fn main() {
     let mut rules = Rules::default();
     let mut probe = false;
     let mut die_with_parent = false;
+    let mut tmp: Option<PathBuf> = None;
     let parent = rustix::process::getppid();
     let mut args = std::env::args_os().skip(1);
     let mut program: Vec<std::ffi::OsString> = Vec::new();
@@ -34,6 +38,13 @@ fn main() {
                 };
                 if let Err(e) = read_rules(&file, &mut rules) {
                     eprintln!("mikata-guard: the rules file: {e}; nothing ran");
+                    exit(125);
+                }
+            }
+            Some("--tmp") => {
+                tmp = args.next().map(PathBuf::from);
+                if tmp.is_none() {
+                    eprintln!("mikata-guard: --tmp needs a directory");
                     exit(125);
                 }
             }
@@ -61,6 +72,18 @@ fn main() {
             exit(125);
         }
     }
+    // The rules file is read and gone by now: the machine's `/tmp`, where it may have lain, can
+    // go out of reach.
+    if let Some(dir) = &tmp {
+        if let Err(e) = mikata_sandbox::linux::private_tmp(dir) {
+            eprintln!("mikata-guard: a /tmp of its own: {e}; nothing ran");
+            exit(125);
+        }
+        // Landlock meets a rule on the way up from a file: from inside the mount that way ends
+        // at the mounted directory itself, never at the folders above it where it came from. So
+        // the directory is named in its own right.
+        rules.write.push(dir.clone());
+    }
     let status = match restrict(&rules) {
         Ok(s) => s,
         Err(e) => {
@@ -69,7 +92,11 @@ fn main() {
         }
     };
     if probe {
-        println!("{status}");
+        if tmp.is_some() {
+            println!("{status}, {}", mikata_sandbox::linux::PRIVATE_TMP);
+        } else {
+            println!("{status}");
+        }
         return;
     }
     let Some((prog, rest)) = program.split_first() else {
