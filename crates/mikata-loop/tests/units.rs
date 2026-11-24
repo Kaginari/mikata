@@ -391,6 +391,7 @@ async fn memory_off_keeps_no_lesson_and_on_again_keeps_it() {
 /// memory keeps nothing.
 #[tokio::test]
 async fn a_plugin_memory_stands_in_for_the_native_one() {
+    use mikata_memory::{Tier, fold, read};
     if std::process::Command::new("python3")
         .arg("-V")
         .output()
@@ -399,7 +400,6 @@ async fn a_plugin_memory_stands_in_for_the_native_one() {
         eprintln!("skipped: no python3 on PATH to run the example plugin");
         return;
     }
-    use mikata_memory::{Tier, fold, read};
     let w = World::new("plugin-memory");
     let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../examples/plugins/notes_memory.py")
