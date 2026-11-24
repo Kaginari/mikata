@@ -247,6 +247,22 @@ hook_ms = 2000
 
 A missed bar is reported as missed; a stage that misses is not built on until its cause is read.
 
+## Where it stands
+
+| What | State |
+|---|---|
+| Kernel crate, registry, undo, order, quarantine | built (lane A), property-tested |
+| Plugin host, Python SDK, `no_force_push.py`, `observe.py` | built (lane B) |
+| `[units]`, `[plugins.*]`, `--units`, memory's `unit` stamp, withdraw by unit | built (lane C) |
+| Loop: every point, `units` beats, resume, `/units` `/unit` `/plugin`, `units/list` `units/change` | built |
+| Native units | `returns` (moved out of the loop), `memory`, `what_changed`, `reader`, `stress` (switches: their code is still the run's, the run asks whether each is on) |
+| Stage 1, the tracer | met, 2026-11-24 |
+| Stage 2, no regression | met, 2026-11-24: main 10 of 10 in 338 calls, the branch 10 of 10 in 337 (Haiku, sqlglot ten, $0.78) |
+| Stage 3, hosting a plugin | running |
+
+A switch unit is the first step for a part: it can be measured off before its code moves. Its
+code leaves `run.rs` when a measurement or a second implementation asks for it.
+
 ## What is not done
 
 No plugin store or registry. No plugin installed by an agent. No plugin that writes the frame,
