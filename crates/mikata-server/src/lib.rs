@@ -9,6 +9,7 @@
 
 pub mod board;
 pub mod protocol;
+pub mod units;
 
 /// How a session's bodies work together: what the core's `--mode` option asks for.
 pub use mikata_loop::Mode;
@@ -514,6 +515,8 @@ async fn main_lane(
     let mut steer = None;
     let mut interrupt = None;
     let mut driver = None;
+    // TODO(lane D): shared with the loop, which wires it, lists into it and drains its changes.
+    let mut units = units::Units::default();
     while let Some(msg) = inbox.recv().await {
         let id = msg.id.as_ref();
         let method = msg.method.clone().unwrap_or_default();
@@ -573,6 +576,14 @@ async fn main_lane(
                 core.release("the human interrupted");
                 core.reply(id, &json!({}));
             }
+            "units/list" => match units.list() {
+                Ok(listed) => core.reply(id, &listed),
+                Err((number, why)) => core.fail(id, number, &why),
+            },
+            "units/change" => match units.change(&msg.params) {
+                Ok(queued) => core.reply(id, &queued),
+                Err((number, why)) => core.fail(id, number, &why),
+            },
             "session/events" => replay(&core, id, msg.params["since"].as_u64().unwrap_or(0)),
             "shutdown" => {
                 core.reply(id, &json!({}));

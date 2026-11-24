@@ -56,7 +56,10 @@ impl World {
     }
 
     fn start(&self, mode: Option<&str>, grants: &[Grant]) -> Result<Plugin, String> {
-        let mut args = vec![fixture().display().to_string(), self.log().display().to_string()];
+        let mut args = vec![
+            fixture().display().to_string(),
+            self.log().display().to_string(),
+        ];
         args.extend(mode.map(str::to_owned));
         let declared = Declared {
             id: "fake".into(),
@@ -175,7 +178,11 @@ fn a_reply_above_the_grant_or_out_of_place_or_malformed_is_a_pass_and_a_strike()
     assert_eq!(reply, Reply::Pass);
     let strike = strike.unwrap();
     assert_eq!(strike.fault, Offence::AboveGrant);
-    assert!(strike.why.contains("needs the veto grant"), "{}", strike.why);
+    assert!(
+        strike.why.contains("needs the veto grant"),
+        "{}",
+        strike.why
+    );
     assert_eq!((strike.count, strike.failed), (1, false));
 
     let (reply, strike) = p.on(&named("garbage"));
@@ -343,11 +350,7 @@ fn the_python_example_vetoes_a_force_push() {
         "git fetch --force",
         "echo git push --force",
     ] {
-        assert_eq!(
-            p.on(&bash("t2", command)),
-            (Reply::Pass, None),
-            "{command}"
-        );
+        assert_eq!(p.on(&bash("t2", command)), (Reply::Pass, None), "{command}");
     }
     assert_eq!(p.on(&named("read")), (Reply::Pass, None));
     let began = Instant::now();

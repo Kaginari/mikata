@@ -175,6 +175,17 @@ fn a_plugin_is_read_from_the_global_file() {
     assert_eq!(nfp.grants, ["advise", "veto"], "in the grants' own order");
     assert_eq!(nfp.races, [Race::Slime, Race::Summoner]);
     assert!(nfp.enabled);
+    let declared = nfp.declared();
+    assert_eq!(declared.unit_id(), "plugin:no-force-push");
+    assert_eq!(
+        declared.grants,
+        [
+            mikata_tools::plugin::Grant::Advise,
+            mikata_tools::plugin::Grant::Veto
+        ]
+    );
+    assert_eq!(declared.races, nfp.races);
+    assert_eq!(declared.args, nfp.args);
     let watcher = &p.plugins[1];
     assert_eq!(watcher.grants, ["observe"], "none named: observe alone");
     assert_eq!(watcher.races, []);

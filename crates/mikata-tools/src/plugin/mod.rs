@@ -20,7 +20,10 @@
 use std::path::Path;
 use std::time::Duration;
 
-use mikata_kernel::{Band, Event, FramePolicy, Grant, Manifest, NOTE_CAP, Point, Reply, SafePoint};
+use mikata_kernel::{Band, FramePolicy, NOTE_CAP, Point, SafePoint};
+/// The kernel's vocabulary a plugin speaks: what it is shown, what it answers, what it is granted
+/// and the manifest it is loaded with.
+pub use mikata_kernel::{Event, Grant, Manifest, Reply};
 use mikata_races::Race;
 use serde_json::{Value, json};
 
@@ -337,9 +340,7 @@ impl Plugin {
         self.strikes += 1;
         let failed = self.strikes >= STRIKES;
         if failed {
-            self.failed = Some(format!(
-                "{STRIKES} strikes this session; the last: {why}"
-            ));
+            self.failed = Some(format!("{STRIKES} strikes this session; the last: {why}"));
             // Ended at once: a failed plugin is no longer waited on.
             self.end(Duration::ZERO);
         }
@@ -389,7 +390,13 @@ pub fn manifest(declared: &Declared, handshake: &Value) -> Result<Manifest, Stri
     if cap["version"].as_u64() != Some(PROTOCOL) {
         return Err(format!(
             "plugin `{id}` speaks version {} of the `mikata` capability; this host speaks {PROTOCOL}",
-            clean(&cap["version"].to_string().chars().take(20).collect::<String>())
+            clean(
+                &cap["version"]
+                    .to_string()
+                    .chars()
+                    .take(20)
+                    .collect::<String>()
+            )
         ));
     }
     let names = |key: &str| -> Result<Vec<String>, String> {
@@ -501,7 +508,11 @@ mod tests {
     fn a_plain_server_or_another_version_is_no_plugin() {
         let d = declared(&[Grant::Veto]);
         let plain = json!({"capabilities": {"tools": {}}});
-        assert!(manifest(&d, &plain).unwrap_err().contains("plain MCP server"));
+        assert!(
+            manifest(&d, &plain)
+                .unwrap_err()
+                .contains("plain MCP server")
+        );
         let v2 = hello(&json!({"version": 2}));
         assert!(manifest(&d, &v2).unwrap_err().contains("version 2"));
         let bad = hello(&json!({"version": 1, "points": "tool_before"}));
@@ -529,7 +540,10 @@ mod tests {
         assert!(!server.network);
         let mut servers = vec![Server::new("other", "x", &[])];
         let none: Vec<String> = Vec::new();
-        assert_eq!(join_servers(&mut servers, std::slice::from_ref(&with)), none);
+        assert_eq!(
+            join_servers(&mut servers, std::slice::from_ref(&with)),
+            none
+        );
         assert_eq!(servers.len(), 2);
         let holes = join_servers(&mut servers, &[with]);
         assert_eq!(holes.len(), 1);
