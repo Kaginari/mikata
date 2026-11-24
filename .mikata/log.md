@@ -7889,3 +7889,9 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Result:** 1 and 4: missed by one. Memory's one break never reached the human (a run that spent its 200 steps mid-work; its held line would have refused the landing); all four without memory were answered as done, all on the hard ask. Passes 8 and 6; hidden cases wrong 11 and 21. \$6.87 of \$9.
 - **The book:** the benchmark page's plain words and section, and the memory page, say it with these numbers.
 
+### [2026-11-24T01:06:00+00:00] aibo Summoner — the human's own command checks their case
+- **Why:** bench step 67: two runs passed the human's held line with a check that ran the case the other way round, and landed with it wrong. The harness held the line to what the body's command printed.
+- **Built:** a correction may carry the human's command (`--check`, kept as a `check:` tag). When the ask comes again the harness hands it in as the line's check as the ask opens and pins it: a body's command for that line is refused. Without one, a body's check for a human line that prints the wanted output on the code as found is questioned at hand-in.
+- **Held by tests:** the human's command handed in and a body's other command refused, the answer handed back by the human's command; the question at hand-in; the command kept, said and read back; the core's `--check`. 850 tests of the four crates; lints clean.
+- **Not shown:** a screen.
+
