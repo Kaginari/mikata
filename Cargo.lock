@@ -1571,6 +1571,7 @@ version = "1.1.0"
 dependencies = [
  "ignore",
  "mikata-config",
+ "mikata-kernel",
  "mikata-ledger",
  "mikata-memory",
  "mikata-provider",
