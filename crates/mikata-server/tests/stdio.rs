@@ -638,3 +638,17 @@ fn an_act_in_reconcile_is_shown_to_the_human() {
     );
     assert!(!holes.contains("act a2"), "{hello}");
 }
+
+/// The composition's methods check their params and, until the loop wires them, say so.
+#[test]
+fn the_units_methods_answer_until_the_loop_wires_them() {
+    let mut c = Client::start("units", UNGUARDED, vec![ScriptedModel::text("ok")]);
+    let id = c.request("initialize", &json!({}));
+    c.response(id);
+    let id = c.request("units/list", &json!({}));
+    assert_eq!(c.response(id)["error"]["code"], -32004);
+    let id = c.request("units/change", &json!({"op": "off"}));
+    assert_eq!(c.response(id)["error"]["code"], -32602);
+    let id = c.request("units/change", &json!({"op": "off", "id": "memory"}));
+    assert_eq!(c.response(id)["error"]["code"], -32004);
+}

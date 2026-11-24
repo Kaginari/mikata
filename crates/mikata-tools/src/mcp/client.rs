@@ -1,5 +1,6 @@
 //! The MCP client: one stdio server, spoken to in JSON-RPC, one line per message — the
-//! `initialize`, `tools/list` and `tools/call` subset, nothing else.
+//! `initialize`, `tools/list` and `tools/call` subset, and for a plugin ([`crate::plugin`]) the
+//! `mikata/hook` request and the `mikata/unload` notification.
 //!
 //! A server is a program the human's global configuration names. It runs inside the sandbox: the
 //! world readable, its own scratch directory — outside the world — writable and its working
@@ -40,12 +41,25 @@ pub const QUEUED_LINES: usize = 8;
 /// the server is cut off as flooding.
 pub const MAX_NOISE: usize = 256;
 
-/// Why a request failed: the server is gone, or it answered with a refusal.
-enum Fault {
-    /// Silent past its timeout, closed, flooding or no longer reading.
+/// Why a request failed: the server is gone, it was late, or it answered with a refusal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Fault {
+    /// Closed, flooding or no longer reading.
     Dead(String),
+    /// Silent past the wait: it may still answer later, and that answer is passed over.
+    Late(String),
     /// It answered the request with an error.
     Refused(String),
+}
+
+impl Fault {
+    /// What happened, in a sentence naming the server.
+    #[must_use]
+    pub fn said(&self) -> &str {
+        match self {
+            Fault::Dead(s) | Fault::Late(s) | Fault::Refused(s) => s,
+        }
+    }
 }
 
 /// A running server.
@@ -56,6 +70,8 @@ pub struct Conn {
     lines: Receiver<Vec<u8>>,
     next: u64,
     timeouts: Timeouts,
+    /// What the server answered `initialize` with.
+    handshake: Value,
     /// Whether the server still answers: false once it went silent, closed, flooded or stopped
     /// reading — then it is dropped. A refusal it answered leaves it alive.
     alive: bool,
@@ -205,9 +221,10 @@ impl Conn {
             lines: lines(stdout),
             next: 0,
             timeouts,
+            handshake: Value::Null,
             alive: true,
         };
-        conn.request(
+        conn.handshake = conn.request(
             timeouts.start,
             "initialize",
             &json!({
@@ -216,8 +233,14 @@ impl Conn {
                 "clientInfo": {"name": "mikata", "version": env!("CARGO_PKG_VERSION")},
             }),
         )?;
-        conn.notify("notifications/initialized")?;
+        conn.notify("notifications/initialized", None)?;
         Ok(conn)
+    }
+
+    /// What the server answered `initialize` with: its capabilities, its name and version.
+    #[must_use]
+    pub fn handshake(&self) -> &Value {
+        &self.handshake
     }
 
     /// Every tool the server lists, the cursor followed to its end (at most [`MAX_PAGES`]).
@@ -291,16 +314,63 @@ impl Conn {
         self.alive
     }
 
+    /// Send `method` with `params` and wait at most `within` for the result. A late answer
+    /// leaves the server alive, unlike [`Conn::list`] and [`Conn::call`]: a plugin that misses
+    /// one hook's deadline is counted, not cut off, and its late answer is passed over.
+    ///
+    /// # Errors
+    ///
+    /// The server is gone, was late, or refused the request.
+    pub fn ask(&mut self, within: Duration, method: &str, params: &Value) -> Result<Value, Fault> {
+        if !self.alive {
+            return Err(Fault::Dead(format!(
+                "MCP server `{}` no longer answers",
+                self.server
+            )));
+        }
+        let answered = self.exchange(within, method, params);
+        if let Err(Fault::Dead(_)) = &answered {
+            self.alive = false;
+        }
+        answered
+    }
+
+    /// Send the notification `method`, with `params` when there are some.
+    ///
+    /// # Errors
+    ///
+    /// The server stopped reading.
+    pub fn notify(&mut self, method: &str, params: Option<&Value>) -> Result<(), String> {
+        let mut msg = json!({"jsonrpc": "2.0", "method": method});
+        if let Some(params) = params {
+            msg["params"] = params.clone();
+        }
+        self.send(&msg)
+    }
+
+    /// End the server: wait at most `grace` for it to close its output by itself, then end its
+    /// whole process group. A server already gone costs no wait.
+    pub fn end(self, grace: Duration) {
+        let until = Instant::now() + grace;
+        // Anything it still says is passed over; the wait is for its end.
+        while self
+            .lines
+            .recv_timeout(until.saturating_duration_since(Instant::now()))
+            .is_ok()
+        {}
+        // `Drop` ends the group and reaps the server.
+    }
+
     /// Send a request and wait at most `within` for its answer; anything else the server says
     /// meanwhile is passed over, at most [`MAX_NOISE`] messages. Every failure but a refusal the
     /// server answered marks it dead.
     fn request(&mut self, within: Duration, method: &str, params: &Value) -> Result<Value, String> {
         let answered = self.exchange(within, method, params);
-        if let Err(Fault::Dead(_)) = &answered {
+        if let Err(Fault::Dead(_) | Fault::Late(_)) = &answered {
             self.alive = false;
         }
         answered.map_err(|f| match f {
-            Fault::Dead(e) | Fault::Refused(e) => e,
+            Fault::Dead(e) | Fault::Late(e) | Fault::Refused(e) => e,
         })
     }
 
@@ -316,7 +386,7 @@ impl Conn {
             let line = match self.lines.recv_timeout(left) {
                 Ok(line) => line,
                 Err(RecvTimeoutError::Timeout) => {
-                    return Err(Fault::Dead(format!(
+                    return Err(Fault::Late(format!(
                         "MCP server `{}` did not answer {method} within {}",
                         self.server,
                         seconds(within)
@@ -357,10 +427,6 @@ impl Conn {
             }
             return Ok(msg["result"].clone());
         }
-    }
-
-    fn notify(&mut self, method: &str) -> Result<(), String> {
-        self.send(&json!({"jsonrpc": "2.0", "method": method}))
     }
 
     /// Hand a message to the writer; a server that stopped reading fills the queue, and the

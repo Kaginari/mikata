@@ -1,5 +1,5 @@
 //! The tools: read, index, write, edit, glob, grep, bash, git; the shell classifier; secret
-//! injection; the MCP client and the tools it offers.
+//! injection; the MCP client and the tools it offers; the plugin host.
 
 pub mod attic;
 mod beneath;
@@ -12,6 +12,7 @@ mod index;
 pub mod mcp;
 pub mod patch;
 mod pinned;
+pub mod plugin;
 pub mod shell;
 pub mod tool;
 mod tripwire;

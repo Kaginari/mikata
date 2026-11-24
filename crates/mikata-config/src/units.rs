@@ -105,6 +105,24 @@ impl Plugin {
     pub fn unit_id(&self) -> String {
         format!("{PLUGIN_PREFIX}{}", self.id)
     }
+
+    /// What the plugin host starts: the program, its arguments, passed variables and races, and
+    /// the grants as the host reads them.
+    #[must_use]
+    pub fn declared(&self) -> mikata_tools::plugin::Declared {
+        mikata_tools::plugin::Declared {
+            id: self.id.clone(),
+            command: self.command.clone(),
+            args: self.args.clone(),
+            env: self.env.clone(),
+            grants: self
+                .grants
+                .iter()
+                .filter_map(|g| mikata_tools::plugin::grant_named(g))
+                .collect(),
+            races: self.races.clone(),
+        }
+    }
 }
 
 /// Every plugin the human's global file names, and the deadline on their hooks.
