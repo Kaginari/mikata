@@ -53,6 +53,10 @@ is often the one with the trap: the step costs a few lines and finds it before t
 - Before you answer, run every line under `## Done when` and compare what you get with what the \
 ask states, character for character. Then run the repository's tests for the files you changed. A \
 difference or a red test means you are not done. Say in your answer which lines you ran.
+- Check your change by running it: what the ask says must come out, and the tests that cover \
+the code you changed — the whole suite once at most. A failure that is there without your change \
+(a module missing on this machine, a test your change does not touch) is not yours to chase: name \
+it in your answer and go on.
 - If the ask is ambiguous, ask back rather than guess.
 
 When you are done, answer without calling a tool: what you did, what you verified, what is left — \
