@@ -1,10 +1,8 @@
 //! The composition over the client protocol: `units/list` names the units a session runs and its
 //! digest, `units/change` asks for one change, applied at the unit's next safe point.
 //!
-//! The server only reads and checks the request here. The loop owns the composition: until it
-//! hands the server a door to it, both methods answer that the composition is not wired.
-
-use std::collections::VecDeque;
+//! The server reads and checks the request; the loop owns the composition and takes the change
+//! at the unit's next point, through the desk it shares ([`mikata_loop::units::Desk`]).
 
 use mikata_loop::config::{PLUGIN_PREFIX, lawful_plugin_id, lawful_unit_id};
 use serde_json::{Value, json};
@@ -65,20 +63,12 @@ impl Change {
     }
 }
 
-/// The composition as the server holds it for the client.
+/// The composition as the server reaches it for the client: the run's desk
+/// ([`mikata_loop::units::Desk`]) once a session is open.
 #[derive(Debug, Default)]
 pub struct Units {
-    /// Whether the loop wired it: until then both methods answer [`NOT_WIRED`].
-    // TODO(lane D): the loop sets this when the session's registry is made.
-    pub wired: bool,
-    /// The units as the loop last listed them, `(id, version, state)`, in resolved order.
-    // TODO(lane D): the loop writes this and `digest` after each reconcile.
-    pub listed: Vec<(String, String, String)>,
-    /// The composition's digest, as the loop last listed it.
-    pub digest: String,
-    /// The changes asked and not yet taken by the loop, in order.
-    // TODO(lane D): the loop drains this at each safe point and journals each row.
-    pub asked: VecDeque<Change>,
+    /// The run's desk; none until a session is open.
+    pub desk: Option<mikata_loop::units::UnitDesk>,
 }
 
 impl Units {
@@ -86,39 +76,51 @@ impl Units {
     ///
     /// # Errors
     ///
-    /// The composition is not wired: `(code, message)`.
+    /// No session is open: `(code, message)`.
     pub fn list(&self) -> Result<Value, (i64, String)> {
-        if !self.wired {
-            return Err(not_wired());
-        }
-        let units: Vec<Value> = self
+        let desk = self.desk.as_ref().ok_or_else(not_wired)?;
+        let desk = desk
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let units: Vec<Value> = desk
             .listed
             .iter()
             .map(|(id, version, state)| json!({"id": id, "version": version, "state": state}))
             .collect();
-        Ok(json!({"units": units, "digest": self.digest, "pending": self.asked.len()}))
+        Ok(json!({
+            "units": units,
+            "digest": desk.digest,
+            "pending": desk.asked.len(),
+            "refused": desk.refused,
+        }))
     }
 
-    /// What `units/change` answers to `params`, the change queued for the loop, or why not.
+    /// What `units/change` answers: the change queued for the run's next point, or why not. A
+    /// swap is the old unit off and the new one on, at the same point.
     ///
     /// # Errors
     ///
-    /// Params that are no change (`-32602`), or a composition not wired: `(code, message)`.
+    /// Bad params (`-32602`), or no session open.
     pub fn change(&mut self, params: &Value) -> Result<Value, (i64, String)> {
         let change = Change::read(params).map_err(|e| (-32602, e))?;
-        if !self.wired {
-            return Err(not_wired());
+        let desk = self.desk.as_ref().ok_or_else(not_wired)?;
+        let mut desk = desk
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        match change {
+            Change::On(id) => desk.asked.push_back((id, true)),
+            Change::Off(id) => desk.asked.push_back((id, false)),
+            Change::Swap(old, new) => {
+                desk.asked.push_back((old, false));
+                desk.asked.push_back((new, true));
+            }
         }
-        self.asked.push_back(change);
-        Ok(json!({"queued": true, "pending": self.asked.len()}))
+        Ok(json!({"queued": true, "pending": desk.asked.len()}))
     }
 }
 
 fn not_wired() -> (i64, String) {
-    (
-        NOT_WIRED,
-        "the session's composition is not wired to the server yet".into(),
-    )
+    (NOT_WIRED, "no session is open: initialize first".into())
 }
 
 #[cfg(test)]
@@ -161,7 +163,7 @@ mod tests {
     }
 
     #[test]
-    fn an_unwired_composition_says_so_after_the_params_are_checked() {
+    fn with_no_session_it_says_so_after_the_params_are_checked() {
         let mut units = Units::default();
         assert_eq!(units.list().unwrap_err().0, NOT_WIRED);
         assert_eq!(units.change(&json!({"op": "on"})).unwrap_err().0, -32602);
@@ -172,25 +174,40 @@ mod tests {
                 .0,
             NOT_WIRED
         );
-        assert!(units.asked.is_empty());
     }
 
     #[test]
     fn a_wired_composition_lists_and_queues() {
+        let desk = mikata_loop::units::UnitDesk::default();
+        {
+            let mut d = desk.lock().unwrap();
+            d.listed = vec![("memory".into(), "1".into(), "active".into())];
+            d.digest = "d".into();
+        }
         let mut units = Units {
-            wired: true,
-            listed: vec![("memory".into(), "1".into(), "active".into())],
-            digest: "d".into(),
-            ..Units::default()
+            desk: Some(desk.clone()),
         };
         assert_eq!(
-            units.change(&json!({"op": "off", "id": "memory"})).unwrap(),
-            json!({"queued": true, "pending": 1})
+            units
+                .change(&json!({"op": "swap", "id": "plugin:a", "with": "plugin:b"}))
+                .unwrap(),
+            json!({"queued": true, "pending": 2})
         );
         assert_eq!(
             units.list().unwrap(),
-            json!({"units": [{"id": "memory", "version": "1", "state": "active"}], "digest": "d", "pending": 1})
+            json!({"units": [{"id": "memory", "version": "1", "state": "active"}], "digest": "d", "pending": 2, "refused": []})
         );
-        assert_eq!(units.asked.front(), Some(&Change::Off("memory".into())));
+        assert_eq!(
+            desk.lock()
+                .unwrap()
+                .asked
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>(),
+            [
+                ("plugin:a".to_owned(), false),
+                ("plugin:b".to_owned(), true)
+            ]
+        );
     }
 }

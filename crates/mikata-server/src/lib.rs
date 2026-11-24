@@ -516,7 +516,7 @@ async fn main_lane(
     let mut steer = None;
     let mut interrupt = None;
     let mut driver = None;
-    // TODO(lane D): shared with the loop, which wires it, lists into it and drains its changes.
+    // The run's desk once a session is open: the loop lists into it and takes its changes.
     let mut units = units::Units::default();
     while let Some(msg) = inbox.recv().await {
         let id = msg.id.as_ref();
@@ -530,7 +530,7 @@ async fn main_lane(
                 let seeing = Arc::clone(&core);
                 let observer: Observer = Arc::new(move |seen: &Seen| seeing.see(seen));
                 match session_maker(Arc::new(ClientGate(Arc::clone(&core))), observer) {
-                    Ok(opened) => {
+                    Ok(mut opened) => {
                         core.reply(id, &hello(&opened, &version));
                         *core.ids.lock().unwrap_or_else(PoisonError::into_inner) = (
                             opened.session_id.clone(),
@@ -539,6 +539,7 @@ async fn main_lane(
                         );
                         interrupt = Some(opened.session.interrupt());
                         steer = Some(opened.session.steer());
+                        units.desk = Some(opened.session.run().unit_desk());
                         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
                         prompts = Some(tx);
                         driver = Some(tokio::spawn(drive(opened, rx, Arc::clone(&core))));

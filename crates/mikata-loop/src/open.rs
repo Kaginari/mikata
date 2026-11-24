@@ -832,6 +832,7 @@ fn composed(run: Run, config: &Config) -> (Run, Vec<String>) {
         Ok(p) => crate::units::Catalog {
             plugins: p.plugins,
             hook_ms: p.hook_ms,
+            host: None,
         },
         Err(e) => {
             holes.push(format!("plugins: {e}"));

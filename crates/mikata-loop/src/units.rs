@@ -82,6 +82,8 @@ pub struct Catalog {
     pub plugins: Vec<mikata_config::Plugin>,
     /// How long a plugin's hook may take, in milliseconds.
     pub hook_ms: u64,
+    /// Where plugins run: set by the run when it takes the catalog.
+    pub host: Option<crate::plugins::Host>,
 }
 
 impl Catalog {
@@ -111,9 +113,26 @@ impl Catalog {
                 "the plugin `{name}` is not declared in the human's global configuration"
             ));
         };
-        crate::plugins::unit(plugin, self.hook_ms)
+        crate::plugins::unit(plugin, self.hook_ms, self.host.as_ref())
     }
 }
+
+/// What a client of the session (the server's `units/list` and `units/change`) shares with the
+/// run: the changes asked, taken at the run's next point, and the composition as last listed.
+#[derive(Debug, Default)]
+pub struct Desk {
+    /// Changes asked and not yet taken: a unit's id, and on or off.
+    pub asked: std::collections::VecDeque<(String, bool)>,
+    /// The units, `(id, version, state)`, as the run last listed them.
+    pub listed: Vec<(String, String, String)>,
+    /// The composition's fingerprint, as the run last listed it.
+    pub digest: String,
+    /// Changes the run could not take, and why, newest last.
+    pub refused: Vec<String>,
+}
+
+/// The desk a run shares with its clients.
+pub type UnitDesk = std::sync::Arc<std::sync::Mutex<Desk>>;
 
 /// A run's units: what it lends them, the registry holding them, and where it finds more.
 pub struct Units {
@@ -125,6 +144,8 @@ pub struct Units {
     pub catalog: Catalog,
     /// Units a resumed journal held that wait for the catalog to be found: plugins.
     pub wanted: Vec<String>,
+    /// What the run shares with its clients.
+    pub desk: UnitDesk,
 }
 
 impl Default for Units {
@@ -137,6 +158,7 @@ impl Default for Units {
             registry,
             catalog: Catalog::default(),
             wanted: Vec::new(),
+            desk: UnitDesk::default(),
         }
     }
 }

@@ -639,16 +639,21 @@ fn an_act_in_reconcile_is_shown_to_the_human() {
     assert!(!holes.contains("act a2"), "{hello}");
 }
 
-/// The composition's methods check their params and, until the loop wires them, say so.
+/// The composition's methods: before a session they say none is open; after it, `units/list`
+/// names the run's units and `units/change` queues a change for the run's next point.
 #[test]
-fn the_units_methods_answer_until_the_loop_wires_them() {
+fn the_units_methods_list_and_queue_once_a_session_is_open() {
     let mut c = Client::start("units", UNGUARDED, vec![ScriptedModel::text("ok")]);
+    let id = c.request("units/list", &json!({}));
+    assert_eq!(c.response(id)["error"]["code"], -32004);
     let id = c.request("initialize", &json!({}));
     c.response(id);
     let id = c.request("units/list", &json!({}));
-    assert_eq!(c.response(id)["error"]["code"], -32004);
+    let listed = c.response(id);
+    assert_eq!(listed["result"]["units"][0]["id"], "returns", "{listed}");
+    assert_eq!(listed["result"]["units"][0]["state"], "active", "{listed}");
     let id = c.request("units/change", &json!({"op": "off"}));
     assert_eq!(c.response(id)["error"]["code"], -32602);
-    let id = c.request("units/change", &json!({"op": "off", "id": "memory"}));
-    assert_eq!(c.response(id)["error"]["code"], -32004);
+    let id = c.request("units/change", &json!({"op": "off", "id": "returns"}));
+    assert_eq!(c.response(id)["result"]["queued"], true);
 }

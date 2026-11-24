@@ -218,3 +218,140 @@ async fn a_reply_above_the_grant_is_read_as_a_pass_and_journaled() {
         |b| matches!(b, Beat::Units { op: mikata_kernel::Op::Dropped, id, .. } if id == "guard")
     ));
 }
+
+/// The catalog holding one declared plugin, `id`, run as `command args`.
+fn catalog(
+    id: &str,
+    command: &str,
+    args: Vec<String>,
+    grants: &[&str],
+) -> mikata_loop::units::Catalog {
+    mikata_loop::units::Catalog {
+        plugins: vec![mikata_config::Plugin {
+            id: id.into(),
+            command: command.into(),
+            args,
+            env: Vec::new(),
+            grants: grants.iter().map(|g| (*g).to_owned()).collect(),
+            races: Race::ALL.to_vec(),
+            enabled: true,
+        }],
+        hook_ms: 2000,
+        host: None,
+    }
+}
+
+fn bash(id: &str, command: &str) -> Result<mikata_provider::Response, mikata_provider::Error> {
+    ScriptedModel::tool(id, "bash", json!({"command": command}))
+}
+
+#[tokio::test]
+async fn a_plugin_loaded_mid_session_vetoes_a_force_push_and_unloads() {
+    if std::process::Command::new("python3")
+        .arg("-V")
+        .output()
+        .is_err()
+    {
+        eprintln!("skipped: no python3 on PATH to run the example plugin");
+        return;
+    }
+    let w = World::new("plugin-veto");
+    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../examples/plugins/no_force_push.py")
+        .canonicalize()
+        .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        bash("t1", "echo before"),
+        ScriptedModel::text("done"),
+        bash("t2", "git push --force origin main"),
+        bash("t3", "echo git push --force"),
+        ScriptedModel::text("done"),
+        bash("t4", "git push -f origin main"),
+        ScriptedModel::text("done"),
+    ]));
+    let mut run = w.run(model.clone()).with_catalog(catalog(
+        "no-force-push",
+        "python3",
+        vec![script.display().to_string()],
+        &["veto"],
+    ));
+    run.ask("first", &mut |_| {}).await;
+    // Loaded while the session runs, between asks.
+    run.switch_unit("plugin:no-force-push", true).unwrap();
+    run.ask("push it", &mut |_| {}).await;
+    let vetoed = format!("{:?}", model.requests()[3].messages);
+    assert!(
+        vetoed.contains("said by the unit `plugin:no-force-push`"),
+        "{vetoed}"
+    );
+    let echoed = format!("{:?}", model.requests()[4].messages);
+    assert!(
+        echoed.contains("git push --force"),
+        "an echo is no push: {echoed}"
+    );
+    // Unloaded while the session runs: the next force push is not the plugin's to stop.
+    run.switch_unit("plugin:no-force-push", false).unwrap();
+    run.ask("push again", &mut |_| {}).await;
+    let after = format!("{:?}", model.requests()[6].messages.last());
+    assert!(!after.contains("said by the unit"), "{after}");
+    assert!(
+        after.contains("the human gate did not approve"),
+        "the harness's own gate still holds: {after}"
+    );
+    let ops: Vec<(mikata_kernel::Op, String)> = w
+        .beats()
+        .iter()
+        .filter_map(|b| match b {
+            Beat::Units { op, id, .. } => Some((*op, id.clone())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        ops,
+        [
+            (mikata_kernel::Op::Load, "plugin:no-force-push".to_owned()),
+            (mikata_kernel::Op::Unload, "plugin:no-force-push".to_owned()),
+        ]
+    );
+    assert!(!w.beats().iter().any(|b| matches!(b, Beat::Prefix { .. })));
+}
+
+#[tokio::test]
+async fn a_plugin_that_crashes_is_quarantined_and_the_session_goes_on() {
+    let w = World::new("plugin-crash");
+    let log = w.root.join("plugin.log");
+    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../mikata-tools/tests/fixtures/fake-plugin.sh")
+        .canonicalize()
+        .unwrap();
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::tool("t1", "crash", json!({})),
+        ScriptedModel::tool("t2", "crash", json!({})),
+        ScriptedModel::tool("t3", "crash", json!({})),
+        bash("t4", "echo still here"),
+        ScriptedModel::text("done"),
+    ]));
+    let mut run = w.run(model.clone()).with_catalog(catalog(
+        "fake",
+        "bash",
+        vec![script.display().to_string(), log.display().to_string()],
+        &["advise", "veto"],
+    ));
+    run.switch_unit("plugin:fake", true).unwrap();
+    let ending = run.ask("go", &mut |_| {}).await;
+    assert!(
+        matches!(ending, mikata_loop::Ending::Answered(_)),
+        "{ending:?}"
+    );
+    assert!(w.beats().iter().any(
+        |b| matches!(b, Beat::Units { op: mikata_kernel::Op::Quarantine, id, .. } if id == "plugin:fake")
+    ));
+    assert!(
+        run.units()
+            .active()
+            .iter()
+            .all(|(id, _)| *id != "plugin:fake")
+    );
+    let told = format!("{:?}", model.requests()[4].messages);
+    assert!(told.contains("still here"), "{told}");
+}

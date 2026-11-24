@@ -1,6 +1,6 @@
 # Plugins: a small loop, every part a unit, swapped while a session runs
 
-Status: **being built on branch `plugin-kernel`** (decided by the owner on 2026-11-23/24). This page
+Status: **being built on branch `plugin-kernel`; stage 1 (the tracer) met on 2026-11-24** (decided by the owner on 2026-11-23/24). This page
 is the plan of record and the contract every lane builds against. It changes only by a commit on
 that branch that says why.
 
@@ -174,8 +174,12 @@ runs (`crates/mikata-tools/src/mcp/client.rs`), in the sandbox, from the human's
   malformed reply or a reply above the grant counts a strike and answers `Pass`; three strikes in a
   session quarantine the plugin (unloaded at once, the body told, the journal says why).
 - **Unload:** notification `mikata/unload`, then the process group is ended after 1 second.
-- **Tools:** with the `tools` grant, the plugin's `tools/list` joins the MCP catalog through the
-  four doors, so the frame does not change.
+- **Tools:** with the `tools` grant, the plugin is also declared as an MCP server (a second copy
+  of its program, for its tools alone) and its tools join the catalog through the four doors, so
+  the frame does not change. The server list is fixed when a session opens: a tools plugin loaded
+  mid-session offers its tools from the next session.
+- **Strikes are journaled by the bridge** as notes; a reply above the grant never reaches the
+  registry (the host reads it as `Pass` and a strike), so it writes no `dropped` row.
 - The bridge implements `Unit<C>` once for every plugin; its manifest comes from the handshake,
   cut down to the human's grant.
 - **SDK:** `examples/plugins/mikata_plugin.py`, one file, standard library only: a decorator per
@@ -209,7 +213,10 @@ hook_ms = 2000
   compositions of one build.
 - In a session: `/units` lists the composition and its digest; `/unit off <id>`, `/unit on <id>`,
   `/plugin load <id>`, `/plugin unload <id>`, `/plugin swap <old> <new>`; the server's JSON-RPC has
-  `units.list` and `units.change`. A change is applied at the unit's next safe point.
+  `units/list` and `units/change` (`{"op": "on" | "off" | "swap", "id", "with"}`), reaching the
+  run through a desk it shares (`mikata_loop::units::Desk`). A change is applied at the unit's next
+  safe point; a swap over the protocol is the old unit off and the new one on at the same point.
+  A plugin joins only the bodies its `races` names, and runs in the body's sandbox.
 - Memory notes and events carry `unit: Option<String>` (`unit@version`; the event's `by` already
   names who wrote it), set by wrapping a write in `mikata_memory::as_unit`;
   `mikatad memory withdraw --by <unit@version>` withdraws them.

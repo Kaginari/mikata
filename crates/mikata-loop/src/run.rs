@@ -2043,9 +2043,62 @@ impl Run {
     /// The changes asked of the units applied, when `at` is a safe point they allow, and each
     /// journaled and said to the body.
     fn compose(&mut self, at: SafePoint) {
-        if self.units.registry.pending() == 0 {
-            return;
+        self.take_desk();
+        if self.units.registry.pending() > 0 {
+            self.reconcile_units(at);
         }
+        self.list_desk();
+    }
+
+    /// The changes a client asked at the desk, asked of the units.
+    fn take_desk(&mut self) {
+        let asked: Vec<(String, bool)> = {
+            let mut desk = self
+                .units
+                .desk
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            desk.asked.drain(..).collect()
+        };
+        for (id, on) in asked {
+            if let Err(why) = self.switch_unit(&id, on) {
+                self.units
+                    .desk
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .refused
+                    .push(format!("{id}: {why}"));
+            }
+        }
+    }
+
+    /// The composition as it stands, listed at the desk.
+    fn list_desk(&self) {
+        let listed = self
+            .units
+            .registry
+            .fibers()
+            .iter()
+            .map(|(id, version, fiber)| {
+                let state = match fiber {
+                    mikata_kernel::Fiber::Active => "active",
+                    mikata_kernel::Fiber::Inactive => "inactive",
+                    mikata_kernel::Fiber::Failed => "failed",
+                };
+                ((*id).to_owned(), (*version).to_owned(), state.to_owned())
+            })
+            .collect();
+        let mut desk = self
+            .units
+            .desk
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        desk.listed = listed;
+        desk.digest = self.units.registry.digest();
+    }
+
+    /// The units' pending changes applied at `at`, journaled and said to the body.
+    fn reconcile_units(&mut self, at: SafePoint) {
         self.cx.world().clone_into(&mut self.units.cx.world);
         let rows = self.units.registry.reconcile(at, &mut self.units.cx);
         for row in &rows {
@@ -2093,7 +2146,13 @@ impl Run {
 
     /// The run finds units in `catalog`; a plugin a resumed journal held is asked for again.
     #[must_use]
-    pub fn with_catalog(mut self, catalog: crate::units::Catalog) -> Self {
+    pub fn with_catalog(mut self, mut catalog: crate::units::Catalog) -> Self {
+        catalog.host = Some(crate::plugins::Host {
+            world: self.cx.world().to_path_buf(),
+            race: self.cx.race(),
+            sandbox: self.cx.sandbox().clone(),
+            unguarded: self.cx.allows_unguarded(),
+        });
         self.units.catalog = catalog;
         for id in std::mem::take(&mut self.units.wanted) {
             if let Err(why) = self.switch_unit(&id, true) {
@@ -2141,6 +2200,14 @@ impl Run {
     /// the human's `/unit`, `/plugin` and `--units`.
     pub fn change_units(&mut self, change: mikata_kernel::Change<crate::units::Cx>) {
         self.units.registry.request(change);
+    }
+
+    /// The desk the run shares with a client: changes asked there are taken at the run's next
+    /// point, and the composition is listed there after each.
+    #[must_use]
+    pub fn unit_desk(&self) -> crate::units::UnitDesk {
+        self.list_desk();
+        Arc::clone(&self.units.desk)
     }
 
     /// The run's units, to read: the composition, its fingerprint, each unit's state.
