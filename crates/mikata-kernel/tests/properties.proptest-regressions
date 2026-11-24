@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 8ac4c647727b2bd536e59cd7737a871e42ceb453d5f5d3a96cedf994809ff791 # shrinks to steps = [Load(Spec { id: 0, version: 0, provides: None, needs: None, after: [], band: 0, fail: false }), Load(Spec { id: 5, version: 0, provides: None, needs: None, after: [0], band: 0, fail: false }), Swap(0, Spec { id: 1, version: 0, provides: None, needs: None, after: [5], band: 0, fail: false })], bad = Spec { id: 0, version: 0, provides: None, needs: None, after: [], band: 0, fail: false }
+cc be9cddeb32ecf41530921d1490884de913b34f8dbcd700f678ad12233b694fd7 # shrinks to steps = [Load(Spec { id: 2, version: 0, provides: None, needs: Some(1), after: [], band: 0, fail: false }), Load(Spec { id: 4, version: 0, provides: None, needs: None, after: [2], band: 0, fail: false }), Load(Spec { id: 3, version: 0, provides: Some(1), needs: None, after: [], band: 0, fail: false }), Unload(3)]
+cc 89c7908ab888fc75e1de9f10e33e62b01f26cd29b7496fc5968fe5315392d307 # shrinks to steps = [Load(Spec { id: 1, version: 0, provides: None, needs: Some(0), after: [], band: 0, fail: true }), Load(Spec { id: 0, version: 0, provides: Some(0), needs: None, after: [], band: 0, fail: false }), Unload(0)]

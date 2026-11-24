@@ -4,10 +4,13 @@
 //! Every part of the loop beyond its core is a unit: memory, the gate's helpers, what-changed,
 //! a third-party plugin. A unit says what it hooks in its [`Manifest`]; what a hook is shown and
 //! what it may answer is plain data ([`Event`], [`Reply`]), so a plugin in another process is
-//! shown the same JSON a native unit is. The plan of record is `docs/experimental/plugins.md`.
+//! shown the same JSON a native unit is. The [`Registry`] loads, orders, hooks and takes units
+//! back while a session runs. The plan of record is `docs/experimental/plugins.md`.
 
 mod manifest;
+mod registry;
 mod vocabulary;
 
 pub use manifest::{Band, FramePolicy, Manifest, SafePoint};
+pub use registry::{Activation, Change, Fiber, Op, Registry, Unit, UnitError, UnitsRow};
 pub use vocabulary::{Event, Grant, NOTE_CAP, Point, Reply, Verdict};
