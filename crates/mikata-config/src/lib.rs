@@ -1785,6 +1785,7 @@ impl Config {
                     .to_owned(),
                 network: flag(&at("network")),
                 timeout,
+                reads: Vec::new(),
             });
         }
         let d = Settings::default();

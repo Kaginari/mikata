@@ -79,6 +79,17 @@ impl Declared {
         server.args.clone_from(&self.args);
         server.env.clone_from(&self.env);
         server.purpose = format!("tools of the plugin `{}`", self.id);
+        // A plugin's program is a file the human named by its absolute path — the script an
+        // interpreter runs, or the program itself — and lives outside the world: its folder is
+        // lent to it to read, and nothing else is.
+        server.reads = std::iter::once(&self.command)
+            .chain(&self.args)
+            .map(Path::new)
+            .filter(|p| p.is_absolute() && p.is_file())
+            .filter_map(Path::parent)
+            .map(Path::to_path_buf)
+            .collect();
+        server.reads.dedup();
         server
     }
 
@@ -465,6 +476,27 @@ mod tests {
             grants: grants.to_vec(),
             races: vec![Race::Slime],
         }
+    }
+
+    #[test]
+    fn a_plugins_server_reads_its_own_program_folder_and_no_other() {
+        let dir = std::env::temp_dir().join(format!("mikata-plugin-reads-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let script = dir.join("observe.py");
+        std::fs::write(&script, "").unwrap();
+        let mut d = declared(&[Grant::Observe]);
+        d.args = vec![
+            script.display().to_string(),
+            "/not/a/file.jsonl".into(),
+            "-v".into(),
+        ];
+        assert_eq!(d.as_server().reads, [dir.clone()]);
+        d.args.clear();
+        assert!(
+            d.as_server().reads.is_empty(),
+            "a bare program on PATH lends nothing"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     fn hello(cap: &Value) -> Value {

@@ -94,6 +94,9 @@ pub fn policy(server: &Server, cx: &Context, scratch: &Path) -> Policy {
     policy.write.retain(|p| p != cx.world());
     policy.read.push(cx.world().to_path_buf());
     policy.die_with_parent = true;
+    for folder in &server.reads {
+        policy.lend(folder);
+    }
     policy
 }
 

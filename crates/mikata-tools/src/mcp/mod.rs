@@ -161,6 +161,9 @@ pub struct Server {
     /// How long it may take to start, list and answer, when its configuration says: one wait
     /// for all three, over the settings' own.
     pub timeout: Option<Duration>,
+    /// Folders outside the world it may read besides, lent by the harness: a plugin's own program
+    /// folder. None for a server the human's `[mcp.servers]` declares.
+    pub reads: Vec<PathBuf>,
 }
 
 impl Server {
@@ -178,6 +181,7 @@ impl Server {
             purpose: String::new(),
             network: false,
             timeout: None,
+            reads: Vec::new(),
         }
     }
 
