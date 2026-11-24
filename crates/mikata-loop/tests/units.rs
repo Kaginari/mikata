@@ -355,3 +355,31 @@ async fn a_plugin_that_crashes_is_quarantined_and_the_session_goes_on() {
     let told = format!("{:?}", model.requests()[4].messages);
     assert!(told.contains("still here"), "{told}");
 }
+
+#[tokio::test]
+async fn memory_off_keeps_no_lesson_and_on_again_keeps_it() {
+    use mikata_memory::{Tier, fold, read};
+    let w = World::new("memory-off");
+    let lesson = |text: &str| ScriptedModel::text(&format!("Done.\n\n- @U colony {text}"));
+    let model = Arc::new(ScriptedModel::new([
+        lesson("the tests need no network"),
+        lesson("run the build before answering"),
+    ]));
+    let mut run = w.run(model.clone());
+    let kept = |w: &World| {
+        fold(
+            &read(&w.world(), &Tier::Personal("summoner".into()))
+                .map(|r| r.rows)
+                .unwrap_or_default(),
+        )
+        .values()
+        .map(|n| n.text.clone())
+        .collect::<Vec<_>>()
+    };
+    run.change_units(Change::Unload(mikata_loop::units::MEMORY.into()));
+    run.ask("first", &mut |_| {}).await;
+    assert!(kept(&w).is_empty(), "off: nothing kept: {:?}", kept(&w));
+    run.switch_unit(mikata_loop::units::MEMORY, true).unwrap();
+    run.ask("second", &mut |_| {}).await;
+    assert_eq!(kept(&w), ["run the build before answering"]);
+}

@@ -1491,6 +1491,9 @@ impl Run {
         let Some(model) = self.reader.clone() else {
             return Vec::new();
         };
+        if !self.unit_on(crate::units::READER) {
+            return Vec::new();
+        }
         if ask.trim().is_empty()
             || !self.tools.iter().any(|t| t.name() == crate::done::CHECK)
             || !crate::lines::list(ask).is_empty()
@@ -1545,7 +1548,9 @@ impl Run {
         }
         self.record_evolving(&ending);
         self.learn_mcp(&ending);
-        if let Ending::Answered(text) = &ending {
+        if let Ending::Answered(text) = &ending
+            && self.unit_on(crate::units::MEMORY)
+        {
             self.accept(text);
             // A commissioned body's claims are its dispatcher's to keep; a body answering the
             // human alone — Summoner in solo — keeps its own, by the same write rule. A throne with
@@ -1761,7 +1766,10 @@ impl Run {
     /// Whether this run says what changed when an answer lands: light-coding's own body, with
     /// the human's `gate.changes` on.
     fn shows_changes(&self) -> bool {
-        self.limits.changes && self.mode == Some("light-coding") && self.commissioner.is_none()
+        self.limits.changes
+            && self.mode == Some("light-coding")
+            && self.commissioner.is_none()
+            && self.unit_on(crate::units::WHAT_CHANGED)
     }
 
     /// What changed, by the body's own checks, said to the human once the answer has landed.
@@ -2208,6 +2216,11 @@ impl Run {
     pub fn unit_desk(&self) -> crate::units::UnitDesk {
         self.list_desk();
         Arc::clone(&self.units.desk)
+    }
+
+    /// Whether the unit `id` is on: loaded and active.
+    fn unit_on(&self, id: &str) -> bool {
+        self.units.registry.active().iter().any(|(i, _)| *i == id)
     }
 
     /// The run's units, to read: the composition, its fingerprint, each unit's state.
@@ -2901,7 +2914,7 @@ impl Run {
     /// commissioned body: the human corrects the answer to their own ask. A memory that cannot
     /// be read holds nothing: the ask goes on as it would have.
     fn corrected_cases(&self, ask: &str) -> Vec<String> {
-        if self.caller.commission.is_some() {
+        if self.caller.commission.is_some() || !self.unit_on(crate::units::MEMORY) {
             return Vec::new();
         }
         let Some(asked) = crate::lessons::first_line(ask) else {
@@ -2994,6 +3007,9 @@ impl Run {
     /// A passing ask that landed credits the notes it cited: evidence for them, weighed against
     /// the failures laid at their door.
     fn credit(&mut self, heading: &str) {
+        if !self.unit_on(crate::units::MEMORY) {
+            return;
+        }
         let anchors = self.cited_anchors();
         let verdict = format!("log.md {heading}");
         if let Err(e) = mikata_memory::confirm(self.cx.world(), &self.body.name, &anchors, &verdict)
@@ -3007,6 +3023,9 @@ impl Run {
     /// A landing moved the files it changed: every claim resting on one whose bytes no longer hash
     /// as they did needs review, and what rests on those — marked, never deleted.
     fn review_downstream(&mut self, changed: &[PathBuf], heading: &str) {
+        if !self.unit_on(crate::units::MEMORY) {
+            return;
+        }
         let changed: Vec<String> = changed
             .iter()
             .map(|p| p.to_string_lossy().into_owned())
@@ -3026,6 +3045,9 @@ impl Run {
     }
 
     fn reconsolidate(&mut self, acts: &[String], heading: Option<&str>) {
+        if !self.unit_on(crate::units::MEMORY) {
+            return;
+        }
         let anchors = self.cited_anchors();
         let verdict = heading.map_or_else(
             || format!("log.md: {} gate: FAIL", self.body.name),
@@ -3084,6 +3106,9 @@ impl Run {
 
     /// A landing under an ask that had stopped before: the notes of the stop go out of recall.
     fn settle_stops(&self, heading: &str) {
+        if !self.unit_on(crate::units::MEMORY) {
+            return;
+        }
         let Some(asked) = self.asked_line() else {
             return;
         };
@@ -3158,6 +3183,9 @@ impl Run {
                 return;
             }
         };
+        if !self.unit_on(crate::units::MEMORY) {
+            return;
+        }
         match mikata_memory::stopped(
             world,
             &self.body.name,
@@ -3704,6 +3732,9 @@ impl Run {
     fn recall(&mut self, text: &str) -> Vec<String> {
         self.anchors.clear();
         self.recall_trace = None;
+        if !self.unit_on(crate::units::MEMORY) {
+            return Vec::new();
+        }
         let world = self.cx.world().to_path_buf();
         let roster = mikata_world::Roster::load(&world);
         let race = self.body.race.base();
@@ -4989,6 +5020,9 @@ impl Run {
     /// are, and the words whole as one proposed note of the body's own, tagged `handoff`, under
     /// the ask. They are the body's words: unproven, and said as such when recalled.
     fn keep_last_words(&self, text: &str) {
+        if !self.unit_on(crate::units::MEMORY) {
+            return;
+        }
         let (notes, facts) = self.keep_unsaid(text);
         let words: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
         if words.is_empty() {
@@ -5021,6 +5055,9 @@ impl Run {
 
     /// What the stress instruments said of the last acts: a note to the body, or an ending.
     fn heed(&mut self, signals: Vec<Signal>) -> Option<Ending> {
+        if !self.unit_on(crate::units::STRESS) {
+            return None;
+        }
         for s in signals {
             match s {
                 Signal::Warn(text) => {
@@ -5232,6 +5269,9 @@ impl Run {
                         }),
                     }
                 }
+                continue;
+            }
+            if !self.unit_on(crate::units::MEMORY) {
                 continue;
             }
             let mut tags: Vec<String> = u.kind.map(|k| k.word().to_owned()).into_iter().collect();

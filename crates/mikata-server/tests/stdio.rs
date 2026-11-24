@@ -650,8 +650,15 @@ fn the_units_methods_list_and_queue_once_a_session_is_open() {
     c.response(id);
     let id = c.request("units/list", &json!({}));
     let listed = c.response(id);
-    assert_eq!(listed["result"]["units"][0]["id"], "returns", "{listed}");
-    assert_eq!(listed["result"]["units"][0]["state"], "active", "{listed}");
+    let units = listed["result"]["units"].as_array().unwrap();
+    for id in ["memory", "returns", "what_changed", "reader", "stress"] {
+        assert!(
+            units
+                .iter()
+                .any(|u| u["id"] == id && u["state"] == "active"),
+            "{id}: {listed}"
+        );
+    }
     let id = c.request("units/change", &json!({"op": "off"}));
     assert_eq!(c.response(id)["error"]["code"], -32602);
     let id = c.request("units/change", &json!({"op": "off", "id": "returns"}));

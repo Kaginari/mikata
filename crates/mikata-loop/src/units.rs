@@ -45,12 +45,74 @@ pub type Registry = mikata_kernel::Registry<Cx>;
 pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
     match id {
         Returns::ID => Some(Box::new(Returns::default())),
+        MEMORY | READER => Some(switch(id, SafePoint::Ask, false)),
+        WHAT_CHANGED => Some(switch(id, SafePoint::Ask, true)),
+        STRESS => Some(switch(id, SafePoint::Batch, false)),
         _ => None,
     }
 }
 
+/// A [`Switch`] for the native unit `id`, switched at `at`; `world_may` when a world file may
+/// switch it off.
+fn switch(id: &str, at: SafePoint, world_may: bool) -> Box<dyn Unit<Cx>> {
+    let manifest = Manifest::new(id, env!("CARGO_PKG_VERSION")).safe_point(at);
+    Box::new(Switch::new(if world_may {
+        manifest.tightens_when_off()
+    } else {
+        manifest
+    }))
+}
+
+/// What changed ([`crate::changes`]): after a landing in light-coding, the body's own checks run
+/// on the code before and after, said to the human. Nothing of it reaches the body, so a world file
+/// may switch it off.
+pub const WHAT_CHANGED: &str = "what_changed";
+
+/// The reader ([`crate::lines`]): a second model that reads an ask with no `Done when` list and
+/// writes one, when the human names a reader. Off, the body writes its own.
+pub const READER: &str = "reader";
+
+/// The stress signals ([`crate::stress`]): warnings said to the body when its acts circle, and the
+/// checkpoint a doomed loop ends in. Off, the meters still read and journal, and nothing is said
+/// or stopped by them.
+pub const STRESS: &str = "stress";
+
+/// Memory ([`mikata_memory`]): what the ask recalls, the corrections held from it, and every
+/// note the run writes — claims, lessons, credit and retirement, a stop's account, a drain's and
+/// a salvage's words. Off, the ask recalls nothing and the run writes nothing to memory; the
+/// prompt still asks for `@U` lessons (the frame never changes), and they are not kept. It
+/// switches between asks. Off loosens what a held correction guards, so a world file may not
+/// switch it off.
+pub const MEMORY: &str = "memory";
+
 /// The ids of the native units, in the order the default composition loads them.
-pub const NATIVE: &[&str] = &[Returns::ID];
+pub const NATIVE: &[&str] = &[Returns::ID, MEMORY, WHAT_CHANGED, READER, STRESS];
+
+/// A native unit whose part of the loop is still the run's own code: the run asks whether it is
+/// on ([`Registry::active`]) where that code runs. It hooks no point and says nothing.
+pub struct Switch(Manifest);
+
+impl Switch {
+    /// A switch with this manifest.
+    #[must_use]
+    pub fn new(manifest: Manifest) -> Self {
+        Self(manifest)
+    }
+}
+
+impl Unit<Cx> for Switch {
+    fn manifest(&self) -> &Manifest {
+        &self.0
+    }
+
+    fn activate(&mut self, _act: &mut Activation<'_, Cx>) -> Result<(), UnitError> {
+        Ok(())
+    }
+
+    fn on(&mut self, _cx: &mut Cx, _event: &Event) -> Reply {
+        Reply::Pass
+    }
+}
 
 /// Whether a world file may switch the native unit `id` off: its manifest says switching it off
 /// loosens nothing the human relies on (it only reads, or only adds refusals of its own kind).
@@ -291,8 +353,11 @@ mod tests {
     fn the_default_composition_holds_every_native_unit() {
         let mut cx = Cx::default();
         let registry = default_registry(&mut cx);
-        let active: Vec<&str> = registry.active().iter().map(|(id, _)| *id).collect();
-        assert_eq!(active, NATIVE);
+        let mut active: Vec<&str> = registry.active().iter().map(|(id, _)| *id).collect();
+        let mut native = NATIVE.to_vec();
+        active.sort_unstable();
+        native.sort_unstable();
+        assert_eq!(active, native);
     }
 
     #[test]
