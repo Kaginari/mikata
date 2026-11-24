@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+use mikata_kernel::{Event as UnitEvent, Point, Reply, SafePoint};
 use mikata_ledger::{Journal, Prices, Timestamp, UsageRow, occupancy};
 use mikata_provider::{
     Block, Caller, Event, Message, Request, Role, StopReason, Tool as ToolSpec, usage_row,
@@ -23,6 +24,7 @@ use crate::gate::{EndGate, Tree, snapshot};
 use crate::model::Model;
 use crate::sequence::validate;
 use crate::stress::{Read, Signal, Stress, bench_of, muted};
+use crate::units::Units;
 
 /// The steps an Elf reads before it is told to hand down, however many it was given: a brief
 /// names where the work is, and the Orc reads the code.
@@ -467,8 +469,8 @@ pub struct Run {
     commissioner: Option<Arc<crate::commission::Commissioner>>,
     /// Every gate verdict judged in this run and in the orders it settled, the latest last.
     verdicts: Vec<crate::gate::GateVerdict>,
-    /// The trees this ask's landed writes left, and how many times each has stood.
-    returns: crate::returns::Returns,
+    /// The run's units ([`crate::units`]): the default composition unless the human changed it.
+    units: Units,
     /// The stashes of this ask, for the stop that may come before a pop.
     stash: Stashes,
     /// The mode the session opened in, on the session's own run: journaled with the law.
@@ -624,7 +626,7 @@ impl Run {
             steer: Steer::default(),
             commissioner: None,
             verdicts: Vec::new(),
-            returns: crate::returns::Returns::default(),
+            units: Units::default(),
             stash: Stashes::default(),
             mode: None,
             stopped_in: None,
@@ -1798,6 +1800,7 @@ impl Run {
     /// Hand the body `text` and run until it answers or stops; `on` sees text and tool starts as
     /// they stream.
     pub async fn ask(&mut self, text: &str, on: &mut (dyn FnMut(Event) + Send)) -> Ending {
+        self.compose(SafePoint::Ask);
         self.own_the_board();
         let text = &self.begin(text).await;
         push_user(
@@ -1811,7 +1814,7 @@ impl Run {
         // The step budget and the stress instruments are each commission's: a human ask is one.
         self.ask_steps = 0;
         self.stress = Stress::for_steps(self.limits.steps);
-        self.returns = crate::returns::Returns::default();
+        self.ask_begins(text);
         self.noticed = false;
         // A stash this ask pushes is counted from the stashes it found.
         self.stash = Stashes::found(mikata_tools::stash_depth(self.cx.world()));
@@ -1906,6 +1909,127 @@ impl Run {
                 return self.end(ending);
             }
         }
+    }
+
+    /// Every active unit at `point` shown `event`, in the registry's order; what they left is
+    /// journaled at once.
+    fn hook(&mut self, point: Point, event: &UnitEvent) -> Vec<(String, Reply)> {
+        self.cx.world().clone_into(&mut self.units.cx.world);
+        let replies = self
+            .units
+            .registry
+            .dispatch(point, &mut self.units.cx, event);
+        self.units_left();
+        replies
+    }
+
+    /// An ask opened: the units are shown it.
+    fn ask_begins(&mut self, text: &str) {
+        let opened = UnitEvent::AskBegin {
+            ask: text.to_owned(),
+        };
+        let replies = self.hook(Point::AskBegin, &opened);
+        self.say_units(replies);
+    }
+
+    /// A tool call ran: the units are shown it and what it answered.
+    fn tool_after(&mut self, id: &str, name: &str, input: &str, o: &mikata_tools::Outcome) {
+        let after = UnitEvent::ToolAfter {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            input: crate::units::input_value(input),
+            content: o.content.clone(),
+            is_error: o.is_error,
+            wrote: o
+                .meta
+                .wrote
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect(),
+        };
+        let replies = self.hook(Point::ToolAfter, &after);
+        self.say_units(replies);
+    }
+
+    /// The units' replies acted on: each note said to the body as a context update, marked with
+    /// the unit's id. The first veto or stop, when there is one, is returned with its unit named.
+    fn say_units(&mut self, replies: Vec<(String, Reply)>) -> Option<String> {
+        let mut ended = None;
+        for (id, reply) in replies {
+            match reply {
+                Reply::Note { text } | Reply::Text { text } => {
+                    self.update(&format!("[{id}] {text}"));
+                }
+                Reply::Veto { why } | Reply::Stop { why } => {
+                    ended.get_or_insert(format!("{why} (said by the unit `{id}`)"));
+                }
+                Reply::Pass => {}
+            }
+        }
+        ended
+    }
+
+    /// The changes asked of the units applied, when `at` is a safe point they allow, and each
+    /// journaled and said to the body.
+    fn compose(&mut self, at: SafePoint) {
+        if self.units.registry.pending() == 0 {
+            return;
+        }
+        self.cx.world().clone_into(&mut self.units.cx.world);
+        let rows = self.units.registry.reconcile(at, &mut self.units.cx);
+        for row in &rows {
+            self.update(&format!(
+                "the unit `{}` {}{}",
+                row.id,
+                match row.op {
+                    mikata_kernel::Op::Load => "is on",
+                    mikata_kernel::Op::Unload => "is off",
+                    mikata_kernel::Op::Swap => "was swapped in",
+                    mikata_kernel::Op::Quarantine => "failed and is off",
+                    mikata_kernel::Op::Refused => "was refused",
+                    mikata_kernel::Op::Dropped => "had a reply dropped",
+                },
+                row.why
+                    .as_deref()
+                    .map(|w| format!(": {w}"))
+                    .unwrap_or_default()
+            ));
+        }
+        self.journal_units(rows);
+        self.units_left();
+    }
+
+    /// What the units left at a point — beats, and rows of their own changes — journaled.
+    fn units_left(&mut self) {
+        for beat in std::mem::take(&mut self.units.cx.beats) {
+            self.record(&beat);
+        }
+        let rows = self.units.registry.take_rows();
+        self.journal_units(rows);
+    }
+
+    fn journal_units(&self, rows: Vec<mikata_kernel::UnitsRow>) {
+        for row in rows {
+            self.record(&Beat::Units {
+                op: row.op,
+                id: row.id,
+                version: row.version,
+                why: row.why,
+                digest: row.digest,
+            });
+        }
+    }
+
+    /// Asks the units for a change, applied at the next safe point the units it touches allow:
+    /// the human's `/unit`, `/plugin` and `--units`.
+    pub fn change_units(&mut self, change: mikata_kernel::Change<crate::units::Cx>) {
+        self.units.registry.request(change);
+    }
+
+    /// The run's units, to read: the composition, its fingerprint, each unit's state.
+    #[must_use]
+    pub fn units(&self) -> &crate::units::Registry {
+        &self.units.registry
     }
 
     /// Tell the body something in its own turn, and journal it.
@@ -3874,13 +3998,18 @@ impl Run {
 
     /// One call of the body's own: a write waits while the ask's list waits for its checks, and
     /// a write that runs is watched for a return to an earlier tree.
-    async fn call_own(&mut self, name: &str, input: &str) -> mikata_tools::Outcome {
+    async fn call_own(&mut self, id: &str, name: &str, input: &str) -> mikata_tools::Outcome {
         if let Some(why) = self.write_waits(name, input) {
             return crate::done::corrected(why);
         }
-        if WRITE_TOOLS.contains(&name) {
-            let world = self.cx.world().to_path_buf();
-            self.returns.before(&world, name, input);
+        let before = UnitEvent::ToolBefore {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            input: crate::units::input_value(input),
+        };
+        let replies = self.hook(Point::ToolBefore, &before);
+        if let Some(why) = self.say_units(replies) {
+            return crate::done::corrected(why);
         }
         self.call_one(name, input).await
     }
@@ -4467,7 +4596,7 @@ impl Run {
                 (o, None)
             } else {
                 let began = std::time::Instant::now();
-                let o = self.call_own(&name, &input).await;
+                let o = self.call_own(&id, &name, &input).await;
                 (o, Some(millis(began.elapsed())))
             };
             self.note_unheld(&o, &name, &input);
@@ -4517,10 +4646,7 @@ impl Run {
                 read,
             ));
             self.record_guts(&id, &name, &input, &o);
-            let world = self.cx.world().to_path_buf();
-            if let Some(tree) = self.returns.after(&world, &id, &o.meta.wrote) {
-                self.record(&tree);
-            }
+            self.tool_after(&id, &name, &input, &o);
             results.push(Block::ToolResult {
                 tool_use_id: id,
                 content: o.content,
@@ -4530,6 +4656,7 @@ impl Run {
             });
         }
         push_user(&mut self.messages, results);
+        self.compose(SafePoint::Batch);
         if interrupted {
             return Some(Ending::Interrupted);
         }

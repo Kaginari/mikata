@@ -39,6 +39,7 @@ pub mod solo;
 pub mod split;
 pub mod stress;
 pub mod summon_tool;
+pub mod units;
 pub mod verdict_tool;
 pub mod verify_tool;
 pub mod wear_tool;

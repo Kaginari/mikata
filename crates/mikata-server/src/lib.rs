@@ -384,6 +384,7 @@ fn beat_events(beat: &Beat) -> Vec<Event> {
         | Beat::Prefix { .. }
         | Beat::Tree { .. }
         | Beat::Rides { .. }
+        | Beat::Units { .. }
         | Beat::Law { .. } => {
             vec![]
         }

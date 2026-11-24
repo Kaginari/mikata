@@ -234,6 +234,24 @@ pub enum Beat {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         resumed: bool,
     },
+    /// A change to the run's units away from the build's default composition
+    /// ([`crate::units`]): a unit loaded, unloaded, swapped, quarantined, a change refused, or a
+    /// reply read as a pass. A resume replays these over the default composition; a run that
+    /// keeps the default journals none. A journal holding one cannot be resumed by a build older
+    /// than units.
+    Units {
+        /// What happened ([`mikata_kernel::Op`]).
+        op: mikata_kernel::Op,
+        /// The unit it happened to.
+        id: String,
+        /// That unit's version.
+        version: String,
+        /// Why, when there is more to say.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        why: Option<String>,
+        /// The composition's fingerprint after it.
+        digest: String,
+    },
     /// How the run ended.
     End {
         /// The ending, in words.
@@ -429,6 +447,7 @@ pub fn conversation(beats: &[Beat]) -> Vec<Message> {
             | Beat::Recall { .. }
             | Beat::Prefix { .. }
             | Beat::Rides { .. }
+            | Beat::Units { .. }
             | Beat::Law { .. } => {}
         }
     }
