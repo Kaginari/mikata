@@ -270,6 +270,8 @@ A missed bar is reported as missed; a stage that misses is not built on until it
 | Stage 3, hosting a plugin | met, 2026-11-24: an observer hooking every point loaded in ten runs, 10 of 10, 311 calls against 337, wall time level |
 | Stage 4, parts (first screen) | 2026-11-24: `plan` off 208 calls against 370, 10 of 10 each; `stress` off level |
 | Stage 5, where the plan pays | 2026-11-24: fixes, plan off 29 of 30 in 744 calls against 30 of 30 in 1,000; prose 12 and 12, 257 calls against 331 (Haiku). The `small-fix` profile |
+| Stage 6, the plan with qwen | 2026-11-24: fixes, 8 of 10 each, 1,210 calls against 1,293: nothing shown |
+| Live, the real binary | 2026-11-24: `mikatad` on stdio with Haiku, `no-force-push` loaded by `units/change` between two asks, vetoed the body's force push; no prefix move |
 
 A switch unit is the first step for a part: it can be measured off before its code moves. Its
 code leaves `run.rs` when a measurement or a second implementation asks for it.
