@@ -13,6 +13,7 @@ pub mod adopt;
 pub mod app;
 pub mod approval;
 pub mod blocks;
+pub mod chrome;
 pub mod cli;
 pub mod diff;
 pub mod gate;

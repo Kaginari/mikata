@@ -205,7 +205,7 @@ fn verdict_line(
     t: &Theme,
 ) -> Line<'static> {
     let (mark, word, hue) = match verdict {
-        "PASS" => ("✓", "pass", t.readable(t.races.elf)),
+        "PASS" => ("✓", "pass", t.success),
         "NOT_VERIFIED" => ("◌", "not verified", t.p.gold),
         _ => ("✗", "fail", t.p.alarm),
     };
@@ -339,16 +339,17 @@ pub fn foldable(call: &Call) -> bool {
     let Some(o) = &call.outcome else {
         return false;
     };
-    let lines = |s: &str| s.trim_end_matches('\n').lines().count();
-    if o.is_error {
-        return lines(&o.content) > OUTPUT_LINES;
-    }
-    match diff::of(&call.name, &call.input) {
-        Some(Change::Diff { lines, .. }) => lines.len() > DIFF_LINES,
-        Some(Change::NewFile { lines, head, .. }) => lines > head.len(),
-        None if call.name == "read" => !o.content.trim().is_empty(),
-        None => lines(&o.content) > OUTPUT_LINES,
-    }
+    diff::of(&call.name, &call.input).is_some() || !o.content.trim().is_empty()
+}
+
+/// The last line a call's output says, on one line: what a folded card shows of it.
+fn last_said(content: &str) -> Option<String> {
+    content
+        .lines()
+        .rev()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .map(one_line)
 }
 
 /// A call's head row: its dot (the spinner while it runs), its name in its class's hue, its
@@ -402,9 +403,13 @@ fn status_row(call: &Call, change: Option<&Change>, ctx: &Ctx<'_>) -> Line<'stat
     if let Some(d) = call.took {
         parts.push(took(d));
     }
+    // Folded, the card is its two rows: the output's last word stands for the rest.
+    let said = (!call.expanded && change.is_none() && call.name != "read")
+        .then(|| last_said(&o.content))
+        .flatten();
     if let Some(c) = change {
         parts.push(c.stat());
-    } else if !o.is_error {
+    } else if !o.is_error && said.is_none() {
         let n = o.content.trim_end_matches('\n').lines().count();
         if n > 0 {
             parts.push(format!("{n} line{}", if n == 1 { "" } else { "s" }));
@@ -413,7 +418,9 @@ fn status_row(call: &Call, change: Option<&Change>, ctx: &Ctx<'_>) -> Line<'stat
     if o.cut > 0 {
         parts.push(format!("{} bytes cut", o.cut));
     }
-    if foldable(call) {
+    // The key that folds an open card again; on every folded card it would crowd the result out
+    // (the footer names the key).
+    if foldable(call) && call.expanded {
         parts.push(
             if call.expanded {
                 "ctrl+t folds"
@@ -432,6 +439,18 @@ fn status_row(call: &Call, change: Option<&Change>, ctx: &Ctx<'_>) -> Line<'stat
     for p in parts {
         spans.push(Span::styled(" · ", t.frame()));
         spans.push(Span::styled(p, t.muted()));
+    }
+    if let Some(said) = said {
+        spans.push(Span::styled(" · ", t.frame()));
+        spans.push(Span::styled(
+            said,
+            if o.is_error { t.alarm() } else { t.text() },
+        ));
+        // What the last line stands for: the lines folded above it.
+        let n = o.content.trim_end_matches('\n').lines().count();
+        if n > 1 {
+            spans.push(Span::styled(format!(" · +{} lines", n - 1), t.muted()));
+        }
     }
     Line::from(spans)
 }
@@ -452,20 +471,24 @@ fn card(call: &Call, w: usize, ctx: &Ctx<'_>) -> Lines {
         head_row(call, hue, ctx),
         status_row(call, change.as_ref(), ctx),
     ];
+    // Folded, a card is its head and its status, two rows between its side borders; expanded,
+    // its output or its diff whole, boxed.
     let open = call.expanded;
-    match (&call.outcome, &change) {
-        (Some(o), _) if o.is_error => rows.extend(folded(&o.content, inner, t.alarm(), t, open)),
-        (Some(_), Some(c)) => rows.extend(change_lines(c, &call.input, inner, t, open)),
-        (Some(o), None) if call.name != "read" || open => {
-            rows.extend(folded(&o.content, inner, t.muted(), t, open));
+    if open {
+        match (&call.outcome, &change) {
+            (Some(o), _) if o.is_error => {
+                rows.extend(folded(&o.content, inner, t.alarm(), t, true));
+            }
+            (Some(_), Some(c)) => rows.extend(change_lines(c, &call.input, inner, t, true)),
+            (Some(o), None) => rows.extend(folded(&o.content, inner, t.muted(), t, true)),
+            _ => {}
         }
-        _ => {}
     }
     let mut surface = Surface::card(t, Some(hue), TINT);
     if call.focused {
         surface.spine = Some(t.p.holo);
     }
-    Slab::new(surface).band(1).render(rows, w)
+    Slab::new(surface).band(1).edges(open, open).render(rows, w)
 }
 
 /// What a group's calls looked at, counted: `read 4 files · grep 3 patterns`.
@@ -592,7 +615,10 @@ fn group_card(g: &Group, w: usize, ctx: &Ctx<'_>) -> Lines {
     if g.focused {
         surface.spine = Some(t.p.holo);
     }
-    Slab::new(surface).band(1).render(rows, w)
+    Slab::new(surface)
+        .band(1)
+        .edges(g.expanded, g.expanded)
+        .render(rows, w)
 }
 
 /// A group's calls, each on its row: its mark, its tool and summary, its size and time.
@@ -793,7 +819,7 @@ fn hunk_start(h: &str) -> Option<usize> {
 fn change_lines(c: &Change, input: &Value, inner: usize, t: &Theme, open: bool) -> Lines {
     type Colours = Option<(Rgb, ratatui::style::Color)>;
     let tint = |fg: Rgb| fg.mix(t.p.bg, 0.82).color();
-    let add = (t.readable(t.races.elf), tint(t.readable(t.races.elf)));
+    let add = (t.success, tint(t.success));
     let del = (t.p.alarm, tint(t.p.alarm));
     let number = |n: Option<usize>| {
         Span::styled(

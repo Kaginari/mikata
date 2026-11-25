@@ -48,6 +48,10 @@ pub struct Survey {
     pub races: BTreeMap<String, Race>,
     /// The session card's verify line.
     pub verify: Verify,
+    /// The lines of the body's `## Done when` list (`.mikata/tmp/plan.md`), as written.
+    pub done: Vec<String>,
+    /// The branch the world's repository is on, when it is on one.
+    pub branch: Option<String>,
 }
 
 /// The session card's verify line, and the line to add when it has none.
@@ -83,7 +87,44 @@ pub fn survey(world: &Path) -> Survey {
         memory: standing(world),
         races,
         verify: Verify { line, suggested },
+        done: done_when(world),
+        branch: branch(world),
     }
+}
+
+/// The lines under `## Done when` in the body's plan (`.mikata/tmp/plan.md`): each non-empty line
+/// up to the next heading, its list mark taken off; none when there is no plan.
+#[must_use]
+pub fn done_when(world: &Path) -> Vec<String> {
+    let Ok(text) = std::fs::read_to_string(world.join(".mikata/tmp/plan.md")) else {
+        return Vec::new();
+    };
+    let mut lines = Vec::new();
+    let mut inside = false;
+    for line in text.lines() {
+        let l = line.trim();
+        if l.starts_with('#') {
+            inside = l
+                .trim_start_matches('#')
+                .trim()
+                .eq_ignore_ascii_case("done when");
+            continue;
+        }
+        if inside && !l.is_empty() {
+            lines.push(l.trim_start_matches(['-', '*', ' ']).trim().to_owned());
+        }
+    }
+    lines.truncate(40);
+    lines
+}
+
+/// The branch `world`'s repository is on, read from `.git/HEAD`; none when detached or absent.
+#[must_use]
+pub fn branch(world: &Path) -> Option<String> {
+    let head = std::fs::read_to_string(world.join(".git/HEAD")).ok()?;
+    head.trim()
+        .strip_prefix("ref: refs/heads/")
+        .map(str::to_owned)
 }
 
 /// How an act left a path.
@@ -438,6 +479,10 @@ pub struct Sidebar {
     pub folded: [bool; 4],
     /// Where the last frame drew each section's title: its row among the sidebar's lines.
     pub(crate) titles: RefCell<Vec<(usize, Section)>>,
+    /// The body's `Done when` lines, once read.
+    pub done: Vec<String>,
+    /// The world's branch, once read.
+    pub branch: Option<String>,
 }
 
 /// A section of the sidebar.
@@ -472,6 +517,8 @@ impl Default for Sidebar {
             bodies: Bodies::default(),
             folded: [false; 4],
             titles: RefCell::new(Vec::new()),
+            done: Vec::new(),
+            branch: None,
         }
     }
 }
@@ -519,6 +566,8 @@ impl Sidebar {
         self.memory = Some(s.memory);
         self.races = s.races;
         self.verify = Some(s.verify);
+        self.done = s.done;
+        self.branch = s.branch;
     }
 
     /// The sidebar's width in a frame whose inside is `inner` cells wide (the frame's own width
@@ -949,10 +998,24 @@ const PORTRAIT: u16 = 32;
 #[must_use]
 pub fn picture_box(m: &Model, w: usize, h: usize) -> Option<(u16, u16, u16)> {
     let rows = m.pictures.rows(PORTRAIT)?;
-    (h >= HEAD_FROM && w >= usize::from(PORTRAIT)).then(|| {
-        let pad = u16::try_from((w - usize::from(PORTRAIT)) / 2).unwrap_or(0);
-        (pad, PORTRAIT, rows)
-    })
+    (h >= HEAD_FROM && w >= usize::from(PORTRAIT)).then(|| centred(w, rows))
+}
+
+/// The rows the Session panel keeps for its sections under the logo.
+pub const SESSION_ROWS: usize = 10;
+
+/// Where the logo goes at the head of the Session panel, `w` cells wide and `h` rows tall: only
+/// where the terminal draws pictures and the panel keeps [`SESSION_ROWS`] under it.
+#[must_use]
+pub fn logo_box(m: &Model, w: usize, h: usize) -> Option<(u16, u16, u16)> {
+    let rows = m.pictures.rows(PORTRAIT)?;
+    (h >= usize::from(rows) + 1 + SESSION_ROWS && w >= usize::from(PORTRAIT))
+        .then(|| centred(w, rows))
+}
+
+fn centred(w: usize, rows: u16) -> (u16, u16, u16) {
+    let pad = u16::try_from((w - usize::from(PORTRAIT)) / 2).unwrap_or(0);
+    (pad, PORTRAIT, rows)
 }
 
 /// The sidebar's lines, `w` cells wide and at most `h` rows tall: the head and the vitals and the
@@ -960,14 +1023,25 @@ pub fn picture_box(m: &Model, w: usize, h: usize) -> Option<(u16, u16, u16)> {
 /// mouse.
 #[must_use]
 pub fn view(m: &Model, w: usize, h: usize) -> Lines {
+    sections(m, w, h, true)
+}
+
+/// The sidebar's sections without its head and vitals: memory, files and bodies, for the Session
+/// panel, which the Budgets panel stands beside.
+#[must_use]
+pub fn session(m: &Model, w: usize, h: usize) -> Lines {
+    sections(m, w, h, false)
+}
+
+fn sections(m: &Model, w: usize, h: usize, whole: bool) -> Lines {
     let gap = || Line::from("");
     // A short column gives its rows to the sections: the head is only drawn with room to spare.
-    let top = if h >= HEAD_FROM {
+    let top = if whole && h >= HEAD_FROM {
         head(m, w)
     } else {
         Vec::new()
     };
-    let vit = vitals(m, w);
+    let vit = if whole { vitals(m, w) } else { Vec::new() };
     let mem = memory(m, w);
     let fixed = top.len() + vit.len() + mem.len() + 4;
     let left = h.saturating_sub(fixed);
@@ -989,6 +1063,9 @@ pub fn view(m: &Model, w: usize, h: usize) -> Lines {
         (Section::Files, files(m, w, file_rows)),
         (Section::Bodies, bodies(m, w, body_rows)),
     ] {
+        if block.is_empty() {
+            continue;
+        }
         if !out.is_empty() {
             out.push(gap());
         }

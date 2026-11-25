@@ -224,6 +224,8 @@ pub struct Usage {
     pub occupancy: u64,
     /// The line it is measured against.
     pub stress_line: u64,
+    /// Model calls answered: the steps.
+    pub calls: u64,
 }
 
 impl Entry {
@@ -720,6 +722,7 @@ impl Transcript {
             return;
         };
         let u = &mut self.usage;
+        u.calls += 1;
         u.usd += usd.unwrap_or(0.0);
         u.unpriced |= usd.is_none();
         // A body below spends dollars of its own; its tokens are its own context's.

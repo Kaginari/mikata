@@ -84,6 +84,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
+  mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*
+  panel; beside it, *Done when* ticks the body's list once the end gate passes the answer,
+  *Budgets* shows steps, wall clock, context against its stress line and cost, *Checks* shows
+  each check the end gate holds (each verify command, tests intact, duties done) as ok, failed
+  or no result, from the gate's verdict or the body's own last run, *Guardrails* says what the
+  sandbox and the gates hold the session to, *Units* lists every unit with an ON or OFF pill,
+  and *Session* keeps memory, files and bodies (with Mikata's logo where the terminal draws
+  pictures and the panel has room). From 140 columns, Checks, Guardrails and Units stand in a
+  column of their own on the left. The approval card shows the act boxed as a command line
+  under its reason, and its answers as buttons. **F2** (or `/view center|focus|zen`) switches,
+  while the session runs, between this dashboard, *Focus* (the conversation with its bars, no
+  panels) and *Zen* (the conversation and the input alone). The default `neon` scheme takes a
+  new palette: hot pink `#ff168a` through coral to amber `#ffb020` on a near-black plum
+  (`#0d0b10`, `#18121d`, borders `#382638`), success `#a3ff56`, error `#ff4757`, text
+  `#f4eef5`; the board's `neon` scheme follows it. A tool card is two rows until opened: its
+  call, then its result — ok or failed, its time, and its output's last line with how many it
+  stands for (`line 500 · +499 lines`), or an edit's `+3 −0`; a click or ctrl+t opens its
+  output or diff whole. A footer bar holds the verify line, the last answer's
+  word, the keys that matter now, and the steps, time and spend. Borders run in one pink-to-gold
+  gradient; cards are rounded boxes, no longer shaded slabs. Small terminals keep one-row bars
+  and drop the frame round the conversation; a short column gives up panels with nothing in
+  them.
+
 - **Fewer calls lost to the harness.** `multiedit` is no longer offered (its nested arguments
   came back as broken JSON in one call in eight); several edits are several `edit` calls in one
   message, and a session that used it is still answered. A command the approval gate refuses is

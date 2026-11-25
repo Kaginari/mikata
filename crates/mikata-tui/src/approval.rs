@@ -25,7 +25,7 @@ use ratatui::text::{Line, Span};
 
 use crate::gate::Card;
 use crate::kit::slab::{Slab, Surface};
-use crate::kit::text::{Align, Lines, cells, clip, clip_left, fit, truncate, wrap_text};
+use crate::kit::text::{Lines, cells, clip, clip_left, truncate, wrap_text};
 use crate::theme::Theme;
 
 /// How long the card ignores keys once it is on screen.
@@ -72,9 +72,10 @@ pub enum Decision {
     Answered(GateAnswer),
 }
 
-/// The act's text width inside a card `w` cells wide: the slab's frame, and the act's indent.
+/// The act's text width inside a card `w` cells wide: the card's frame, and the act's own box
+/// round it with its `$ ` prompt.
 fn act_width(w: usize) -> usize {
-    Slab::inner(w).saturating_sub(2).max(8)
+    Slab::inner(w).saturating_sub(6).max(8)
 }
 
 /// The rows of the act shown in a card at most `h` rows tall.
@@ -96,6 +97,9 @@ const ANSWERS: [(&str, &str); 3] = [
     ("2", "No"),
     ("3", "No, and tell the model why"),
 ];
+
+/// The answers' words on buttons side by side, where the card is wide enough.
+const SHORT: [&str; 3] = ["approve once", "deny", "deny, say why"];
 
 impl Approval {
     /// A card just arrived, laid out for a main area of `w`×`h`.
@@ -321,12 +325,27 @@ impl Approval {
         let bold = t.text().add_modifier(Modifier::BOLD);
         // Each line with its priority: the higher, the sooner it goes when the card must shrink.
         let mut parts = self.head(t, inner, now, after);
-        for l in act.iter().skip(self.scroll).take(rows) {
+        // The act in a box of its own, as a command line: a prompt on its first row.
+        let edge = t.holo();
+        let rule = "─".repeat(inner.saturating_sub(2));
+        // The box's edges go before the act's tail and its marks when the card must shrink.
+        parts.push((5, Line::from(Span::styled(format!("╭{rule}╮"), edge))));
+        let width = act_width(w);
+        for (i, l) in act.iter().enumerate().skip(self.scroll).take(rows) {
+            let prompt = if i == 0 { "$ " } else { "  " };
+            let pad = width.saturating_sub(cells(l));
             parts.push((
                 0,
-                Line::from(vec![Span::raw("  "), Span::styled(l.clone(), bold)]),
+                Line::from(vec![
+                    Span::styled("│ ", edge),
+                    Span::styled(prompt, t.gold().add_modifier(Modifier::BOLD)),
+                    Span::styled(l.clone(), bold),
+                    Span::raw(" ".repeat(pad)),
+                    Span::styled(" │", edge),
+                ]),
             ));
         }
+        parts.push((5, Line::from(Span::styled(format!("╰{rule}╯"), edge))));
         if cut {
             let (from, to) = (self.scroll + 1, (self.scroll + rows).min(act.len()));
             let more = if to < act.len() {
@@ -337,9 +356,12 @@ impl Approval {
             let mark = format!("┄ lines {from}–{to} of {} ┄{more}", act.len());
             parts.push((1, Line::from(Span::styled(clip(&mark, inner), t.gold()))));
             if to < act.len() {
-                let last = act.last().cloned().unwrap_or_default();
-                // The act's end, where a payload hides: cut from the left, so its last words show.
-                let tail = format!("  last: {}", clip_left(&last, inner.saturating_sub(8)));
+                // The act's end, where a payload hides: its text (escaped as the card shows it), not its last wrapped row, cut
+                // from the left, so its last words show however the rows broke.
+                let tail = format!(
+                    "  last: {}",
+                    clip_left(&self.card.act, inner.saturating_sub(8))
+                );
                 parts.push((3, Line::from(Span::styled(tail, t.muted()))));
             }
         }
@@ -358,9 +380,18 @@ impl Approval {
                     .map(|l| (2, l)),
             );
         }
+        if !self.card.why.is_empty() {
+            parts.push((
+                5,
+                Line::from(Span::styled(
+                    "▸ Reason",
+                    t.holo().add_modifier(Modifier::BOLD),
+                )),
+            ));
+        }
         for why in &self.card.why {
             parts.extend(
-                wrap_text(&format!("· {why}"), inner, t.muted())
+                wrap_text(&format!("  • {why}"), inner, t.muted())
                     .into_iter()
                     .map(|l| (5, l)),
             );
@@ -393,7 +424,7 @@ impl Approval {
     ) -> Vec<(u8, Line<'static>)> {
         let hue = crate::blocks::class_hue(t, Some(&self.card.class));
         let secs = self.left(now).as_secs();
-        let title = "Approval · ⚠ the human gate";
+        let title = "⚠ Approval required · the human gate";
         let mut clock = format!("denies in {}:{:02}", secs / 60, secs % 60);
         if after > 0 {
             clock = format!("{after} more waiting · {clock}");
@@ -440,46 +471,70 @@ impl Approval {
     fn answers(&self, t: &Theme, inner: usize) -> Vec<(u8, Line<'static>)> {
         let bold = t.text().add_modifier(Modifier::BOLD);
         let mut out = Vec::new();
-        match &self.reason {
-            Some(reason) => {
-                out.push((
-                    1,
-                    Line::from(Span::styled("why — the model reads it:", t.text())),
-                ));
-                out.push((
-                    0,
-                    truncate(
-                        Line::from(vec![
-                            Span::styled("› ", t.holo()),
-                            Span::styled(crate::safe::one_line(reason), bold),
-                            Span::styled("▏", t.holo()),
-                        ]),
-                        inner,
-                    ),
-                ));
-            }
-            None => {
-                for (i, (n, words)) in ANSWERS.iter().enumerate() {
-                    let on = self.picked() == Some(i);
-                    let style = if on {
-                        ratatui::style::Style::new()
-                            .fg(t.p.bg.color())
-                            .bg(t.p.holo.color())
-                            .add_modifier(Modifier::BOLD)
-                    } else {
-                        t.text()
-                    };
-                    let line = Line::from(Span::styled(format!(" {n} · {words}"), style));
-                    let fill = if on {
-                        ratatui::style::Style::new().bg(t.p.holo.color())
-                    } else {
-                        ratatui::style::Style::new()
-                    };
-                    out.push((1, fit(line, inner, Align::Left, fill)));
+        if let Some(reason) = &self.reason {
+            out.push((
+                1,
+                Line::from(Span::styled("why — the model reads it:", t.text())),
+            ));
+            out.push((
+                0,
+                truncate(
+                    Line::from(vec![
+                        Span::styled("› ", t.holo()),
+                        Span::styled(crate::safe::one_line(reason), bold),
+                        Span::styled("▏", t.holo()),
+                    ]),
+                    inner,
+                ),
+            ));
+        } else {
+            // The answers as buttons on one row where they fit: the picked one lit, the others
+            // in outline; else one a row.
+            let buttons: Vec<Vec<Span<'static>>> = ANSWERS
+                .iter()
+                .zip(SHORT)
+                .enumerate()
+                .map(|(i, ((n, _), words))| self.button(t, i, n, words))
+                .collect();
+            let across: usize = buttons
+                .iter()
+                .map(|b| b.iter().map(|s| cells(&s.content)).sum::<usize>() + 2)
+                .sum();
+            if across <= inner {
+                let mut row = Vec::new();
+                for b in buttons {
+                    row.extend(b);
+                    row.push(Span::raw("  "));
                 }
+                out.push((1, Line::from(row)));
+                return out;
+            }
+            for (i, (n, words)) in ANSWERS.iter().enumerate() {
+                out.push((1, Line::from(self.button(t, i, n, words))));
             }
         }
         out
+    }
+
+    /// The answer `i` as a button: `[n] mark words`, filled when picked, its edges in its hue.
+    fn button(&self, t: &Theme, i: usize, n: &str, words: &str) -> Vec<Span<'static>> {
+        let hue = match i {
+            0 => t.success,
+            _ => t.p.alarm,
+        };
+        let mark = if i == 0 { "✔" } else { "✘" };
+        let label = format!(" [{n}] {mark} {words} ");
+        let style = if self.picked() == Some(i) {
+            ratatui::style::Style::new()
+                .fg(t.p.bg.color())
+                .bg(t.p.holo.color())
+        } else {
+            // Unpicked, a pill tinted toward its hue: yes green, the noes red.
+            ratatui::style::Style::new()
+                .fg(t.p.text.color())
+                .bg(hue.mix(t.p.panel_raised, 0.7).color())
+        };
+        vec![Span::styled(label, style.add_modifier(Modifier::BOLD))]
     }
 
     /// The keys that answer now — `y` and `n` always named, so a narrow card still says them.

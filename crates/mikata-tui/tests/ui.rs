@@ -82,6 +82,14 @@ fn find(b: &Buffer, needle: &str) -> Option<(u16, u16)> {
     None
 }
 
+/// Every tool card opened, as a click on each would.
+fn open_all(m: &mut Model) {
+    let cards: Vec<usize> = m.transcript.cards().collect();
+    for i in cards {
+        m.transcript.toggle(i);
+    }
+}
+
 fn turn(m: &mut Model, ask: &str) {
     m.outstanding += 1;
     ev(m, Event::TurnStarted { text: ask.into() });
@@ -184,9 +192,13 @@ fn an_edit_is_a_coloured_unified_diff_in_its_card() {
         scr.contains("● read  sqlglot/parser.py:4120-4180  read"),
         "{scr}"
     );
-    assert!(scr.contains("⎿ ok · 0ms · 61 lines · ctrl+t"), "{scr}");
+    assert!(scr.contains("⎿ ok · 0ms · 61 lines"), "{scr}");
     assert!(scr.contains("● edit  sqlglot/parser.py  write"), "{scr}");
     assert!(scr.contains("⎿ ok · 0ms · +1 −1"), "{scr}");
+    // Folded, a card is its two rows; opened, the diff in its colours.
+    assert!(!scr.contains("return this"), "{scr}");
+    open_all(&mut m);
+    let buf = draw(&mut m, 100, 40);
     let (x, y) = find(&buf, "-     return this").unwrap();
     assert_eq!(buf[(x, y)].fg, rgb(DARK.alarm));
     let (x, y) = find(&buf, "+     return self._parse_collate(this)").unwrap();
@@ -212,6 +224,7 @@ fn a_patch_shows_its_hunks_and_a_write_its_head() {
         json!({"path": "notes.md", "content": "# Notes\n\none\ntwo\nthree\nfour\n"}),
         Some(("written", false)),
     );
+    open_all(&mut m);
     let scr = screen(&draw(&mut m, 90, 30));
     for want in [
         "@@ -1,2 +1,2 @@",
@@ -219,7 +232,7 @@ fn a_patch_shows_its_hunks_and_a_write_its_head() {
         "+ new line",
         "new file, 6 lines",
         "# Notes",
-        "… +2 lines",
+        "four",
     ] {
         assert!(scr.contains(want), "{want} missing:\n{scr}");
     }
@@ -249,8 +262,9 @@ fn long_output_folds_and_an_error_is_in_the_alarm_colour() {
     );
     let buf = draw(&mut m, 90, 30);
     let scr = screen(&buf);
-    assert!(scr.contains("line 3") && !scr.contains("line 4"), "{scr}");
-    assert!(scr.contains("… +7 lines"), "{scr}");
+    // Folded: the last line and the count it stands for; the refusal's own words in alarm.
+    assert!(scr.contains("⎿ ok · 0ms · line 10 · +9 lines"), "{scr}");
+    assert!(!scr.contains("line 4"), "{scr}");
     let (x, y) = find(&buf, "refused: destructive").unwrap();
     assert_eq!(buf[(x, y)].fg, rgb(DARK.alarm));
     let (x, y) = find(&buf, "failed").unwrap();
@@ -314,26 +328,35 @@ fn the_header_and_the_status_bar_read_what_the_observer_gave() {
     );
     let buf = draw(&mut m, 100, 20);
     let r = rows(&buf);
-    assert!(
-        r[0].starts_with("╭─ ◈ MIKATA · mikata · deepseek-v4-flash"),
-        "{}",
-        r[0]
-    );
-    let last = &r[19];
+    // The header bar: Mikata, the world's repo, the mode and the model; the state on its right.
     for want in [
-        "╰─ $0.04",
-        "4.2k tok",
-        "ctx 41%",
-        "esc stop",
-        "world ~/sqlglot",
+        "◆ Mikata",
+        "repo sqlglot",
+        "mode  light-coding",
+        "model deepseek-v4-flash",
     ] {
-        assert!(last.contains(want), "{want} missing: {last}");
+        assert!(r[0].contains(want), "{want} missing: {}", r[0]);
     }
     assert!(
         r[0].contains(" thinking 0s") && !r[0].contains("● thinking"),
         "{}",
         r[0]
     );
+    // The footer bar: the verify line, the keys that matter now, the steps and the spend.
+    let last = &r[19];
+    for want in [
+        "no verify line pinned",
+        "esc stop",
+        "steps 1",
+        "$ cost $0.040",
+    ] {
+        assert!(last.contains(want), "{want} missing: {last}");
+    }
+    // The Budgets panel: the context against its stress line.
+    let scr = screen(&buf);
+    for want in ["context    61.5k / 150.0k", "41%"] {
+        assert!(scr.contains(want), "{want} missing:\n{scr}");
+    }
 }
 
 #[test]
@@ -353,14 +376,12 @@ fn narrow_terminals_degrade_and_never_overflow() {
         );
         let buf = draw(&mut m, w, h);
         let r = rows(&buf);
-        assert!(r[0].contains("MIKATA"), "{w}: {}", r[0]);
-        assert!(r[usize::from(h) - 1].starts_with('╰'), "{w}");
-        if w < 80 {
-            assert!(
-                !r[usize::from(h) - 1].contains("world"),
-                "the world drops first at {w}"
-            );
-        }
+        assert!(r[0].contains("Mikata"), "{w}: {}", r[0]);
+        assert!(
+            r[usize::from(h) - 1].starts_with('›'),
+            "{w}: the footer bar:\n{}",
+            r.join("\n")
+        );
     }
     let scr = screen(&draw(&mut model(Variant::Dark), 20, 6));
     assert!(scr.contains("enlarge"), "{scr}");
@@ -377,9 +398,11 @@ fn the_light_theme_paints_a_light_page() {
             stop: "end_turn".into(),
         },
     );
-    let buf = draw(&mut m, 80, 20);
-    assert_eq!(buf[(1, 1)].bg, rgb(LIGHT.bg));
-    let (x, y) = find(&buf, "hello").unwrap();
+    let buf = draw(&mut m, 80, 24);
+    // The page under the header bar, and the Agent loop panel's face.
+    assert_eq!(buf[(1, 0)].bg, rgb(LIGHT.bg));
+    assert_eq!(buf[(2, 2)].bg, rgb(LIGHT.panel));
+    let (x, y) = find(&buf, "hello").unwrap_or_else(|| panic!("{}", screen(&buf)));
     assert_eq!(buf[(x, y)].fg, rgb(LIGHT.text));
     let (x, y) = find(&buf, "def").unwrap();
     assert_eq!(buf[(x, y)].bg, rgb(LIGHT.panel_raised));
@@ -452,7 +475,7 @@ fn the_approval_card_escapes_a_hostile_act_and_takes_only_a_confirmed_choice() {
     update(&mut m, Msg::Gate(card));
     let buf = draw(&mut m, 100, 30);
     let scr = screen(&buf);
-    assert!(scr.contains("⚠ the human gate"), "{scr}");
+    assert!(scr.contains("the human gate"), "{scr}");
     for raw in ['\u{202e}', '\u{200b}', '\u{2066}', '\u{1b}'] {
         assert!(!scr.contains(raw), "{raw:?} reached the screen");
     }
@@ -938,4 +961,161 @@ fn waive_sends_the_human_s_reasoned_waiver() {
         "{cmds:?}"
     );
     assert!(update(&mut m, Msg::Said("waived run-1:2: why".into())).is_empty());
+}
+
+/// The plain text of `lines`, one a row.
+fn plain(lines: &[ratatui::text::Line<'_>]) -> String {
+    lines
+        .iter()
+        .map(mikata_tui::kit::text::plain)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn the_checks_panel_reads_the_body_s_runs_then_the_gate_s_verdict() {
+    let mut m = model(Variant::Dark);
+    m.sidebar.verify = Some(mikata_tui::sidebar::Verify {
+        line: vec!["cargo test".into()],
+        suggested: None,
+    });
+    let before = plain(&mikata_tui::chrome::checks(&m, 40));
+    assert!(
+        before.contains("cargo test") && before.contains("at the gate"),
+        "{before}"
+    );
+    assert!(before.contains("0/3 held"), "{before}");
+    // The body runs the verify command: its own result, before any verdict.
+    turn(&mut m, "fix it");
+    call(
+        &mut m,
+        "b1",
+        "bash",
+        json!({"command": "cargo test"}),
+        Some(("ok", false)),
+    );
+    let ran = plain(&mikata_tui::chrome::checks(&m, 40));
+    assert!(
+        ran.lines()
+            .any(|l| l.starts_with("✔ cargo test") && l.contains("ok")),
+        "{ran}"
+    );
+    // The gate fails it afterwards: the verdict, the later word, wins.
+    ev(
+        &mut m,
+        Event::GateVerdict {
+            passed: false,
+            verdict: "FAIL".into(),
+            changed: vec!["a.rs".into()],
+            failures: vec!["traits hold: `cargo test` failed:\n1 failed".into()],
+            unverified: vec![],
+            unchecked: false,
+            verified_by: Vec::new(),
+        },
+    );
+    let judged = plain(&mikata_tui::chrome::checks(&m, 40));
+    assert!(
+        judged
+            .lines()
+            .any(|l| l.starts_with("✘ cargo test") && l.contains("failed")),
+        "{judged}"
+    );
+    assert!(
+        judged.lines().any(|l| l.starts_with("✔ tests intact")),
+        "{judged}"
+    );
+    assert!(judged.contains("2/3 held"), "{judged}");
+}
+
+#[test]
+fn the_guardrails_say_what_holds_and_what_does_not() {
+    let mut m = model(Variant::Dark);
+    m.sandbox = "landlock ABI 6 + seccomp + limits, network off, private /tmp".into();
+    let held = plain(&mikata_tui::chrome::guardrails(&m, 60));
+    for want in [
+        "✔ commands sandboxed to the project",
+        "✔ network off",
+        "✔ a /tmp of their own",
+        "no verify line: a pass checks nothing",
+        "✔ push and outward acts ask you",
+    ] {
+        assert!(held.contains(want), "{want} missing:\n{held}");
+    }
+    m.sandbox = "none — no sandbox for windows".into();
+    let open = plain(&mikata_tui::chrome::guardrails(&m, 60));
+    assert!(open.contains("✘ no sandbox"), "{open}");
+    assert!(!open.contains("network off"), "{open}");
+}
+
+#[test]
+fn the_approval_card_boxes_the_act_and_offers_its_answers_as_buttons() {
+    let mut m = model(Variant::Dark);
+    turn(&mut m, "ship it");
+    update(
+        &mut m,
+        Msg::Gate(card_with(
+            "git push origin main",
+            vec!["publishes the branch".into()],
+            vec![],
+        )),
+    );
+    let scr = screen(&draw(&mut m, 150, 44));
+    assert!(scr.contains("⚠ Approval required"), "{scr}");
+    assert!(
+        scr.contains("│ $ git push origin main"),
+        "the act in its box:\n{scr}"
+    );
+    assert!(
+        scr.contains("▸ Reason") && scr.contains("• publishes the branch"),
+        "{scr}"
+    );
+    assert!(
+        scr.contains("[1] ✔ approve once")
+            && scr.contains("[2] ✘ deny")
+            && scr.contains("[3] ✘ deny, say why"),
+        "the answers as buttons across:\n{scr}"
+    );
+    // Narrow, the buttons stack and keep their full words.
+    let scr = screen(&draw(&mut m, 70, 40));
+    assert!(scr.contains("[1] ✔ Yes, run it once"), "{scr}");
+}
+
+#[test]
+fn f2_steps_through_the_dashboard_focus_and_zen() {
+    let mut m = model(Variant::Dark);
+    turn(&mut m, "hello there");
+    let center = screen(&draw(&mut m, 150, 44));
+    assert!(
+        center.contains("Agent loop") && center.contains("Budgets"),
+        "{center}"
+    );
+    assert!(center.contains("◆ Mikata"), "the header bar:\n{center}");
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, mikata_tui::app::View::Focus);
+    let focus = screen(&draw(&mut m, 150, 44));
+    assert!(
+        focus.contains("Agent loop") && focus.contains("◆ Mikata"),
+        "{focus}"
+    );
+    assert!(
+        !focus.contains("Budgets") && !focus.contains("Done when"),
+        "no panels:\n{focus}"
+    );
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, mikata_tui::app::View::Zen);
+    let zen = screen(&draw(&mut m, 150, 44));
+    assert!(
+        zen.contains("hello there"),
+        "the conversation stays:\n{zen}"
+    );
+    assert!(
+        !zen.contains("Agent loop") && !zen.contains("◆ Mikata  │"),
+        "no frame, no bars:\n{zen}"
+    );
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, mikata_tui::app::View::Center);
+    // `/view` names one; a word it does not know lists them.
+    m.input.insert("/view zen");
+    key(&mut m, KeyCode::Enter);
+    assert_eq!(m.view, mikata_tui::app::View::Zen);
 }

@@ -10,12 +10,12 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Widget};
+use ratatui::widgets::{Block, Widget};
 
-use crate::app::Model;
+use crate::app::{Model, View};
 use crate::blocks::Ctx;
 use crate::kit::keyhelp::{Binding, KeyHelp};
-use crate::kit::text::{Lines, caps, cells, clip, truncate};
+use crate::kit::text::{Lines, cells, clip, truncate};
 use crate::pictures::{Art, Slot, Want};
 use crate::theme::Rgb;
 
@@ -37,7 +37,109 @@ pub fn ctx(m: &Model, width: usize) -> Ctx<'_> {
     }
 }
 
-/// Draw `m` into the frame.
+/// Where each part of the frame goes in a terminal `area`, in the model's view.
+#[derive(Debug, Clone, Copy)]
+pub struct Plan {
+    /// The bars, when the view draws them, and whether they are framed (three rows each).
+    pub bars: Option<(Rect, Rect, bool)>,
+    /// The left column of a wide dashboard: Checks, Guardrails, Units; zero wide when none.
+    pub lead: Rect,
+    /// The right column: Done when, Budgets (and the rest, when there is no left column),
+    /// Session; zero wide when none.
+    pub side: Rect,
+    /// The Agent loop's frame, when it is drawn.
+    pub frame: Option<Rect>,
+    /// The conversation itself.
+    pub convo: Rect,
+}
+
+/// The frame laid out over `area` for `m`: the dashboard, the conversation with its bars, or
+/// the conversation alone, as the view says, and as the size allows.
+#[must_use]
+pub fn plan(m: &Model, area: Rect) -> Plan {
+    let view = m.view;
+    // Bars of three rows (a framed line) where the rows are many, of one row where the
+    // conversation needs them; none in Zen.
+    let tall = area.height >= 36;
+    let bar = match view {
+        View::Zen => 0,
+        _ if tall => 3,
+        _ => 1,
+    };
+    let bars = (bar > 0).then(|| {
+        (
+            Rect {
+                height: bar,
+                ..area
+            },
+            Rect {
+                y: area.bottom() - bar,
+                height: bar,
+                ..area
+            },
+            tall,
+        )
+    });
+    let mid = Rect {
+        y: area.y + bar,
+        height: area.height.saturating_sub(2 * bar),
+        ..area
+    };
+    // The panels' columns: the sidebar's width and its own frame each. Wide, the checks and the
+    // rails stand in a column of their own on the left; else every panel shares the right.
+    let side = if view == View::Center && m.sidebar.width(mid.width.saturating_sub(4)) > 0 {
+        (crate::sidebar::WIDTH + 4).min(mid.width / 3)
+    } else {
+        0
+    };
+    let lead = if side > 0 && mid.width >= 140 {
+        side.min(mid.width / 4)
+    } else {
+        0
+    };
+    let left = Rect {
+        x: mid.x + lead,
+        width: mid.width - side - lead,
+        ..mid
+    };
+    // A small terminal, or Zen, gives the conversation every cell: no frame round it (Zen keeps a
+    // column of margin each side).
+    let (frame, convo) = if view == View::Zen {
+        let r = Rect {
+            x: left.x + 1,
+            width: left.width.saturating_sub(2),
+            ..left
+        };
+        (None, r)
+    } else if left.width >= 60 && left.height >= 16 {
+        (
+            Some(left),
+            Rect::new(
+                left.x + 2,
+                left.y + 1,
+                left.width.saturating_sub(4),
+                left.height.saturating_sub(2),
+            ),
+        )
+    } else {
+        (None, left)
+    };
+    Plan {
+        bars,
+        lead: Rect { width: lead, ..mid },
+        side: Rect {
+            x: left.right(),
+            width: side,
+            ..mid
+        },
+        frame,
+        convo,
+    }
+}
+
+/// Draw `m` into the frame, in its view: the dashboard (a header bar, the panels each side of the
+/// agent loop, a footer bar), the conversation with its bars, or the conversation alone; an
+/// approval floats over the conversation as a modal, a toast at its top right while it fades.
 pub fn draw(m: &Model, f: &mut Frame<'_>) {
     let area = f.area();
     let buf = f.buffer_mut();
@@ -52,66 +154,183 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
         buf.set_line(area.x, area.y, &msg, area.width);
         return;
     }
-    let right = state(m);
-    let left_room =
-        usize::from(area.width).saturating_sub(crate::kit::text::line_cells(&right) + 4);
-    Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(t.frame())
-        .title_top(header(m, left_room))
-        .title_top(right.right_aligned())
-        .title_bottom(status(m, area.width.into()))
-        .render(area, buf);
-    let inner = Rect {
-        x: area.x + 2,
-        y: area.y + 1,
-        width: area.width.saturating_sub(4),
-        height: area.height.saturating_sub(2),
-    };
-    let side = m.sidebar.width(inner.width);
-    let main = Rect {
-        width: inner.width - side,
-        ..inner
-    };
-    label(buf, main, "conversation", t.holo(), t);
-    let below_label = Rect {
-        y: main.y + 1,
-        height: main.height.saturating_sub(1),
-        ..main
-    };
-    body(m, below_label, buf);
-    m.hits.borrow_mut().side_w = 0;
-    if side > 0 {
-        sidebar(
-            m,
-            Rect {
-                x: main.right(),
-                width: side,
-                ..inner
-            },
+    let p = plan(m, area);
+    if let Some((top, bottom, framed)) = p.bars {
+        let bar_line = |buf: &mut Buffer, r: Rect, line: Line<'static>| {
+            if framed {
+                let inner = crate::chrome::panel(buf, r, "", "", t, area.width);
+                buf.set_line(inner.x + 1, inner.y, &line, inner.width.saturating_sub(2));
+            } else {
+                buf.set_line(r.x, r.y, &line, r.width);
+            }
+        };
+        let inner_w = usize::from(area.width.saturating_sub(if framed { 4 } else { 0 }));
+        bar_line(buf, top, crate::chrome::header(m, inner_w, state(m)));
+        bar_line(
             buf,
+            bottom,
+            crate::chrome::footer(m, inner_w, |room| keys(m, room)),
         );
+    }
+    if let Some(frame) = p.frame {
+        crate::chrome::panel(buf, frame, "▶", "Agent loop", t, area.width);
+    }
+    body(m, p.convo, buf);
+    m.hits.borrow_mut().side_w = 0;
+    if p.lead.width > 0 {
+        lead_column(m, buf, p.lead, area.width);
+    }
+    if p.side.width > 0 {
+        panels(m, p.side, buf, area.width, p.lead.width > 0);
     }
     if m.gate.is_some() {
         // The approval never sits under a picture: while it is open, none is wanted.
         m.pictures.wants.borrow_mut().clear();
-        dim(buf, inner, t);
-        modal(m, below_label, buf);
+        let under = p.bars.map_or(area, |(top, bottom, _)| Rect {
+            y: top.bottom(),
+            height: bottom.y.saturating_sub(top.bottom()),
+            ..area
+        });
+        dim(buf, under, t);
+        modal(m, p.convo, buf);
     }
-    // A toast never covers the approval: it waits under the card, unseen, until it is gone.
+    toast(m, p.convo, buf);
+}
+
+/// The toast at the top right of `area` while it fades. It never covers the approval: it waits
+/// under the card, unseen, until it is gone.
+fn toast(m: &Model, area: Rect, buf: &mut Buffer) {
+    let t = &m.theme;
     if let Some(toast) = m.toast.as_ref().filter(|_| m.gate.is_none()) {
         let lines = toast.view(t);
         let width = lines.first().map_or(0, crate::kit::text::line_cells);
-        let left = below_label.right().saturating_sub(to_u16(width));
-        for (row, line) in (below_label.y..below_label.bottom()).zip(&lines) {
+        let left = area.right().saturating_sub(to_u16(width));
+        for (row, line) in (area.y..area.bottom()).zip(&lines) {
             buf.set_line(left, row, line, to_u16(width));
         }
         // Nor does a picture sit over the toast.
-        let over = Rect::new(left, below_label.y, to_u16(width), to_u16(lines.len()));
+        let over = Rect::new(left, area.y, to_u16(width), to_u16(lines.len()));
         m.pictures
             .wants
             .borrow_mut()
             .retain(|w| w.area.intersection(over).is_empty());
+    }
+}
+
+/// The left column of a wide screen in `area`: Checks, Guardrails, and Units in the rows left.
+fn lead_column(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16) {
+    let w = usize::from(area.width.saturating_sub(4));
+    let panes = [
+        Pane::new("✓", "Checks", crate::chrome::checks(m, w)),
+        Pane::new("◈", "Guardrails", crate::chrome::guardrails(m, w)),
+        Pane::new("⚙", "Units", crate::chrome::units(m, w)),
+    ];
+    stack(m, buf, area, screen_w, &panes, 0);
+}
+
+/// A panel waiting its place in a column: its glyph, its title, its lines.
+struct Pane {
+    glyph: &'static str,
+    title: String,
+    lines: Lines,
+}
+
+impl Pane {
+    fn new(glyph: &'static str, title: impl Into<String>, lines: Lines) -> Self {
+        Self {
+            glyph,
+            title: title.into(),
+            lines,
+        }
+    }
+}
+
+/// `panes` stacked down `area`, each as tall as its lines, `keep` rows left free under them (none
+/// kept: the last pane takes the rows left); a pane with no room for four of its lines is left
+/// out. Returns the first row under them.
+fn stack(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16, panes: &[Pane], keep: u16) -> u16 {
+    let mut y = area.y;
+    for (i, p) in panes.iter().enumerate() {
+        let room = area.bottom().saturating_sub(y).saturating_sub(keep);
+        let fill = keep == 0 && i + 1 == panes.len();
+        let tall = if fill {
+            room
+        } else {
+            (to_u16(p.lines.len()) + 2).min(room)
+        };
+        // A pane shows four of its lines at least, or all of fewer: one row of a list reads as
+        // the whole list.
+        let least = to_u16(p.lines.len().clamp(1, 4)) + 2;
+        if tall < least {
+            continue;
+        }
+        let card = Rect::new(area.x, y, area.width, tall);
+        let inner = crate::chrome::panel(buf, card, p.glyph, &p.title, &m.theme, screen_w);
+        for (row, line) in (inner.y..inner.bottom()).zip(&p.lines) {
+            buf.set_line(inner.x + 1, row, line, inner.width.saturating_sub(2));
+        }
+        y += tall;
+    }
+    y
+}
+
+/// The right-hand column in `area`: Done when and Budgets (and, when the screen is not `wide`,
+/// Checks, Guardrails and Units, as room allows) each as tall as its lines, the Session panel (memory, files,
+/// bodies) taking the rows left.
+fn panels(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16, wide: bool) {
+    let t = &m.theme;
+    let cols = usize::from(area.width.saturating_sub(4));
+    // A short column keeps its rows for what holds something: an empty list, or units not yet
+    // listed, gives its panel up.
+    let short = area.height < 30;
+    let mut panes = Vec::new();
+    if !(short && m.sidebar.done.is_empty()) {
+        let title = format!("Done when ({})", m.sidebar.done.len());
+        panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
+    }
+    panes.push(Pane::new("▮", "Budgets", crate::chrome::budgets(m, cols)));
+    if !wide {
+        panes.push(Pane::new("✓", "Checks", crate::chrome::checks(m, cols)));
+        panes.push(Pane::new(
+            "◈",
+            "Guardrails",
+            crate::chrome::guardrails(m, cols),
+        ));
+        if !(short && m.units.is_none()) {
+            panes.push(Pane::new("⚙", "Units", crate::chrome::units(m, cols)));
+        }
+    }
+    // The Session panel keeps its rows — half the column where it shares it with every panel,
+    // eight beside the left column: the files and the bodies at work are never squeezed out.
+    let keep = if wide { 8 } else { (area.height / 2).max(12) };
+    let y = stack(m, buf, area, screen_w, &panes, keep);
+    let rest = area.bottom().saturating_sub(y);
+    if rest >= 4 {
+        let card = Rect::new(area.x, y, area.width, rest);
+        let inner = crate::chrome::panel(buf, card, "◇", "Session", t, screen_w);
+        // Mikata's logo heads the panel where the terminal draws images and the rows allow:
+        // the picture goes over the panel's own plain cells, never a logo built from characters.
+        let mut top = inner.y;
+        if let Some((pad, cols, rows)) =
+            crate::sidebar::logo_box(m, cols, usize::from(inner.height))
+        {
+            m.pictures.want(Want {
+                slot: Slot::Sidebar,
+                art: Art::Logo,
+                area: Rect::new(inner.x + 1 + pad, top, cols, rows),
+                bg: t.p.panel,
+            });
+            top += rows + 1;
+        }
+        let rows = usize::from(inner.bottom().saturating_sub(top));
+        let lines = crate::sidebar::session(m, cols, rows);
+        for (row, line) in (top..inner.bottom()).zip(&lines) {
+            buf.set_line(inner.x + 1, row, line, inner.width.saturating_sub(2));
+        }
+        let mut hits = m.hits.borrow_mut();
+        hits.side_x = inner.x + 1;
+        hits.side_w = inner.width.saturating_sub(2);
+        hits.side_y = top;
     }
 }
 
@@ -130,24 +349,6 @@ fn modal(m: &Model, area: Rect, buf: &mut Buffer) {
     for (row, line) in (top..area.bottom()).zip(&card) {
         buf.set_line(left, row, line, to_u16(cw));
     }
-}
-
-/// A pane's label on its first row: its name in capitals, a quiet rule to its edge.
-fn label(
-    buf: &mut Buffer,
-    area: Rect,
-    name: &str,
-    hue: ratatui::style::Style,
-    t: &crate::theme::Theme,
-) {
-    let name = caps(name);
-    let rule = usize::from(area.width).saturating_sub(cells(&name) + 1);
-    let line = Line::from(vec![
-        Span::styled(name, hue.add_modifier(Modifier::BOLD)),
-        Span::raw(" "),
-        Span::styled("─".repeat(rule), t.line()),
-    ]);
-    buf.set_line(area.x, area.y, &line, area.width);
 }
 
 /// Everything in `area` dimmed toward the page: the view under a modal.
@@ -178,44 +379,6 @@ pub fn sidebar_title_at(m: &Model, col: u16, row: u16) -> Option<crate::sidebar:
         return None;
     }
     m.sidebar.title_at(usize::from(row - h.side_y))
-}
-
-/// The sidebar in `area`: a quiet rule down its left edge, a space, its label, its sections.
-fn sidebar(m: &Model, area: Rect, buf: &mut Buffer) {
-    let rule = Span::styled("│", m.theme.line());
-    let w = usize::from(area.width.saturating_sub(3));
-    let top = area.y + 1;
-    let lines = crate::sidebar::view(m, w, usize::from(area.height.saturating_sub(1)));
-    for y in area.y..area.bottom() {
-        buf.set_span(area.x + 1, y, &rule, 1);
-    }
-    label(
-        buf,
-        Rect {
-            x: area.x + 3,
-            width: area.width.saturating_sub(3),
-            ..area
-        },
-        "session",
-        m.theme.gold(),
-        &m.theme,
-    );
-    for (y, line) in (top..area.bottom()).zip(&lines) {
-        buf.set_line(area.x + 3, y, line, area.width.saturating_sub(3));
-    }
-    let h = usize::from(area.height.saturating_sub(1));
-    if let Some((pad, cols, rows)) = crate::sidebar::picture_box(m, w, h) {
-        m.pictures.want(Want {
-            slot: Slot::Sidebar,
-            art: Art::Logo,
-            area: Rect::new(area.x + 3 + pad, top, cols, rows),
-            bg: m.theme.p.bg,
-        });
-    }
-    let mut hits = m.hits.borrow_mut();
-    hits.side_x = area.x + 3;
-    hits.side_w = area.width.saturating_sub(3);
-    hits.side_y = top;
 }
 
 /// The transcript, the queue, the card and the input, stacked in `area`.
@@ -323,27 +486,6 @@ fn to_u16(n: usize) -> u16 {
     u16::try_from(n).unwrap_or(u16::MAX)
 }
 
-/// The top edge: Mikata, the body and its model; what holds the session, on the right.
-fn header(m: &Model, width: usize) -> Line<'static> {
-    let t = &m.theme;
-    let mut spans = vec![Span::styled("─ ", t.frame())];
-    spans.extend(mark(t));
-    spans.push(Span::styled(" · ", t.frame()));
-    spans.push(Span::styled(
-        crate::safe::shown(&m.header.body),
-        t.summoner(),
-    ));
-    if width >= 50 {
-        spans.push(Span::styled(" · ", t.frame()));
-        spans.push(Span::styled(
-            crate::safe::one_line(&m.header.model),
-            t.muted(),
-        ));
-    }
-    spans.push(Span::raw(" "));
-    truncate(Line::from(spans), width.saturating_sub(3))
-}
-
 /// The top edge's right: the session's id, and its state — `○ idle`, `⣾ running bash 3s`,
 /// `◆ waiting for you`.
 fn state(m: &Model) -> Line<'static> {
@@ -375,103 +517,30 @@ fn short_id(id: &str) -> String {
     clip(tail, 12)
 }
 
-/// Mikata's mark: the hologram's diamond in the slimes' teal, the name drawn across the
-/// water races — Summoner's blue to the named slime's pale cyan — as a gradient, one hue a letter.
-fn mark(t: &crate::theme::Theme) -> Vec<Span<'static>> {
-    const NAME: &str = "MIKATA";
-    let stops = [t.races.summoner, t.races.slime, t.races.named_slime];
-    let mut spans = vec![Span::styled(
-        "◈ ",
-        t.race(mikata_races::Race::Slime)
-            .add_modifier(Modifier::BOLD),
-    )];
-    let last = NAME.len() - 1;
-    for (i, c) in NAME.chars().enumerate() {
-        // Display only: a letter's place along an eight-letter gradient.
-        #[allow(clippy::cast_precision_loss)]
-        let along = i as f32 / last as f32 * 2.0;
-        let (from, to, frac) = if along < 1.0 {
-            (stops[0], stops[1], along)
-        } else {
-            (stops[1], stops[2], along - 1.0)
-        };
-        let hue = t.readable(from.mix(to, frac));
-        spans.push(Span::styled(
-            c.to_string(),
-            ratatui::style::Style::new()
-                .fg(hue.color())
-                .add_modifier(Modifier::BOLD),
-        ));
-    }
-    spans
-}
-
-/// The bottom edge: the spend, the context against its stress line, the keys that matter now,
-/// the world.
-fn status(m: &Model, width: usize) -> Line<'static> {
+/// The footer's middle: what waits (lines queued, lines held) and the keys that matter now, in
+/// at most `room` cells.
+fn keys(m: &Model, room: usize) -> Line<'static> {
     let t = &m.theme;
-    let u = &m.transcript.usage;
-    let sep = || Span::styled(" · ", t.frame());
-    let mut spans = vec![Span::styled("─ ", t.frame())];
-    let mut parts: Vec<Span<'static>> = Vec::new();
-    if u.tokens > 0 || u.usd > 0.0 {
-        parts.push(Span::styled(
-            if u.unpriced && u.usd == 0.0 {
-                "unpriced".to_owned()
-            } else {
-                format!("${:.2}{}", u.usd, if u.unpriced { "+" } else { "" })
-            },
-            t.text(),
-        ));
-        parts.push(Span::styled(
-            format!("{} tok", crate::sidebar::short(u.tokens)),
-            t.muted(),
-        ));
-    }
-    if let Some(pct) = u.occupancy.saturating_mul(100).checked_div(u.stress_line) {
-        parts.push(Span::styled(
-            format!("ctx {pct}%"),
-            crate::sidebar::band(t, pct),
-        ));
-    }
+    let mut spans: Vec<Span<'static>> = Vec::new();
     let q = m.transcript.queued.len();
     if q > 0 {
-        parts.push(Span::styled(format!("{q} queued"), t.muted()));
+        spans.push(Span::styled(format!("{q} queued  "), t.gold()));
     }
     if m.transcript.held > 0 {
-        parts.push(Span::styled(
-            format!("{} held", m.transcript.held),
+        spans.push(Span::styled(
+            format!("{} held  ", m.transcript.held),
             t.muted(),
         ));
     }
-    for (i, p) in parts.into_iter().enumerate() {
-        if i > 0 {
-            spans.push(sep());
-        }
-        spans.push(p);
-    }
-    let used: usize = spans.iter().map(|s| cells(&s.content)).sum();
-    let world = format!("world {}", crate::safe::one_line(&m.header.world));
-    let world_cells = if width >= 80 { cells(&world) + 3 } else { 0 };
-    let room = width.saturating_sub(used + world_cells + 6);
+    let used = spans.iter().map(|s| cells(&s.content)).sum::<usize>();
     let help = KeyHelp {
         key: t.text(),
         action: t.muted(),
         sep: t.frame(),
     }
-    .view(bindings(m), room);
-    if !help.spans.is_empty() {
-        if used > 2 {
-            spans.push(sep());
-        }
-        spans.extend(help.spans);
-    }
-    if world_cells > 0 {
-        spans.push(sep());
-        spans.push(Span::styled(world, t.muted()));
-    }
-    spans.push(Span::raw(" "));
-    truncate(Line::from(spans), width.saturating_sub(3))
+    .view(bindings(m), room.saturating_sub(used));
+    spans.extend(help.spans);
+    truncate(Line::from(spans), room)
 }
 
 fn bindings(m: &Model) -> &'static [Binding] {
@@ -499,6 +568,10 @@ fn bindings(m: &Model) -> &'static [Binding] {
             action: "queue",
         },
         Binding {
+            key: "ctrl+t",
+            action: "open card",
+        },
+        Binding {
             key: "pgup",
             action: "scroll",
         },
@@ -515,6 +588,14 @@ fn bindings(m: &Model) -> &'static [Binding] {
         Binding {
             key: "↑↓",
             action: "history",
+        },
+        Binding {
+            key: "ctrl+t",
+            action: "open card",
+        },
+        Binding {
+            key: "F2",
+            action: "view",
         },
         Binding {
             key: "pgup",
