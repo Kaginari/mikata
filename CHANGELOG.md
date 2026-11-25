@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-25
+
 ### Security
 
 - **The URL library under the HTTP client is updated past an advisory published on 22 November
@@ -161,6 +163,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   notes says what that means and that it is not to be done that way again.
 
 ### Fixed
+
+- **The board shows your words as you wrote them.** A turn's "YOU" card, and a chat's name in the
+  rail, showed the whole text the harness built for the body — recalled memory, the journal's last
+  entries — instead of your ask. They now show what follows the core's own marker, your ask alone.
+- **The board names Mikata as Mikata.** Its own body read "Summoner" in the metrics legend and
+  "mikata (slime)" on the approval card; it now reads Mikata, with no kind beside its name, and the
+  metrics say "Spend per day" and "Per body". A long sandbox line no longer breaks the status tag
+  apart.
 
 - **A check that cannot run is no longer called a failure of your work.** A check whose command
   could not load what it names (a program that is not installed, a module or file that is not
@@ -959,7 +969,8 @@ collective-coding are kept as the lab, usable and frozen.
 - The canvases: each page's sketches drawn by tldraw's Mermaid converter as `.tldr` documents and
   light and dark SVGs in the pages, every canvas checked for script and outside links [#311].
 
-[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.1.0...main
+[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.2.0...main
+[1.2.0]: https://github.com/Kaginari/mikata/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Kaginari/mikata/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Kaginari/mikata/releases/tag/v1.0.0
 [#31]: https://github.com/Kaginari/mikata/pull/31
