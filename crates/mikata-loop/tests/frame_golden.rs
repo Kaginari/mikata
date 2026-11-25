@@ -252,3 +252,43 @@ async fn the_builds_small_fix_profile_is_the_plan_off() {
         &frame_with(&w, None, &[("MIKATA_PROFILE", "small-fix")]).await,
     );
 }
+
+/// The bare loop — every native unit off as the session opens — says only what it holds: no
+/// plan, no ask for lessons (memory is off), no word of an end gate (the gate is off). Its frame
+/// is kept, and differs from the default's by those parts alone.
+#[tokio::test]
+async fn the_bare_loop_says_only_what_it_holds() {
+    let all = mikata_loop::units::NATIVE
+        .iter()
+        .map(|id| format!("-{id}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let bare = frame_with(&world("bare-loop", &[]), None, &[("MIKATA_UNITS", &all)]).await;
+    golden("bare-loop", &bare);
+    let default = frame(&world("bare-loop-default", &[]), None).await;
+    let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
+    let (bare_text, default_text) = (text(&bare), text(&default));
+    assert!(default_text.contains(mikata_loop::solo::LESSONS));
+    assert!(default_text.contains("end gate"));
+    for gone in [mikata_loop::solo::LESSONS, "end gate", "@U", "## Done when"] {
+        assert!(!bare_text.contains(gone), "{gone}: {bare_text}");
+    }
+    assert_eq!(bare["tools"], default["tools"], "the tools are the same");
+}
+
+/// Memory off in the human's global file takes the ask for lessons out of the prompt, and
+/// nothing else; a world's file cannot.
+#[tokio::test]
+async fn memory_off_at_open_takes_the_ask_for_lessons_with_it() {
+    let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
+    let on = text(&frame(&world("lessons-on", &[]), None).await);
+    let off = text(
+        &frame(
+            &world("lessons-off", &[]),
+            Some("[units]\nmemory = false\n"),
+        )
+        .await,
+    );
+    assert_eq!(on.replace(mikata_loop::solo::LESSONS, ""), off);
+    assert_ne!(on, off);
+}

@@ -363,7 +363,7 @@ fn interpreter(name: &str, words: &[Option<&str>], t: &mut Tally) -> Kind {
     if name == "perl" && has_short(words, 'i') {
         t.refuse(
             Rule::InPlaceEdit,
-            "in-place edits run blind (`perl -i`): use the edit or multiedit tool",
+            "in-place edits run blind (`perl -i`): use the edit tool",
         );
     }
     t.raise(Write, format!("`{name}` runs code"));
@@ -578,7 +578,7 @@ fn table(w: &mut Walker<'_>, name: &str, args: &[Lit], words: &[Option<&str>], t
             if in_place {
                 t.refuse(
                     Rule::InPlaceEdit,
-                    "in-place edits run blind (`sed -i`): use the edit or multiedit tool",
+                    "in-place edits run blind (`sed -i`): use the edit tool",
                 );
             }
             // In place, the files are written: the class an approval would run at says so.

@@ -40,7 +40,8 @@ pub use mikata_sandbox::is_secret;
 pub use pinned::remove_created;
 pub use shell::{model_call, stash_depth, stdout_of};
 pub use tool::{
-    Context, Grant, Meta, Outcome, OwnerOf, ReadOf, ReadSpan, Tool, call, ignored, registry,
+    Context, Grant, Meta, Outcome, OwnerOf, ReadOf, ReadSpan, SLASH_TMP, Tool, call, ignored,
+    registry, retired,
 };
 pub use tripwire::{kijin_witness, queue_witness, usage_witness};
 

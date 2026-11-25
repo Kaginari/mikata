@@ -80,7 +80,7 @@ impl Tool for Bash {
     }
 
     fn description(&self) -> &'static str {
-        "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call."
+        "Run a bash command at the world's root. Each command is classified first: refused commands never run, outward and destructive ones wait for the human. A write outside the world is outward: keep scratch files under `.mikata/tmp/`, not in `/tmp`. Each call is a fresh shell (a `cd` does not carry over); background processes end with the call."
     }
 
     fn schema(&self) -> Value {
@@ -405,14 +405,59 @@ fn stays_on_the_machine(acts: &[OutwardKind]) -> bool {
     })
 }
 
+/// Whether `verdict` puts the command to the human: its class is outward or destructive, or a
+/// rule the human's configuration turned into a question refused it.
+fn asks_the_gate(verdict: &Verdict, cx: &Context) -> bool {
+    match verdict {
+        Verdict::Run { class, .. } => {
+            matches!(class, ToolClass::Outward | ToolClass::Destructive)
+        }
+        Verdict::Refuse { rule, .. } => cx.asks(*rule),
+    }
+}
+
+/// What a denied command is told besides the gate's own word: why it was put to the human, each
+/// reason once, and the route that needs no approval where there is one — scratch files written
+/// outside the world have a place inside it.
+fn denial_reasons(why: &[String], writes_outside: bool) -> String {
+    if why.is_empty() {
+        return String::new();
+    }
+    let shown = why.len().min(DENIAL_REASONS);
+    let mut said = format!(
+        ". It was put to the human because: {}",
+        why[..shown].join("; ")
+    );
+    if why.len() > shown {
+        let _ = write!(said, "; and {} more", why.len() - shown);
+    }
+    if writes_outside {
+        said.push_str(
+            ". A write inside the world needs no approval: keep scratch files under `.mikata/tmp/`",
+        );
+    }
+    said
+}
+
+/// The most reasons a denial names.
+const DENIAL_REASONS: usize = 4;
+
 fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Outcome> {
-    let place = Place {
+    let mut place = Place {
         world: cx.world().to_path_buf(),
         home: cx.home().to_path_buf(),
         cwd: cx.world().to_path_buf(),
         roots: cx.deploy_roots().to_vec(),
+        tmp: cx.private_tmp(),
     };
-    let (verdict, acts, pushes) = classify_reach(command, &place);
+    let (mut verdict, mut acts, mut pushes) = classify_reach(command, &place);
+    // A command that asks the gate runs, once approved, with the machine's own `/tmp` (it may
+    // reach the network, and an agent's socket lives there): it is read again that way, so the
+    // human is shown, and approval opens, where its `/tmp` paths really are.
+    if place.tmp.is_some() && asks_the_gate(&verdict, cx) {
+        place.tmp = None;
+        (verdict, acts, pushes) = classify_reach(command, &place);
+    }
     let (class, why, outside, asked) = ruled(verdict, cx)?;
     let contained = cx.disposable() && pushes.is_empty() && stays_on_the_machine(&acts);
     if !contained {
@@ -470,9 +515,15 @@ fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Ou
         outside: outside.clone(),
         fingerprint: Some(plan.clone()),
     };
+    // The reasons are kept for the body: a denial that names them lets it take the lawful route
+    // at its next call, where a bare "not approved" leaves it to guess which part was the act.
+    let because = denial_reasons(
+        &crate::classify::gated_reasons(command, &place),
+        !outside.is_empty(),
+    );
     if let Answer::Deny(reason) = cx.gate().ask(&ask) {
         let mut denied = Outcome::error(format!(
-            "the human gate did not approve this {class} command ({}): {reason}",
+            "the human gate did not approve this {class} command ({}): {reason}{because}",
             plan.short()
         ));
         denied.meta.denied = true;
@@ -855,6 +906,16 @@ fn policy_of(cx: &Context, tmp: &Path, network: bool, typed: bool, opened: &[Pat
     policy
 }
 
+/// Whether nothing `policy` names lies under the machine's `/tmp`, which a mount there would
+/// hide from the command.
+fn plain_policy(policy: &Policy) -> bool {
+    policy
+        .read
+        .iter()
+        .chain(&policy.write)
+        .all(|p| !p.starts_with("/tmp"))
+}
+
 /// Run `command` in the context's sandbox: the world writable, a private temporary directory
 /// inside it, the network open only for an approved outward or destructive act. An approved
 /// command runs only if the world still matches the approved plan at the moment of the spawn,
@@ -873,7 +934,17 @@ fn run(
 ) -> Result<Ran, Spawn> {
     let tmp = cx.scratch();
     std::fs::create_dir_all(&tmp)?;
-    let policy = policy_of(cx, &tmp, network, typed, opened);
+    let mut policy = policy_of(cx, &tmp, network, typed, opened);
+    // A `/tmp` of its own, for a command that stays inside the guard: one the human approved
+    // keeps the machine's, where what it was approved to reach may live.
+    if !network
+        && opened.is_empty()
+        && plain_policy(&policy)
+        && let Some(own) = cx.private_tmp()
+    {
+        std::fs::create_dir_all(&own)?;
+        policy.tmp_at = Some(own);
+    }
     // The command as approved, and after it a line that keeps its last pipeline's statuses.
     let (wrapped, status_file) = with_status_line(command, &tmp);
     let mut cmd = cx

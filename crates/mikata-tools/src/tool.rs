@@ -55,7 +55,6 @@ pub fn registry() -> Vec<Box<dyn Tool>> {
         Box::new(crate::index::Index),
         Box::new(files::Write),
         Box::new(files::Edit),
-        Box::new(files::MultiEdit),
         Box::new(files::Move),
         Box::new(files::Delete),
         Box::new(crate::patch::Patch),
@@ -63,6 +62,21 @@ pub fn registry() -> Vec<Box<dyn Tool>> {
         Box::new(files::Grep),
         Box::new(shell::Bash),
     ]
+}
+
+/// The folder of a context's scratch its commands see as `/tmp` ([`Context::private_tmp`]).
+pub const SLASH_TMP: &str = "slash-tmp";
+
+/// A tool no session is offered any more, by the name a session that already used it may still
+/// call: answered as it always was, so a resumed run's own history stays true.
+///
+/// `multiedit` is the one: its edits were an array of objects holding code, the shape a model's
+/// tool call breaks on most (one call in eight came back as no JSON, where `edit`'s flat
+/// arguments never did). Several edits are several `edit` calls in one message.
+#[must_use]
+pub fn retired(name: &str) -> Option<&'static dyn Tool> {
+    static MULTIEDIT: files::MultiEdit = files::MultiEdit;
+    (name == MULTIEDIT.name()).then_some(&MULTIEDIT as &dyn Tool)
 }
 
 /// What a call returned.
@@ -599,6 +613,33 @@ impl Context {
         self.world.join(".mikata/tmp")
     }
 
+    /// The directory this context's commands see as `/tmp`, where the guard gives each one a
+    /// `/tmp` of its own ([`mikata_sandbox::Sandbox::private_tmp`]): a folder of the scratch, so
+    /// a file a command keeps in `/tmp` is kept in the world's scratch and nowhere else. `None`
+    /// where the machine cannot do it, and for a context any of whose own places — its world,
+    /// its home, a folder it was lent, a deploy root — lies under the machine's `/tmp`, which a
+    /// mount there would hide. A command the human let reach the network is not given one
+    /// either (the shell's own rule): it keeps the machine's `/tmp`, an agent's socket included.
+    #[must_use]
+    pub fn private_tmp(&self) -> Option<PathBuf> {
+        if !self.sandbox.private_tmp() {
+            return None;
+        }
+        let under_tmp = |p: &Path| {
+            p.canonicalize()
+                .unwrap_or_else(|_| p.to_path_buf())
+                .starts_with("/tmp")
+        };
+        let places = [self.world.as_path(), self.home.as_path()]
+            .into_iter()
+            .chain(self.lent.iter().map(PathBuf::as_path))
+            .chain(self.deploy_roots.iter().map(PathBuf::as_path));
+        if places.into_iter().any(under_tmp) {
+            return None;
+        }
+        Some(self.scratch().join(SLASH_TMP))
+    }
+
     /// Whether this body could have written `path` (absolute). Under a kernel guard a commissioned
     /// body's commands write only what it is granted — its soil, its build output, its scratch,
     /// its plan — and its file tools no more, so a change anywhere else is another writer's: a
@@ -1043,7 +1084,8 @@ impl Context {
 /// Call `name` with the raw JSON the model sent. Bad JSON, unknown fields and missing fields are
 /// named errors returned to the model; the tool does not run on input it cannot read.
 pub fn call(tools: &[Box<dyn Tool>], name: &str, raw_args: &str, cx: &mut Context) -> Outcome {
-    let Some(tool) = tools.iter().find(|t| t.name() == name) else {
+    let listed = tools.iter().find(|t| t.name() == name).map(AsRef::as_ref);
+    let Some(tool) = listed.or_else(|| retired(name)) else {
         let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
         return Outcome::error(format!(
             "there is no tool `{name}`; the tools are: {}",

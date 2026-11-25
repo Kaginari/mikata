@@ -1616,8 +1616,8 @@ flowchart LR
     a `chmod`, a `touch` or a rewrite dressed in its old mtime counts as a change and is judged.
     The file tools run in the harness, not under landlock, each path checked against the soil
     and opened component by component without following a link: `read`, `write` (whole, atomic),
-    `edit` (one exact replacement), `multiedit` (several, in order, all or none, and never a
-    rewrite that leaves the file as it was), `move` (a file or a directory, both ends and every
+    `edit` (one exact replacement; several edits are several `edit` calls in one message, run in
+    order), `move` (a file or a directory, both ends and every
     entry in it the body's own, never a folder holding another's spot, never into itself, never
     over an existing file) and `delete` (a file, only once the attic's snapshot holds a copy of it
     — so not what the attic leaves out: ignored files, build output, large files — or an empty
@@ -1628,8 +1628,12 @@ flowchart LR
     kept; a rename refused, for `move`; a binary, mode-only or empty-file `diff --git` block
     refused by name, never skipped). A link is moved or deleted as itself, never its target; git's own files are never
     a tool's; a refusal leaves the tree as it was, the directories a failed move made unmade; a
-    write of what a file already holds writes nothing; and `edit` and `multiedit` refuse a file
-    that is not UTF-8 text rather than replace its bytes.
+    write of what a file already holds writes nothing; and `edit` refuses a file
+    that is not UTF-8 text rather than replace its bytes. `multiedit` (several edits to one file,
+    all or none) is retired: no session is offered it, because its edits were an array of objects
+    holding code, the shape a model's tool call breaks on most (with Claude Haiku 5.5, one call in
+    eight came back as no JSON over 190 runs, where `edit`'s flat arguments never did); a run that
+    already used it is still answered (`mikata_tools::retired`).
     Reads go skeleton first. `index` outlines a file (or up to ten): its symbols — `fn`,
     `struct`, `enum`, `impl`, `trait`, `mod`, `class`, `method`, `interface`, `const`, … — each
     with its line range, indented by nesting, then its imports and its line count:
@@ -1658,8 +1662,26 @@ flowchart LR
     lines (400; or over 60 bytes a line of it, 24 KB) read with no range answers with its
     skeleton's first entries instead of its text; `0` reads every file whole. A file whose name
     holds `#` is read as that file.
-    `sed -i` and `perl -i` are refused, pointing to `edit` and `multiedit`: an anchor that misses
-    exits 0 and changes nothing.
+    `sed -i` and `perl -i` are refused, pointing to `edit`: an anchor that misses
+    exits 0 and changes nothing. A command the human gate denies is told why it was put to the
+    human — the reasons at class outward or above, never the ones that made it a mere write —
+    and, when it wrote outside the world, that scratch files go under `.mikata/tmp/`: with no
+    human attached, Claude Haiku 5.5 was denied 115 times in 190 runs, 100 of them for a scratch
+    file in `/tmp`, and a denial said nothing of which part was the act.
+    **A `/tmp` of the command's own.** Where the kernel lets an unprivileged process make a user
+    namespace and mount in it, the guard gives each command its own `/tmp`: a folder of the
+    world's scratch (`.mikata/tmp/slash-tmp/`) mounted there for that command alone, before
+    landlock and seccomp are applied. The command keeps its user and group, holds no capability
+    once it execs, and can make no further namespace or mount; the machine's `/tmp` is out of its
+    reach, and nothing outside sees the mount. The classifier then judges a path under `/tmp`
+    where it lands — the scratch, inside the world — so a scratch file kept in `/tmp`, which is
+    where most programs and most models keep one, is a plain write that asks nobody. It is asked
+    of the guard once, by a probe (`Sandbox::private_tmp`; `mikata status` says `private /tmp`),
+    and never used: for a world, a home, a lent folder or a deploy root that itself lies under
+    `/tmp` (the mount would hide it); for a command the human approved to reach outside, which
+    keeps the machine's `/tmp` (an ssh agent's socket lives there) and is classified and shown
+    that way; on macOS; or where the kernel refuses (Ubuntu's restricted user namespaces, most
+    containers). There a write to `/tmp` is outward, as it was, and its denial names the scratch.
     Layered, landlock refuses what it can, the tools refuse by name, and the end gate's *right
     author* judges every changed file the snapshot sees; what git ignores is build output and is
     not judged. **What a body reads of other processes:** `/proc` is readable, but landlock

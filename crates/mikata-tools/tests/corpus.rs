@@ -317,3 +317,34 @@ fn outward_acts_by_kind() {
         assert_eq!(classify_acts(cmd, &place()).1, [], "{cmd}");
     }
 }
+
+/// Where the guard gives a command a `/tmp` of its own, a path under `/tmp` is judged where it
+/// lands — the scratch, inside the world — and nothing else about the command changes.
+#[test]
+fn a_tmp_of_the_commands_own_is_judged_where_it_lands() {
+    let script = "cat > /tmp/chk.py <<'X'\nprint(1)\nX\npython3 /tmp/chk.py";
+    let mut place = place();
+    assert_eq!(
+        label(&classify(script, &place)),
+        "outward",
+        "the machine's /tmp"
+    );
+    place.tmp = Some("/w/.mikata/tmp/slash-tmp".into());
+    for inside in [
+        script,
+        "mkdir -p /tmp/base && cp -r src /tmp/base && rm -rf /tmp/base",
+        "python3 -m unittest 2>&1 | tee /tmp/before.txt | tail -3",
+    ] {
+        assert_eq!(label(&classify(inside, &place)), "write", "{inside}");
+    }
+    // What leaves its `/tmp` is judged as it always was: `..` out of it, another temporary
+    // folder, the network.
+    for outside in [
+        "echo x > /tmp/../var/x.txt",
+        "echo x > /var/tmp/x.txt",
+        "curl -o /tmp/page.html https://example.com",
+    ] {
+        assert_eq!(label(&classify(outside, &place)), "outward", "{outside}");
+    }
+    assert_eq!(label(&classify("echo x > /tmp/../etc", &place)), "refuse");
+}

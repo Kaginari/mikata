@@ -1070,6 +1070,13 @@ async fn a_call_with_broken_arguments_is_answered_and_the_run_goes_on() {
 /// The solo body knows where it stands: its system prompt names the repository root, escaped, so it
 /// spends no call finding out.
 #[test]
+fn the_solo_prompt_ends_with_its_ask_for_lessons() {
+    // The part memory holds is cut out by its words: they must be the prompt's own.
+    assert!(mikata_loop::SOLO_PROMPT.ends_with(mikata_loop::solo::LESSONS));
+    assert!(!mikata_loop::solo::without_lessons(mikata_loop::SOLO_PROMPT).contains("@U"));
+}
+
+#[test]
 fn the_solo_prompt_names_the_repository_root() {
     let w = World::new("root-named");
     let (body, _) = solo(&w.world(), "claude-sonnet-5-5");

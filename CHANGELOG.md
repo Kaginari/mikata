@@ -20,6 +20,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **A `/tmp` of the command's own.** On Linux, where the kernel allows it, each sandboxed
+  command gets its own `/tmp`: a folder of the project's scratch (`.mikata/tmp/slash-tmp/`)
+  mounted there for that command alone. A scratch file kept in `/tmp` is now a plain write that
+  asks nobody, and the machine's shared `/tmp` stays out of reach. `mikata status` says
+  `private /tmp` where it holds. With Claude Haiku 5.5 it removed the approval gate's commonest
+  denial (100 of 115 in 190 runs) and took 12% fewer calls in the bare loop.
+
 - **Experimental: every part of the loop is a unit, and plugins load while a session runs.**
   Memory, the end gate, the held `Done when` list, the fold, the stress signals, what-changed,
   the reader and the challenge switch on and off (`[units]` in your global file, `--units` on
@@ -76,6 +83,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   lands at last, the stop's notes go out of recall.
 
 ### Changed
+
+- **Fewer calls lost to the harness.** `multiedit` is no longer offered (its nested arguments
+  came back as broken JSON in one call in eight); several edits are several `edit` calls in one
+  message, and a session that used it is still answered. A command the approval gate refuses is
+  told why and where scratch files belong. The prompt says one message may carry several tool
+  calls, and says only what the session's units hold.
 
 - **Every entry the harness writes for a session says what it was asked** (`- **Asked:**`, the
   ask's first line), so the journal reads as what happened to which ask.
