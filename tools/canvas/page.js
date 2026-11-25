@@ -8,7 +8,13 @@ import { createMermaidDiagram, defaultMermaidNodeRenderSpec } from '@tldraw/merm
 import mermaid from 'mermaid';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { DEFAULT_THEME, getSnapshot, parseTldrawJsonFile, serializeTldrawJson, Tldraw } from 'tldraw';
+import {
+  DEFAULT_THEME,
+  getSnapshot,
+  parseTldrawJsonFile,
+  serializeTldrawJson,
+  Tldraw,
+} from 'tldraw';
 import 'tldraw/tldraw.css';
 
 const assetUrls = getAssetUrls({ baseUrl: '/tldraw-assets' });
