@@ -148,8 +148,8 @@
   border-radius: 7px;
   background: transparent;
   color: var(--mn-text);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 800;
   text-decoration: none;
 }
 .bapp .bapp-nav .bapp-active {
@@ -237,6 +237,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--mn-text);
+  font-weight: 600;
   text-align: left;
   text-decoration: none;
 }
