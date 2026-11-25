@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/mikata-logo-dark.png">
-    <img src="./assets/brand/mikata-logo-light.png" alt="Mikata: a living cell flowing into a digital one" width="220">
-  </picture>
+  <img src="./assets/brand/social-preview.png" alt="Mikata 味方: the coding agent on your side. Its mark, a living cell flowing into a digital one" width="100%">
 </p>
 
 # Mikata
