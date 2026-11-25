@@ -199,6 +199,28 @@ export function stages(view: ChatView | undefined, planOn: boolean): [Stage, Sta
   });
 }
 
+/** Plan · Work · Verify · Land, each marked by where the run is. */
+function Steps({
+  st,
+  label,
+  compact,
+}: {
+  st: [Stage, StageState][];
+  label: string;
+  compact?: boolean;
+}) {
+  return (
+    <ol className={compact ? 'bapp-steps bapp-steps-compact' : 'bapp-steps'} aria-label={label}>
+      {st.map(([s, at]) => (
+        <li key={s} data-state={at}>
+          {at === 'done' ? '✔' : at === 'failed' ? '✘' : at === 'now' ? '◌' : '○'} {s}
+          <span className="visually-hidden">: {at}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /** The log's lines: a mark, its tone, and what happened. */
 function logLines(view: ChatView | undefined): [string, string, string][] {
   const out: [string, string, string][] = [];
@@ -681,6 +703,7 @@ export function BuilderView({
                       text={run ? `${run.session} · ${live?.link ?? 'connecting'}` : 'No run yet'}
                     />
                   </p>
+                  {run && <Steps st={st} label="Session stages" compact />}
                   <button type="button" onClick={() => setView('builder')}>
                     <Icon icon={faLayerGroup} /> Harness builder
                   </button>
@@ -894,14 +917,7 @@ export function BuilderView({
                 <Safe text={why} />
               </p>
             )}
-            <ol className="bapp-steps" aria-label="Stages">
-              {st.map(([s, at]) => (
-                <li key={s} data-state={at}>
-                  {at === 'done' ? '✔' : at === 'failed' ? '✘' : at === 'now' ? '◌' : '○'} {s}
-                  <span className="visually-hidden">: {at}</span>
-                </li>
-              ))}
-            </ol>
+            <Steps st={st} label="Stages" />
             <div className="bapp-log" role="log" aria-label="Run log">
               {run ? (
                 <>

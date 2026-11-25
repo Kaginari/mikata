@@ -451,6 +451,11 @@
   font: 12px var(--mn-font-mono);
   color: var(--mn-text-muted);
 }
+.bapp-steps-compact {
+  justify-content: center;
+  gap: 18px;
+  margin: 0;
+}
 .bapp-steps li[data-state="done"] {
   color: var(--mn-success);
 }
