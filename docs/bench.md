@@ -184,9 +184,9 @@ xychart-beta
   screens ($0.50 against $0.91 and $0.87). On mathjs,
   whose fixes are smaller, it cost half of OpenCode's and three times Maki's. With a stronger
   model every harness passes every task, and Mikata's pass costs what OpenCode's does and twice
-  Maki's. Mikata writes down what done means and checks each line; that takes calls. Where the
-  work is hard for the model it has paid for itself in passes. Where the work is small, or the
-  model needs no help, it is a cost.
+  Maki's. Mikata's plan, writing down what done means and checking each line, took those calls;
+  measured again with it off (now the default), a mathjs pass cost 1.18 times Maki's and Mikata
+  passed 17 of 20 to Maki's 15 ([the plan, measured again](#the-plan-measured-again)).
 - **The ceiling on those ten tasks was the model's.** The two tasks all three harnesses failed
   with the small model pass in all three with the stronger one.
 - **A count moves by one or two between runs.** Mikata passed 9, then 7. Two tasks fail for all
@@ -194,8 +194,9 @@ xychart-beta
   calls on them and failed too.
 - **What moved us from 5 to 9 is one habit:** write down what "done" means before any code, and
   check every line of it before answering. The earlier build answered "done" one check short;
-  where OpenCode passed and it did not, OpenCode had re-run the tests after its last edit. Now
-  light-coding does that every time, from its list.
+  where OpenCode passed and it did not, OpenCode had re-run the tests after its last edit. That
+  was the build of 13 November; on later builds the habit earned no pass and it is off by
+  default, a switch away ([the plan, measured again](#the-plan-measured-again)).
 - **Asks with examples pass twice as often.** The same four tasks: 4 of 4 with the ask's examples
   and expected output, 4 of 8 as one paragraph of prose, at the same price. Without examples the
   model checks against its own reading, and a wrong reading passes its own checks. That is the
@@ -293,6 +294,8 @@ xychart-beta
 | Four fixes as prose, a reader named, two builds | the build as it ships writes the list itself: one call to a stronger model, shown the ask alone | **12 of 12** (plain: 6 of 12); $0.31 a pass, against $0.59 |
 | The same twelve, on 1.1.0 as released | the published archive's own binaries, every run counted | **10 of 12** (plain: 6 of 12); $0.45 a pass, against $0.59 |
 | Ten single fixes, 1.1.0 with a reader named | each task once; one task not run under the cap | 7 of 9 (plain on the same nine: 7 of 9); $0.59 a pass, against $0.44 |
+| The plan, none and a lighter one, two bodies (stage 13) | sqlglot; qwen on four prose asks three times, Claude Haiku 5.5 on fixes and prose twice | qwen: the plan 3 of 12, none **5**, the lighter one 4; Haiku 18 of 18 each, none at 85% of the plan's calls |
+| The plan, none, a todo, and Maki on mathjs (stage 14) | twenty fixes an arm, qwen, one build (845e493) | none **17 of 20**, the plan 17, the todo 17, Maki 15; $0.177 a pass with none, $0.215 with the plan, $0.150 for Maki |
 
 On the largest work the single body never filled its context: no run was compacted. It ran out of
 steps, not memory, and with more steps it finished on its own.
@@ -654,6 +657,191 @@ Six runs an arm on two asks for the first three steps, $10.77; fourteen runs on 
 fourth, $3.90; twelve for the fifth, $4.47; nine for the sixth, $4.15; thirty-six for the
 seventh, $11.72; twenty-four for the eighth, $0.85. One codebase, asks that are not fresh, one
 model as the reader, and but for the eighth step one as the body.
+
+### The plan, measured again
+
+Until 25 November every session opened with the plan: before any code the body wrote down what
+done means, weighed two or three ways, and before it answered ran every line and the tests it
+touched. Switched off on the plugin kernel's first screens, with Claude Haiku 5.5, it passed 51 of
+52 against 52 in a quarter to nearly half fewer calls
+([plugins](experimental/plugins.md#where-it-stands)). Two screens asked whether it still pays for a small
+model, each with its bar written first.
+
+**Stage 13, sqlglot.** qwen on the four prose asks, three runs each; Claude Haiku 5.5 on fixes and
+prose, twice. A difference was three passes in twelve.
+
+| | qwen, prose | Haiku, fixes and prose | Haiku's calls |
+|---|---|---|---|
+| the plan | 3 of 12 | 18 of 18 | 100% |
+| **none** | **5 of 12** | 18 of 18 | 85% |
+| a lighter plan (`plan_lite`: only the outputs the ask states) | 4 of 12 | 18 of 18 | 84% |
+
+**Stage 14, mathjs,** the codebase where Maki is cheapest. qwen pinned to one provider, one build
+(845e493), ten fixes twice an arm, and a fourth arm: a `todo` list the body keeps when it wants,
+where a step may carry a command the harness runs when the step is marked done. A difference was
+four passes in twenty. $14.26 for 96 runs.
+
+| | Passes | Calls | $ | $ a pass | $ a call |
+|---|---|---|---|---|---|
+| **none** | **17 of 20** | 1,023 | 3.00 | **0.177** | 0.0029 |
+| the plan | 17 of 20 | 1,094 | 3.66 | 0.215 | 0.0033 |
+| a todo | 17 of 20 | 1,033 | 3.22 | 0.189 | 0.0031 |
+| Maki 0.7.3 | 15 of 20 | 785 | 2.25 | 0.150 | 0.0029 |
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+    xyChart:
+      backgroundColor: "#0d0b10"
+      titleColor: "#f5eff7"
+      xAxisLabelColor: "#b7a9bc"
+      xAxisTitleColor: "#b7a9bc"
+      xAxisTickColor: "#59405d"
+      xAxisLineColor: "#59405d"
+      yAxisLabelColor: "#b7a9bc"
+      yAxisTitleColor: "#b7a9bc"
+      yAxisTickColor: "#59405d"
+      yAxisLineColor: "#59405d"
+      plotColorPalette: "#ff168a, #cd7d00"
+---
+xychart-beta
+    title "Stage 14, mathjs: passes of 20"
+    x-axis ["none", "the plan", "a todo", "Maki"]
+    y-axis "passes" 0 --> 20
+    %% one series a harness, in its own colour; -1 leaves the others' bars undrawn
+    bar [17, 17, 17, -1]
+    bar [-1, -1, -1, 15]
+```
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+    xyChart:
+      backgroundColor: "#0d0b10"
+      titleColor: "#f5eff7"
+      xAxisLabelColor: "#b7a9bc"
+      xAxisTitleColor: "#b7a9bc"
+      xAxisTickColor: "#59405d"
+      xAxisLineColor: "#59405d"
+      yAxisLabelColor: "#b7a9bc"
+      yAxisTitleColor: "#b7a9bc"
+      yAxisTickColor: "#59405d"
+      yAxisLineColor: "#59405d"
+      plotColorPalette: "#ff168a, #cd7d00"
+---
+xychart-beta
+    title "Stage 14, mathjs: dollars a pass"
+    x-axis ["none", "the plan", "a todo", "Maki"]
+    y-axis "dollars a pass" 0 --> 0.25
+    %% one series a harness, in its own colour; -1 leaves the others' bars undrawn
+    bar [0.177, 0.215, 0.189, -1]
+    bar [-1, -1, -1, 0.15]
+```
+
+- **The plan earned no pass on either.** Level with none on both codebases and both bodies, and
+  dearer: 22% more dollars a pass on mathjs. It is off by default since #466; `--profile
+  planned` puts it back, `--profile prose` the lighter one.
+- **The todo was level too, and seldom reached for.** qwen called it in 6 of 24 runs and gave a
+  step a check in 3; the harness ran them, and a failing one kept its step open. It is not merged.
+- **The price gap to Maki closed on this build.** Dollars a call are the same; Mikata takes 30%
+  more calls and passed two more fixes. On 1.1.0 a mathjs pass cost more than three times
+  Maki's; the screens differ in build, day and provider routing, so read the two side by side
+  with care.
+- Prose on mathjs, four runs an arm (none 2, the plan 3, the todo 3, Maki 2), is too few to read.
 
 ### A second codebase
 

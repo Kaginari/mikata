@@ -1885,7 +1885,7 @@ an empty list or table never overrides a lower layer:
   id (`qwen3:32b`); an empty id is no model. From the tracked file, a model written
   `<provider>:<id>` is a hole, as `models.provider` is. `Config::backend(model)` returns the
   provider, its URL and key variable, and the id it knows the model by; every session's
-  provider, a commissioned body's included, is built from it. **Providers** name the environment
+  provider is built from it. **Providers** name the environment
   variable holding their key (`key_env`), never the key, and may name a file holding it
   (`key_file`), read when the variable is not set or empty. The error when neither gives a key
   names both: `OPENROUTER_API_KEY is not set and ~/.config/mikata/openrouter.key is unreadable:
