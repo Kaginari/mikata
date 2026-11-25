@@ -1,8 +1,8 @@
 # Mikata — the book
 
 Mikata is a coding agent: a Rust core and terminal app, `mikata`, a server, `mikatad`, for the
-TypeScript SDK and the web board, and one body that writes down what "done" means and checks
-every line of it before it answers. This book says exactly what the code does.
+TypeScript SDK and the web board, and one body that works over your repository, held to an end
+gate and to every line of "done" you write down. This book says exactly what the code does.
 
 Every page reads the same way:
 

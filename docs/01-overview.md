@@ -5,7 +5,7 @@
 <a href="./canvas/overview-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./canvas/overview-dark.svg">
-  <img src="./canvas/overview-light.svg" alt="The overview canvas: you give Mikata an ask; it writes down what done means as lines it can run, does the work inside your repository, and checks every line; a failing line sends it back to the work; then the end gate runs your verify line and checks that no test was deleted or skipped; it answers with what changed. An ask that names several projects runs one body a project, at once">
+  <img src="./canvas/overview-light.svg" alt="The overview canvas: you give Mikata an ask; it does the work inside your repository; when the ask carries a Done when list, yours or a reader's, the harness runs every line and a failing line sends it back to the work; then the end gate runs your verify line and checks that no test was deleted or skipped; it answers with what changed. An ask that names several projects runs one body a project, at once">
 </picture>
 </a>
 
@@ -69,17 +69,21 @@ flowchart TD
     V(["You"])
     M["Mikata<br/>one body over your repository"]
     P["several projects named in the ask?<br/>one body a project, at once,<br/>each in its own folder"]
-    L[("Done when<br/>D1, D2, … each a line it can run")]
+    L[("your Done when list, or a reader's<br/>each line held by the harness")]
     W["the work<br/>reads only the lines it needs<br/>writes inside your repository"]
-    C{"its own check<br/>every line, the tests it touched"}
+    C{"the list's lines<br/>each one run"}
     G{"the end gate<br/>your verify line runs green<br/>no test deleted or skipped"}
     A(["the answer, with what changed"])
 
     V -->|your ask| M
     M -.-> P
-    M --> L --> W --> C
+    M --> W
+    V -.->|a list in the ask| L
+    L -.-> C
+    W -->|with a list| C
     C -->|a line does not hold| W
     C -->|every line holds| G
+    W -->|no list| G
     G -->|refused| W
     G -->|passes| A
     A --> V
@@ -100,25 +104,26 @@ flowchart TD
 **Mikata** (味方, "ally": the one on your side) is a coding agent. You give it an ask; one body
 works through it over your whole repository, the way a careful engineer would:
 
-1. **It writes down what "done" means, first:** every output your ask states and every case that
-   must keep working, each a line `D1`, `D2`… it can run.
-2. **It weighs two or three ways** to do the ask, with what each risks, and picks one.
-3. **It does the work,** reading only the lines it needs.
-4. **It checks before it answers:** it runs every line of its list and the tests of what it
-   touched. A difference or a red test means not done.
-5. **The end gate judges every file it changed:** your verify line runs green, and no test was
+1. **It does the work,** reading only the lines it needs, inside your repository, and runs what
+   it needs to run: the tests, a build, a script.
+2. **The end gate judges every file it changed:** your verify line runs green, and no test was
    deleted or skipped.
+3. **What you say must hold is held.** Lines under `## Done when` in your ask, or the lines a
+   reader you name writes, are run by the harness on the finished work, every one, before the
+   answer lands.
 
-6. **You are shown what changed, by its own checks:** when the answer has landed, its last
+4. **You are shown what changed, by its own checks:** when the answer has landed, its last
    checks are run again on the code as you gave it and on the finished work, and you see where
    they print differently ([the loop](02-loop.md#what-changed-by-its-own-checks)). No model reads
    that list. You do.
 
-That habit, writing "done" down and checking it, took Mikata from 5 of 10 to level with OpenCode
-and Maki on our bench, at about half their price per pass on the fixes it was built on. It takes
-calls: on smaller fixes in a second codebase, and with a stronger model that needs no help, the
-three stay level on passes and Mikata is not the cheapest ([the bench](bench.md)). It needs
-nothing set up.
+**Its own plan is one switch away.** Asked for (`--profile planned`, or `plan = true` under
+`[units]`), the body first writes down what "done" means, weighs two or three ways, and runs every
+line and the tests it touched before it answers. That habit took Mikata from 5 of 10 to level with
+OpenCode and Maki on our bench. Measured again on 25 November it earned no pass: on twenty mathjs
+fixes Mikata passed 17 with it and 17 without, and without it a pass cost 18% less, 1.18 times
+what one costs with Maki, which passed 15 ([the bench](bench.md#the-plan-measured-again)). So it is
+off by default, and Mikata needs nothing set up.
 
 **You can write the list yourself, or have a reader write it.** Lines under `## Done when` in your
 ask (`D1: ... must give ...`, `D2: ... must stay as it is today`) are held by the harness, not

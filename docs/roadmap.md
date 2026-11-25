@@ -180,14 +180,11 @@ next:
   nowhere else we have looked. Today
   the reader is called on every ask that carries no list. To try: let it answer that the ask
   already fixes its outputs, and write only what must stay.
-- **What the habit costs where it is not needed.** Mikata writes down what done means and
-  checks each line. On the fixes it was built on that took it from 5 of 10 to level with the
-  others at half their price. On ten smaller fixes in a second codebase it is level and costs
-  three times what Maki does a pass; with a stronger body all three pass everything and Maki
-  finishes in half Mikata's calls ([the bench](bench.md#a-second-codebase)). The habit is one
-  size for every ask and every body. To try, bar first: let the size of the list follow the
-  ask, and measure calls a pass on the small fixes with passes on the hard ones held where they
-  are.
+- **What the habit costs where it is not needed: answered.** The plan, writing down what done
+  means and checking each line, was one size for every ask and every body. Measured again on two
+  codebases and two bodies it earned no pass and cost about a fifth more a pass, so it is off by
+  default and a switch away ([the bench](bench.md#the-plan-measured-again)). A list you write, or
+  a reader writes, is still held line by line.
 - **A copy that cannot run the project.** A `must stay` line handed in late is read from a copy
   of the world, and what changed is shown from two. Until a second codebase was run the copies
   left `node_modules` out, and on a JavaScript project almost nothing ran in them: 8 checks of
