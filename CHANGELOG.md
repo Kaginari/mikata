@@ -20,6 +20,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **The board's Harness Builder** (`#/w/<world>/builder`, first under the world in the rail).
+  Every unit a session in the world would open with is a card round the core — its version,
+  whether the configuration has it on, a switch — with the build's and the global file's
+  profiles to start from. The composition shows as a global file's `[profiles.<name>]` and as
+  the `--units` list; **Start run** opens a chat with exactly that harness (sandboxed as every
+  chat) and the page follows it live: Plan, Work, Verify, Land, each step on a timeline, the end
+  gate's word, the wall time, the steps and the spend. New: `GET /api/w/<world>/units`, and
+  `POST /api/w/<world>/sessions` takes `profile` and `units`, refused unless they read.
+
 - **A `/tmp` of the command's own.** On Linux, where the kernel allows it, each sandboxed
   command gets its own `/tmp`: a folder of the project's scratch (`.mikata/tmp/slash-tmp/`)
   mounted there for that command alone. A scratch file kept in `/tmp` is now a plain write that

@@ -135,6 +135,18 @@ pub struct Plugins {
 }
 
 impl Config {
+    /// The profiles the human's global file names, each with its list as written, by name.
+    #[must_use]
+    pub fn profiles(&self) -> Vec<(String, String)> {
+        self.leaves
+            .iter()
+            .filter_map(|(key, leaf)| {
+                let name = key.strip_prefix("profiles.")?.strip_suffix(".units")?;
+                Some((name.to_owned(), leaf.value.as_str()?.to_owned()))
+            })
+            .collect()
+    }
+
     /// The composition the human's global file names `name` (`[profiles.<name>] units = "…"`),
     /// or `None` when it names none: a mix of units for a kind of work, asked for with
     /// `--profile <name>`.

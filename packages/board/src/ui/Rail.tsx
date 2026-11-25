@@ -22,6 +22,7 @@ const PAGES = [
 ] as const;
 
 export const SECTIONS: readonly [WorldSection, string, string][] = [
+  ['builder', '◈', 'Harness builder'],
   ['bodies', '⛬', 'Bodies & queue'],
   ['memory', '✧', 'Memory'],
   ['ontology', '◇', 'Ontology'],

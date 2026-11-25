@@ -56,7 +56,7 @@ pub use gate::{Author, EndGate, GateVerdict, Tree, Verdict, snapshot};
 /// The configuration's layers, origins and holes, for a reader that shows them (the board).
 pub use mikata_config as config;
 /// The configuration, for a client that opens a session from it.
-pub use mikata_config::{Config, Paths};
+pub use mikata_config::{Composition, Config, Paths};
 pub use mikata_provider::Event as StreamEvent;
 pub use mikata_provider::OPAQUE_PREFIX;
 /// The shipped price table, for a reader that shows what a model costs.

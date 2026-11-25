@@ -28,6 +28,8 @@
   /* the races, one colour each — the cards' frames (tools/cards.py) */
   --mn-race-summoner: #3fa9f5;
   --mn-race-elf: #2fa36b;
+  /* What held: a check, a landing. Neon's own green below. */
+  --mn-success: var(--mn-race-elf);
   --mn-race-orc: #c9822b;
   --mn-race-slime: #19c3b0;
   --mn-race-kijin: #d7263d;
@@ -77,6 +79,7 @@
  */
 
 :root[data-scheme="neon"]:not([data-theme="light"]) {
+  --mn-success: #a3ff56;
   --mn-bg: #0d0b10;
   --mn-panel: #18121d;
   --mn-panel-raised: #1e1622;

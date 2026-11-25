@@ -20,6 +20,7 @@ import { Pane } from './ui/Pane.tsx';
 import { Rail } from './ui/Rail.tsx';
 import { ShortcutMap } from './ui/ShortcutMap.tsx';
 import { BodiesView } from './views/Bodies.tsx';
+import { BuilderView } from './views/Builder.tsx';
 import { LiveChat, PastChat, type Side } from './views/Chat.tsx';
 import { IntegrationsView } from './views/Integrations.tsx';
 import { JournalView } from './views/Journal.tsx';
@@ -129,6 +130,9 @@ function Centre({
   if (!world) {
     const gone = load.data.missing.find((m) => m.id === route.world);
     return gone ? <MissingWorld m={gone} now={now} /> : <NoWorld id={route.world} />;
+  }
+  if (route.name === 'section' && route.section === 'builder') {
+    return <BuilderView key={world.id} w={world} chats={chats} />;
   }
   if (route.name === 'section' && route.section === 'bodies') {
     return <BodiesView key={world.id} w={world} tab={route.tab} />;

@@ -84,7 +84,7 @@ export function parseTranscript(body: unknown): BoardTranscript & { arrived: Arr
   };
 }
 
-async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {
+export async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {
   await establish();
   const res = await fetch(path, {
     signal: signal ?? null,
@@ -190,11 +190,16 @@ export function useChats(world: string | undefined): Chats {
 }
 
 /** Start a chat in `world`: new, or resuming `resume`. Answers the chat, or throws why not. */
-export async function startChat(world: string, resume?: string): Promise<BoardStarted> {
-  const res = await post(
-    `/api/w/${encodeURIComponent(world)}/sessions`,
-    resume === undefined ? {} : { resume },
-  );
+export async function startChat(
+  world: string,
+  resume?: string,
+  composed?: { profile?: string; units?: string },
+): Promise<BoardStarted> {
+  const ask: Record<string, string> = {};
+  if (resume !== undefined) ask.resume = resume;
+  if (composed?.profile) ask.profile = composed.profile;
+  if (composed?.units) ask.units = composed.units;
+  const res = await post(`/api/w/${encodeURIComponent(world)}/sessions`, ask);
   if (!res.ok) {
     const why = (await res.text().catch(() => '')).slice(0, 300);
     throw new Error(why || `the board server answered ${res.status}`);
