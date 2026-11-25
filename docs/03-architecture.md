@@ -2228,8 +2228,11 @@ list and the rest, each one a part that can be switched off and measured on its 
 native one, compiled in, or a **plugin**: a separate program, in any language, that the session
 starts and asks at fixed points of the loop.
 
-- **`[units]`** switches native units by id: `memory = false`. The default is every unit on, so a
-  file that names none changes nothing. The human's global file may switch a unit either way. A
+- **`[units]`** switches native units by id: `memory = false`. The default is every unit on but
+  `plan` and `plan_lite`, which a session asks for by name (`plan = true`, `--units +plan`), so a
+  file that names none changes nothing. The plan went off by default after stage 13
+  (2026-11-25): on qwen's prose asks it passed 3 of 12 where no plan passed 5, and with Claude
+  Haiku 5.5 every arm passed 18 of 18, the plan at 118% of no plan's calls. The human's global file may switch a unit either way. A
   world's file, tracked or local, may only switch a unit off: `true` there is a hole that says so.
   Even off, a world's switch counts only for a unit whose own manifest says switching it off
   tightens what the body faces (the loop checks that, not the configuration): a repository can
@@ -2256,6 +2259,11 @@ starts and asks at fixed points of the loop.
   named once; anything else is refused before the run starts. It is a command-line flag only, as
   the mode and the law are: no file a world holds sets it. It is how one build runs a bench's
   arms.
+- **`--profile <name>`** asks for a named composition: the build's `planned` (`+plan`, the full
+  plan), `prose` (`+plan_lite`: the outputs a prose ask states, copied and checked — for a small
+  body on prose asks) and `small-fix` (`-plan`, the default since stage 13), or a
+  `[profiles.<name>] units = "…"` of the global file, which goes over the build's of the same
+  name; `--units` goes over the profile.
 - **Memory remembers which unit wrote a note**: a note event may carry `unit` (`memory@1.0.0`,
   `plugin:cognee@0.1.0`); rows written before have none and read as before.
   `mikatad memory withdraw --by <unit@version>` takes back every note that unit wrote, in every

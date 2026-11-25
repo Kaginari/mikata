@@ -98,6 +98,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The plan is off by default.** A session no longer has the body write `plan.md` (what done
+  means, its paths) before the code unless it is asked for: `--units +plan`, `plan = true` under
+  `[units]`, or `--profile planned`. On stage 13's screen (2026-11-25) the plan earned no pass:
+  qwen on four prose asks passed 3 of 12 with it and 5 of 12 without; Claude Haiku 5.5 passed 18
+  of 18 either way, at 84% of the calls without it. Lines you write under `## Done when` are held
+  as before. New: the `plan_lite` unit (`--units +plan_lite`, `--profile prose`): one line in the
+  plan's place that copies and checks only the outputs the ask states.
+
 - **Mikata's design system: Bio Digital and Bio Pearl.** The board, the Harness Builder, the
   plugin inspector, the book and the site wear one system, biological intelligence meeting
   digital: hot pink, coral and amber for the brand; lime for what lives, connects and verifies
@@ -106,7 +114,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   drew as a character. The Harness Builder wires each unit and plugin to the core (native pink,
   plugin amber, off dashed, lime and flowing while a run is live); the plugin inspector shows
   each unit's kind, whether it is loaded or connected, and its id. Every page of the book has a
-  diagram or a chart in the system's colours, on GitHub as on the site.
+  diagram or a chart in the system's colours, on GitHub as on the site. The default `neon`
+  scheme is Bio Digital in the terminal UI too: `#0d0b10`, `#16111b`, borders `#3d2b40`, text
+  `#f5eff7`, lime `#b6f542`, error `#ff5575`; its light page is Bio Pearl.
 
 - **Mikata's new mark: a living cell flowing into a digital one** — a nucleus and its organelles
   on the left, a hexagon with a circuit round its core on the right, hot pink through coral to

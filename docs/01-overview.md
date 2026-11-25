@@ -173,9 +173,10 @@ did better on every screen.
 ### Compose it (experimental)
 
 Every part of the loop is a **unit** you can switch: memory, the end gate, the held `Done when`
-list, the fold, the stress signals, what-changed, the reader, the challenge and the prompt's plan
-(`[units]` in your global file, `--units` on `mikata run`, `/unit on|off` in the terminal). A
-**profile** names a mix for a kind of work (`mikata run --profile small-fix` leaves the plan out).
+list, the fold, the stress signals, what-changed, the reader, the challenge, and the prompt's plan
+and its lighter form, both off by default (`[units]` in your global file, `--units` on `mikata
+run`, `/unit on|off` in the terminal). A **profile** names a mix for a kind of work (`--profile
+planned` puts the plan back, `--profile prose` its lighter form).
 A **plugin** is a program of yours that speaks MCP plus `mikata/hook`, run in the sandbox under a
 deadline, and loaded, unloaded or swapped while a session runs ([plugins](experimental/plugins.md)).
 The board's **Harness Builder** draws the units round the core and starts a run with exactly

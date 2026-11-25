@@ -4,10 +4,12 @@
 
 # Mikata
 
-**The coding agent on your side** (味方, *mikata*: ally). You give it an ask; one body writes down
-what "done" means before any code, does the work, and checks every line of it before it
-answers. Every change then passes the end gate: your verify line runs green, and no test is
-deleted or skipped.
+**The coding agent on your side** (味方, *mikata*: ally). You give it an ask; one body does the
+work and checks it before it answers. Every change then passes the end gate: your verify line
+runs green, and no test is deleted or skipped. Say what done means in the ask and the harness
+holds each line; ask for a plan (`--profile planned`) and the body writes what done means down
+before any code. The plan is off by default: on our last screen it earned no pass and cost up to
+a sixth of the calls.
 
 On our bench, ten real fixes in a large Python library, with the same small open model in every
 harness, run twice a week apart ([the bench](docs/bench.md)):
@@ -22,8 +24,7 @@ On passes the three are level: by the bar we wrote first, no difference is shown
 codebase (ten fixes in a JavaScript library) they are level again, 8, 7 and 6 of 10, and with a
 stronger model every one of them passes all ten. Mikata is not always the cheapest: on the
 JavaScript fixes, which are smaller, Maki's pass cost a third of Mikata's, and with the stronger
-model half. Writing down what done means and checking it takes calls; it pays where the work is
-hard for the model.
+model half.
 
 **Say what done means, and the harness holds it.** Put lines under `## Done when` in your ask
 (`D1: ... must give ...`, `D2: ... must stay as it is today`), or name a reader, a model that

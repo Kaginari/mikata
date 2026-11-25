@@ -61,8 +61,7 @@ config:
 ---
 flowchart TD
     R["1.1.0<br/>what done means, held"] --> N(["Now · main<br/>a harness you compose"])
-    N --> D["Next<br/>what the loop carries by default"]
-    D --> M["Next<br/>a memory that pays"]
+    N --> M["Next<br/>a memory that pays"]
     M --> F["Then<br/>a fold for long runs"]
     F --> S["Later<br/>the split, wider"]
     L[("The lab<br/>kept, not developed")]
@@ -72,7 +71,7 @@ flowchart TD
     classDef now fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
     class N now
     classDef next fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
-    class D,M next
+    class M next
     classDef later fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
     class F,S later
     classDef lab fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
@@ -94,17 +93,14 @@ reader that writes it; and the list of what changed when an answer lands
   correction held as a line of that ask's list, `/wrong` in the terminal ([memory](07-memory.md)).
 - **The faces:** the terminal UI as a dashboard, and the board's Harness Builder, both in
   Mikata's design system; the site is live at mikata.kaginari.org.
-
-## Next: what the loop carries by default
-
-The prompt's plan (write a `Done when` list and run each line before answering) is most of what
-the units cost: switched off, Haiku took 208 calls against 370 on ten fixes, 10 of 10 each, and
-29 of 30 in 744 calls against 30 of 30 in 1,000 on thirty
-([plugins: where it stands](experimental/plugins.md#where-it-stands)). With qwen, on prose asks,
-the plan passed 3 of 12, none 5 and a lighter plan 4: the gain it was kept for did not show.
-Proposed, not merged: the plan off by default, the plan and a lighter one a switch away (#466).
-Before it lands, a `todo` unit the body keeps when it wants, with a check per step, is measured
-against no plan and the plan on mathjs, the codebase where Maki is cheapest; its verdict decides.
+- **The plan off by default** (#466). The prompt's plan (write a `Done when` list and run each
+  line before answering) was most of what the units cost: switched off, Haiku took 208 calls
+  against 370 on ten fixes, 10 of 10 each, and 29 of 30 in 744 calls against 30 of 30 in 1,000 on
+  thirty ([plugins: where it stands](experimental/plugins.md#where-it-stands)); with qwen on prose
+  asks the plan passed 3 of 12 and none 5. On mathjs, twenty fixes an arm with qwen: no plan 17,
+  the plan 17, a `todo` the body keeps when it wants 17, Maki 15; no plan the cheapest Mikata, at
+  1.18 times Maki's dollars a pass. The plan and a lighter one stay a switch away; the todo,
+  level, is not merged.
 
 ## Next: asks without examples
 

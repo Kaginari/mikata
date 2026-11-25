@@ -350,7 +350,8 @@ A missed bar is reported as missed; a stage that misses is not built on until it
 | Stage 4, parts (first screen) | 2026-11-24: `plan` off 208 calls against 370, 10 of 10 each; `stress` off level |
 | Stage 5, where the plan pays | 2026-11-24: fixes, plan off 29 of 30 in 744 calls against 30 of 30 in 1,000; prose 12 and 12, 257 calls against 331 (Haiku). The `small-fix` profile |
 | Stage 6, the plan with qwen | 2026-11-24: fixes, 8 of 10 each, 1,210 calls against 1,293: nothing shown |
-| Stage 13, the default plan | 2026-11-25: with qwen on prose asks the plan passed 3 of 12, none 5 and a lighter plan (`plan_lite`) 4: no gain shown; with Haiku 18 of 18 each, the lighter plan at 84% of the plan's calls and none at 85%. Proposed, not merged: the plan off by default, `plan` and `plan_lite` one switch away (#466); stage 14 measures a `todo` unit against it |
+| Stage 13, the default plan | 2026-11-25: with qwen on prose asks the plan passed 3 of 12, none 5 and a lighter plan (`plan_lite`) 4: no gain shown; with Haiku 18 of 18 each, the lighter plan at 84% of the plan's calls and none at 85%. Merged as #466: the plan off by default, `plan` and `plan_lite` one switch away (`--profile planned`, `--profile prose`) |
+| Stage 14, a todo on mathjs | 2026-11-25, qwen, twenty fixes an arm: no plan 17, the plan 17, a `todo` unit (the body's own list, a check per step run by the harness) 17, Maki 15; the body called the todo in 6 of 24 runs. Level: the todo is not merged |
 | Live, the real binary | 2026-11-24: `mikatad` on stdio with Haiku, `no-force-push` loaded by `units/change` between two asks, vetoed the body's force push; no prefix move |
 
 A switch unit is the first step for a part: it can be measured off before its code moves. Its

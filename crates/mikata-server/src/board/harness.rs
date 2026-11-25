@@ -64,14 +64,19 @@ pub fn list(world: &Path) -> BoardUnits {
             None
         }
     };
+    // A unit the default leaves off is on only where the global file says so; any other, unless
+    // a file says off.
     let on = |id: &str| {
-        config
-            .as_ref()
-            .and_then(|c| c.unit(id))
-            .is_none_or(|u| u.on)
+        let said = config.as_ref().and_then(|c| c.unit(id));
+        if mikata_loop::units::OFF_BY_DEFAULT.contains(&id) {
+            said.is_some_and(|u| u.on && !u.from_world())
+        } else {
+            said.is_none_or(|u| u.on)
+        }
     };
     let mut units: Vec<BoardUnit> = mikata_loop::units::NATIVE
         .iter()
+        .chain(mikata_loop::units::OPTIONAL)
         .filter_map(|id| mikata_loop::units::native(id))
         .map(|u| {
             let m = u.manifest();
@@ -130,7 +135,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_world_with_no_file_lists_every_native_unit_on_and_the_build_s_profiles() {
+    fn a_world_with_no_file_lists_every_native_unit_and_the_build_s_profiles() {
         let dir = tempfile::tempdir().unwrap();
         let h = list(dir.path());
         let ids: Vec<&str> = h.units.iter().map(|u| u.id.as_str()).collect();
@@ -144,6 +149,16 @@ mod tests {
         );
         let plan = h.units.iter().find(|u| u.id == "plan").unwrap();
         assert!(plan.frame, "the plan is the prompt's");
+        assert!(!plan.on, "the plan is off unless asked for");
+        let lite = h.units.iter().find(|u| u.id == "plan_lite").unwrap();
+        assert!(!lite.on && lite.frame, "plan_lite is listed, off");
+        assert!(
+            h.units
+                .iter()
+                .filter(|u| u.id != "plan" && u.id != "plan_lite")
+                .all(|u| u.on),
+            "every other native unit is on"
+        );
         assert!(
             h.profiles
                 .iter()
