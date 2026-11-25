@@ -1065,3 +1065,43 @@ fn the_approval_card_boxes_the_act_and_offers_its_answers_as_buttons() {
     let scr = screen(&draw(&mut m, 70, 40));
     assert!(scr.contains("[1] ✔ Yes, run it once"), "{scr}");
 }
+
+#[test]
+fn f2_steps_through_the_dashboard_focus_and_zen() {
+    let mut m = model(Variant::Dark);
+    turn(&mut m, "hello there");
+    let center = screen(&draw(&mut m, 150, 44));
+    assert!(
+        center.contains("Agent loop") && center.contains("Budgets"),
+        "{center}"
+    );
+    assert!(center.contains("◆ Mikata"), "the header bar:\n{center}");
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, mikata_tui::app::View::Focus);
+    let focus = screen(&draw(&mut m, 150, 44));
+    assert!(
+        focus.contains("Agent loop") && focus.contains("◆ Mikata"),
+        "{focus}"
+    );
+    assert!(
+        !focus.contains("Budgets") && !focus.contains("Done when"),
+        "no panels:\n{focus}"
+    );
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, mikata_tui::app::View::Zen);
+    let zen = screen(&draw(&mut m, 150, 44));
+    assert!(
+        zen.contains("hello there"),
+        "the conversation stays:\n{zen}"
+    );
+    assert!(
+        !zen.contains("Agent loop") && !zen.contains("◆ Mikata  │"),
+        "no frame, no bars:\n{zen}"
+    );
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, mikata_tui::app::View::Center);
+    // `/view` names one; a word it does not know lists them.
+    m.input.insert("/view zen");
+    key(&mut m, KeyCode::Enter);
+    assert_eq!(m.view, mikata_tui::app::View::Zen);
+}

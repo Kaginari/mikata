@@ -519,7 +519,7 @@ impl Approval {
     /// The answer `i` as a button: `[n] mark words`, filled when picked, its edges in its hue.
     fn button(&self, t: &Theme, i: usize, n: &str, words: &str) -> Vec<Span<'static>> {
         let hue = match i {
-            0 => t.readable(t.races.elf),
+            0 => t.success,
             _ => t.p.alarm,
         };
         let mark = if i == 0 { "✔" } else { "✘" };

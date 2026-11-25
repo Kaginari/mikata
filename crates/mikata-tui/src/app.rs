@@ -13,6 +13,7 @@ use ratatui::Frame;
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use ratatui::layout::Rect;
 use std::sync::Arc;
 
 use crate::activity::Activity;
@@ -265,6 +266,42 @@ pub struct Model {
     pub sandbox: String,
     /// The end gate's last word on an answer, and whether it passed.
     pub last: Option<(String, bool)>,
+    /// How much of the frame is drawn round the conversation.
+    pub view: View,
+}
+
+/// How much of the frame is drawn round the conversation, switched while the session runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum View {
+    /// The bars and every panel: the dashboard.
+    #[default]
+    Center,
+    /// The bars and the conversation: no panels.
+    Focus,
+    /// The conversation and the input alone: no bars, no frame.
+    Zen,
+}
+
+impl View {
+    /// Every view, in the order F2 steps through them.
+    pub const ALL: [Self; 3] = [Self::Center, Self::Focus, Self::Zen];
+
+    /// Its name, as `/view` takes it.
+    #[must_use]
+    pub fn word(self) -> &'static str {
+        match self {
+            Self::Center => "center",
+            Self::Focus => "focus",
+            Self::Zen => "zen",
+        }
+    }
+
+    /// The view after this one.
+    #[must_use]
+    pub fn next(self) -> Self {
+        let at = Self::ALL.iter().position(|v| *v == self).unwrap_or(0);
+        Self::ALL[(at + 1) % Self::ALL.len()]
+    }
 }
 
 /// The surveys: the next one's number, and the newest whose reading was applied.
@@ -299,7 +336,7 @@ pub(crate) struct Hits {
 }
 
 /// The commands typed with a slash.
-pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /clear · /quit · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
+pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /view center|focus|zen · /clear · /quit · F2 next view · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
 
 impl Model {
     /// A model for a session of `header`, in `variant`, at `size`.
@@ -335,6 +372,7 @@ impl Model {
             units: None,
             sandbox: String::new(),
             last: None,
+            view: View::default(),
         }
     }
 
@@ -371,17 +409,15 @@ impl Model {
     /// The transcript column's width and height at the terminal's size.
     #[must_use]
     pub fn main_area(&self) -> (usize, usize) {
-        let inner = self.size.0.saturating_sub(4);
-        let w = inner - self.sidebar.width(inner);
-        (usize::from(w), usize::from(self.size.1.saturating_sub(2)))
+        let c = crate::view::plan(self, Rect::new(0, 0, self.size.0, self.size.1)).convo;
+        (usize::from(c.width), usize::from(c.height))
     }
 
-    /// The approval card's size: a modal over the main area.
+    /// The approval card's size: a modal over the conversation, as the frame draws it.
     #[must_use]
     pub fn card_area(&self) -> (usize, usize) {
-        // The conversation's label takes the main area's first row.
         let (w, h) = self.main_area();
-        crate::approval::modal(w, h.saturating_sub(1))
+        crate::approval::modal(w, h)
     }
 
     /// A new survey of the world, numbered after every one before it.
@@ -632,7 +668,7 @@ fn status(m: &mut Model, event: &Event) {
             let (word, hue) = match verdict.as_str() {
                 // A pass no check ran on is the baseline, never shown as verified.
                 "PASS" if *unchecked => ("pass, unchecked", t.p.gold),
-                "PASS" => ("pass", t.readable(t.races.elf)),
+                "PASS" => ("pass", t.success),
                 "NOT_VERIFIED" => ("not verified", t.p.gold),
                 _ => ("fail", t.p.alarm),
             };
@@ -953,6 +989,10 @@ fn keys(m: &mut Model, key: KeyEvent, at: Instant) -> Vec<Cmd> {
             refit(m);
         }
         KeyCode::Char('t') if ctrl => toggle_focused(m),
+        KeyCode::F(2) => {
+            m.view = m.view.next();
+            refit(m);
+        }
         KeyCode::Up if alt => step_focus(m, true),
         KeyCode::Down if alt => step_focus(m, false),
         // A selection lets go first: esc never stops a turn while text is held.
@@ -1092,6 +1132,17 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
             "quit" | "exit" => return vec![Cmd::Quit],
             "help" => m.info(COMMANDS),
             "theme" => theme(m, arg),
+            "view" => match View::ALL.into_iter().find(|v| v.word() == arg) {
+                Some(v) => {
+                    m.view = v;
+                    refit(m);
+                }
+                None => m.info(format!(
+                    "/view center|focus|zen — the dashboard, the conversation with its bars, or \
+                     the conversation alone · F2 steps through them · now {}",
+                    m.view.word()
+                )),
+            },
             "clear" => m.transcript = m.transcript.cleared(),
             "send" if arg.is_empty() => m.info("/send <text>: steer the running turn"),
             "send" if !m.busy() => {

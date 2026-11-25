@@ -14,12 +14,12 @@ use crate::app::Model;
 use crate::kit::text::{Lines, cells, truncate};
 use crate::theme::{Rgb, Theme};
 
-/// The gradient's colour at `x` of a screen `w` cells wide: the accent on the left, warming toward
-/// the human's colour on the right, never all the way.
+/// The gradient's colour at `x` of a screen `w` cells wide: the accent on the left, through
+/// their midpoint (Neon's coral) to the human's colour on the right.
 #[must_use]
 pub fn sweep(t: &Theme, x: u16, w: u16) -> Rgb {
     let f = f32::from(x) / f32::from(w.max(1));
-    t.p.holo.mix(t.p.gold, f * 0.55)
+    t.p.holo.mix(t.p.gold, f)
 }
 
 /// A panel: a rounded border in the gradient, its title bold on the top edge with a glyph before
@@ -157,11 +157,7 @@ pub fn header(m: &Model, w: usize, state: Line<'static>) -> Line<'static> {
             t,
             "sandbox",
             if on { "on" } else { "off" },
-            Some(if on {
-                t.readable(t.races.elf)
-            } else {
-                t.p.alarm
-            }),
+            Some(if on { t.success } else { t.p.alarm }),
         ));
     }
     let left = truncate(
@@ -400,7 +396,7 @@ pub fn units(m: &Model, w: usize) -> Lines {
     }
     let on_pill = Style::new()
         .fg(t.p.bg.color())
-        .bg(t.readable(t.races.elf).color())
+        .bg(t.success.color())
         .add_modifier(Modifier::BOLD);
     let off_pill = Style::new()
         .fg(t.p.text_muted.color())

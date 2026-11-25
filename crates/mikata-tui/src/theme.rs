@@ -251,7 +251,7 @@ impl Variant {
 /// the page and its panels tinted toward it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Scheme {
-    /// Violet, magenta, pink and yellow: the default.
+    /// Hot pink through coral to amber on a near-black plum: the default.
     #[default]
     Neon,
     /// Peach, sand and two oranges.
@@ -340,8 +340,8 @@ impl Scheme {
             Self::Harbor => r(0x60_c1e5, 0xa0_e0ef, 0xff_5c7a, 0x1b_365d),
             // colorhunt ff933e ffcb56 ffe9a9 73a5ca
             Self::Dune => r(0xff_933e, 0xff_cb56, 0xe5_484d, 0x73_a5ca),
-            // colorhunt 5003c0 ab03a9 ff467a ffd51e
-            Self::Neon => r(0xff_467a, 0xff_d51e, 0xff_3b30, 0x50_03c0),
+            // hot ff168a, amber ffb020, error ff4757, plum 382638 (the owner's, 2026-11-25)
+            Self::Neon => r(0xff_168a, 0xff_b020, 0xff_4757, 0x38_2638),
             // colorhunt 309898 ff9f00 f4631e cb0404
             Self::Spice => r(0x3c_b8b8, 0xff_9f00, 0xe8_2a22, 0x30_9898),
             Self::Hud => return None,
@@ -358,7 +358,34 @@ impl Scheme {
         let Some(r) = self.roles() else {
             return base;
         };
-        let mut p = match variant {
+        let mut p = match (self, variant) {
+            // Neon's dark page is set whole, not leaned from the base: hot pink to amber over a
+            // near-black plum (the owner's palette, 2026-11-25).
+            (Self::Neon, Variant::Dark) => Palette {
+                bg: Rgb::hex(0x0d_0b10),
+                panel: Rgb::hex(0x18_121d),
+                panel_raised: Rgb::hex(0x1e_1622),
+                line: Rgb::hex(0x38_2638),
+                text: Rgb::hex(0xf4_eef5),
+                text_muted: Rgb::hex(0xa8_98ab),
+                holo: r.accent,
+                alarm: r.alarm,
+                gold: r.human,
+            },
+            (_, variant) => Self::leaned(base, r, variant),
+        };
+        // Every text colour reads on every surface, as the board holds them (AA): one that does
+        // not is moved toward the text, a step at a time, until it does.
+        let surfaces = [p.bg, p.panel, p.panel_raised];
+        for c in [&mut p.text_muted, &mut p.holo, &mut p.alarm, &mut p.gold] {
+            *c = legible(*c, p.text, &surfaces);
+        }
+        p
+    }
+
+    /// The base palette leaned toward a scheme's roles.
+    fn leaned(base: Palette, r: Roles, variant: Variant) -> Palette {
+        match variant {
             Variant::Dark => Palette {
                 bg: base.bg.mix(r.tint, 0.10),
                 panel: base.panel.mix(r.tint, 0.13),
@@ -381,14 +408,7 @@ impl Scheme {
                 alarm: r.alarm.mix(base.text, 0.30),
                 gold: r.human.mix(base.text, 0.62),
             },
-        };
-        // Every text colour reads on every surface, as the board holds them (AA): one that does
-        // not is moved toward the text, a step at a time, until it does.
-        let surfaces = [p.bg, p.panel, p.panel_raised];
-        for c in [&mut p.text_muted, &mut p.holo, &mut p.alarm, &mut p.gold] {
-            *c = legible(*c, p.text, &surfaces);
         }
-        p
     }
 }
 
@@ -453,6 +473,8 @@ pub struct Theme {
     pub p: Palette,
     /// The races' colours.
     pub races: Races,
+    /// What held: a check, a landing.
+    pub success: Rgb,
 }
 
 impl Theme {
@@ -474,11 +496,16 @@ impl Theme {
                 Variant::Light => p.gold,
             };
         }
+        let success = match (scheme, variant) {
+            (Scheme::Neon, Variant::Dark) => Rgb::hex(0xa3_ff56),
+            _ => races.elf,
+        };
         Self {
             scheme,
             variant,
             p,
             races,
+            success: legible(success, p.text, &[p.bg, p.panel, p.panel_raised]),
         }
     }
 
@@ -525,7 +552,7 @@ impl Theme {
     /// Success: the elves' green, readable on the page.
     #[must_use]
     pub fn ok(&self) -> Style {
-        Style::new().fg(self.readable(self.races.elf).color())
+        Style::new().fg(self.success.color())
     }
 
     /// Borders and rules.

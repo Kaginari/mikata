@@ -94,7 +94,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   and *Session* keeps memory, files and bodies (with Mikata's logo where the terminal draws
   pictures and the panel has room). From 140 columns, Checks, Guardrails and Units stand in a
   column of their own on the left. The approval card shows the act boxed as a command line
-  under its reason, and its answers as buttons. A footer bar holds the verify line, the last answer's
+  under its reason, and its answers as buttons. **F2** (or `/view center|focus|zen`) switches,
+  while the session runs, between this dashboard, *Focus* (the conversation with its bars, no
+  panels) and *Zen* (the conversation and the input alone). The default `neon` scheme takes a
+  new palette: hot pink `#ff168a` through coral to amber `#ffb020` on a near-black plum
+  (`#0d0b10`, `#18121d`, borders `#382638`), success `#a3ff56`, error `#ff4757`, text
+  `#f4eef5`; the board's `neon` scheme follows it. A footer bar holds the verify line, the last answer's
   word, the keys that matter now, and the steps, time and spend. Borders run in one pink-to-gold
   gradient; cards are rounded boxes, no longer shaded slabs. Small terminals keep one-row bars
   and drop the frame round the conversation; a short column gives up panels with nothing in

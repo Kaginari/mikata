@@ -218,6 +218,13 @@ fn main() {
         );
     }
     update(&mut m, Msg::Resize(cols, rows));
+    // `focus` or `zen` as the fifth argument: that view.
+    if let Some(v) = mikata_tui::app::View::ALL
+        .into_iter()
+        .find(|v| args.get(5).map(String::as_str) == Some(v.word()))
+    {
+        m.view = v;
+    }
     // `gate` as the fifth argument: an approval waits over the view.
     if args.get(5).map(String::as_str) == Some("gate") {
         let card = mikata_tui::gate::Card::of(

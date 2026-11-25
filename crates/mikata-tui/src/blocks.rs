@@ -205,7 +205,7 @@ fn verdict_line(
     t: &Theme,
 ) -> Line<'static> {
     let (mark, word, hue) = match verdict {
-        "PASS" => ("✓", "pass", t.readable(t.races.elf)),
+        "PASS" => ("✓", "pass", t.success),
         "NOT_VERIFIED" => ("◌", "not verified", t.p.gold),
         _ => ("✗", "fail", t.p.alarm),
     };
@@ -793,7 +793,7 @@ fn hunk_start(h: &str) -> Option<usize> {
 fn change_lines(c: &Change, input: &Value, inner: usize, t: &Theme, open: bool) -> Lines {
     type Colours = Option<(Rgb, ratatui::style::Color)>;
     let tint = |fg: Rgb| fg.mix(t.p.bg, 0.82).color();
-    let add = (t.readable(t.races.elf), tint(t.readable(t.races.elf)));
+    let add = (t.success, tint(t.success));
     let del = (t.p.alarm, tint(t.p.alarm));
     let number = |n: Option<usize>| {
         Span::styled(

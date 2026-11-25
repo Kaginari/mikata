@@ -12,7 +12,7 @@ use ratatui::style::{Color, Modifier};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Widget};
 
-use crate::app::Model;
+use crate::app::{Model, View};
 use crate::blocks::Ctx;
 use crate::kit::keyhelp::{Binding, KeyHelp};
 use crate::kit::text::{Lines, cells, clip, truncate};
@@ -37,9 +37,109 @@ pub fn ctx(m: &Model, width: usize) -> Ctx<'_> {
     }
 }
 
-/// Draw `m` into the frame: a header bar, the agent loop on the left, the panels on the right
-/// (Done when, Budgets, Units, Session), a footer bar; an approval floats over the loop as a modal,
-/// a toast at its top right while it fades.
+/// Where each part of the frame goes in a terminal `area`, in the model's view.
+#[derive(Debug, Clone, Copy)]
+pub struct Plan {
+    /// The bars, when the view draws them, and whether they are framed (three rows each).
+    pub bars: Option<(Rect, Rect, bool)>,
+    /// The left column of a wide dashboard: Checks, Guardrails, Units; zero wide when none.
+    pub lead: Rect,
+    /// The right column: Done when, Budgets (and the rest, when there is no left column),
+    /// Session; zero wide when none.
+    pub side: Rect,
+    /// The Agent loop's frame, when it is drawn.
+    pub frame: Option<Rect>,
+    /// The conversation itself.
+    pub convo: Rect,
+}
+
+/// The frame laid out over `area` for `m`: the dashboard, the conversation with its bars, or
+/// the conversation alone, as the view says, and as the size allows.
+#[must_use]
+pub fn plan(m: &Model, area: Rect) -> Plan {
+    let view = m.view;
+    // Bars of three rows (a framed line) where the rows are many, of one row where the
+    // conversation needs them; none in Zen.
+    let tall = area.height >= 36;
+    let bar = match view {
+        View::Zen => 0,
+        _ if tall => 3,
+        _ => 1,
+    };
+    let bars = (bar > 0).then(|| {
+        (
+            Rect {
+                height: bar,
+                ..area
+            },
+            Rect {
+                y: area.bottom() - bar,
+                height: bar,
+                ..area
+            },
+            tall,
+        )
+    });
+    let mid = Rect {
+        y: area.y + bar,
+        height: area.height.saturating_sub(2 * bar),
+        ..area
+    };
+    // The panels' columns: the sidebar's width and its own frame each. Wide, the checks and the
+    // rails stand in a column of their own on the left; else every panel shares the right.
+    let side = if view == View::Center && m.sidebar.width(mid.width.saturating_sub(4)) > 0 {
+        (crate::sidebar::WIDTH + 4).min(mid.width / 3)
+    } else {
+        0
+    };
+    let lead = if side > 0 && mid.width >= 140 {
+        side.min(mid.width / 4)
+    } else {
+        0
+    };
+    let left = Rect {
+        x: mid.x + lead,
+        width: mid.width - side - lead,
+        ..mid
+    };
+    // A small terminal, or Zen, gives the conversation every cell: no frame round it (Zen keeps a
+    // column of margin each side).
+    let (frame, convo) = if view == View::Zen {
+        let r = Rect {
+            x: left.x + 1,
+            width: left.width.saturating_sub(2),
+            ..left
+        };
+        (None, r)
+    } else if left.width >= 60 && left.height >= 16 {
+        (
+            Some(left),
+            Rect::new(
+                left.x + 2,
+                left.y + 1,
+                left.width.saturating_sub(4),
+                left.height.saturating_sub(2),
+            ),
+        )
+    } else {
+        (None, left)
+    };
+    Plan {
+        bars,
+        lead: Rect { width: lead, ..mid },
+        side: Rect {
+            x: left.right(),
+            width: side,
+            ..mid
+        },
+        frame,
+        convo,
+    }
+}
+
+/// Draw `m` into the frame, in its view: the dashboard (a header bar, the panels each side of the
+/// agent loop, a footer bar), the conversation with its bars, or the conversation alone; an
+/// approval floats over the conversation as a modal, a toast at its top right while it fades.
 pub fn draw(m: &Model, f: &mut Frame<'_>) {
     let area = f.area();
     let buf = f.buffer_mut();
@@ -54,90 +154,47 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
         buf.set_line(area.x, area.y, &msg, area.width);
         return;
     }
-    // Bars of three rows (a framed line) where the rows are many, of one row where the
-    // conversation needs them.
-    let tall = area.height >= 36;
-    let bar = if tall { 3 } else { 1 };
-    let top = Rect {
-        height: bar,
-        ..area
-    };
-    let bottom = Rect {
-        y: area.bottom() - bar,
-        height: bar,
-        ..area
-    };
-    let mid = Rect {
-        y: area.y + bar,
-        height: area.height.saturating_sub(2 * bar),
-        ..area
-    };
-    let bar_line = |buf: &mut Buffer, r: Rect, line: Line<'static>| {
-        if tall {
-            let inner = crate::chrome::panel(buf, r, "", "", t, area.width);
-            buf.set_line(inner.x + 1, inner.y, &line, inner.width.saturating_sub(2));
-        } else {
-            buf.set_line(r.x, r.y, &line, r.width);
-        }
-    };
-    let inner_w = usize::from(area.width.saturating_sub(if tall { 4 } else { 0 }));
-    bar_line(buf, top, crate::chrome::header(m, inner_w, state(m)));
-    bar_line(
-        buf,
-        bottom,
-        crate::chrome::footer(m, inner_w, |room| keys(m, room)),
-    );
-    // The panels' columns: the sidebar's width and its own frame each. Wide, the checks and the
-    // rails stand in a column of their own on the left; else every panel shares the right.
-    let side = if m.sidebar.width(mid.width.saturating_sub(4)) > 0 {
-        (crate::sidebar::WIDTH + 4).min(mid.width / 3)
-    } else {
-        0
-    };
-    let wide = side > 0 && mid.width >= 140;
-    let lead = if wide { side.min(mid.width / 4) } else { 0 };
-    let left = Rect {
-        x: mid.x + lead,
-        width: mid.width - side - lead,
-        ..mid
-    };
-    // A small terminal gives the conversation every cell: no frame round it.
-    let below_label = if left.width >= 60 && left.height >= 16 {
-        let lp = crate::chrome::panel(buf, left, "▶", "Agent loop", t, area.width);
-        Rect {
-            x: lp.x + 1,
-            width: lp.width.saturating_sub(2),
-            ..lp
-        }
-    } else {
-        left
-    };
-    body(m, below_label, buf);
-    m.hits.borrow_mut().side_w = 0;
-    if lead > 0 {
-        lead_column(m, buf, Rect { width: lead, ..mid }, area.width);
-    }
-    if side > 0 {
-        panels(
-            m,
-            Rect {
-                x: left.right(),
-                width: side,
-                ..mid
-            },
+    let p = plan(m, area);
+    if let Some((top, bottom, framed)) = p.bars {
+        let bar_line = |buf: &mut Buffer, r: Rect, line: Line<'static>| {
+            if framed {
+                let inner = crate::chrome::panel(buf, r, "", "", t, area.width);
+                buf.set_line(inner.x + 1, inner.y, &line, inner.width.saturating_sub(2));
+            } else {
+                buf.set_line(r.x, r.y, &line, r.width);
+            }
+        };
+        let inner_w = usize::from(area.width.saturating_sub(if framed { 4 } else { 0 }));
+        bar_line(buf, top, crate::chrome::header(m, inner_w, state(m)));
+        bar_line(
             buf,
-            area.width,
-            wide,
+            bottom,
+            crate::chrome::footer(m, inner_w, |room| keys(m, room)),
         );
     }
-    let inner = mid;
+    if let Some(frame) = p.frame {
+        crate::chrome::panel(buf, frame, "▶", "Agent loop", t, area.width);
+    }
+    body(m, p.convo, buf);
+    m.hits.borrow_mut().side_w = 0;
+    if p.lead.width > 0 {
+        lead_column(m, buf, p.lead, area.width);
+    }
+    if p.side.width > 0 {
+        panels(m, p.side, buf, area.width, p.lead.width > 0);
+    }
     if m.gate.is_some() {
         // The approval never sits under a picture: while it is open, none is wanted.
         m.pictures.wants.borrow_mut().clear();
-        dim(buf, inner, t);
-        modal(m, below_label, buf);
+        let under = p.bars.map_or(area, |(top, bottom, _)| Rect {
+            y: top.bottom(),
+            height: bottom.y.saturating_sub(top.bottom()),
+            ..area
+        });
+        dim(buf, under, t);
+        modal(m, p.convo, buf);
     }
-    toast(m, below_label, buf);
+    toast(m, p.convo, buf);
 }
 
 /// The toast at the top right of `area` while it fades. It never covers the approval: it waits
