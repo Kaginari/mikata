@@ -643,20 +643,25 @@ export function BuilderView({
               <Icon icon={faArrowLeft} /> The full board
             </a>
             <p className="bapp-section">Status</p>
-            {data && data.holes.length === 0 ? (
-              <p className="bapp-ok">● Harness ready</p>
-            ) : (
-              <p className="bapp-warn">
-                ● <Safe text={data?.holes.join(' · ') ?? 'reading the harness…'} />
-              </p>
-            )}
-            <p>
-              <Icon icon={faLock} /> Sandbox:{' '}
-              <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
-            </p>
-            <p>
-              <Icon icon={faCube} /> {enabled} of {units.length} units enabled
-            </p>
+            <ul className="bapp-tags" aria-label="Status">
+              {data && data.holes.length === 0 ? (
+                <li data-tone="ok">
+                  <i className="bapp-dot" aria-hidden="true" /> Harness ready
+                </li>
+              ) : (
+                <li data-tone="alarm">
+                  <i className="bapp-dot" aria-hidden="true" />{' '}
+                  <Safe text={data?.holes.join(' · ') ?? 'reading the harness…'} />
+                </li>
+              )}
+              <li data-tone={live?.hello?.sandbox ? 'holo' : undefined}>
+                <Icon icon={faLock} /> Sandbox:{' '}
+                <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
+              </li>
+              <li data-tone="holo">
+                <Icon icon={faCube} /> {enabled} of {units.length} units enabled
+              </li>
+            </ul>
             <p className="bapp-section">Usage · this run</p>
             {meter('Steps', String(steps), steps / 100)}
             {meter(
