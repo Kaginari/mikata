@@ -22,7 +22,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 - **The board's Harness Builder** (`#/w/<world>/builder`, first under the world in the rail), a
   page of its own: a header with its views and **Run agent**, the workspace, its status and the
-  run's usage on the left, the run on the right (its ask, Start and Stop, its approvals).
+  run's usage on the left, the run on the right (its ask, Start and Stop, its approvals, a box to
+  message the session), and a Sessions view with the run's conversation and a composer. Set in
+  Manrope and JetBrains Mono, with Font Awesome Free icons and the three-cell mark. A wide diff in
+  a chat is now reachable from the keyboard.
   Every unit a session in the world would open with is a card round the core — its version,
   whether the configuration has it on, a switch — with the build's and the global file's
   profiles to start from. The composition shows as a global file's `[profiles.<name>]` and as

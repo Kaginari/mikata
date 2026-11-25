@@ -47,3 +47,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Font Awesome Free (the board's icons)
+
+- **Upstream:** <https://fontawesome.com>, npm `@fortawesome/free-solid-svg-icons` 7.3.1
+- **Licence:** icons CC BY 4.0, code MIT, © Fonticons, Inc.
+- **What Mikata uses:** solid icons drawn inline by the board's Harness Builder
+  (`packages/board/src/ui/Icon.tsx`), bundled into the board's assets.
+
+## Manrope and JetBrains Mono (the board's fonts)
+
+- **Upstream:** Manrope by Mikhail Sharanda, JetBrains Mono by JetBrains; npm `@fontsource/manrope`
+  5.3.0 and `@fontsource/jetbrains-mono` 5.3.0
+- **Licence:** SIL Open Font License 1.1
+- **What Mikata uses:** their Latin subsets, served by the board as files of its own.

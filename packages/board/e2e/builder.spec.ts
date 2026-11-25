@@ -111,6 +111,12 @@ test('the builder starts a run with the composition its switches make, and follo
       });
     });
   });
+  // It opens on the session; the builder is a view away.
+  await expect(page.getByRole('heading', { name: 'Agent session', level: 1 })).toBeVisible();
+  await page
+    .getByRole('navigation', { name: "The builder's views" })
+    .getByRole('button', { name: 'Harness builder' })
+    .click();
   await expect(page.getByRole('heading', { name: 'Harness builder', level: 1 })).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Memory: on' })).toBeVisible();
   // A switch flipped: the composition says it.
@@ -128,6 +134,13 @@ test('the builder starts a run with the composition its switches make, and follo
   await expect(log).toContainText('end gate: pass');
   await expect(page.locator('.bapp-steps li[data-state="done"]')).toHaveCount(4);
   await expect(page.locator('.bapp-state')).toHaveText('VERIFIED');
+  await page.screenshot({ path: shot(`builder-run-${info.project.name}`), fullPage: true });
+  // The session view shows the run's own conversation, and a composer to go on.
+  await page
+    .getByRole('navigation', { name: "The builder's views" })
+    .getByRole('button', { name: 'Sessions' })
+    .click();
+  await expect(page.locator('.bapp-conversation')).toContainText('Parsed 1h30m as 90 minutes');
   await page.screenshot({ path: shot(`builder-${info.project.name}`), fullPage: true });
 });
 
@@ -138,6 +151,10 @@ test('a profile starts the switches from its own composition', async ({ page }) 
       r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
     );
   });
+  await page
+    .getByRole('navigation', { name: "The builder's views" })
+    .getByRole('button', { name: 'Harness builder' })
+    .click();
   await page.getByLabel('Profile').selectOption('small-fix');
   await expect(page.getByRole('switch', { name: 'Plan: off' })).toBeVisible();
   // Nothing flipped over the profile: it goes as it is.

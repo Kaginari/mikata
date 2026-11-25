@@ -15,7 +15,44 @@
     ),
     var(--mn-bg);
   color: var(--mn-text);
+  font-family: "Manrope", var(--mn-font-ui);
   font-size: 14px;
+}
+.bapp .mono,
+.bapp-editor,
+.bapp-log,
+.bapp-ask,
+.bapp-units,
+.bapp-metric span {
+  font-family: "JetBrains Mono", var(--mn-font-mono);
+}
+.fa-icon {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+.logo-hot {
+  stop-color: var(--mn-holo);
+}
+.logo-coral {
+  stop-color: color-mix(in oklab, var(--mn-holo), var(--mn-gold));
+}
+.logo-amber {
+  stop-color: var(--mn-gold);
+}
+.logo-hot-fill {
+  fill: var(--mn-holo);
+}
+.logo-coral-fill {
+  fill: color-mix(in oklab, var(--mn-holo), var(--mn-gold));
+}
+.logo-amber-fill {
+  fill: var(--mn-gold);
+}
+.logo-plain {
+  fill: currentColor;
 }
 .bapp h1,
 .bapp h2,
@@ -66,61 +103,99 @@
 .bapp-head {
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 16px 22px;
-  border-bottom: 1px solid color-mix(in srgb, var(--mn-holo) 55%, var(--mn-line));
+  gap: 17px;
+  padding: 14px 22px;
+  border-radius: 0 0 15px 15px;
   background: linear-gradient(
-    100deg,
-    color-mix(in srgb, var(--mn-holo) 18%, var(--mn-bg)),
-    color-mix(in srgb, var(--mn-holo) 6%, var(--mn-bg)) 70%,
-    color-mix(in srgb, var(--mn-gold) 16%, var(--mn-bg))
+    110deg,
+    color-mix(in srgb, var(--mn-holo) 80%, var(--mn-bg)),
+    var(--mn-holo) 44%,
+    color-mix(in oklab, var(--mn-holo), var(--mn-gold)) 76%,
+    var(--mn-gold)
   );
+  box-shadow: 0 5px 24px var(--mn-glow-soft);
+  color: var(--mn-text);
 }
 .bapp-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  font: bold 23px var(--mn-font-mono);
+  font:
+    700 23px "JetBrains Mono",
+    var(--mn-font-mono);
+  letter-spacing: -1px;
+  white-space: nowrap;
 }
-.bapp-mark {
-  width: 42px;
-  height: 42px;
+.bapp-logo svg {
+  display: block;
+  width: 38px;
+  height: 38px;
 }
-.bapp-stop-hot {
-  stop-color: var(--mn-holo);
+.bapp-branddesc {
+  display: none;
+  max-width: 150px;
+  font:
+    11px / 1.3 "JetBrains Mono",
+    var(--mn-font-mono);
+  letter-spacing: 0;
+  white-space: normal;
 }
-.bapp-stop-amber {
-  stop-color: var(--mn-gold);
+@media (min-width: 1550px) {
+  .bapp-branddesc {
+    display: block;
+  }
 }
-.bapp-eye-hot {
-  fill: var(--mn-holo);
-}
-.bapp-eye-amber {
-  fill: var(--mn-gold);
+.bapp-core-logo {
+  width: 64px;
+  height: 64px;
 }
 .bapp-nav {
   display: flex;
   flex: 1;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
-.bapp-nav button,
+.bapp .bapp-nav button,
 .bapp-navlink {
-  padding: 9px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
   color: var(--mn-text);
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
+}
+.bapp .bapp-nav .bapp-active {
+  border-color: color-mix(in srgb, var(--mn-text) 35%, transparent);
+  background: color-mix(in srgb, var(--mn-bg) 55%, transparent);
+}
+.bapp-head .bapp-muted {
+  color: var(--mn-text);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.bapp-head .bapp-primary {
+  border-color: color-mix(in srgb, var(--mn-text) 50%, transparent);
+  background: color-mix(in srgb, var(--mn-holo) 85%, var(--mn-bg));
+  white-space: nowrap;
 }
 .bapp .bapp-active {
   border-color: color-mix(in srgb, var(--mn-holo) 65%, var(--mn-line));
   background: color-mix(in srgb, var(--mn-holo) 20%, var(--mn-panel));
 }
 .bapp .bapp-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 1px solid color-mix(in srgb, var(--mn-holo) 55%, var(--mn-gold));
-  background: var(--bapp-grad);
-  color: var(--mn-bg);
+  background: linear-gradient(115deg, var(--mn-holo), var(--mn-gold));
+  color: var(--mn-text);
   font-weight: 700;
 }
 
@@ -148,8 +223,10 @@
 .bapp .bapp-section {
   display: block;
   margin: 20px 0 12px;
-  font: bold 11px var(--mn-font-mono);
-  letter-spacing: 1.4px;
+  font:
+    800 12px "Manrope",
+    var(--mn-font-ui);
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
 }
@@ -168,7 +245,9 @@
   overflow-wrap: anywhere;
 }
 .bapp-navbtn {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 9px;
   width: 100%;
   margin: 3px 0;
   padding: 9px 12px;
@@ -213,10 +292,13 @@
   margin-bottom: 18px;
 }
 .bapp-top h1 {
-  font-size: 24px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
 }
 .bapp-top h2 {
-  font-size: 19px;
+  font-size: 21px;
+  font-weight: 800;
 }
 .bapp-profile {
   white-space: nowrap;
@@ -248,9 +330,18 @@
 .bapp-unit h3 {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.bapp-unit h3 .bapp-switch,
+.bapp-unit h3 button {
+  margin-left: auto;
+}
+.bapp-unit-icon {
+  width: 18px;
+  height: 18px;
+  color: color-mix(in srgb, var(--mn-holo) 75%, var(--mn-text));
 }
 .bapp .bapp-unit p {
   margin: 8px 0;
@@ -320,6 +411,11 @@
   background: var(--mn-bg);
   font: 12px / 1.65 var(--mn-font-mono);
   overflow-x: auto;
+}
+.bapp-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 .bapp-toolbar {
   display: flex;
@@ -445,6 +541,83 @@
   margin-top: 14px;
   font-size: 11px;
   color: color-mix(in srgb, var(--mn-gold) 60%, var(--mn-text-muted));
+}
+
+/* the session: the conversation and its composer */
+.bapp-sessionhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+.bapp-sessionhead button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.bapp-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 450px;
+  max-height: 58vh;
+  overflow: auto;
+  padding: 8px 3px;
+}
+.bapp-message {
+  max-width: 93%;
+  padding: 17px;
+  border: 1px solid var(--mn-line);
+  border-radius: 10px;
+  background: var(--mn-panel-raised);
+}
+.bapp-message b {
+  display: block;
+  margin-bottom: 8px;
+  font:
+    600 12px "JetBrains Mono",
+    var(--mn-font-mono);
+  color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
+}
+.bapp-message p {
+  line-height: 1.7;
+}
+.bapp-composer,
+.bapp-sidechat {
+  margin-top: 15px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--mn-holo) 35%, var(--mn-line));
+  border-radius: 10px;
+  background: var(--mn-panel-raised);
+}
+.bapp-composer textarea,
+.bapp-sidechat textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--mn-bg);
+  resize: vertical;
+}
+.bapp-sidechat textarea {
+  min-height: 54px;
+}
+.bapp-composerfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+.bapp-sidechat label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.bapp-sidechat button {
+  width: 100%;
+  margin-top: 8px;
 }
 
 @media (max-width: 1200px) {
