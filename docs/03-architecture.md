@@ -129,14 +129,135 @@ flowchart TB
 ## In plain words
 
 All the decisions live in Rust, in small crates that each do one thing and can be tested alone.
-The clients only show things and ask you questions: `mikata`, the Rust terminal app, hosts the
-core in its own process, and the web board speaks to `mikatad` over the protocol through the
-TypeScript SDK — two windows onto the same core. The arrows only point downward — `races` (the
+The clients only show things and ask you questions. You run `mikata`, the terminal app, which
+hosts the core in its own process; programs — the SDK, the web board, an editor — run it through
+`mikatad`, the same core as a server. Two doors onto one core
+([why two](#two-commands-one-core)). The arrows only point downward — `races` (the
 lab's law, dashed) knows nothing about networks, `wire` knows nothing about models — so each piece can be proven before the next is
 built on it. `tools/check-layers.mjs` holds the same graph and fails on any edge it does not
 draw.
 
 ## Technical detail
+
+### Two commands, one core
+
+Mikata ships two commands — and, on Linux, a third that only they run. All three are built from
+the same crates: every decision (the loop, the end gate, the sandbox, memory) is the same code in
+each, so a rule holds the same whichever one you used.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#3d2b40"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#59405d"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#3d2b40"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#0d0b10"
+    clusterBkg: "#16111b"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 240
+---
+flowchart TB
+    subgraph MIKATA_BG[" "]
+      direction TB
+      YOU(["you, at a terminal or in a script"])
+      PROG(["a program: the SDK, an editor, a tool"])
+      WEB(["your browser"])
+      M("mikata<br/>the terminal app · run · status · resume")
+      D("mikatad<br/>the core as a server, over stdio")
+      B("mikatad board<br/>one daemon for every world")
+      U("mikatad runs · memory · verify · housekeep · usage<br/>upkeep, with no session")
+      CORE[("the same crates<br/>loop · world · tools · sandbox · memory")]
+      G("mikata-guard<br/>every command starts through it, on Linux")
+      YOU --> M
+      YOU --> U
+      PROG -->|JSON-RPC| D
+      WEB -->|WebSocket, loopback, a key| B
+      M -.->|mikata --web starts or reuses it| B
+      M --> CORE
+      D --> CORE
+      B --> CORE
+      U --> CORE
+      CORE --> G
+    end
+    classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
+    class YOU,PROG,WEB you
+    classDef person fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
+    class M person
+    classDef server fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
+    class D,B,U server
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
+    class CORE step
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
+    class G gate
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+```
+
+| | `mikata` | `mikatad` |
+|---|---|---|
+| Who runs it | you, at a terminal; a script or CI with `mikata run` | a program that is not Rust — the TypeScript SDK, the web board, an editor plugin — and you, for upkeep |
+| Where the session runs | inside `mikata`'s own process: the screen and the loop share it, with no protocol between them | behind the client protocol: JSON-RPC over stdio for a program that starts it as its child, or the board's WebSocket on loopback |
+| What it gives you | the terminal app, `mikata run "<ask>"` (an answer on stdout, exit 0 only when the gate passed), `status`, `resume` | the server for programs; `mikatad board`, one daemon that serves every world on the machine; the upkeep commands |
+| Needs a model key | to work, yes | the server and the board, yes; upkeep, no |
+
+**Why two, and not one.**
+
+- **Using Mikata needs nothing running.** `mikata` links the core and runs the session in its own
+  process: no daemon to start, no port, no protocol to version between your screen and the work.
+  It is the shortest path from an ask to an answer, and it is what the bench runs.
+- **Programs need a boundary they can rely on.** A client written in TypeScript cannot link Rust
+  crates; it speaks one versioned protocol whose types are generated from the Rust
+  ([the client protocol](04-protocol.md)). `mikatad` is that boundary: the SDK starts it as a child
+  for one session, and `mikatad board` serves the board's chats for every world at once.
+  `mikata --web` starts that board (or reuses the one running) from the `mikatad` installed beside
+  it, so the terminal and the browser show the same world.
+- **Upkeep needs no session.** Listing runs, reading memory, pinning verify lines, walking the
+  chained journals, folding the spend: these read and repair a world's records without a model or
+  a key, and they are the human's tools — refused inside any body's command. They sit with
+  `mikatad`, beside the other entry point that is not a person typing an ask.
+- **`mikata-guard`** is no command of yours: on Linux every command a body runs starts through it,
+  so the kernel's guard is set before the command's first instruction ([the sandbox](#sandbox)).
 
 ### The repository
 
@@ -228,13 +349,7 @@ board — and holds the world's admin commands: `runs`, `onto`, `memory`, `q`, `
 journals) and `relief`, and the board's: `board`, `board add`, `board forget`, `board prune`,
 `board stop` (`mikatad --help`).
 
-**Why two binaries.** They answer two kinds of caller over one core. `mikata` is for a person at
-a terminal, and for scripts: it hosts the session in its own process, with no protocol between the
-screen and the loop. `mikatad` is for programs that are not Rust: the SDK and an editor plugin start it as a
-child and speak JSON-RPC to it, and the board is served by it (`mikatad board`); every such client sees the
-same sessions, gate and events. The upkeep commands sit with it because they work on the world's
-records directly, without a session. Both link the same crates (`mikata-loop`, `-world`,
-`-races`, `-tools`, `-sandbox`), so a law, a gate or a sandbox rule holds the same in either.
+Which command does what is [two commands, one core](#two-commands-one-core); by task:
 
 | You want to | Run |
 |---|---|
@@ -669,7 +784,7 @@ as a regular file, cut into its `### [<time>] <body> — <title>` entries, each 
 matching entries as a table of contents that jumps to each, and renders each entry through the
 board's inert Markdown subset: raw HTML stays text, links are allowlisted, images never load.
 
-<img src="../assets/board/phone-light-journal.png" width="180" alt="The journal at phone width, light: the search, the entries' contents, an entry rendered">
+<img src="./img/board/journal-phone-light.png" width="180" alt="The journal at phone width, light: the search, the entries' contents, an entry rendered">
 
 #### Metrics and integrations
 
@@ -808,7 +923,7 @@ interrupts — the turn stops and what waits at the gate is denied. A tab that o
 its composer is disabled and offers *Take over*, which a tab of the browser that opened the chat may
 use. *End chat* ends it for every tab.
 
-<img src="../assets/board/desktop-dark-approval.png" width="640" alt="The approval card at desktop width, dark: a hostile act shown whole, every hidden character escaped, its reasons, the path outside the world, the plan, the three answers and the time left"> <img src="../assets/board/phone-light-approval.png" width="180" alt="The approval card at phone width, light">
+<img src="./img/board/approval-chat-dark.png" width="640" alt="The approval card in a chat, dark: the act shown whole, its reasons, the plan it binds to, the answers numbered">
 
 **The approval card.** A waiting ask is put to the human on the approval card, the TUI's card on
 the web, with the TUI's protections; nothing else on the page answers an ask. It is a modal over
@@ -1148,9 +1263,9 @@ Vite into static files, with no router, state or chart library. It looks like th
 and reads like claude.ai: a **rail** on the left, the **centre**, and a foldable **pane** on the
 right.
 
-<img src="../assets/board/desktop-dark.png" width="640" alt="The board at desktop width, dark: the rail with the worlds, the worlds in the centre, the pane at a glance"> <img src="../assets/board/phone-light.png" width="180" alt="The board at phone width, light: the worlds, the rail folded behind the menu">
+<img src="./img/board/worlds-dark.png" width="640" alt="The board at desktop width, dark: the rail with the worlds, the worlds in the centre, the pane at a glance"> <img src="./img/board/worlds-phone-light.png" width="180" alt="The worlds at phone width, light">
 
-<img src="../assets/board/desktop-dark-world.png" width="640" alt="A world's page, dark: its status, last activity, memory, challenges, end gate, spend and meters, each with its source">
+<img src="./img/board/builder-dark.png" width="640" alt="A world's Harness Builder, dark: the units and plugins wired to the Mikata core, the run verified on the right">
 
 **The rail.** At its head Mikata's icon and name, the name running the logo's gold into cyan
 (`--mn-brand-*`, fixed in every scheme, a deeper ink of each on a light page), then search, the **worlds** (each with its state in words: *present*
@@ -1259,9 +1374,9 @@ bar's parts then sharing its height in proportion. Colours are the theme's token
 from the series' name, and every series is named in a legend beside it, never colour alone. Words
 a world wrote reach a chart only as escaped text in `<title>` nodes.
 
-<img src="../assets/board/desktop-dark-metrics.png" width="640" alt="The metrics page, dark: the totals line, spend per day by race on a log axis with its legend, the cache hit rate, the burn"> <img src="../assets/board/phone-dark-metrics.png" width="180" alt="The metrics page at phone width, dark: the window tabs, the totals line, the stacked bars">
+<img src="./img/board/metrics-dark.png" width="640" alt="The metrics page, dark: the totals line, spend per day on a log axis with its legend, the cache hit rate, the burn"> <img src="./img/board/metrics-phone-dark.png" width="180" alt="The metrics page at phone width, dark">
 
-<img src="../assets/board/desktop-light-integrations.png" width="640" alt="The integrations page, light: providers with their key sources, never values; models and prices; MCP servers">
+<img src="./img/board/integrations-light.png" width="640" alt="The integrations page, light: providers with their key sources, never values; models and prices; MCP servers">
 
 **Data.** The page first trades the key in its address (`#k=<key>`, see the board server above):
 before anything renders, the key leaves the address bar and the history, and is posted once to
