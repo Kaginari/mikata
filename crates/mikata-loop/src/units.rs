@@ -48,8 +48,8 @@ pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
         MEMORY | READER | GATE | HOLD | CHALLENGE => Some(switch(id, SafePoint::Ask, false)),
         FOLD | STRESS => Some(switch(id, SafePoint::Batch, false)),
         WHAT_CHANGED => Some(switch(id, SafePoint::Ask, true)),
-        PLAN => Some(Box::new(Switch::new(
-            Manifest::new(PLAN, env!("CARGO_PKG_VERSION"))
+        PLAN | PLAN_LITE => Some(Box::new(Switch::new(
+            Manifest::new(id, env!("CARGO_PKG_VERSION"))
                 .safe_point(SafePoint::Session)
                 .frame(mikata_kernel::FramePolicy::Frame),
         ))),
@@ -132,6 +132,15 @@ pub fn profile(name: &str) -> Option<mikata_config::Composition> {
     let (_, list) = PROFILES.iter().find(|(n, _)| *n == name)?;
     mikata_config::Composition::parse(list).ok()
 }
+
+/// The plan, lite ([`crate::solo::PLAN_LITE_BULLET`]): in the place of the plan's two bullets, one
+/// that writes down and checks only the outputs the ask states, and no plan for a change that
+/// states none. Off in the default composition; on as a session opens (`+plan_lite`), it takes the
+/// plan's place, which goes off with it.
+pub const PLAN_LITE: &str = "plan_lite";
+
+/// The native units the default composition leaves off: asked for by name.
+pub const OPTIONAL: &[&str] = &[PLAN_LITE];
 
 /// The ids of the native units, in the order the default composition loads them.
 pub const NATIVE: &[&str] = &[
@@ -218,6 +227,7 @@ impl Catalog {
     #[must_use]
     pub fn knows(&self, id: &str) -> bool {
         NATIVE.contains(&id)
+            || OPTIONAL.contains(&id)
             || id
                 .strip_prefix("plugin:")
                 .is_some_and(|name| self.plugins.iter().any(|p| p.id == name))

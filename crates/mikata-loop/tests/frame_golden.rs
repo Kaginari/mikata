@@ -292,3 +292,29 @@ async fn memory_off_at_open_takes_the_ask_for_lessons_with_it() {
     assert_eq!(on.replace(mikata_loop::solo::LESSONS, ""), off);
     assert_ne!(on, off);
 }
+
+/// The plan, lite (`+plan_lite`): the plan's two bullets give their place to one that copies and
+/// checks only the outputs the ask states; nothing else of the frame moves, and the run holds
+/// `plan_lite` on and `plan` off.
+#[tokio::test]
+async fn the_plan_lite_takes_the_plans_place() {
+    let lite = frame_with(
+        &world("plan-lite", &[]),
+        None,
+        &[("MIKATA_UNITS", "+plan_lite")],
+    )
+    .await;
+    golden("plan-lite", &lite);
+    let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
+    let on = text(&frame(&world("plan-lite-default", &[]), None).await);
+    let (lite_text, default_text) = (text(&lite), on);
+    assert!(lite_text.contains(mikata_loop::solo::PLAN_LITE_BULLET));
+    for bullet in mikata_loop::solo::PLAN_BULLETS {
+        assert!(!lite_text.contains(bullet), "{bullet}");
+    }
+    assert_eq!(
+        mikata_loop::solo::with_plan_lite(&default_text),
+        lite_text,
+        "the one bullet in the plan's place, every other line as it was"
+    );
+}

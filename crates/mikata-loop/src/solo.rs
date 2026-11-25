@@ -83,6 +83,35 @@ pub fn without_lessons(system: &str) -> String {
     system.replace(LESSONS, "")
 }
 
+/// The `plan_lite` unit's one bullet ([`crate::units::PLAN_LITE`]), said in the place of the plan's
+/// two: the outputs the ask states are written down and checked, and nothing else — no paths, no
+/// chosen way, no plan at all for a change that states none. Maki's way of planning is a tool the
+/// model reaches for when it wants; this is the part of ours that a screen showed lifts a small
+/// body on prose asks, asked for only where it applies.
+pub const PLAN_LITE_BULLET: &str = "- When the ask states what must come out — an example with its \
+result, an expected string, a case that must keep working — first copy each one into \
+.mikata/tmp/plan.md under `## Done when`, one a line, and before you answer run each line and \
+compare it with the ask, character for character. A change the ask states no output for needs no \
+plan.";
+
+/// `system` with the plan's two bullets replaced by the `plan_lite` bullet ([`PLAN_LITE_BULLET`]).
+#[must_use]
+pub fn with_plan_lite(system: &str) -> String {
+    let mut out = Vec::new();
+    let mut said = false;
+    for line in system.split('\n') {
+        if PLAN_BULLETS.iter().any(|b| line.starts_with(b)) {
+            if !said {
+                out.push(PLAN_LITE_BULLET);
+                said = true;
+            }
+            continue;
+        }
+        out.push(line);
+    }
+    out.join("\n")
+}
+
 /// `system` without the `plan` unit's bullets ([`PLAN_BULLETS`]); every other line as it was.
 #[must_use]
 pub fn without_plan(system: &str) -> String {

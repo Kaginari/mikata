@@ -636,7 +636,10 @@ fn build(
     // a unit off by the human's ask or global file takes its words with it — the plan's two
     // bullets, memory's ask for lessons, and, further down, the gate's line.
     let off = |id: &str| off_at_open(config, &composition, id);
-    if off(crate::units::PLAN) {
+    let lite = on_at_open(config, &composition, crate::units::PLAN_LITE);
+    if lite {
+        body.system = crate::solo::with_plan_lite(&body.system);
+    } else if off(crate::units::PLAN) {
         body.system = crate::solo::without_plan(&body.system);
     }
     if off(crate::units::MEMORY) {
@@ -870,7 +873,7 @@ fn composed(run: Run, config: &Config, asked: &Composition) -> Result<(Run, Vec<
             ));
             continue;
         }
-        let said = if switch.id == crate::units::PLAN {
+        let said = if crate::units::Catalog::default().unit_frame(&switch.id) {
             run.switch_frame_unit(&switch.id, switch.on)
         } else {
             run.switch_unit(&switch.id, switch.on)
@@ -887,6 +890,11 @@ fn composed(run: Run, config: &Config, asked: &Composition) -> Result<(Run, Vec<
     // The human's own ask goes over the configuration's; one that cannot be done refuses to open.
     for change in asked.changes() {
         run.switch_frame_unit(&change.id, change.on)
+            .map_err(|e| format!("--units: {e}"))?;
+    }
+    // The plan, lite, takes the plan's place: the run holds what the prompt says.
+    if on_at_open(config, asked, crate::units::PLAN_LITE) {
+        run.switch_frame_unit(crate::units::PLAN, false)
             .map_err(|e| format!("--units: {e}"))?;
     }
     // Applied as the session opens, every safe point allowing it: a unit of the prompt is held
@@ -907,6 +915,21 @@ fn off_at_open(config: &Config, asked: &Composition, id: &str) -> bool {
         .map_or_else(
             || config.unit(id).is_some_and(|u| !u.on && !u.from_world()),
             |c| !c.on,
+        )
+}
+
+/// Whether the human set the unit `id` on as the session opens: the last word of the composition
+/// asked for, else the global file's `[units]`. For a unit the default leaves off
+/// ([`crate::units::OPTIONAL`]).
+fn on_at_open(config: &Config, asked: &Composition, id: &str) -> bool {
+    asked
+        .changes()
+        .iter()
+        .rev()
+        .find(|c| c.id == id)
+        .map_or_else(
+            || config.unit(id).is_some_and(|u| u.on && !u.from_world()),
+            |c| c.on,
         )
 }
 
