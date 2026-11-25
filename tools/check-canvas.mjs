@@ -6,7 +6,7 @@
 // shapes (no embeds, bookmarks, images or videos, which load from elsewhere). A .tldraw archive is
 // refused: it can embed a document script that runs when opened. The rules are proven on hostile
 // samples before the canvases are read. Fails with every offence, file: reason.
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const SVG_ELEMENTS = new Set([
@@ -210,6 +210,11 @@ if (unproven.length) {
 }
 
 const dir = join('docs', 'canvas');
+// The book draws its diagrams as Mermaid now; with no canvas folder there is nothing to check.
+if (!existsSync(dir)) {
+  console.log('canvas check: the book holds no canvases');
+  process.exit(0);
+}
 const failures = [];
 let count = 0;
 for (const name of readdirSync(dir).sort()) {

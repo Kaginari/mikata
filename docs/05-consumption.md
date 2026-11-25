@@ -2,16 +2,6 @@
 
 ## In one picture
 
-<a href="./canvas/consumption-light.svg">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./canvas/consumption-dark.svg">
-  <img src="./canvas/consumption-light.svg" alt="Consumption: your caps fund the session; Mikata's body, and the body of each project when an ask is split, spend from it; every spend lands in the usage ledger, read again before every model call and shown by the meters">
-</picture>
-</a>
-
-<details>
-<summary>The sketch in Mermaid, the text this canvas is drawn from</summary>
-
 ```mermaid
 ---
 config:
@@ -21,44 +11,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -66,24 +56,26 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    CAP["your caps<br/>month · day · session"] --> SES["the session"]
-    SES --> B["Mikata's body"]
-    SES --> P["one body a project<br/>when an ask is split"]
-    B -. "spend" .-> L[("usage ledger")]
-    P -. "spend" .-> L
-    L -->|"read again before every model call"| CAP
-    L --> M["meters<br/>status line · board"]
-    classDef you fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    subgraph MIKATA_BG[" "]
+      direction TB
+      CAP("your caps<br/>month · day · session") --> SES("the session")
+      SES --> B("Mikata's body")
+      SES --> P("one body a project<br/>when an ask is split")
+      B -. "spend" .-> L[("usage ledger")]
+      P -. "spend" .-> L
+      L -->|"read again before every model call"| CAP
+      L --> M("meters<br/>status line · board")
+    end
+    classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class CAP you
-    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class SES,L store
-    classDef mikata fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    classDef mikata fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
     class B,P mikata
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class M step
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
-
-</details>
 
 ## In plain words
 
@@ -100,9 +92,8 @@ The biggest saving is designed in, not bolted on: every prompt is laid out so it
 changes between calls, which lets the provider's prompt cache serve most of it at a fraction of
 the price.
 
-In the [lab's](experimental/) modes, budget also flows down a chain: the Summoner carves a slice of
-the session for each order it gives, an Elf for its Orcs, and no body spends more than its slice.
-The technical detail below covers both.
+In the [lab's](experimental/) modes budget also flows down a chain, each order carrying a slice
+of its giver's: that carving is [the lab's](experimental/the-lab-in-the-code.md#carving-the-budget-down-a-chain).
 
 ## Technical detail
 
@@ -113,11 +104,14 @@ System One read writes its own row under its provider, with `usd` null for a mod
 tables do not know, so its `wt` still reaches the meters and the budget:
 
 ```json
-{"ts":"2026-10-23T19:07:00Z","session":"…","run":"…","body":"slime-wire","race":"slime",
- "commission":"c-17","model":"…","provider":"anthropic","input":5580,"output":112,
+{"ts":"2026-10-23T19:07:00Z","session":"…","run":"…","body":"summoner","race":"summoner",
+ "model":"…","provider":"anthropic","input":5580,"output":112,
  "cacheRead":4096,"cacheWrite":0,"prefix":3900,"wt":6700,"usd":0.0041,
  "envelope":{"left":54888,"of":60000}}
 ```
+
+(`body` and `race` say whose call it was: Mikata's own body is `summoner` inside the code. A row
+from a lab body also names its `commission`.)
 
 When the provider reports what it charged for the call — OpenRouter's `usage.cost`, a number of
 dollars, `0` on a free model — the row keeps it as `reportedCost`, beside `usd`, Mikata's own
@@ -137,8 +131,8 @@ A call that is no body's turn says what it was for in `purpose`: `rerank` for th
 fast-tier call, `rerank (timed out, estimated)` for one that gave no answer in time and is
 ledgered at its worst case; a body's turn carries none.
 
-`prefix` is the part of the input that was the fixed per-session prompt (law, race card,
-creature card, manifests): the cost every turn carries before it does any work, folded on its own
+`prefix` is the part of the input that was the fixed per-session prompt (law, body card,
+manifests): the cost every turn carries before it does any work, folded on its own
 line (`prefixShare`) so a growing law shows up as a number, not a feeling. What the law buys is
 measured against what it costs by the bench's law arm: the same tasks run again with
 `mikata run --no-law`, which says none of the world's own words ([the bench](https://github.com/Kaginari/mikata/blob/main/bench/README.md)). The journal is
@@ -171,8 +165,8 @@ fixed order:
   once, whatever comes after it.
 - **The head is anchored outside the file**: by `mikatad housekeep --verify`, in `log.md` and
   in a copy under the human's state directory (`$XDG_STATE_HOME/mikata/anchors/<world>-<fnv64a>.jsonl`),
-  out of every command's reach; in the handoff when light-coding escalates (and the run's journal beside
-  it); and in an ascension, probation or fall entry when one is written. Dropping the last rows,
+  out of every command's reach; and in the handoff when light-coding escalates (and the run's
+  journal beside it) — in the lab, also in an ascension, probation or fall entry. Dropping the last rows,
   or stripping the chain's fields and rooting it again, leaves a chain whose links hold; the walk
   is held to the newest kept head (the state directory's, else `log.md`'s), which must still be a
   row at its line or later, or the chain breaks at the anchor. A walk that does not hold anchors no
@@ -181,17 +175,15 @@ fixed order:
   the head, a truncation with the head the chain holds to, or the first broken link with its line
   and why (an edited row, a removed or inserted one, a line no row recorded torn, a lost genesis,
   a kept head the chain no longer holds), and whether `log.md`'s newest anchor and the state
-  directory's disagree. The Dark Elf's law audit calls the same walk
-  (`mikata_world::chains::verify`).
+  directory's disagree (`mikata_world::chains::verify`).
 - **The tripwire** puts the usage ledger back after each command from what it held plus what its
   witness (`$XDG_STATE_HOME/mikata/usage/<world>-<fnv64a>.jsonl`, every byte the harness
   appended, written there first) gained meanwhile: a command's edit is undone, and a parallel
   run's rows are kept.
 
 Every trust journal is chained, walked and anchored (`mikata_world::chains::journals`): the
-usage ledger, the Dark Elf's value ledger (its challenge records, seal proposals among them), the
-evolution ledger, the end gate's verdicts, the acts' guts classes, the Minds' witness, the verify
-pins, the Oni envelopes' uses and revocations, and each Kijin post's witness. Where each lives is
+usage ledger, the end gate's verdicts, the acts' guts classes, the Minds' witness and the verify
+pins — and the lab's own ([the lab in the code](experimental/the-lab-in-the-code.md#the-labs-storage)). Where each lives is
 in the [storage table](03-architecture.md#storage-files-are-the-truth).
 
 Two meters, one implementation each, never confused:
@@ -217,7 +209,7 @@ Haiku 5.5's cache prices, stays unpriced until they are.
 
 ### The build on value rows
 
-Every row the value ledger folds — a Dark Elf finding found, ruled or decided — carries the build
+Every row the value ledger folds carries the build
 that wrote it, as `build: { version, commit }`: the crate version and the commit `status` prints,
 from one source (`mikata_ledger::Build::this`, stamped at build time; a tree with uncommitted
 changes to tracked files stamps its commit `-dirty`, and a build without git `unknown`). The
@@ -265,77 +257,15 @@ Currency caps convert through the same table; a model with no known price is sti
   The session opens telling the human which lines to repair or remove to count them true. Weighted tokens count every call — priced, unpriced or free — so no model slips under a
   cap; a dollar cap could not promise that, and the dollar keys (`budget.*_usd`) are a view for
   the board (M12), never a limit.
-- **Only cost is carved.** Steps and the wall clock pass down whole, per race
-  ([the loop](02-loop.md#budgets-are-readings)); splitting them would leave the Slime — the only
-  body that writes code — a handful of steps.
-- **Carving follows the plan.** A parent keeps a 10% reserve of its own envelope; splitting the
-  rest across its plan's open items by their declared weight comes once plans carry weights. Each race has a
-  compiled **maximum** share of what the parent has left when it carves (Elf 60%, Orc 60%,
-  Slime 70%, Kijin 30%, Dark Elf 40%) — a ceiling, never a default — and the slices together
-  never exceed what the parent holds.
-- **Who gives.** Every slice comes out of the giver's own envelope: what a parent gives a child it
-  can no longer spend itself, and what the child spends counts as the parent's. Work no body owns
-  — an order the wake runs, one the human added with `mikatad q` — draws from the session's
-  shared pool, the envelope itself, under the same clamps.
-- **The grant is the giver's judgment, inside the harness's bounds.** The parent proposes its
-  child's slice (`budget_wt`, default half of what it has left, within the ceiling); the harness
-  grants at most
-  `left × 90% × share(race) × worth` — the parent's reserve kept, the race's maximum share, the
-  child's worth — and the child's report tells the parent when it granted less than asked. Whole,
-  the slice is `max(min(asked, ceiling), min(20 000, left × 90%))`: never below 20 000 wt, about
-  one call, so a floor outranks worth but never the parent's reserve. An ask under it is raised,
-  and the report says so; an ask of 0 stays 0, and is refused. With no cap set there is no envelope to
-  carve: a commission's `budget_wt` is not read, and the child's slice is unbounded.
-- **The top-up.** A parent may also set aside a top-up out of its own envelope (`topup_wt`): its
-  further trust, so slice and top-up together stay within what it may give at all (90% of what it
-  has left) and within twice the child's ceiling — a parent can stretch its trust, never ignore
-  worth. It is given once, when the child's slice runs out, and the child is told; it finishes
-  instead of stopping at its budget checkpoint, and the human's caps are read all the same. With
-  no cap set there is no slice to run out, and no top-up. What the child spends of it counts as the
-  parent's, like the slice.
-- **Worth, from the child's card.** Before it decides, a dispatching body reads one card per body
-  below it: that body's record and the record of every body below it — weighted tokens spent
-  (the usage ledger, rounded to the thousand), gate passes and fails (only the entries the end
-  gate wrote in the journal; a `NOT_VERIFIED` counts as a fail, so not verifying never buys
-  worth; one the machine would not run, `NOT_VERIFIED, unrun`, counts neither way). Worth is `0.5 + 0.5 × (passes + 1) / (passes + fails + handed
-  back / 2 + 2)`: a failure handed back to be fixed counts half; a body with no record starts at
-  0.75, a clean record nears 1, a failing one nears 0.5. **A slice that runs out is never a failure
-  on the card:** a budget checkpoint ends the run before its body answers, and only an answer reaches
-  the end gate, which alone writes the verdicts a card is read from. Counting it would let a thinly
-  funded body fail for want of budget, lose worth, get a thinner slice and fail again; in
-  [the research's simulation](https://github.com/Kaginari/mikata-research/blob/main/experience-value.md)
-  that loop cost 2 to 10 landing points. A test holds the rule. A child's record counts in its parent's card, so a
-  parent that funds failing children reads worse to the body above it. The learned value model
-  ([M11](roadmap.md)) replaces this score; the card and the clamp stay.
-- **The wake's draw.** One wake draws at most 25% of what the pool has left, and runs at most 3
-  orders (a refused one does not count); with no cap set there is no pool to share, and the order count alone holds.
-- **The challenge reserve.** 10% of the session envelope is reserved for the automatic Dark Elf
-  challenges; it cannot be carved for anything else. Each challenge draws a quarter of the
-  reserve's full size (or what remains), and what it does not spend goes back to the reserve.
-  Once it is spent, a routed reviewer waits queued for a later sweep; what each review spent is
-  booked against its challenge.
-- **Pre-flight**, for a carved slice (dispatch, M7). Before each model call the core estimates
-  the call in wt (`estimate`: cached
-  prefix at the cache-read weight, the rest uncached, `max_output` at `r`). If it does not fit
-  what is left, the loop checkpoints with `@? budget: need ~N wt, have M wt`. The parent can top
-  up the child's slice from its own envelope (`@INSTRUCT` with a new budget), split the work, or
-  escalate to the human.
 - **A budget refusal is explained** (`BudgetShort::refusal`, `Shortfall`): it names what is
   needed, what is left, the least top-up that lets it fit, and where the top-up comes from — the
   human's cap that sets what is left, raised under `budget.session`, `budget.day` or
-  `budget.month`, or the commander that carved the envelope:
+  `budget.month` (in the lab, or the commander that carved the envelope):
   `refused: needs 41k wt, 12k left this session; top up >= 29k wt (budget.session)`. From ten thousand up, weighted tokens read in
   thousands — the need and the top-up rounded up, what is left rounded down — so the top-up named
   always suffices.
 - **Spend is recorded, never refused after the fact.** Pre-flight is the guard; when a call
   costs more than its estimate, the real cost is booked and the envelope reads *overspent*.
-- Unspent slices return to the parent when the child reports; what the child spent counts as the
-  parent's spend. A slice settles once, and only with the envelope that carved it — a replayed or
-  stray report is refused and leaves the books alone. Envelopes and open slices serialise whole, so
-  a checkpointed run resumes with the same books.
-- Once dispatch carves (M7), a spent cap also stops new commissions while the turn in flight
-  finishes its report.
-
 ### Cache-first prompt layout
 
 The provider renders tools, then the system prompt, then the messages. Changing any tool
@@ -344,10 +274,10 @@ Anthropic allows at most four cache breakpoints. Most of a long run's input is i
 conversation, not its prompt, so one breakpoint always rides the conversation's tail:
 
 ```
-[ tools: the race's full, stable tool list ]  ← identical for every body of a race:  breakpoint 1
-[ crest + nature law + race card           ]  ← identical for every body of a race:  breakpoint 2
-[ creature card + its rules + Minds        ]  ← identical across its turns:          breakpoint 3
-[ recall anchors · toolbox manifest text · commission · conversation ]
+[ tools: the full, stable tool list       ]  ← identical for every session:         breakpoint 1
+[ crest + nature law                       ]  ← identical for every session:         breakpoint 2
+[ body card + its rules + Minds            ]  ← identical across its turns:          breakpoint 3
+[ recall anchors · toolbox manifest text · conversation ]
                                               ← the last block sent:                breakpoint 4
 ```
 
@@ -432,7 +362,7 @@ conversation, not its prompt, so one breakpoint always rides the conversation's 
 - Each provider and model has a minimum cacheable prefix; a test asserts each breakpoint's
   prefix meets the minimum of every configured model, or the breakpoint is merged into the next.
 - Caches are per model: "identical for every body" pays off among bodies on the same model.
-- `cacheHitRate` is a signal in the value ledger, per tier; the board shows it per race.
+- `cacheHitRate` is a signal in the value ledger, per tier; the board shows it per model and body.
 
 ### MCP tool schemas
 
@@ -453,8 +383,8 @@ carries four fixed doors, and MCP reaches a body in three levels, each priced be
 - the tools block never changes mid-run, so the doors are read from the cache at the cache-read
   price after the first request, and every loaded level is in the usage ledger's input like any
   other tool result;
-- a creature's habitual tools — chosen once, when the session starts, from the MCP journal — ride
-  its frame up front, within what the race's prefix ceiling leaves; a server whose schemas
+- a body's habitual tools — chosen once, when the session starts, from the MCP journal — ride
+  its frame up front, within what the prefix ceiling leaves; a server whose schemas
   together pass the ceiling stays at level 0, and a level whose price passes the run's envelope
   is refused before it loads ([MCP](06-mcp.md#budgeted));
 - on Anthropic, every other tool in scope is a native deferred tool: sent, but out of the context
@@ -480,7 +410,7 @@ read's, and the files it outlines count as what the ask read.
 | left | envelope left for the active body and the session | status line |
 | cache | cache read ÷ input, rolling | status line, board |
 | burn | tokens per minute over the last 5 minutes | board |
-| per race | spend, tokens and cache hit by race over 7 or 28 days, or all | board, `mikatad usage` |
+| per body and model | spend, tokens and cache hit over 7 or 28 days, or all | board, `mikatad usage` |
 
 `mikatad usage [--window 7d|28d|all] [--json]` prints the same folds in the terminal — by race,
 model, body, day and session — and the board's metrics are that fold ([the board's

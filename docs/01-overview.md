@@ -2,16 +2,6 @@
 
 ## In one picture
 
-<a href="./canvas/overview-light.svg">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./canvas/overview-dark.svg">
-  <img src="./canvas/overview-light.svg" alt="The overview canvas: you give Mikata an ask; it writes down what done means as lines it can run, does the work inside your repository, and checks every line; a failing line sends it back to the work; then the end gate runs your verify line and checks that no test was deleted or skipped; it answers with what changed. An ask that names several projects runs one body a project, at once">
-</picture>
-</a>
-
-<details>
-<summary>The sketch in Mermaid, the text this canvas is drawn from</summary>
-
 ```mermaid
 ---
 config:
@@ -21,44 +11,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -66,34 +56,36 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    V(["You"])
-    M["Mikata<br/>one body over your repository"]
-    P["several projects named in the ask?<br/>one body a project, at once,<br/>each in its own folder"]
-    L[("Done when<br/>D1, D2, … each a line it can run")]
-    W["the work<br/>reads only the lines it needs<br/>writes inside your repository"]
-    C{"its own check<br/>every line, the tests it touched"}
-    G{"the end gate<br/>your verify line runs green<br/>no test deleted or skipped"}
-    A(["the answer, with what changed"])
+    subgraph MIKATA_BG[" "]
+      direction TB
+      V(["You"])
+      M("Mikata<br/>one body over your repository")
+      P("several projects named in the ask?<br/>one body a project, at once,<br/>each in its own folder")
+      L[("Done when<br/>D1, D2, … each a line it can run")]
+      W("the work<br/>reads only the lines it needs<br/>writes inside your repository")
+      C{"its own check<br/>every line, the tests it touched"}
+      G{"the end gate<br/>your verify line runs green<br/>no test deleted or skipped"}
+      A(["the answer, with what changed"])
 
-    V -->|your ask| M
-    M -.-> P
-    M --> L --> W --> C
-    C -->|a line does not hold| W
-    C -->|every line holds| G
-    G -->|refused| W
-    G -->|passes| A
-    A --> V
-    classDef you fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+      V -->|your ask| M
+      M -.-> P
+      M --> L --> W --> C
+      C -->|a line does not hold| W
+      C -->|every line holds| G
+      G -->|refused| W
+      G -->|passes| A
+      A --> V
+    end
+    classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class V you
-    classDef mikata fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    classDef mikata fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
     class M,P mikata
-    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class L store
-    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class C,G gate
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
-
-</details>
 
 ## In plain words
 
@@ -196,44 +188,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -241,33 +233,37 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    subgraph user["your machine"]
-      CLI["mikata<br/>Rust · Ratatui<br/>the core in-process"]
-      BOARD["board<br/>TypeScript · React<br/>in the browser"]
-      CORE["mikatad<br/>Rust core, served"]
-      SB["sandboxed tools<br/>landlock + seccomp / Seatbelt"]
-      W[(".mikata/<br/>log.md · ledgers · memory")]
-    end
-    LLM[("model providers<br/>Anthropic · OpenAI-compatible")]
+    subgraph MIKATA_BG[" "]
+      direction TB
+      subgraph user["your machine"]
+        CLI("mikata<br/>Rust · Ratatui<br/>the core in-process")
+        BOARD("board<br/>TypeScript · React<br/>in the browser")
+        CORE("mikatad<br/>Rust core, served")
+        SB("sandboxed tools<br/>landlock + seccomp / Seatbelt")
+        W[(".mikata/<br/>log.md · ledgers · memory")]
+      end
+      LLM[("model providers<br/>Anthropic · OpenAI-compatible")]
 
-    BOARD <-->|WebSocket, loopback + token| CORE
-    CLI --> SB
-    CLI <--> W
-    CLI <-->|HTTPS streaming| LLM
-    CORE --> SB
-    CORE <--> W
-    CORE <-->|HTTPS streaming| LLM
-    classDef ts fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+      BOARD <-->|WebSocket, loopback + token| CORE
+      CLI --> SB
+      CLI <--> W
+      CLI <-->|HTTPS streaming| LLM
+      CORE --> SB
+      CORE <--> W
+      CORE <-->|HTTPS streaming| LLM
+    end
+    classDef ts fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class BOARD ts
-    classDef rs fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef rs fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class CLI,CORE rs
-    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class SB gate
-    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class W store
-    classDef outside fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
+    classDef outside fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class LLM outside
     style user fill:#16111b,stroke:#59405d,color:#f5eff7
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 - **The core** (Rust crates) owns everything that must be correct: the loop, the gate, the

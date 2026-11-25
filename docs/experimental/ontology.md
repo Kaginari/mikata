@@ -19,44 +19,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -64,30 +64,34 @@ config:
     wrappingWidth: 360
 ---
 flowchart TB
-    subgraph core["the core — one answer"]
-      DOCS["creature docs"] -->|derive| G["graph<br/>races · bonds · minds"]
-      G -->|"infer to a<br/>fixed point"| GS["closed graph"]
-      GS --> SH{"shapes"}
-      GS --> OWN["own(path)<br/>exactly one owner"]
+    subgraph MIKATA_BG[" "]
+      direction TB
+      subgraph core["the core — one answer"]
+        DOCS("creature docs") -->|derive| G("graph<br/>races · bonds · minds")
+        G -->|"infer to a<br/>fixed point"| GS("closed graph")
+        GS --> SH{"shapes"}
+        GS --> OWN("own(path)<br/>exactly one owner")
+      end
+      subgraph plural["the outer layer — many voices, kept apart"]
+        F("facts<br/>keyed · anchored · triaged")
+        R("relations<br/>between worlds")
+      end
+      U("@U territory") --> F
+      F -->|"supporters vs<br/>counters"| CF{"contested?"}
+      S("sightings,<br/>named twice") --> R
+      R -->|"glued across<br/>the dimension"| DO{"obstruction?"}
+      SH --> FIND("findings<br/>code · severity")
+      CF --> FIND
+      DO --> FIND
+      FIND -->|"critical, high"| GATE("the gate")
     end
-    subgraph plural["the outer layer — many voices, kept apart"]
-      F["facts<br/>keyed · anchored · triaged"]
-      R["relations<br/>between worlds"]
-    end
-    U["@U territory"] --> F
-    F -->|"supporters vs<br/>counters"| CF{"contested?"}
-    S["sightings,<br/>named twice"] --> R
-    R -->|"glued across<br/>the dimension"| DO{"obstruction?"}
-    SH --> FIND["findings<br/>code · severity"]
-    CF --> FIND
-    DO --> FIND
-    FIND -->|"critical, high"| GATE["the gate"]
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class DOCS,G,GS,OWN,F,R,U,S step
-    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class SH,CF,DO,GATE gate
-    classDef truth fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef truth fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class FIND truth
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## In plain words

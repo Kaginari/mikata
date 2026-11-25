@@ -8,16 +8,6 @@ Two different conversations happen in Mikata, and they speak different languages
 
 ## In one picture — one order, down and back
 
-<a href="../canvas/order-light.svg">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../canvas/order-dark.svg">
-  <img src="../canvas/order-light.svg" alt="One order, down and back, in structured-coding: Player's ask goes from Summoner to elf-engine, orc-engine and slime-wire, each with a budget and the line of the done-when list it must make true; orc-engine codes the verify line for that line; slime-wire passes the gate; the DONE reports climb back to Player, each with the line's mark">
-</picture>
-</a>
-
-<details>
-<summary>The sketch in Mermaid, the text this canvas is drawn from</summary>
-
 ```mermaid
 ---
 config:
@@ -27,44 +17,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -73,12 +63,14 @@ config:
 ---
 sequenceDiagram
     autonumber
-    actor V as Player
-    participant R as Summoner
-    participant E as elf-engine
-    participant O as orc-engine
-    participant S as slime-wire
-    participant G as gate
+    box rgb(13, 11, 16)
+      actor V as Player
+      participant R as Summoner
+      participant E as elf-engine
+      participant O as orc-engine
+      participant S as slime-wire
+      participant G as gate
+    end
     rect rgb(13, 11, 16)
       rect rgba(63,169,245,0.14)
       V->>R: "the wire should read @W lines into Report.Wrote"
@@ -102,8 +94,6 @@ sequenceDiagram
       end
     end
 ```
-
-</details>
 
 ## In plain words
 
@@ -269,44 +259,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -314,31 +304,35 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    Q{"may A dispatch B?"} --> C0{"A High Elf, B an Orc<br/>in another lane?"}
-    C0 -- yes --> C0a{"plan item<br/>names B?"}
-    C0a -- no --> NO3
-    C0a -- yes --> C0b{"budget slice<br/>fits?"}
-    C0b -- yes --> VIA(["sent as @$ to B's Elf"])
-    C0b -- no --> NO5
-    C0 -- no --> C1{"B's race in<br/>A's COMMANDS?"}
-    C1 -- no --> C1b{"A Orc, B Orc?<br/>(sideways)"}
-    C1b -- yes --> C5
-    C1b -- no --> NO1(["refused: one hop up"])
-    C1 -- yes --> C2{"B's lineage<br/>reaches A?"}
-    C2 -- no --> NO2(["refused: names B's commander"])
-    C2 -- yes --> C3{"A is Elf:<br/>plan item names B?"}
-    C3 -- no --> NO3(["refused: write the plan"])
-    C3 -- yes --> C4{"A is Orc, B Slime:<br/>verify line coded?"}
-    C4 -- no --> NO4(["refused: TDD first"])
-    C4 -- yes --> C5{"budget slice<br/>fits the envelope?"}
-    C5 -- no --> NO5(["@? budget to parent"])
-    C5 -- yes --> OK(["dispatch"])
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    subgraph MIKATA_BG[" "]
+      direction TB
+      Q{"may A dispatch B?"} --> C0{"A High Elf, B an Orc<br/>in another lane?"}
+      C0 -- yes --> C0a{"plan item<br/>names B?"}
+      C0a -- no --> NO3
+      C0a -- yes --> C0b{"budget slice<br/>fits?"}
+      C0b -- yes --> VIA(["sent as @$ to B's Elf"])
+      C0b -- no --> NO5
+      C0 -- no --> C1{"B's race in<br/>A's COMMANDS?"}
+      C1 -- no --> C1b{"A Orc, B Orc?<br/>(sideways)"}
+      C1b -- yes --> C5
+      C1b -- no --> NO1(["refused: one hop up"])
+      C1 -- yes --> C2{"B's lineage<br/>reaches A?"}
+      C2 -- no --> NO2(["refused: names B's commander"])
+      C2 -- yes --> C3{"A is Elf:<br/>plan item names B?"}
+      C3 -- no --> NO3(["refused: write the plan"])
+      C3 -- yes --> C4{"A is Orc, B Slime:<br/>verify line coded?"}
+      C4 -- no --> NO4(["refused: TDD first"])
+      C4 -- yes --> C5{"budget slice<br/>fits the envelope?"}
+      C5 -- no --> NO5(["@? budget to parent"])
+      C5 -- yes --> OK(["dispatch"])
+    end
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class Q,C0,C0a,C0b,C1,C1b,C2,C3,C4,C5 step
-    classDef good fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef good fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class OK,VIA good
-    classDef bad fill:#361522,stroke:#ff5575,stroke-width:1.5px,color:#ffd0da
+    classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
     class NO1,NO2,NO3,NO4,NO5 bad
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 The law decides on five facts and the world finds them, from the creature docs: the lineage
@@ -425,44 +419,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -470,24 +464,28 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    H(["you"]) -->|"typed while a turn runs"| Q["queue<br/>next turn, in order"]
-    H -->|"/send body: text"| S["send<br/>the body's next tool step"]
-    BG["background body<br/>reports"] --> W["wake<br/>its own parent's next turn"]
-    R["a report's @$ orders"] --> SQ[("shared work queue<br/>.mikata/shared/queue.jsonl")]
-    SQ -->|"the wake claims each<br/>for the body it names"| T["the parent's next turn:<br/>dispatch, re-checked"]
-    Q --> T
-    W --> T
-    TQ["mikatad q · the queue tool"] <--> SQ
-    classDef human fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    subgraph MIKATA_BG[" "]
+      direction TB
+      H(["you"]) -->|"typed while a turn runs"| Q("queue<br/>next turn, in order")
+      H -->|"/send body: text"| S("send<br/>the body's next tool step")
+      BG("background body<br/>reports") --> W("wake<br/>its own parent's next turn")
+      R("a report's @$ orders") --> SQ[("shared work queue<br/>.mikata/shared/queue.jsonl")]
+      SQ -->|"the wake claims each<br/>for the body it names"| T("the parent's next turn:<br/>dispatch, re-checked")
+      Q --> T
+      W --> T
+      TQ("mikatad q · the queue tool") <--> SQ
+    end
+    classDef human fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class H human
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class Q,S,W,T step
-    classDef outside fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
+    classDef outside fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class BG,R outside
-    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class SQ store
-    classDef kijin fill:#2a0d12,stroke:#d7263d,stroke-width:2px,color:#ffd6dc
+    classDef kijin fill:#d7263d,stroke:#d7263d,stroke-width:2px,color:#ffffff
     class TQ kijin
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 **In plain words.** A session never loses what arrives while it works. What you type during a

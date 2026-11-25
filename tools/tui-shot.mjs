@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(join(here, 'canvas', 'package.json'));
+const require = createRequire(join(here, '..', 'packages', 'board', 'package.json'));
 const { chromium } = require('@playwright/test');
 const [input, out] = process.argv.slice(2);
 const f = JSON.parse(readFileSync(input, 'utf8'));

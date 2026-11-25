@@ -11,44 +11,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -56,38 +56,42 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    H["your global config"] -->|"servers, races,<br/>classes, network"| C
-    S[("MCP server<br/>in the sandbox")] <-->|"listed on first open,<br/>cached on disk"| C["MCP client<br/>class · scope · rank · price"]
-    subgraph mikata["Mikata"]
-      C -->|"level 0 and the ranked tools<br/>in the ask's tail"| A["a body<br/>four fixed doors"]
-      A -->|"open · schema · call<br/>anything but read asks you"| C
-      L[("MCP journal, chained<br/>loads · calls · offers")] -->|"relation and idle penalty"| C
-      A -. "the ask's end" .-> L
-      C <-->|"close scores in a large catalog:<br/>one rerank, names only"| F["fast tier"]
+    subgraph MIKATA_BG[" "]
+      direction TB
+      H("your global config") -->|"servers, who may use them,<br/>classes, network"| C
+      S[("MCP server<br/>in the sandbox")] <-->|"listed on first open,<br/>cached on disk"| C("MCP client<br/>class · scope · rank · price")
+      subgraph mikata["Mikata"]
+        C -->|"level 0 and the ranked tools<br/>in the ask's tail"| A("Mikata<br/>four fixed doors")
+        A -->|"open · schema · call<br/>anything but read asks you"| C
+        L[("MCP journal, chained<br/>loads · calls · offers")] -->|"relation and idle penalty"| C
+        A -. "the ask's end" .-> L
+        C <-->|"close scores in a large catalog:<br/>one rerank, names only"| F("fast tier")
+      end
     end
-    classDef human fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    classDef human fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class H human
-    classDef outside fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
+    classDef outside fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class S outside
-    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class C,L store
     class F outside
-    classDef throne fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
-    class A throne
+    classDef core fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
+    class A core
     style mikata fill:#16111b,stroke:#59405d,color:#f5eff7
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## In plain words
 
 An MCP server is a program that offers tools. Mikata starts only the servers you declare in your
-global configuration, inside the sandbox, and shows each body only the tools of the servers you
-named for its race that its shelf can use.
+global configuration, inside the sandbox, and shows Mikata only the tools of the servers you named
+it in.
 
 Every tool has a class — read, write, outward or destructive — that you declare for the tool or
 its server; a tool nobody declared is outward, unless the sandbox proves it a read.
 
-**For Mikata's own body,** a server it may use names `mikata` in its `races` (or `summoner`, its
-name inside). Mikata may take every class: its `read` and `write` tools run as they are called, and
+A server Mikata may use names `mikata` in its `races` (or `summoner`, its name inside the code).
+Mikata may take every class: its `read` and `write` tools run as they are called, and
 an outward or destructive one, an undeclared tool included, asks you before each call.
 
 A server always sends every one of its tool definitions, so Mikata shows them in three levels,
@@ -100,12 +104,12 @@ each priced before it loads:
 
 No server starts until a body opens it or calls it. Before each ask, the tools that best fit it
 are named at level 1, ranked by the words of the ask — no model is asked — so the right tool is
-usually in view without a search. The ranking also learns: a tool this creature or its race
-called on similar asks climbs, and one whose schema was loaded and never called sinks for a
+usually in view without a search. The ranking also learns: a tool Mikata called on similar asks
+climbs, and one whose schema was loaded and never called sinks for a
 while. Only when the catalog is large and the best few score close does one short call to the
-fast tier reorder them; it can drop or reorder those few, never add one. A tool a creature calls
+fast tier reorder them; it can drop or reorder those few, never add one. A tool a body calls
 on most of its asks is placed in its stable prefix, chosen when a session starts, never during
-one. A server whose schemas would outgrow the race's prefix ceiling stays at level 0. On
+one. A server whose schemas would outgrow the prefix ceiling stays at level 0. On
 Anthropic, a schema loads as a native deferred tool, out of the cached prefix. A server that
 hangs or dies becomes a hole naming it, never a wait. Every word a server sends — descriptions, schemas, answers —
 is treated as data from outside: escaped, capped and marked as untrusted, to a body and to the
@@ -244,20 +248,14 @@ Each listed tool becomes a spec once:
 Every refusal is a hole, said at level 1 and in `mikata status` once the catalog is known; so is
 a class your configuration declares for a tool the server does not list.
 
-### Scoped by race and class
+### Scoped by name and class
 
-A body sees a tool only when both hold:
-
-- its server names the body's race in `races` (an ascended form through its base: `kijin`
-  serves an Oni);
-- the tool's class is on the race's shelf. An `outward` or `destructive` tool reaches only Kijin
-  and Oni, whatever `races` says; a `read` or `write` one reaches any race named. Selection
-  never widens a shelf.
-
-Before a catalog is known, a server is shown to a race only when some class its tools could be
-given — declared, inferable or the default — is on the race's shelf. A tool off the shelf is
-never rendered: not at any level, not in a search, not in the ranking, and a door asked for it
-by name answers that no such tool is in scope.
+Mikata sees a server's tools only when the server names `mikata` in its `races` (or `summoner`,
+its name inside the code). Every class reaches it: a `read` or `write` tool runs as it is called,
+and an `outward` or `destructive` one — an undeclared tool included — asks you before each call.
+A tool not in scope is never rendered: not at any level, not in a search, not in the ranking, and
+a door asked for it by name answers that no such tool is in scope. (The lab scopes by each race's
+shelf: [the lab in the code](experimental/the-lab-in-the-code.md#mcp-for-the-labs-bodies).)
 
 ### Three levels, priced
 
@@ -283,17 +281,16 @@ server cannot add a tool mid-run — a changed catalog reaches the next listing.
 
 ### Budgeted
 
-Each race's cached prefix — its system prompt and its tools' definitions, at four bytes a token
-— has a ceiling: 4,000 tokens for the throne and a Slime (what CI holds the light-coding prefix under,
-#43), 5,000 for an Orc or a Dark Elf, 6,000 for an Elf, 8,000 for a Kijin, an ascended form as
-its base. MCP schemas count against it twice:
+Mikata's cached prefix — its system prompt and its tools' definitions, at four bytes a token —
+has a ceiling of 4,000 tokens, what CI holds the light-coding prefix under (#43); the lab's races
+have their own. MCP schemas count against it twice:
 
 - **A server past the ceiling is level 0 only.** When the schemas of a server's tools on the
-  race's shelf — their level-2 prices together — pass the race's whole ceiling, the server shows
+  body's shelf — their level-2 prices together — pass the whole ceiling, the server shows
   only its level-0 line, ending `level 0 only:` and why, with both numbers. It opens to nothing:
   `mcp_open`, `mcp_schema` and `mcp_call` answer with the same reason, the ranking and a search
-  never name its tools, and none joins a frame. A race with a higher ceiling may still open it.
-- **The stable prefix fits in what is left.** The tools promoted into a creature's frame
+  never name its tools, and none joins a frame.
+- **The stable prefix fits in what is left.** The tools promoted into a body's frame
   (below) fit, together, in the ceiling less the frame the run already has — its prompt, its own
   tools and the four doors.
 
@@ -303,17 +300,17 @@ envelope has M wt left` — and nothing is journaled as loaded.
 
 ### The stable prefix
 
-A tool a creature calls on most of its asks belongs up front. When a session starts, the harness
+A tool a body calls on most of its asks belongs up front. When a session starts, the harness
 reads the MCP journal — believed only when its chain and witness hold — once, and for each
-creature takes its last `mcp.prefix.asks` asks (10, never fewer): every tool it called, and that
+body takes its last `mcp.prefix.asks` asks (10, never fewer): every tool it called, and that
 answered, on at least `share_pct` percent of them (60), at most `tools` of them (3), most called
-first, ties by name. A creature with fewer asks journaled has none.
+first, ties by name. A body with fewer asks journaled has none.
 
-Each run that creature makes in that session carries those of them its scope holds when the run
+Each run that body makes in that session carries those of them its scope holds when the run
 is made — so two runs may differ if a catalog became known between them, each fixed for its life — in its frame, as tools of their
 own — `<server>__<tool>`, its definition saying whose it is, its class and that the words are the
 server's — called by name, with no level loaded first, through the same scope, shelf, class and
-gate as `mcp_call`. Only tools in scope for the run's own race — on its shelf — among the catalogs known when the run is made join, of a
+gate as `mcp_call`. Only tools in scope for the run's body among the catalogs known when the run is made join, of a
 server under the ceiling, within the room the ceiling leaves; `status` says which joined and why
 any did not.
 
@@ -349,7 +346,7 @@ is BM25 (`k1 = 1.2`, `b = 0.75`, the formula recall uses) of the ask's words —
 single letters aside — over each tool's name, server and description, plus the learned nudge
 below; only tools with a positive BM25 score are named — what was learned orders them, never
 admits one — ties break by name, then by the catalog's order, and the same catalog, journal and ask always give the
-same list. A commissioned body is ranked for its commission's ask, the session's body for each of
+same list. The session's body is ranked for each of
 its asks.
 
 ### Reranked by the fast tier
@@ -379,7 +376,7 @@ goes to the fast tier (`models.tier.fast`) in one call, before the ask is sent:
 
 ### A call
 
-1. The scope and the shelf: the tool must be in scope, and its class on the calling race's shelf.
+1. The scope: the tool must be in scope for the calling body (in the lab, its class on the race's shelf too).
 2. The arguments must be an object of at most 64 KB; larger, nothing is asked or sent.
 3. Any tool but a `read` one asks the human gate at its own class — `write`, `outward` or
    `destructive`, never the door's — naming the server and the tool, why its class is what it
@@ -399,7 +396,7 @@ goes to the fast tier (`models.tier.fast`) in one call, before the ask is sent:
 The MCP journal (`journal.jsonl` in the world's MCP state, under `$XDG_STATE_HOME/mikata/mcp/`)
 keeps one row per level-1 load, level-2 load, call, offer and rerank, and one more as each ask
 ends, whatever it did with MCP — what habits are counted over: the tool and server, the
-creature and race, the ask's id, its words (sorted, at most 32) and their fingerprint, the
+body and race, the ask's id, its words (sorted, at most 32) and their fingerprint, the
 weighted tokens it put in the conversation or cost, whether the tool was called after it in the
 same ask, how it ended, and whether the ask ended answered with nothing failing at its gate.
 The loop writes the rows at each ask's end from what its own doors reported; no model and no
@@ -421,7 +418,7 @@ segment that is not believed is never sealed: the evidence stays where it is.
 
 From the newest 4,096 rows, model-free, bounded and deterministic:
 
-- **Relation.** Each past call that answered, by this creature (weight 1) or another of its race
+- **Relation.** Each past call that answered, by this body (weight 1) or, in the lab, another of its race
   (weight ½), counts its ask's similarity to this one — once per ask and tool, however often the
   ask called it — BM25 of this ask's words over the past
   asks' words, over the best such score — halved when that ask did not end well. A tool gains
@@ -436,7 +433,7 @@ with the price of opening it once its catalog is known — then which tools join
 prefix and why any habitual one did not. What was refused is a `hole`. From the
 journal, `mcp-why` lines give each server's schema loaded against what of it was then used, in
 weighted tokens, and what its answers and the reranks cost; then why each tool of the last ask was
-offered — `slime-scout offered docs__lookup — bm25 3.1 + used 4× by slime-scout (+1.61)`, with
+offered — `summoner offered docs__lookup — bm25 3.1 + used 4× by summoner (+1.61)`, with
 `− loaded idle 2× (−0.71)` for a penalty, `· reranked by <model>` and `· called` when they apply —
 or why the journal is not believed. `mikatad usage` says the same per server under `mcp schema,
 by server`, and `usage --json` carries it as `mcp.servers.<name>` — `schemaLoadedWt`,
@@ -449,7 +446,7 @@ integrations page shows each server's scope, its declared class and each tool's.
 These parts of [#48](https://github.com/Kaginari/mikata/issues/48) wait for M13
 ([roadmap](roadmap.md)):
 
-- **agent-mcp**, a duty at `kijin-scout`'s post: curating the roster, proposing each tool's
+- **agent-mcp**, a duty of its own: curating the roster, proposing each tool's
   class for you to declare and writing its one-line description, once per server version, on the
   fast tier.
 - **`list_changed`** and server versions as refresh triggers; argument validation against the
