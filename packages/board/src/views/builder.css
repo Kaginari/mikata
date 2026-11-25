@@ -97,7 +97,7 @@
     var(--mn-gold)
   );
   box-shadow: 0 5px 24px var(--mn-glow-soft);
-  color: var(--mn-text);
+  color: var(--bapp-on-accent);
 }
 .bapp-brand {
   display: flex;
@@ -147,7 +147,7 @@
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: var(--mn-text);
+  color: var(--bapp-on-accent);
   font-size: 13.5px;
   font-weight: 800;
   text-decoration: none;
@@ -157,7 +157,7 @@
   background: color-mix(in srgb, var(--mn-bg) 55%, transparent);
 }
 .bapp-head .bapp-muted {
-  color: var(--mn-text);
+  color: var(--bapp-on-accent);
   font-size: 11px;
   white-space: nowrap;
 }
@@ -177,8 +177,19 @@
   gap: 8px;
   border: 1px solid color-mix(in srgb, var(--mn-holo) 55%, var(--mn-gold));
   background: linear-gradient(115deg, var(--mn-holo), var(--mn-gold));
-  color: var(--mn-text);
+  color: var(--bapp-on-accent);
   font-weight: 700;
+}
+/* What reads on the accent: the dark page's light text; on the light page, white (the panel). */
+.bapp {
+  --bapp-on-accent: var(--mn-text);
+}
+:root[data-theme="light"] .bapp {
+  --bapp-on-accent: var(--mn-panel);
+}
+:root[data-theme="light"] .bapp .bapp-nav .bapp-active {
+  border-color: color-mix(in srgb, var(--mn-panel) 45%, transparent);
+  background: color-mix(in srgb, var(--mn-text) 22%, transparent);
 }
 
 /* ── the three columns ── */

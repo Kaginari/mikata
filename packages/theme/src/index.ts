@@ -98,16 +98,16 @@ export const neonDark: SchemePalette = {
 };
 
 export const neonLight: SchemePalette = {
-  bg: '#f4efe4',
-  panel: '#fffbf4',
-  panelRaised: '#dbdfe7',
-  line: '#a5a9b8',
-  text: '#111622',
-  textMuted: '#454c58',
-  holo: '#92155a',
-  alarm: '#ae3644',
-  gold: '#694f1f',
-  player: '#694f1f',
+  bg: '#fdf6f9',
+  panel: '#ffffff',
+  panelRaised: '#fbeaf3',
+  line: '#e6b3cc',
+  text: '#1a1020',
+  textMuted: '#655063',
+  holo: '#cc0068',
+  alarm: '#c8102e',
+  gold: '#a85000',
+  player: '#a85000',
 };
 
 export const emberDark: SchemePalette = {

@@ -95,16 +95,17 @@
 }
 
 :root[data-scheme="neon"][data-theme="light"] {
-  --mn-bg: #f4efe4;
-  --mn-panel: #fffbf4;
-  --mn-panel-raised: #dbdfe7;
-  --mn-line: #a5a9b8;
-  --mn-text: #111622;
-  --mn-text-muted: #454c58;
-  --mn-holo: #92155a;
-  --mn-alarm: #ae3644;
-  --mn-gold: #694f1f;
-  --mn-race-player: #694f1f;
+  --mn-success: #0a7a36;
+  --mn-bg: #fdf6f9;
+  --mn-panel: #ffffff;
+  --mn-panel-raised: #fbeaf3;
+  --mn-line: #e6b3cc;
+  --mn-text: #1a1020;
+  --mn-text-muted: #655063;
+  --mn-holo: #cc0068;
+  --mn-alarm: #c8102e;
+  --mn-gold: #a85000;
+  --mn-race-player: #a85000;
   --mn-glow: color-mix(in srgb, var(--mn-holo) 30%, transparent);
   --mn-glow-soft: color-mix(in srgb, var(--mn-holo) 10%, transparent);
 }

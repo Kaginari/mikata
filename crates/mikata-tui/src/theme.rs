@@ -372,6 +372,19 @@ impl Scheme {
                 alarm: r.alarm,
                 gold: r.human,
             },
+            // Its light page too: the same hot pink and amber, deepened only as far as reading on
+            // a pink-white page needs (a lean toward the text left them dull).
+            (Self::Neon, Variant::Light) => Palette {
+                bg: Rgb::hex(0xfd_f6f9),
+                panel: Rgb::hex(0xff_ffff),
+                panel_raised: Rgb::hex(0xfb_eaf3),
+                line: Rgb::hex(0xe6_b3cc),
+                text: Rgb::hex(0x1a_1020),
+                text_muted: Rgb::hex(0x65_5063),
+                holo: Rgb::hex(0xcc_0068),
+                alarm: Rgb::hex(0xc8_102e),
+                gold: Rgb::hex(0xa8_5000),
+            },
             (_, variant) => Self::leaned(base, r, variant),
         };
         // Every text colour reads on every surface, as the board holds them (AA): one that does
