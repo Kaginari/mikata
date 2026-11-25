@@ -56,6 +56,7 @@ import '@fontsource/manrope/latin-700.css';
 import '@fontsource/manrope/latin-800.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
 import '@fontsource/jetbrains-mono/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-800.css';
 import './builder.css';
 
 /** What a native unit does, and how the card names it. */
@@ -702,8 +703,8 @@ export function BuilderView({
             {view === 'session' && (
               <div className="bapp-session">
                 <div className="bapp-sessionhead">
-                  <p className="bapp-ok">
-                    ●{' '}
+                  <p className="bapp-tag" data-tone={live?.link === 'open' ? 'ok' : 'holo'}>
+                    <i className="bapp-dot" aria-hidden="true" />{' '}
                     <Safe
                       text={run ? `${run.session} · ${live?.link ?? 'connecting'}` : 'No run yet'}
                     />

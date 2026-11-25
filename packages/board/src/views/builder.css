@@ -226,28 +226,37 @@
   padding: 0;
   list-style: none;
 }
-.bapp .bapp-tags li {
+.bapp .bapp-tags li,
+.bapp .bapp-tag,
+.bapp .bapp-state,
+.bapp .bapp-verdict {
   --tag: var(--mn-text-muted);
   display: inline-flex;
   align-items: center;
   gap: 7px;
   max-width: 100%;
   padding: 4px 12px;
-  border: 1px solid color-mix(in srgb, var(--tag) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tag) 65%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--tag) 12%, transparent);
+  background: color-mix(in srgb, var(--tag) 20%, transparent);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--tag);
   overflow-wrap: anywhere;
 }
-.bapp .bapp-tags li[data-tone="ok"] {
+.bapp .bapp-tags li[data-tone="ok"],
+.bapp .bapp-tag[data-tone="ok"],
+.bapp .bapp-state[data-state="Verified"],
+.bapp .bapp-verdict {
   --tag: var(--mn-success);
 }
-.bapp .bapp-tags li[data-tone="holo"] {
+.bapp .bapp-tags li[data-tone="holo"],
+.bapp .bapp-tag[data-tone="holo"] {
   --tag: var(--mn-holo);
 }
-.bapp .bapp-tags li[data-tone="alarm"] {
+.bapp .bapp-tags li[data-tone="alarm"],
+.bapp .bapp-state[data-state="Not landed"],
+.bapp .bapp-verdict[data-ok="false"] {
   --tag: var(--mn-alarm);
 }
 .bapp .bapp-dot {
@@ -324,13 +333,15 @@
   margin-bottom: 18px;
 }
 .bapp-top h1 {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.6px;
+  letter-spacing: -0.8px;
 }
 .bapp-top h2 {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 800;
+  letter-spacing: -0.2px;
+  word-spacing: 2px;
 }
 .bapp-profile {
   white-space: nowrap;
@@ -363,8 +374,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
 }
 .bapp-unit h3 .bapp-switch,
 .bapp-unit h3 button {
@@ -459,19 +470,13 @@
 }
 
 /* the right */
-.bapp-state {
-  font-weight: 600;
-  color: var(--mn-text-muted);
+.bapp .bapp-state {
+  font-size: 12px;
+  letter-spacing: 0.06em;
 }
-.bapp-state[data-state="Verified"] {
-  color: var(--mn-success);
-}
-.bapp-state[data-state="Running"],
-.bapp-state[data-state="Starting"] {
-  color: var(--mn-gold);
-}
-.bapp-state[data-state="Not landed"] {
-  color: var(--mn-alarm);
+.bapp .bapp-state[data-state="Running"],
+.bapp .bapp-state[data-state="Starting"] {
+  --tag: var(--mn-gold);
 }
 .bapp-ask {
   width: 100%;
@@ -611,9 +616,9 @@
   display: block;
   margin-bottom: 8px;
   font:
-    600 12px "JetBrains Mono",
+    800 12px "JetBrains Mono",
     var(--mn-font-mono);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
 }
 .bapp .bapp-message p {
@@ -645,16 +650,6 @@
 }
 .bapp .bapp-verdict {
   align-self: flex-start;
-  padding: 4px 12px;
-  border: 1px solid var(--mn-success);
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--mn-success);
-}
-.bapp .bapp-verdict[data-ok="false"] {
-  border-color: var(--mn-alarm);
-  color: var(--mn-alarm);
 }
 .bapp-composer,
 .bapp-sidechat {
