@@ -226,19 +226,27 @@
   color: var(--mn-text-muted);
   overflow-wrap: anywhere;
 }
-.bapp-navbtn {
+.bapp .bapp-navbtn {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  margin: 3px 0;
+  margin: 2px 0;
   padding: 9px 12px;
-  border: 1px solid var(--mn-line);
+  border: 1px solid transparent;
   border-radius: 7px;
-  background: var(--mn-panel-raised);
+  background: transparent;
   color: var(--mn-text);
   text-align: left;
   text-decoration: none;
+}
+.bapp .bapp-navbtn:hover {
+  border-color: var(--mn-line);
+  background: var(--mn-panel-raised);
+}
+.bapp .bapp-navbtn.bapp-active {
+  border-color: color-mix(in srgb, var(--mn-holo) 65%, var(--mn-line));
+  background: color-mix(in srgb, var(--mn-holo) 20%, var(--mn-panel));
 }
 .bapp-side > p {
   line-height: 1.5;
@@ -543,11 +551,14 @@
   padding: 8px 3px;
 }
 .bapp-message {
+  align-self: stretch;
   max-width: 93%;
   padding: 17px;
-  border: 1px solid var(--mn-line);
+  border: 1px solid color-mix(in srgb, var(--mn-holo) 22%, var(--mn-line));
   border-radius: 10px;
-  background: var(--mn-panel-raised);
+  background: color-mix(in srgb, var(--mn-holo) 4%, var(--mn-panel-raised));
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 .bapp-message b {
   display: block;
@@ -555,16 +566,54 @@
   font:
     600 12px "JetBrains Mono",
     var(--mn-font-mono);
+  letter-spacing: 0.04em;
   color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
 }
-.bapp-message p {
+.bapp .bapp-message p {
+  margin: 0 0 0.6em;
   line-height: 1.7;
+}
+.bapp .bapp-message p:last-child {
+  margin-bottom: 0;
+}
+.bapp-message-user {
+  align-self: flex-end;
+  border-color: color-mix(in srgb, var(--mn-holo) 45%, var(--mn-line));
+  background: color-mix(in srgb, var(--mn-holo) 14%, var(--mn-panel-raised));
+}
+.bapp-message-user b {
+  color: color-mix(in srgb, var(--mn-gold) 75%, var(--mn-text));
+}
+.bapp .bapp-calls {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -6px 0 0 4px;
+  font-size: 12px;
+  color: var(--mn-text-muted);
+}
+.bapp-calls a {
+  color: var(--mn-holo);
+}
+.bapp .bapp-verdict {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border: 1px solid var(--mn-success);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mn-success);
+}
+.bapp .bapp-verdict[data-ok="false"] {
+  border-color: var(--mn-alarm);
+  color: var(--mn-alarm);
 }
 .bapp-composer,
 .bapp-sidechat {
   margin-top: 15px;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--mn-holo) 35%, var(--mn-line));
+  border: 1px solid color-mix(in srgb, var(--mn-holo) 40%, var(--mn-line));
   border-radius: 10px;
   background: var(--mn-panel-raised);
 }

@@ -22,6 +22,7 @@ import {
   faDownload,
   faFolderOpen,
   faGaugeHigh,
+  faGears,
   faLayerGroup,
   faListCheck,
   faLock,
@@ -44,11 +45,11 @@ import { composed, opening, toml, useHarness } from '../data/harness.ts';
 import { type Live, useLive } from '../data/live.ts';
 import { shownBody } from '../data/names.ts';
 import { format } from '../router.ts';
+import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { Logo } from '../ui/Logo.tsx';
-import { Composer, TranscriptView } from './Chat.tsx';
 import '@fontsource/manrope/latin-400.css';
 import '@fontsource/manrope/latin-600.css';
 import '@fontsource/manrope/latin-700.css';
@@ -288,6 +289,127 @@ function SideChat({ live }: { live: Live | undefined }) {
       >
         <Icon icon={faPaperPlane} /> {live?.view?.busy ? 'Steer the run' : 'Send message'}
       </button>
+    </div>
+  );
+}
+
+/** The session's conversation as the v5 board draws it: the human's lines and Mikata's answers as
+ * message cards; each run of tool calls one quiet line (the live run's log lists every step), and
+ * the end gate's word as a pill. The full chat, every card, is a link away. */
+function Conversation({ view, me, full }: { view: ChatView; me: string; full: string }) {
+  const out: ReactNode[] = [];
+  let calls: Call[] = [];
+  const flush = (key: string) => {
+    if (calls.length === 0) return;
+    const failed = calls.filter((c) => c.outcome?.isError).length;
+    const running = calls.filter((c) => c.outcome === undefined && !c.stopped).length;
+    out.push(
+      <p key={`calls-${key}`} className="bapp-calls">
+        <Icon icon={faGears} /> {calls.length} tool call{calls.length === 1 ? '' : 's'}
+        {running > 0 ? ` · ${running} running` : failed > 0 ? ` · ${failed} failed` : ' · ok'} ·{' '}
+        <a href={full}>see each</a>
+      </p>,
+    );
+    calls = [];
+  };
+  for (const e of view.entries) {
+    if (e.kind === 'tool') {
+      calls.push(e.call);
+      continue;
+    }
+    if (e.kind === 'group') {
+      calls.push(...e.calls);
+      continue;
+    }
+    flush(e.key);
+    if (e.kind === 'user') {
+      out.push(
+        <article key={e.key} className="bapp-message bapp-message-user">
+          <b>YOU</b>
+          <Safe text={e.text} lines />
+        </article>,
+      );
+    } else if (e.kind === 'assistant') {
+      out.push(
+        <article key={e.key} className="bapp-message">
+          <b>{me.toUpperCase()}</b>
+          <Markdown text={e.text} />
+        </article>,
+      );
+    } else if (e.kind === 'verdict') {
+      const ok = e.verdict === 'PASS';
+      out.push(
+        <p key={e.key} className="bapp-verdict" data-ok={ok}>
+          {ok ? '✓ end gate · pass' : `✘ end gate · ${e.verdict.toLowerCase()}`}
+          {e.changed.length > 0 && ` · ${e.changed.length} changed`}
+        </p>,
+      );
+    } else if (e.kind === 'ending' && e.ending !== 'answered') {
+      out.push(
+        <p key={e.key} className="bapp-calls">
+          <Safe text={e.ending} />
+        </p>,
+      );
+    }
+  }
+  flush('end');
+  if (view.streaming) {
+    out.push(
+      <article key="streaming" className="bapp-message">
+        <b>{me.toUpperCase()}</b>
+        <Markdown text={view.streaming} />
+      </article>,
+    );
+  }
+  return <>{out}</>;
+}
+
+/** The v5 composer, on the live session: a line runs, or steers the turn that runs. */
+function SessionComposer({ live }: { live: Live }) {
+  const [text, setText] = useState('');
+  const busy = live.view?.busy ?? false;
+  const ready = live.role === 'controller' && live.link !== 'closed';
+  const send = () => {
+    const t = text.trim();
+    if (!t || !ready) return;
+    setText('');
+    if (busy) void live.steer(t);
+    else void live.prompt(t);
+  };
+  return (
+    <div className="bapp-composer">
+      <textarea
+        aria-label="Ask Mikata"
+        value={text}
+        disabled={!ready}
+        placeholder={
+          live.link === 'closed'
+            ? 'This chat has ended'
+            : busy
+              ? 'Steer the run: it reads this after its next step…'
+              : 'Ask Mikata to change, inspect or explain something…'
+        }
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            send();
+          }
+        }}
+      />
+      <div className="bapp-composerfoot">
+        <small>
+          {busy ? 'The run works · Enter steers it' : 'Enter to send'} · Shift+Enter for a newline
+        </small>
+        <button
+          type="button"
+          className="bapp-primary"
+          disabled={!ready || !text.trim()}
+          onClick={send}
+        >
+          <Icon icon={faPaperPlane} /> {busy ? 'Steer' : 'Send'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -564,8 +686,12 @@ export function BuilderView({
                   </button>
                 </div>
                 <div className="bapp-conversation">
-                  {live?.view ? (
-                    <TranscriptView view={live.view} me={shownBody(live.hello?.body ?? '')} />
+                  {live?.view && live.view.entries.length > 0 ? (
+                    <Conversation
+                      view={live.view}
+                      me={shownBody(live.hello?.body ?? 'mikata')}
+                      full={format({ name: 'session', world: w.id, session: run?.session ?? '' })}
+                    />
                   ) : (
                     <article className="bapp-message">
                       <b>MIKATA</b>
@@ -577,7 +703,7 @@ export function BuilderView({
                   )}
                 </div>
                 {live ? (
-                  <Composer live={live} />
+                  <SessionComposer live={live} />
                 ) : (
                   <div className="bapp-composer">
                     <textarea
