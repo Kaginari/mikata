@@ -197,17 +197,17 @@ It is every world on the machine in one page: chats in the terminal's grammar, t
 with the terminal's protections, memory and metrics, live. ⌘K (Ctrl+K) jumps anywhere; `?` lists
 every shortcut.
 
-| | Dark | Light |
-|---|---|---|
-| Chat | <img src="docs/img/board/chat-dark.png" width="400" alt="A chat, dark: tool cards, a numbered diff, the end gate's verdict, the session pane"> | <img src="docs/img/board/chat-light.png" width="400" alt="A chat, light"> |
-| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval card, dark: the act whole with every hidden character escaped, Yes disabled until read"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval card, light"> |
-| Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
-
 **The Harness Builder** (`#/w/<world>/builder`, first under each world) composes a session's units
 with switches, starts a run with exactly that harness and follows it live: its stages, its log,
 the end gate's word, its spend, its approvals.
 
 <img src="docs/img/board/builder-dark.png" width="820" alt="The Harness Builder: the units as cards round the core, the composition as TOML, the run live on the right with its stages, log and the end gate's verdict">
+
+| | Dark | Light |
+|---|---|---|
+| Chat | <img src="docs/img/board/chat-dark.png" width="400" alt="A chat, dark: tool cards, a numbered diff, the end gate's verdict, the session pane"> | <img src="docs/img/board/chat-light.png" width="400" alt="A chat, light"> |
+| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval card, dark: the act whole with every hidden character escaped, Yes disabled until read"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval card, light"> |
+| Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
 
 ## Build it
 
