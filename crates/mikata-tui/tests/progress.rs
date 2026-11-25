@@ -553,7 +553,7 @@ fn a_call_has_its_card_from_its_first_byte() {
     );
     let scr = screen(&mut m, 100, 32);
     assert!(scr.contains("● bash  pytest -q tests/  read"), "{scr}");
-    assert!(scr.contains("⎿ ok · 2.5s · 1 line"), "{scr}");
+    assert!(scr.contains("⎿ ok · 2.5s · 3 passed"), "{scr}");
 }
 
 #[test]
@@ -649,10 +649,11 @@ fn large_output_stays_folded() {
             cut: 0,
         },
     );
+    // Folded, the card is two rows: the last line, and how many it stands for.
     let scr = screen(&mut m, 100, 40);
-    assert!(scr.contains("line 3") && !scr.contains("line 4"), "{scr}");
+    assert!(scr.contains("⎿ ok · 0ms · line 500 · +499 lines"), "{scr}");
     assert!(
-        scr.contains("… +497 lines · click or ctrl+t to expand"),
+        !scr.contains("line 3\n") && !scr.contains("line 499"),
         "{scr}"
     );
 }

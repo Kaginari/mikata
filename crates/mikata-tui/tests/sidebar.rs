@@ -393,7 +393,8 @@ fn long_output(m: &mut Model) {
         .collect::<Vec<_>>()
         .join("\n");
     call(m, "b1", "bash", json!({"command": "pytest"}), &out);
-    call(m, "b2", "bash", json!({"command": "ls"}), "a\nb");
+    // A call that printed nothing: its card has nothing folded.
+    call(m, "b2", "bash", json!({"command": "ls"}), "");
 }
 
 #[test]
@@ -443,11 +444,11 @@ fn a_drag_selects_the_conversation_alone_and_copies_it_bare() {
     // A click without a drag still expands a card, and copies nothing.
     long_output(&mut m);
     let buf = draw(&mut m, 120, 40);
-    let at = find(&buf, "line 2").unwrap();
+    let at = find(&buf, "bash  pytest").unwrap();
     mouse(&mut m, MouseEventKind::Down(MouseButton::Left), at);
     let cmds = mouse(&mut m, MouseEventKind::Up(MouseButton::Left), at);
     assert!(!cmds.iter().any(|c| matches!(c, Cmd::Copy(_))));
-    assert!(screen(&draw(&mut m, 120, 40)).contains("line 10"));
+    assert!(screen(&draw(&mut m, 120, 40)).contains("line 7"));
 }
 
 #[test]
@@ -456,25 +457,17 @@ fn a_click_expands_a_folded_card_and_folds_it_again() {
     long_output(&mut m);
     let buf = draw(&mut m, 120, 40);
     let scr = screen(&buf);
-    assert!(
-        scr.contains("… +7 lines · click or ctrl+t to expand"),
-        "{scr}"
-    );
-    assert!(!scr.contains("line 10"), "{scr}");
-    let at = find(&buf, "line 2").unwrap();
+    // Folded, the card is two rows: its last line and the lines it stands for.
+    assert!(scr.contains("line 10 · +9 lines"), "{scr}");
+    assert!(!scr.contains("line 7"), "{scr}");
+    let at = find(&buf, "bash  pytest").unwrap();
     click(&mut m, at);
     let scr = screen(&draw(&mut m, 120, 40));
-    assert!(
-        scr.contains("line 10") && !scr.contains("+7 lines"),
-        "{scr}"
-    );
+    assert!(scr.contains("line 7") && !scr.contains("+9 lines"), "{scr}");
     let buf = draw(&mut m, 120, 40);
     click(&mut m, find(&buf, "line 7").unwrap());
     let scr = screen(&draw(&mut m, 120, 40));
-    assert!(
-        scr.contains("+7 lines") && !scr.contains("line 10"),
-        "{scr}"
-    );
+    assert!(scr.contains("+9 lines") && !scr.contains("line 7"), "{scr}");
     // A click on a card with nothing folded, or on a row of the sidebar, changes nothing.
     let buf = draw(&mut m, 120, 40);
     click(&mut m, find(&buf, "bash  ls").unwrap());
@@ -500,13 +493,13 @@ fn a_key_expands_the_focused_card_and_the_focus_moves_between_cards() {
     // With no card focused, ctrl+t opens the newest that has something folded.
     ctrl(&mut m, 't');
     let buf = draw(&mut m, 120, 40);
-    assert!(screen(&buf).contains("line 10"));
+    assert!(screen(&buf).contains("line 7"));
     // The focused card wears the accent on its border.
     let (x, y) = find(&buf, "bash  pytest").unwrap();
     assert_eq!(buf[(x - 4, y)].symbol(), "│", "the card's border");
     assert_eq!(buf[(x - 4, y)].fg, m.theme.p.holo.color());
     ctrl(&mut m, 't');
-    assert!(!screen(&draw(&mut m, 120, 40)).contains("line 10"));
+    assert!(!screen(&draw(&mut m, 120, 40)).contains("line 7"));
     // alt+↓ past the newest card leaves the cards; alt+↑ comes back to the newest.
     let alt = |code| Msg::Key(KeyEvent::new(code, KeyModifiers::ALT));
     update(&mut m, alt(KeyCode::Down));

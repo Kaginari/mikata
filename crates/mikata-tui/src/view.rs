@@ -568,6 +568,10 @@ fn bindings(m: &Model) -> &'static [Binding] {
             action: "queue",
         },
         Binding {
+            key: "ctrl+t",
+            action: "open card",
+        },
+        Binding {
             key: "pgup",
             action: "scroll",
         },
@@ -584,6 +588,14 @@ fn bindings(m: &Model) -> &'static [Binding] {
         Binding {
             key: "↑↓",
             action: "history",
+        },
+        Binding {
+            key: "ctrl+t",
+            action: "open card",
+        },
+        Binding {
+            key: "F2",
+            action: "view",
         },
         Binding {
             key: "pgup",

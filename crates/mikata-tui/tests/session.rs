@@ -96,10 +96,8 @@ fn a_scripted_turn_reaches_the_screen() {
         .collect();
     assert!(screen.contains("│ fix the collate bug"), "{screen}");
     assert!(screen.contains("● edit  parser.py  write"), "{screen}");
-    assert!(
-        screen.contains("-     return this") && screen.contains("+     return collate(this)"),
-        "{screen}"
-    );
+    // Folded, the edit's card is its two rows: what changed, counted.
+    assert!(screen.contains("⎿ ok · 0ms · +1 −1"), "{screen}");
     assert!(screen.contains("Fixed: the collation is kept."), "{screen}");
     assert_eq!(
         fs::read_to_string(world.join("parser.py")).unwrap(),

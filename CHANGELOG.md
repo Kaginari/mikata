@@ -99,7 +99,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   panels) and *Zen* (the conversation and the input alone). The default `neon` scheme takes a
   new palette: hot pink `#ff168a` through coral to amber `#ffb020` on a near-black plum
   (`#0d0b10`, `#18121d`, borders `#382638`), success `#a3ff56`, error `#ff4757`, text
-  `#f4eef5`; the board's `neon` scheme follows it. A footer bar holds the verify line, the last answer's
+  `#f4eef5`; the board's `neon` scheme follows it. A tool card is two rows until opened: its
+  call, then its result — ok or failed, its time, and its output's last line with how many it
+  stands for (`line 500 · +499 lines`), or an edit's `+3 −0`; a click or ctrl+t opens its
+  output or diff whole. A footer bar holds the verify line, the last answer's
   word, the keys that matter now, and the steps, time and spend. Borders run in one pink-to-gold
   gradient; cards are rounded boxes, no longer shaded slabs. Small terminals keep one-row bars
   and drop the frame round the conversation; a short column gives up panels with nothing in

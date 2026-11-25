@@ -82,6 +82,14 @@ fn find(b: &Buffer, needle: &str) -> Option<(u16, u16)> {
     None
 }
 
+/// Every tool card opened, as a click on each would.
+fn open_all(m: &mut Model) {
+    let cards: Vec<usize> = m.transcript.cards().collect();
+    for i in cards {
+        m.transcript.toggle(i);
+    }
+}
+
 fn turn(m: &mut Model, ask: &str) {
     m.outstanding += 1;
     ev(m, Event::TurnStarted { text: ask.into() });
@@ -184,9 +192,13 @@ fn an_edit_is_a_coloured_unified_diff_in_its_card() {
         scr.contains("● read  sqlglot/parser.py:4120-4180  read"),
         "{scr}"
     );
-    assert!(scr.contains("⎿ ok · 0ms · 61 lines · ctrl+t"), "{scr}");
+    assert!(scr.contains("⎿ ok · 0ms · 61 lines"), "{scr}");
     assert!(scr.contains("● edit  sqlglot/parser.py  write"), "{scr}");
     assert!(scr.contains("⎿ ok · 0ms · +1 −1"), "{scr}");
+    // Folded, a card is its two rows; opened, the diff in its colours.
+    assert!(!scr.contains("return this"), "{scr}");
+    open_all(&mut m);
+    let buf = draw(&mut m, 100, 40);
     let (x, y) = find(&buf, "-     return this").unwrap();
     assert_eq!(buf[(x, y)].fg, rgb(DARK.alarm));
     let (x, y) = find(&buf, "+     return self._parse_collate(this)").unwrap();
@@ -212,6 +224,7 @@ fn a_patch_shows_its_hunks_and_a_write_its_head() {
         json!({"path": "notes.md", "content": "# Notes\n\none\ntwo\nthree\nfour\n"}),
         Some(("written", false)),
     );
+    open_all(&mut m);
     let scr = screen(&draw(&mut m, 90, 30));
     for want in [
         "@@ -1,2 +1,2 @@",
@@ -219,7 +232,7 @@ fn a_patch_shows_its_hunks_and_a_write_its_head() {
         "+ new line",
         "new file, 6 lines",
         "# Notes",
-        "… +2 lines",
+        "four",
     ] {
         assert!(scr.contains(want), "{want} missing:\n{scr}");
     }
@@ -249,8 +262,9 @@ fn long_output_folds_and_an_error_is_in_the_alarm_colour() {
     );
     let buf = draw(&mut m, 90, 30);
     let scr = screen(&buf);
-    assert!(scr.contains("line 3") && !scr.contains("line 4"), "{scr}");
-    assert!(scr.contains("… +7 lines"), "{scr}");
+    // Folded: the last line and the count it stands for; the refusal's own words in alarm.
+    assert!(scr.contains("⎿ ok · 0ms · line 10 · +9 lines"), "{scr}");
+    assert!(!scr.contains("line 4"), "{scr}");
     let (x, y) = find(&buf, "refused: destructive").unwrap();
     assert_eq!(buf[(x, y)].fg, rgb(DARK.alarm));
     let (x, y) = find(&buf, "failed").unwrap();
