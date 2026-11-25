@@ -13,7 +13,8 @@ export default withMermaid(
     description:
       'Mikata, the coding agent on your side: one body that writes down what done means and checks every line of it.',
     srcDir: '../docs',
-    rewrites: { 'README.md': 'index.md', 'experimental/README.md': 'experimental/index.md' },
+    // The front page is the landing (index.md); the book's own front page is at /book.
+    rewrites: { 'README.md': 'book.md', 'experimental/README.md': 'experimental/index.md' },
     // Local-only notes (ignored by git) never reach the site.
     srcExclude: ['study-maki.md'],
     cleanUrls: true,
@@ -60,7 +61,7 @@ export default withMermaid(
     themeConfig: {
       logo: '/mikata-icon@64.png',
       nav: [
-        { text: 'Book', link: '/' },
+        { text: 'Book', link: '/book' },
         { text: 'Bench', link: '/bench' },
         { text: 'Roadmap', link: '/roadmap' },
         { text: 'Experimental', link: '/experimental/' },
@@ -70,6 +71,7 @@ export default withMermaid(
         {
           text: 'Mikata',
           items: [
+            { text: 'The book', link: '/book' },
             { text: 'Overview', link: '/01-overview' },
             { text: 'The loop', link: '/02-loop' },
             { text: 'Architecture', link: '/03-architecture' },

@@ -59,3 +59,8 @@
   box-shadow: 0 0 14px var(--mn-glow-soft);
   padding: 16px;
 }
+
+/* The front page draws its own header: no local nav bar over it on narrow screens. */
+.mk-landing .VPLocalNav {
+  display: none;
+}
