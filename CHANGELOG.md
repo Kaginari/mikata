@@ -98,6 +98,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The plan is off by default.** A session no longer has the body write `plan.md` (what done
+  means, its paths) before the code unless it is asked for: `--units +plan`, `plan = true` under
+  `[units]`, or `--profile planned`. On stage 13's screen (2026-11-25) the plan earned no pass:
+  qwen on four prose asks passed 3 of 12 with it and 5 of 12 without; Claude Haiku 5.5 passed 18
+  of 18 either way, at 84% of the calls without it. Lines you write under `## Done when` are held
+  as before. New: the `plan_lite` unit (`--units +plan_lite`, `--profile prose`): one line in the
+  plan's place that copies and checks only the outputs the ask states.
+
 - **Mikata's new mark: a living cell flowing into a digital one** — a nucleus and its organelles
   on the left, a hexagon with a circuit round its core on the right, hot pink through coral to
   amber. The icon and its sizes, the logos, the favicon, the social card, the TUI's picture and
