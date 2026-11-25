@@ -83,7 +83,7 @@ test('the builder starts a run with the composition its switches make, and follo
   page,
 }, info) => {
   await page.emulateMedia({ colorScheme: 'dark' });
-  if (info.project.name === 'desktop') await page.setViewportSize({ width: 1720, height: 1080 });
+  if (info.project.name === 'desktop') await page.setViewportSize({ width: 1600, height: 1000 });
   const bridge = new Bridge();
   bridge.onPrompt = (text) => run(bridge, text);
   const started: unknown[] = [];
@@ -111,23 +111,23 @@ test('the builder starts a run with the composition its switches make, and follo
       });
     });
   });
-  await expect(page.getByRole('heading', { name: 'Harness Builder' })).toBeVisible();
-  if (info.project.name === 'desktop') {
-    await page.getByRole('button', { name: 'Hide the side pane' }).click();
-  }
+  await expect(page.getByRole('heading', { name: 'Harness builder', level: 1 })).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Memory: on' })).toBeVisible();
   // A switch flipped: the composition says it.
   await page.getByRole('switch', { name: 'Challenge: on' }).click();
   await expect(page.getByRole('switch', { name: 'Challenge: off' })).toBeVisible();
-  await expect(page.locator('.config-note')).toContainText('-challenge');
-  await page.getByLabel('Ask').fill('fix the time parser to support 1h30m');
+  await expect(page.locator('.bapp-units')).toContainText('-challenge');
+  await page
+    .getByLabel('Your ask')
+    .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
   await page.getByRole('button', { name: /Start run/ }).click();
-  await expect(page.getByRole('heading', { name: 'Verified' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '✓ Verified' })).toBeVisible();
   expect(started).toEqual([{ units: '-challenge' }]);
-  const log = page.getByRole('log', { name: 'Timeline' });
+  const log = page.getByRole('log', { name: 'Run log' });
   await expect(log).toContainText('bash: cargo test');
   await expect(log).toContainText('end gate: pass');
-  await expect(page.locator('.stage[data-state="done"]')).toHaveCount(4);
+  await expect(page.locator('.bapp-steps li[data-state="done"]')).toHaveCount(4);
+  await expect(page.locator('.bapp-state')).toHaveText('VERIFIED');
   await page.screenshot({ path: shot(`builder-${info.project.name}`), fullPage: true });
 });
 
@@ -141,5 +141,8 @@ test('a profile starts the switches from its own composition', async ({ page }) 
   await page.getByLabel('Profile').selectOption('small-fix');
   await expect(page.getByRole('switch', { name: 'Plan: off' })).toBeVisible();
   // Nothing flipped over the profile: it goes as it is.
-  await expect(page.locator('.config-note')).toContainText('the profile as it is');
+  await expect(page.locator('.bapp-units')).toContainText('as the profile is');
+  // The profiles view lists them, each to apply.
+  await page.getByRole('button', { name: 'Profiles' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Profiles', level: 1 })).toBeVisible();
 });

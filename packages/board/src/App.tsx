@@ -131,9 +131,6 @@ function Centre({
     const gone = load.data.missing.find((m) => m.id === route.world);
     return gone ? <MissingWorld m={gone} now={now} /> : <NoWorld id={route.world} />;
   }
-  if (route.name === 'section' && route.section === 'builder') {
-    return <BuilderView key={world.id} w={world} chats={chats} />;
-  }
   if (route.name === 'section' && route.section === 'bodies') {
     return <BodiesView key={world.id} w={world} tab={route.tab} />;
   }
@@ -272,6 +269,21 @@ function Shell() {
       }
       return !p;
     });
+
+  // The Harness Builder is a page of its own: its header, its columns, no rail and no pane.
+  if (route.name === 'section' && route.section === 'builder' && world) {
+    return (
+      <>
+        <BuilderView
+          key={world.id}
+          w={world}
+          worlds={load.state === 'ready' ? load.data.worlds : []}
+          chats={chats}
+        />
+        {createPortal(<Announcer />, document.body)}
+      </>
+    );
+  }
 
   return (
     <div
