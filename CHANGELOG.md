@@ -9,14 +9,6 @@ whose section is missing or undated ([releasing](docs/releasing.md)).
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-### Changed
-
-- **Fewer calls lost to the harness.** `multiedit` is no longer offered (its nested arguments
-  came back as broken JSON in one call in eight); several edits are several `edit` calls in one
-  message, and a session that used it is still answered. A command the approval gate refuses is
-  told why and where scratch files belong. The prompt says one message may carry several tool
-  calls, and says only what the session's units hold.
-
 ## [Unreleased]
 
 ### Security
@@ -91,6 +83,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   lands at last, the stop's notes go out of recall.
 
 ### Changed
+
+- **Fewer calls lost to the harness.** `multiedit` is no longer offered (its nested arguments
+  came back as broken JSON in one call in eight); several edits are several `edit` calls in one
+  message, and a session that used it is still answered. A command the approval gate refuses is
+  told why and where scratch files belong. The prompt says one message may carry several tool
+  calls, and says only what the session's units hold.
 
 - **Every entry the harness writes for a session says what it was asked** (`- **Asked:**`, the
   ask's first line), so the journal reads as what happened to which ask.
