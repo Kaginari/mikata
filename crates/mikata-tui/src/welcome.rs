@@ -283,9 +283,10 @@ mod tests {
     fn the_card_says_what_mikata_does() {
         for w in [80u16, 120, 200] {
             let mut m = model(Variant::Light);
+            // The panels folded: on each row, the card's stretch is the second between borders.
+            m.sidebar.open = false;
             let (text, _) = screen(&mut m, w, 60);
-            // The card's rows joined, the panels' frames and the column beside them, the card's
-            // own frame and bullets cut away: wrapped lines read whole.
+            // The card's rows joined, the frames and bullets cut away: wrapped lines read whole.
             let flat: String = text
                 .lines()
                 .map(|l| l.split('│').nth(2).unwrap_or(l))
@@ -425,10 +426,10 @@ mod tests {
             crate::pictures::Pictures::new(crate::kit::pixels::Protocol::Kitty, Some((8, 17)));
         // The sidebar folded: whatever is wanted now could only be the welcome's.
         m.sidebar.open = false;
-        let _ = screen(&mut m, 120, 50);
+        let _ = screen(&mut m, 160, 56);
         assert_eq!(m.pictures.wanted(), Vec::new());
         m.sidebar.open = true;
-        let _ = screen(&mut m, 120, 50);
+        let _ = screen(&mut m, 160, 56);
         let wanted = m.pictures.wanted();
         assert_eq!(wanted.len(), 1, "the sidebar's alone");
         assert_eq!(wanted[0].slot, crate::pictures::Slot::Sidebar);

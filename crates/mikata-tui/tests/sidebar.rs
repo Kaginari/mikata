@@ -259,8 +259,8 @@ fn busy_session(m: &mut Model) {
 fn every_section_shows_what_the_observer_and_the_world_gave() {
     let mut m = model();
     busy_session(&mut m);
-    // Tall enough for the portrait at the head and every section whole under it.
-    let buf = draw(&mut m, 120, 52);
+    // Wide enough for the panels' two columns, tall enough for every section whole.
+    let buf = draw(&mut m, 160, 52);
     let scr = screen(&buf);
     println!("{scr}");
     for want in [

@@ -87,14 +87,18 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
         bottom,
         crate::chrome::footer(m, inner_w, |room| keys(m, room)),
     );
-    // The panels' column: the sidebar's width and its own frame, at most a third of the screen.
+    // The panels' columns: the sidebar's width and its own frame each. Wide, the checks and the
+    // rails stand in a column of their own on the left; else every panel shares the right.
     let side = if m.sidebar.width(mid.width.saturating_sub(4)) > 0 {
         (crate::sidebar::WIDTH + 4).min(mid.width / 3)
     } else {
         0
     };
+    let wide = side > 0 && mid.width >= 140;
+    let lead = if wide { side.min(mid.width / 4) } else { 0 };
     let left = Rect {
-        width: mid.width - side,
+        x: mid.x + lead,
+        width: mid.width - side - lead,
         ..mid
     };
     // A small terminal gives the conversation every cell: no frame round it.
@@ -110,6 +114,9 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
     };
     body(m, below_label, buf);
     m.hits.borrow_mut().side_w = 0;
+    if lead > 0 {
+        lead_column(m, buf, Rect { width: lead, ..mid }, area.width);
+    }
     if side > 0 {
         panels(
             m,
@@ -120,6 +127,7 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
             },
             buf,
             area.width,
+            wide,
         );
     }
     let inner = mid;
@@ -129,16 +137,22 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
         dim(buf, inner, t);
         modal(m, below_label, buf);
     }
-    // A toast never covers the approval: it waits under the card, unseen, until it is gone.
+    toast(m, below_label, buf);
+}
+
+/// The toast at the top right of `area` while it fades. It never covers the approval: it waits
+/// under the card, unseen, until it is gone.
+fn toast(m: &Model, area: Rect, buf: &mut Buffer) {
+    let t = &m.theme;
     if let Some(toast) = m.toast.as_ref().filter(|_| m.gate.is_none()) {
         let lines = toast.view(t);
         let width = lines.first().map_or(0, crate::kit::text::line_cells);
-        let left = below_label.right().saturating_sub(to_u16(width));
-        for (row, line) in (below_label.y..below_label.bottom()).zip(&lines) {
+        let left = area.right().saturating_sub(to_u16(width));
+        for (row, line) in (area.y..area.bottom()).zip(&lines) {
             buf.set_line(left, row, line, to_u16(width));
         }
         // Nor does a picture sit over the toast.
-        let over = Rect::new(left, below_label.y, to_u16(width), to_u16(lines.len()));
+        let over = Rect::new(left, area.y, to_u16(width), to_u16(lines.len()));
         m.pictures
             .wants
             .borrow_mut()
@@ -146,51 +160,93 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
     }
 }
 
-/// The right-hand column in `area`: Done when, Budgets and Units each as tall as their lines, the
-/// Session panel (memory, files, bodies) taking the rows left.
-fn panels(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16) {
+/// The left column of a wide screen in `area`: Checks, Guardrails, and Units in the rows left.
+fn lead_column(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16) {
+    let w = usize::from(area.width.saturating_sub(4));
+    let panes = [
+        Pane::new("✓", "Checks", crate::chrome::checks(m, w)),
+        Pane::new("◈", "Guardrails", crate::chrome::guardrails(m, w)),
+        Pane::new("⚙", "Units", crate::chrome::units(m, w)),
+    ];
+    stack(m, buf, area, screen_w, &panes, 0);
+}
+
+/// A panel waiting its place in a column: its glyph, its title, its lines.
+struct Pane {
+    glyph: &'static str,
+    title: String,
+    lines: Lines,
+}
+
+impl Pane {
+    fn new(glyph: &'static str, title: impl Into<String>, lines: Lines) -> Self {
+        Self {
+            glyph,
+            title: title.into(),
+            lines,
+        }
+    }
+}
+
+/// `panes` stacked down `area`, each as tall as its lines, `keep` rows left free under them (none
+/// kept: the last pane takes the rows left); a pane with no room for four of its lines is left
+/// out. Returns the first row under them.
+fn stack(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16, panes: &[Pane], keep: u16) -> u16 {
+    let mut y = area.y;
+    for (i, p) in panes.iter().enumerate() {
+        let room = area.bottom().saturating_sub(y).saturating_sub(keep);
+        let fill = keep == 0 && i + 1 == panes.len();
+        let tall = if fill {
+            room
+        } else {
+            (to_u16(p.lines.len()) + 2).min(room)
+        };
+        // A pane shows four of its lines at least, or all of fewer: one row of a list reads as
+        // the whole list.
+        let least = to_u16(p.lines.len().clamp(1, 4)) + 2;
+        if tall < least {
+            continue;
+        }
+        let card = Rect::new(area.x, y, area.width, tall);
+        let inner = crate::chrome::panel(buf, card, p.glyph, &p.title, &m.theme, screen_w);
+        for (row, line) in (inner.y..inner.bottom()).zip(&p.lines) {
+            buf.set_line(inner.x + 1, row, line, inner.width.saturating_sub(2));
+        }
+        y += tall;
+    }
+    y
+}
+
+/// The right-hand column in `area`: Done when and Budgets (and, when the screen is not `wide`,
+/// Checks, Guardrails and Units, as room allows) each as tall as its lines, the Session panel (memory, files,
+/// bodies) taking the rows left.
+fn panels(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16, wide: bool) {
     let t = &m.theme;
     let cols = usize::from(area.width.saturating_sub(4));
-    let done = crate::chrome::done_when(m, cols);
-    let budgets = crate::chrome::budgets(m, cols);
-    let units = crate::chrome::units(m, cols);
-    let mut y = area.y;
-    let put =
-        |buf: &mut Buffer, glyph: &str, title: &str, lines: &Lines, want: u16, y: &mut u16| {
-            let room = area.bottom().saturating_sub(*y);
-            let tall = want.min(room);
-            if tall < 3 {
-                return None;
-            }
-            let card = Rect::new(area.x, *y, area.width, tall);
-            let inner = crate::chrome::panel(buf, card, glyph, title, t, screen_w);
-            for (row, line) in (inner.y..inner.bottom()).zip(lines) {
-                buf.set_line(inner.x + 1, row, line, inner.width.saturating_sub(2));
-            }
-            *y += tall;
-            Some(inner)
-        };
     // A short column keeps its rows for what holds something: an empty list, or units not yet
     // listed, gives its panel up.
     let short = area.height < 30;
+    let mut panes = Vec::new();
     if !(short && m.sidebar.done.is_empty()) {
         let title = format!("Done when ({})", m.sidebar.done.len());
-        put(buf, "☑", &title, &done, to_u16(done.len()) + 2, &mut y);
+        panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
     }
-    put(
-        buf,
-        "▮",
-        "Budgets",
-        &budgets,
-        to_u16(budgets.len()) + 2,
-        &mut y,
-    );
-    if !(short && m.units.is_none()) {
-        let session_min = 8;
-        let units_room = area.bottom().saturating_sub(y).saturating_sub(session_min);
-        let want = (to_u16(units.len()) + 2).min(units_room.max(3));
-        put(buf, "⚙", "Units", &units, want, &mut y);
+    panes.push(Pane::new("▮", "Budgets", crate::chrome::budgets(m, cols)));
+    if !wide {
+        panes.push(Pane::new("✓", "Checks", crate::chrome::checks(m, cols)));
+        panes.push(Pane::new(
+            "◈",
+            "Guardrails",
+            crate::chrome::guardrails(m, cols),
+        ));
+        if !(short && m.units.is_none()) {
+            panes.push(Pane::new("⚙", "Units", crate::chrome::units(m, cols)));
+        }
     }
+    // The Session panel keeps its rows — half the column where it shares it with every panel,
+    // eight beside the left column: the files and the bodies at work are never squeezed out.
+    let keep = if wide { 8 } else { (area.height / 2).max(12) };
+    let y = stack(m, buf, area, screen_w, &panes, keep);
     let rest = area.bottom().saturating_sub(y);
     if rest >= 4 {
         let card = Rect::new(area.x, y, area.width, rest);

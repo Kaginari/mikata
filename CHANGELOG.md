@@ -87,9 +87,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
   mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*
   panel; beside it, *Done when* ticks the body's list once the end gate passes the answer,
-  *Budgets* shows steps, wall clock, context against its stress line and cost, *Units* lists
-  every unit with an ON or OFF pill, and *Session* keeps memory, files and bodies (with Mikata's
-  logo where the terminal draws pictures). A footer bar holds the verify line, the last answer's
+  *Budgets* shows steps, wall clock, context against its stress line and cost, *Checks* shows
+  each check the end gate holds (each verify command, tests intact, duties done) as ok, failed
+  or no result, from the gate's verdict or the body's own last run, *Guardrails* says what the
+  sandbox and the gates hold the session to, *Units* lists every unit with an ON or OFF pill,
+  and *Session* keeps memory, files and bodies (with Mikata's logo where the terminal draws
+  pictures and the panel has room). From 140 columns, Checks, Guardrails and Units stand in a
+  column of their own on the left. The approval card shows the act boxed as a command line
+  under its reason, and its answers as buttons. A footer bar holds the verify line, the last answer's
   word, the keys that matter now, and the steps, time and spend. Borders run in one pink-to-gold
   gradient; cards are rounded boxes, no longer shaded slabs. Small terminals keep one-row bars
   and drop the frame round the conversation; a short column gives up panels with nothing in

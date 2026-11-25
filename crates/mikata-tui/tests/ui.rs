@@ -461,7 +461,7 @@ fn the_approval_card_escapes_a_hostile_act_and_takes_only_a_confirmed_choice() {
     update(&mut m, Msg::Gate(card));
     let buf = draw(&mut m, 100, 30);
     let scr = screen(&buf);
-    assert!(scr.contains("⚠ the human gate"), "{scr}");
+    assert!(scr.contains("the human gate"), "{scr}");
     for raw in ['\u{202e}', '\u{200b}', '\u{2066}', '\u{1b}'] {
         assert!(!scr.contains(raw), "{raw:?} reached the screen");
     }
@@ -947,4 +947,121 @@ fn waive_sends_the_human_s_reasoned_waiver() {
         "{cmds:?}"
     );
     assert!(update(&mut m, Msg::Said("waived run-1:2: why".into())).is_empty());
+}
+
+/// The plain text of `lines`, one a row.
+fn plain(lines: &[ratatui::text::Line<'_>]) -> String {
+    lines
+        .iter()
+        .map(mikata_tui::kit::text::plain)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn the_checks_panel_reads_the_body_s_runs_then_the_gate_s_verdict() {
+    let mut m = model(Variant::Dark);
+    m.sidebar.verify = Some(mikata_tui::sidebar::Verify {
+        line: vec!["cargo test".into()],
+        suggested: None,
+    });
+    let before = plain(&mikata_tui::chrome::checks(&m, 40));
+    assert!(
+        before.contains("cargo test") && before.contains("at the gate"),
+        "{before}"
+    );
+    assert!(before.contains("0/3 held"), "{before}");
+    // The body runs the verify command: its own result, before any verdict.
+    turn(&mut m, "fix it");
+    call(
+        &mut m,
+        "b1",
+        "bash",
+        json!({"command": "cargo test"}),
+        Some(("ok", false)),
+    );
+    let ran = plain(&mikata_tui::chrome::checks(&m, 40));
+    assert!(
+        ran.lines()
+            .any(|l| l.starts_with("✔ cargo test") && l.contains("ok")),
+        "{ran}"
+    );
+    // The gate fails it afterwards: the verdict, the later word, wins.
+    ev(
+        &mut m,
+        Event::GateVerdict {
+            passed: false,
+            verdict: "FAIL".into(),
+            changed: vec!["a.rs".into()],
+            failures: vec!["traits hold: `cargo test` failed:\n1 failed".into()],
+            unverified: vec![],
+            unchecked: false,
+            verified_by: Vec::new(),
+        },
+    );
+    let judged = plain(&mikata_tui::chrome::checks(&m, 40));
+    assert!(
+        judged
+            .lines()
+            .any(|l| l.starts_with("✘ cargo test") && l.contains("failed")),
+        "{judged}"
+    );
+    assert!(
+        judged.lines().any(|l| l.starts_with("✔ tests intact")),
+        "{judged}"
+    );
+    assert!(judged.contains("2/3 held"), "{judged}");
+}
+
+#[test]
+fn the_guardrails_say_what_holds_and_what_does_not() {
+    let mut m = model(Variant::Dark);
+    m.sandbox = "landlock ABI 6 + seccomp + limits, network off, private /tmp".into();
+    let held = plain(&mikata_tui::chrome::guardrails(&m, 60));
+    for want in [
+        "✔ commands sandboxed to the project",
+        "✔ network off",
+        "✔ a /tmp of their own",
+        "no verify line: a pass checks nothing",
+        "✔ push and outward acts ask you",
+    ] {
+        assert!(held.contains(want), "{want} missing:\n{held}");
+    }
+    m.sandbox = "none — no sandbox for windows".into();
+    let open = plain(&mikata_tui::chrome::guardrails(&m, 60));
+    assert!(open.contains("✘ no sandbox"), "{open}");
+    assert!(!open.contains("network off"), "{open}");
+}
+
+#[test]
+fn the_approval_card_boxes_the_act_and_offers_its_answers_as_buttons() {
+    let mut m = model(Variant::Dark);
+    turn(&mut m, "ship it");
+    update(
+        &mut m,
+        Msg::Gate(card_with(
+            "git push origin main",
+            vec!["publishes the branch".into()],
+            vec![],
+        )),
+    );
+    let scr = screen(&draw(&mut m, 150, 44));
+    assert!(scr.contains("⚠ Approval required"), "{scr}");
+    assert!(
+        scr.contains("│ $ git push origin main"),
+        "the act in its box:\n{scr}"
+    );
+    assert!(
+        scr.contains("▸ Reason") && scr.contains("• publishes the branch"),
+        "{scr}"
+    );
+    assert!(
+        scr.contains("[1] ✔ approve once")
+            && scr.contains("[2] ✘ deny")
+            && scr.contains("[3] ✘ deny, say why"),
+        "the answers as buttons across:\n{scr}"
+    );
+    // Narrow, the buttons stack and keep their full words.
+    let scr = screen(&draw(&mut m, 70, 40));
+    assert!(scr.contains("[1] ✔ Yes, run it once"), "{scr}");
 }

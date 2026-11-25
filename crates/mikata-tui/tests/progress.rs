@@ -919,7 +919,7 @@ fn a_turn_frame_by_frame() {
     assert!(frames[3].1.contains("grep  _parse_ty"));
     assert!(frames[4].1.contains("✓ thought for 4s"));
     assert!(frames[5].1.contains("✓ end gate · pass"));
-    assert!(frames[6].1.contains("Approval · ⚠ the human gate"));
+    assert!(frames[6].1.contains("⚠ Approval required · the human gate"));
 }
 
 /// Past the card's arming, as a human would be.
@@ -1070,7 +1070,7 @@ fn a_toast_never_covers_the_approval() {
     update(&mut m, Msg::Gate(card("git push")));
     let scr = screen(&mut m, 100, 32);
     assert!(!scr.contains("◆ end gate pass"), "{scr}");
-    assert!(scr.contains("Approval · ⚠ the human gate"));
+    assert!(scr.contains("⚠ Approval required · the human gate"));
 }
 
 #[test]

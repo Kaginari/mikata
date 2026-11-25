@@ -124,14 +124,18 @@ fn two_thousand_messages_stay_smooth() {
     let shown: String = {
         let b = t.backend().buffer();
         (0..b.area.height)
-            .flat_map(|y| (0..b.area.width).map(move |x| (x, y)))
-            .map(|c| b[c].symbol().to_owned())
+            .map(|y| {
+                (0..b.area.width)
+                    .map(|x| b[(x, y)].symbol().to_owned())
+                    .collect::<String>()
+                    + "\n"
+            })
             .collect()
     };
     assert!(
         shown.contains(&format!("files · {}", MESSAGES.div_ceil(3)))
             && shown.contains("bodies · 44"),
-        "the sidebar is drawn"
+        "the sidebar is drawn:\n{shown}"
     );
     let warm: Duration = (0..50).map(|_| frame(&mut t, &m)).sum::<Duration>() / 50;
     // Streaming: a delta, a frame, three hundred times — every frame re-renders the live text.

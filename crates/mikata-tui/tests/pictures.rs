@@ -77,7 +77,7 @@ fn slot(wants: &[Want], s: Slot) -> Option<Want> {
 #[test]
 fn the_sidebar_alone_wants_the_logo_over_plain_cells() {
     let mut m = model(Protocol::Iterm);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
+    let mut t = Terminal::new(TestBackend::new(160, 56)).unwrap();
     let buf = draw(&mut m, &mut t);
     let wants = m.pictures.wanted();
     let side = slot(&wants, Slot::Sidebar).expect("the sidebar's head");
@@ -113,7 +113,7 @@ fn the_sidebar_alone_wants_the_logo_over_plain_cells() {
 #[test]
 fn no_picture_is_placed_while_an_approval_is_open() {
     let mut m = model(Protocol::Kitty);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
+    let mut t = Terminal::new(TestBackend::new(160, 56)).unwrap();
     let mut placer = Placer::new(&m.pictures);
     let buf = draw(&mut m, &mut t);
     sync(&mut placer, &m, &buf);
@@ -152,7 +152,7 @@ fn no_picture_is_placed_while_an_approval_is_open() {
 #[test]
 fn the_logo_is_never_sent_again_whoever_works() {
     let mut m = model(Protocol::Iterm);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
+    let mut t = Terminal::new(TestBackend::new(160, 56)).unwrap();
     let mut placer = Placer::new(&m.pictures);
     let buf = draw(&mut m, &mut t);
     let first = String::from_utf8(sync(&mut placer, &m, &buf)).unwrap();
@@ -193,7 +193,7 @@ fn the_logo_is_never_sent_again_whoever_works() {
 #[test]
 fn the_sidebar_folding_takes_its_picture_away() {
     let mut m = model(Protocol::Sixel);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
+    let mut t = Terminal::new(TestBackend::new(160, 56)).unwrap();
     draw(&mut m, &mut t);
     assert!(slot(&m.pictures.wanted(), Slot::Sidebar).is_some());
     // Under 100 columns the sidebar folds.
@@ -209,7 +209,7 @@ fn the_sidebar_folding_takes_its_picture_away() {
 #[test]
 fn without_images_no_logo_is_drawn() {
     let mut m = model(Protocol::Blocks);
-    let mut t = Terminal::new(TestBackend::new(120, 50)).unwrap();
+    let mut t = Terminal::new(TestBackend::new(160, 56)).unwrap();
     let buf = draw(&mut m, &mut t);
     assert_eq!(m.pictures.wanted(), Vec::new());
     // The sidebar's head: no picture, and none built from characters either.

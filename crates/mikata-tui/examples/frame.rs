@@ -218,6 +218,25 @@ fn main() {
         );
     }
     update(&mut m, Msg::Resize(cols, rows));
+    // `gate` as the fifth argument: an approval waits over the view.
+    if args.get(5).map(String::as_str) == Some("gate") {
+        let card = mikata_tui::gate::Card::of(
+            &mikata_loop::GateAsk {
+                body: "summoner".into(),
+                race: mikata_races::Race::Summoner,
+                class: mikata_loop::ToolClass::Outward,
+                act: "git push origin main".into(),
+                why: vec![
+                    "publishes the branch to a remote".into(),
+                    "reaches beyond the world".into(),
+                ],
+                outside: vec![],
+                fingerprint: None,
+            },
+            mikata_tools::Pending::new(),
+        );
+        update(&mut m, Msg::Gate(card));
+    }
     let mut t = Terminal::new(TestBackend::new(cols, rows)).unwrap();
     t.draw(|f| view(&m, f)).unwrap();
     let b = t.backend().buffer();

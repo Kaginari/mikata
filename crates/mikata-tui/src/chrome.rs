@@ -1,7 +1,7 @@
 //! The chrome around the conversation: a header bar of chips, panels framed in the accent's
-//! gradient (Done when, Budgets, Units, Session), and a footer bar. Every colour comes from the
-//! theme: the gradient runs from the accent toward the human's colour, across the screen, so the
-//! panels' borders read as one sweep of light.
+//! gradient (Done when, Budgets, Checks, Guardrails, Units, Session), and a footer bar. Every
+//! colour comes from the theme: the gradient runs from the accent toward the human's colour,
+//! across the screen, so the panels' borders read as one sweep of light.
 
 use std::time::Duration;
 
@@ -424,4 +424,232 @@ pub fn units(m: &Model, w: usize) -> Lines {
             ])
         })
         .collect()
+}
+
+/// A check's state, as the Checks panel shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Held {
+    /// It held; how long its last run took, when the body ran it.
+    Ok(Option<Duration>),
+    /// It failed.
+    Failed,
+    /// It ran and gave no result.
+    NoResult,
+    /// It runs now.
+    Running,
+    /// It has not run: the end gate runs it.
+    Waits,
+}
+
+/// A duration as a check's chip: `340ms`, `1.27s`, `2m05s`.
+fn took(d: Duration) -> String {
+    let ms = d.as_millis();
+    if ms < 1000 {
+        format!("{ms}ms")
+    } else if ms < 60_000 {
+        // Display only.
+        #[allow(clippy::cast_precision_loss)]
+        let s = ms as f64 / 1000.0;
+        format!("{s:.2}s")
+    } else {
+        format!("{}m{:02}s", ms / 60_000, (ms / 1000) % 60)
+    }
+}
+
+/// The end gate's checks as the session last saw them: each verify command, from the gate's
+/// latest verdict or the body's latest run of it, whichever came last; then the gate's own two,
+/// tests intact and duties done, from the verdict alone.
+fn held(m: &Model) -> Vec<(String, Held)> {
+    use crate::transcript::Entry;
+    let entries = m.transcript.entries();
+    let verdict = entries
+        .iter()
+        .enumerate()
+        .rev()
+        .find_map(|(at, e)| match e {
+            Entry::Verdict {
+                failures,
+                unverified,
+                ..
+            } => Some((at, failures, unverified)),
+            _ => None,
+        });
+    let by_gate = |needle: &dyn Fn(&str) -> bool| {
+        verdict.map(|(_, failures, unverified)| {
+            if failures.iter().any(|f| needle(f)) {
+                Held::Failed
+            } else if unverified.iter().any(|f| needle(f)) {
+                Held::NoResult
+            } else {
+                Held::Ok(None)
+            }
+        })
+    };
+    let mut out = Vec::new();
+    let lines = m
+        .sidebar
+        .verify
+        .as_ref()
+        .map_or(&[][..], |v| v.line.as_slice());
+    for cmd in lines {
+        let quoted = format!("`{cmd}`");
+        let ran = entries
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(at, e)| match e {
+                Entry::Tool(call)
+                    if call.name == "bash"
+                        && call
+                            .input
+                            .get("command")
+                            .and_then(|v| v.as_str())
+                            .is_some_and(|s| s.trim() == cmd.trim()) =>
+                {
+                    Some((at, call))
+                }
+                _ => None,
+            });
+        let state = match (ran, verdict) {
+            (Some((at, call)), seen) if seen.is_none_or(|(when, _, _)| at > when) => {
+                match &call.outcome {
+                    _ if call.running() => Held::Running,
+                    Some(o) if o.is_error => Held::Failed,
+                    Some(_) => Held::Ok(call.took),
+                    None => Held::NoResult,
+                }
+            }
+            _ => by_gate(&|f: &str| f.contains(&quoted)).unwrap_or(Held::Waits),
+        };
+        out.push((cmd.clone(), state));
+    }
+    for (name, prefix) in [
+        ("tests intact", "tests intact"),
+        ("duties done", "duties done"),
+    ] {
+        let state = by_gate(&|f: &str| f.starts_with(prefix)).unwrap_or(Held::Waits);
+        out.push((name.to_owned(), state));
+    }
+    out
+}
+
+/// The Checks panel's lines: each check the end gate holds the answer to, its state and the time
+/// its last run took, and a row of how many held.
+#[must_use]
+pub fn checks(m: &Model, w: usize) -> Lines {
+    let t = &m.theme;
+    let rows = held(m);
+    let mut out: Lines = Vec::new();
+    if m.sidebar.verify.as_ref().is_none_or(|v| v.line.is_empty()) {
+        out.push(truncate(
+            Line::from(vec![
+                Span::styled("○ ", t.gold()),
+                Span::styled("no verify line pinned", t.muted()),
+            ]),
+            w,
+        ));
+    }
+    for (name, state) in &rows {
+        let (mark, word, hue) = match state {
+            Held::Ok(_) => ("✔", "ok", t.ok()),
+            Held::Failed => ("✘", "failed", t.alarm()),
+            Held::NoResult => ("○", "no result", t.gold()),
+            Held::Running => ("◌", "running", t.gold()),
+            Held::Waits => ("○", "at the gate", t.muted()),
+        };
+        let time = match state {
+            Held::Ok(Some(d)) => format!(" {:>6}", took(*d)),
+            _ => String::new(),
+        };
+        let right = format!("{word}{time}");
+        let room = w.saturating_sub(cells(&right) + 3);
+        let label = crate::kit::text::clip(&crate::safe::one_line(name), room);
+        let pad = room.saturating_sub(cells(&label));
+        out.push(Line::from(vec![
+            Span::styled(format!("{mark} "), hue.add_modifier(Modifier::BOLD)),
+            Span::styled(label, t.text()),
+            Span::raw(" ".repeat(pad + 1)),
+            Span::styled(word.to_owned(), hue),
+            Span::styled(time, t.muted()),
+        ]));
+    }
+    let ok = rows
+        .iter()
+        .filter(|(_, s)| matches!(s, Held::Ok(_)))
+        .count();
+    let label = format!(" {ok}/{} held", rows.len());
+    // Display only.
+    #[allow(clippy::cast_precision_loss)]
+    let frac = ok as f64 / rows.len().max(1) as f64;
+    let mut bar = gauge(t, frac, w.saturating_sub(cells(&label)).min(16));
+    bar.push(Span::styled(label, t.muted()));
+    out.push(Line::from(bar));
+    out
+}
+
+/// The Guardrails panel's lines: what the sandbox holds every command to, and what the end gate
+/// and the approval gate hold the session to — each ticked where it is in force.
+#[must_use]
+pub fn guardrails(m: &Model, w: usize) -> Lines {
+    let t = &m.theme;
+    let row = |on: Option<bool>, text: &str| {
+        let (mark, hue) = match on {
+            Some(true) => ("✔ ", t.ok()),
+            Some(false) => ("✘ ", t.alarm()),
+            None => ("○ ", t.gold()),
+        };
+        truncate(
+            Line::from(vec![
+                Span::styled(mark, hue.add_modifier(Modifier::BOLD)),
+                Span::styled(text.to_owned(), t.text()),
+            ]),
+            w,
+        )
+    };
+    let mut out = Vec::new();
+    let s = m.sandbox.as_str();
+    if s.is_empty() {
+        out.push(row(None, "sandbox: not yet known"));
+    } else if s.starts_with("none") {
+        out.push(row(Some(false), "no sandbox: commands run as you"));
+    } else {
+        out.push(row(Some(true), "commands sandboxed to the project"));
+        let net_off = s.contains("network off");
+        out.push(row(
+            Some(net_off),
+            if net_off { "network off" } else { "network on" },
+        ));
+        if s.contains("private /tmp") {
+            out.push(row(Some(true), "a /tmp of their own"));
+        }
+    }
+    // The gate's unit, where the run lists its units: off, the end gate holds nothing.
+    let gate_on = m.units.as_ref().is_none_or(|d| {
+        let desk = d.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        desk.listed.is_empty()
+            || desk
+                .listed
+                .iter()
+                .any(|(id, _, state)| id == "gate" && state == "active")
+    });
+    if gate_on {
+        let pinned = m
+            .sidebar
+            .verify
+            .as_ref()
+            .is_some_and(|v| !v.line.is_empty());
+        out.push(row(
+            pinned.then_some(true),
+            if pinned {
+                "verify must pass"
+            } else {
+                "no verify line: a pass checks nothing"
+            },
+        ));
+        out.push(row(Some(true), "no test deleted or skipped"));
+    } else {
+        out.push(row(Some(false), "end gate off"));
+    }
+    out.push(row(Some(true), "push and outward acts ask you"));
+    out
 }
