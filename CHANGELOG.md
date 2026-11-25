@@ -24,7 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   page of its own: a header with its views and **Run agent**, the workspace, its status and the
   run's usage on the left, the run on the right (its ask, Start and Stop, its approvals, a box to
   message the session), and a Sessions view with the run's conversation and a composer. Set in
-  Manrope and JetBrains Mono, with Font Awesome Free icons and the three-cell mark. A wide diff in
+  Manrope and JetBrains Mono, with Font Awesome Free icons and Mikata's new mark. A wide diff in
   a chat is now reachable from the keyboard.
   Every unit a session in the world would open with is a card round the core — its version,
   whether the configuration has it on, a switch — with the build's and the global file's
@@ -97,6 +97,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   lands at last, the stop's notes go out of recall.
 
 ### Changed
+
+- **Mikata's new mark: a living cell flowing into a digital one** — membrane and nucleus, a cell
+  becoming, a hexagon and its circuit, hot pink through coral to amber. The icon and its sizes,
+  the logos, the favicon (the digital cell alone, at 32 px), the social card, the TUI's picture
+  and the board all carry it; `node tools/brand.mjs` renders them from `assets/source`.
 
 - **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
   mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*

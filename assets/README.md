@@ -6,8 +6,8 @@
 | `portraits/` | one icon per race and ascended form: `<race>.png` (256 px), `<race>@64.png`, `<race>@32.png`, transparent |
 | `cards/` | one card per race, ascended form and Player, plus the back — drawn by `tools/cards.py`; the board embeds the races' cards as WebP, cut by `tools/board-art.sh` into `packages/board/public/art/cards/` |
 | `board/` | the board's screenshots, from its Playwright suite |
-| `brand/` | Mikata's marks, logo D (symbiosis: two cells mid-division, gold you and cyan Mikata): `mikata-logo-dark.png` and `mikata-logo-light.png` (the README, 512 px), `mikata-icon.png` and its sizes (the mark alone on its tile: 512, 256, 128, 64, 32), `favicon.ico` (32 and 64), `social-preview.png` (1280×640, GitHub's link card) |
-| `source/` | `mikata-logo-{dark,light}.svg` and `mikata-icon.svg`, which the brand files are rendered from; and the generated images the race crops were cut from |
+| `brand/` | Mikata's marks, the fusion cell (a living cell flowing into a digital one: membrane and nucleus, a cell becoming, a hexagon and its circuit): `mikata-logo-dark.png` and `mikata-logo-light.png` (the README, 512 px), `mikata-icon.png` and its sizes (the mark alone on its tile: 512, 256, 128, 64, 32), `favicon.ico` (32 and 64), `social-preview.png` (1280×640, GitHub's link card) |
+| `source/` | `mikata-mark.png` (the mark alone: the owner's art, its cut-out fringe cleaned), `mikata-icon{,-small}.svg` (the small one, for 32 px and under, is the digital cell alone), `mikata-logo-{dark,light}.svg` and `social-preview.svg`, which `node tools/brand.mjs` renders the brand files from; and the generated images the race crops were cut from |
 
 Mnemorph's marks (the dragon and the crowned slime, the banner, the deck) are in
 [`docs/experimental/assets/`](../docs/experimental/assets/), with the races they belong to.

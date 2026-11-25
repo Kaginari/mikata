@@ -33,26 +33,12 @@
   height: 1em;
   vertical-align: -0.125em;
 }
-.logo-hot {
-  stop-color: var(--mn-holo);
+.mikata-mark {
+  display: block;
+  height: auto;
 }
-.logo-coral {
-  stop-color: color-mix(in oklab, var(--mn-holo), var(--mn-gold));
-}
-.logo-amber {
-  stop-color: var(--mn-gold);
-}
-.logo-hot-fill {
-  fill: var(--mn-holo);
-}
-.logo-coral-fill {
-  fill: color-mix(in oklab, var(--mn-holo), var(--mn-gold));
-}
-.logo-amber-fill {
-  fill: var(--mn-gold);
-}
-.logo-plain {
-  fill: currentColor;
+.mikata-mark-plain {
+  filter: brightness(0) invert(1);
 }
 .bapp h1,
 .bapp h2,
@@ -126,10 +112,8 @@
   letter-spacing: -1px;
   white-space: nowrap;
 }
-.bapp-logo svg {
-  display: block;
-  width: 38px;
-  height: 38px;
+.bapp-logo .mikata-mark {
+  width: 104px;
 }
 .bapp-branddesc {
   display: none;
@@ -145,9 +129,9 @@
     display: block;
   }
 }
-.bapp-core-logo {
-  width: 64px;
-  height: 64px;
+.bapp-core .bapp-core-logo {
+  width: 86%;
+  margin: 0 auto;
 }
 .bapp-nav {
   display: flex;
@@ -387,10 +371,6 @@
     var(--bapp-grad) border-box;
   box-shadow: 0 0 28px var(--mn-glow-soft);
   text-align: center;
-}
-.bapp-core .bapp-mark {
-  width: 56px;
-  height: 56px;
 }
 .bapp .bapp-core h2 {
   margin: 10px 0;

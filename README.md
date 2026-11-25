@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/mikata-logo-dark.png">
-    <img src="./assets/brand/mikata-logo-light.png" alt="Mikata: two cells mid-division, gold for you and cyan for Mikata" width="220">
+    <img src="./assets/brand/mikata-logo-light.png" alt="Mikata: a living cell flowing into a digital one" width="220">
   </picture>
 </p>
 

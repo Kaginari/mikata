@@ -423,7 +423,7 @@ export function BuilderView({
         <header className="bapp-head">
           <div className="bapp-brand">
             <span className="bapp-logo">
-              <Logo id="bapp-logo-head" plain />
+              <Logo plain />
             </span>
             <span>
               mikata <span lang="ja">味方</span>
@@ -614,7 +614,7 @@ export function BuilderView({
                 <div className="bapp-graph">
                   <div className="bapp-stack">{units.slice(0, half).map(card)}</div>
                   <section className="bapp-core" aria-label="The core">
-                    <Logo id="bapp-logo-core" className="bapp-core-logo" />
+                    <Logo className="bapp-core-logo" />
                     <h2>MIKATA</h2>
                     <p>Rust runtime</p>
                     <small>
