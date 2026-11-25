@@ -113,18 +113,24 @@ pub const CHALLENGE: &str = "challenge";
 /// The plan ([`crate::solo::PLAN_BULLETS`]): the prompt's two bullets that have the body write
 /// down what done means and its paths before the code, and run each line before it answers. It is
 /// the prompt's, so it is decided when the session opens, by the human's global file alone, and
-/// never switched while a session runs.
+/// never switched while a session runs. **Off by default** ([`OFF_BY_DEFAULT`]): stage 13
+/// (2026-11-25) found no pass it earned — qwen on prose asks 3 of 12 with it, 5 of 12 without;
+/// Claude Haiku 5.5 18 of 18 either way at 84% of its calls — so a session asks for it by name.
 pub const PLAN: &str = "plan";
 
 /// The build's own profiles: a composition for a kind of work, named, each one earned by a screen.
 /// A profile the human's global file names the same goes over the build's.
 ///
-/// - `small-fix`: the `plan` unit off. With Claude Haiku 5.5, on ten small sqlglot fixes and four
-///   prose asks, it took 74% and 78% of the default's calls and two thirds of the dollars, 41
-///   passes of 42 against 42 (plugin-kernel stage 5, 2026-11-24). With qwen on the same fixes it
-///   changed nothing shown: 8 and 8 passes, 94% of the calls (stage 6). Not for a small body on
-///   prose asks, where the plan's `Done when` list is what passed them.
-pub const PROFILES: &[(&str, &str)] = &[("small-fix", "-plan")];
+/// - `planned`: the full plan on — what done means and its paths before the code.
+/// - `prose`: the plan, lite, on — the outputs a prose ask states, copied and checked; for a small
+///   body on prose asks, where a held `Done when` list passed them in earlier screens.
+/// - `small-fix`: the plan off; the default since stage 13, kept so a profile named in a global
+///   file or a script still reads.
+pub const PROFILES: &[(&str, &str)] = &[
+    ("planned", "+plan"),
+    ("prose", "+plan_lite"),
+    ("small-fix", "-plan"),
+];
 
 /// The build's profile `name`, as a composition.
 #[must_use]
@@ -141,6 +147,9 @@ pub const PLAN_LITE: &str = "plan_lite";
 
 /// The native units the default composition leaves off: asked for by name.
 pub const OPTIONAL: &[&str] = &[PLAN_LITE];
+
+/// The units a session opens without unless the human's ask or global file switches them on.
+pub const OFF_BY_DEFAULT: &[&str] = &[PLAN, PLAN_LITE];
 
 /// The ids of the native units, in the order the default composition loads them.
 pub const NATIVE: &[&str] = &[
@@ -190,11 +199,12 @@ pub fn tightens_when_off(id: &str) -> bool {
     native(id).is_some_and(|u| u.manifest().tightens_when_off)
 }
 
-/// The registry holding the default composition: every native unit on.
+/// The registry holding the default composition: every native unit on but those
+/// [`OFF_BY_DEFAULT`].
 #[must_use]
 pub fn default_registry(cx: &mut Cx) -> Registry {
     let mut registry = Registry::new();
-    for id in NATIVE {
+    for id in NATIVE.iter().filter(|id| !OFF_BY_DEFAULT.contains(id)) {
         if let Some(unit) = native(id) {
             registry.request(mikata_kernel::Change::Load(unit, Vec::new()));
         }
@@ -431,11 +441,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_default_composition_holds_every_native_unit() {
+    fn the_default_composition_holds_every_native_unit_but_those_off_by_default() {
         let mut cx = Cx::default();
         let registry = default_registry(&mut cx);
         let mut active: Vec<&str> = registry.active().iter().map(|(id, _)| *id).collect();
-        let mut native = NATIVE.to_vec();
+        let mut native: Vec<&str> = NATIVE
+            .iter()
+            .copied()
+            .filter(|id| !OFF_BY_DEFAULT.contains(id))
+            .collect();
+        assert!(!active.contains(&PLAN), "the plan is off unless asked for");
         active.sort_unstable();
         native.sort_unstable();
         assert_eq!(active, native);

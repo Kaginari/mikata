@@ -18,7 +18,7 @@ pub const TAGLINE: &str = "the coding agent on your side";
 
 /// What Mikata does, a line each.
 pub const ABOUT: [&str; 4] = [
-    "One body takes your ask: it writes down what done means, then works until every line holds.",
+    "One body takes your ask, does the work and checks it; say what done means and every line is held.",
     "Every change passes the end gate: your verify line runs green and no test is deleted or skipped.",
     "An ask that names several projects runs one body a project, at once, each in its own folder.",
     "Memory with provenance: a note is grounded by a passing check, your word, or a second voice.",

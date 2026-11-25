@@ -84,6 +84,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The plan is off by default.** A session no longer has the body write `plan.md` (what done
+  means, its paths) before the code unless it is asked for: `--units +plan`, `plan = true` under
+  `[units]`, or `--profile planned`. On stage 13's screen (2026-11-25) the plan earned no pass:
+  qwen on four prose asks passed 3 of 12 with it and 5 of 12 without; Claude Haiku 5.5 passed 18
+  of 18 either way, at 84% of the calls without it. Lines you write under `## Done when` are held
+  as before. New: the `plan_lite` unit (`--units +plan_lite`, `--profile prose`): one line in the
+  plan's place that copies and checks only the outputs the ask states.
+
 - **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
   mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*
   panel; beside it, *Done when* ticks the body's list once the end gate passes the answer,

@@ -636,10 +636,11 @@ fn build(
     // a unit off by the human's ask or global file takes its words with it — the plan's two
     // bullets, memory's ask for lessons, and, further down, the gate's line.
     let off = |id: &str| off_at_open(config, &composition, id);
+    // The plan is off unless asked for; the plan, lite, takes its place when it is.
     let lite = on_at_open(config, &composition, crate::units::PLAN_LITE);
     if lite {
         body.system = crate::solo::with_plan_lite(&body.system);
-    } else if off(crate::units::PLAN) {
+    } else if !on_at_open(config, &composition, crate::units::PLAN) {
         body.system = crate::solo::without_plan(&body.system);
     }
     if off(crate::units::MEMORY) {
@@ -892,8 +893,11 @@ fn composed(run: Run, config: &Config, asked: &Composition) -> Result<(Run, Vec<
         run.switch_frame_unit(&change.id, change.on)
             .map_err(|e| format!("--units: {e}"))?;
     }
-    // The plan, lite, takes the plan's place: the run holds what the prompt says.
-    if on_at_open(config, asked, crate::units::PLAN_LITE) {
+    // The plan, lite, takes the plan's place when both are asked for: the run holds what the
+    // prompt says. (The default composition leaves the plan off.)
+    if on_at_open(config, asked, crate::units::PLAN_LITE)
+        && on_at_open(config, asked, crate::units::PLAN)
+    {
         run.switch_frame_unit(crate::units::PLAN, false)
             .map_err(|e| format!("--units: {e}"))?;
     }
@@ -920,7 +924,7 @@ fn off_at_open(config: &Config, asked: &Composition, id: &str) -> bool {
 
 /// Whether the human set the unit `id` on as the session opens: the last word of the composition
 /// asked for, else the global file's `[units]`. For a unit the default leaves off
-/// ([`crate::units::OPTIONAL`]).
+/// ([`crate::units::OFF_BY_DEFAULT`]).
 fn on_at_open(config: &Config, asked: &Composition, id: &str) -> bool {
     asked
         .changes()

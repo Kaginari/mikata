@@ -151,9 +151,10 @@ async fn a_world_with_an_mcp_server_opens_with_its_golden_frame() {
 /// else; on in the default, the frame is the bare world's.
 #[tokio::test]
 async fn the_plan_unit_off_drops_its_two_bullets_and_nothing_else() {
-    let off = frame(&world("plan-off", &[]), Some("[units]\nplan = false\n")).await;
+    // Off by default since stage 13; on by the human's global file.
+    let off = frame(&world("plan-off", &[]), None).await;
     golden("plan-off", &off);
-    let on = frame(&world("plan-on", &[]), None).await;
+    let on = frame(&world("plan-on", &[]), Some("[units]\nplan = true\n")).await;
     let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
     let (on_text, off_text) = (text(&on), text(&off));
     for bullet in mikata_loop::solo::PLAN_BULLETS {
@@ -172,13 +173,13 @@ async fn the_plan_unit_off_drops_its_two_bullets_and_nothing_else() {
     assert_eq!(on["tools"], off["tools"], "the tools are the same");
 }
 
-/// The `plan` unit off in the human's global file is off in the run as well as in the prompt:
-/// the session's journal says so before the first ask is answered.
+/// The `plan` unit, off by default, on in the human's global file is on in the run as well as in
+/// the prompt: the session's journal says so before the first ask is answered.
 #[tokio::test]
-async fn the_plan_unit_off_is_journaled_as_the_session_opens() {
+async fn the_plan_unit_on_is_journaled_as_the_session_opens() {
     let w = world("plan-journal", &[]);
     let global = w.with_extension("toml");
-    fs::write(&global, "[units]\nplan = false\n").unwrap();
+    fs::write(&global, "[units]\nplan = true\n").unwrap();
     let model = Arc::new(ScriptedModel::new([ScriptedModel::text("done")]));
     let config = Config::load(&Paths::with_global(global.clone(), &w)).unwrap();
     let attic = w.with_extension("attic");
@@ -202,8 +203,8 @@ async fn the_plan_unit_off_is_journaled_as_the_session_opens() {
             .units()
             .active()
             .iter()
-            .all(|(id, _)| *id != "plan"),
-        "off in the run before any ask"
+            .any(|(id, _)| *id == "plan"),
+        "on in the run before any ask"
     );
     opened.session.run().ask("say done", &mut |_| {}).await;
     let journal = fs::read_dir(w.join(".mikata/instruments/loop"))
@@ -211,7 +212,7 @@ async fn the_plan_unit_off_is_journaled_as_the_session_opens() {
         .map(|e| fs::read_to_string(e.unwrap().path()).unwrap())
         .collect::<String>();
     assert!(
-        journal.contains(r#""beat":"units","op":"unload","id":"plan""#),
+        journal.contains(r#""beat":"units","op":"load","id":"plan""#),
         "{journal}"
     );
     let _ = fs::remove_dir_all(&w);
@@ -233,14 +234,14 @@ async fn the_plan_off_by_the_command_line_or_a_profile_is_the_same_frame() {
     )
     .await;
     golden("plan-off", &by_profile);
-    // The command line goes over the profile: `+plan` keeps the bullets.
+    // The command line goes over the profile: `+plan` brings the bullets back.
     let back = frame_with(
         &world("plan-back", &[]),
         Some(profile),
         &[("MIKATA_PROFILE", "small-fix"), ("MIKATA_UNITS", "+plan")],
     )
     .await;
-    golden("bare", &back);
+    golden("plan-on", &back);
 }
 
 /// The build's `small-fix` profile is the plan off, with no line in the human's file.
@@ -306,7 +307,14 @@ async fn the_plan_lite_takes_the_plans_place() {
     .await;
     golden("plan-lite", &lite);
     let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
-    let on = text(&frame(&world("plan-lite-default", &[]), None).await);
+    let on = text(
+        &frame_with(
+            &world("plan-lite-default", &[]),
+            None,
+            &[("MIKATA_UNITS", "+plan")],
+        )
+        .await,
+    );
     let (lite_text, default_text) = (text(&lite), on);
     assert!(lite_text.contains(mikata_loop::solo::PLAN_LITE_BULLET));
     for bullet in mikata_loop::solo::PLAN_BULLETS {

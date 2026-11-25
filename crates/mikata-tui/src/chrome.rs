@@ -268,7 +268,7 @@ pub fn done_when(m: &Model, w: usize) -> Lines {
     if lines.is_empty() {
         return vec![truncate(
             Line::from(Span::styled(
-                "written when the body writes its plan",
+                "your ask's Done when lines, or the plan's (--units +plan)",
                 t.muted(),
             )),
             w,
