@@ -197,12 +197,14 @@ It is every world on the machine in one page, and for each world a **Harness Bui
 (`#/w/<world>/builder`): the session's conversation, its units switched on and off around the core,
 a run started with exactly that harness and followed live — its stages, its log, the end gate's
 word, its spend — and its approvals, with the terminal's protections. ⌘K (Ctrl+K) jumps anywhere;
-`?` lists every shortcut.
+`?` lists every shortcut. It wears Mikata's design system: **Bio Digital** in the dark, **Bio
+Pearl** in the light — hot pink to amber for the brand, lime for what lives, connects and verifies.
 
 | | Dark | Light |
 |---|---|---|
 | Sessions | <img src="docs/img/board/sessions-dark.png" width="400" alt="The Sessions view, dark: the run's conversation with its tool cards and the end gate's pass, the workspace, status and usage on the left, the live run on the right"> | <img src="docs/img/board/sessions-light.png" width="400" alt="The Sessions view, light"> |
-| Harness builder | <img src="docs/img/board/builder-dark.png" width="400" alt="The Harness builder, dark: the units as cards with switches round the core, the composition as TOML, the run verified on the right"> | <img src="docs/img/board/builder-light.png" width="400" alt="The Harness builder, light"> |
+| Harness builder | <img src="docs/img/board/builder-dark.png" width="400" alt="The Harness builder, dark: the units and plugins as cards wired to the Mikata core, native units in pink, a plugin in amber, one off and dashed; the run verified on the right"> | <img src="docs/img/board/builder-light.png" width="400" alt="The Harness builder, light"> |
+| Plugin inspector | <img src="docs/img/board/plugins-dark.png" width="400" alt="The plugin inspector, dark: every native unit and plugin with its kind, whether it is loaded or connected, and its id"> | <img src="docs/img/board/plugins-light.png" width="400" alt="The plugin inspector, light"> |
 | Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval over the dimmed page, dark: the act whole, its reason, the plan it binds to, the answers numbered"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval, light"> |
 | Profiles | <img src="docs/img/board/profiles-dark.png" width="400" alt="The Profiles view, dark: the build's profiles, each with its composition and Apply"> | <img src="docs/img/board/profiles-light.png" width="400" alt="The Profiles view, light"> |
 

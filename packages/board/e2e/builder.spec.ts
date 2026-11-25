@@ -33,6 +33,22 @@ const units = {
   holes: [],
 };
 
+/** The README's composition: the native units and two plugins, one connected, one off. */
+const shown = {
+  ...units,
+  units: [
+    ...units.units,
+    ...['license-guard', 'pr-notes'].map((id, i) => ({
+      id: `plugin:${id}`,
+      kind: 'plugin',
+      version: '',
+      on: i === 0,
+      frame: false,
+      tightens: false,
+    })),
+  ],
+};
+
 /** A run in the TUI's grammar: the plan written, an edit, the verify line, the gate, the answer. */
 function run(b: Bridge, text: string) {
   b.emit('turnStarted', { text });
@@ -175,13 +191,14 @@ for (const theme of ['dark', 'light'] as const) {
       !process.env.README_SHOTS || info.project.name !== 'desktop',
       'README_SHOTS=1, desktop',
     );
-    await page.emulateMedia({ colorScheme: theme });
+    // Settled pictures: no transition caught half-way.
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1600, height: 1000 });
     const bridge = new Bridge();
     bridge.onPrompt = (text) => run(bridge, text);
     await openChat(page, bridge, `#/w/${LIVE.id}/builder`, async (p) => {
       await p.route(`**/api/w/${LIVE.id}/units`, (r) =>
-        r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
+        r.fulfill({ contentType: 'application/json', body: JSON.stringify(shown) }),
       );
       await p.route(`**/api/w/${LIVE.id}/sessions`, (r) =>
         r.fulfill({
@@ -208,10 +225,16 @@ for (const theme of ['dark', 'light'] as const) {
       .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
     await page.getByRole('button', { name: /Start run/ }).click();
     await expect(page.getByRole('heading', { name: '✓ Verified' })).toBeVisible();
+    await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`sessions-${theme}`) });
     await views.getByRole('button', { name: 'Harness builder' }).click();
+    await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`builder-${theme}`) });
+    await views.getByRole('button', { name: 'Plugins' }).click();
+    await page.mouse.move(0, 999);
+    await page.screenshot({ path: docs(`plugins-${theme}`) });
     await views.getByRole('button', { name: 'Profiles' }).click();
+    await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`profiles-${theme}`) });
     // An act the run asks the human for: the card over the page.
     await views.getByRole('button', { name: 'Sessions' }).click();

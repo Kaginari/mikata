@@ -15,6 +15,7 @@ import { shown } from './safe/shown.ts';
 import { type Choice, type SchemeName, useScheme, useTheme } from './theme.ts';
 import { Announcer } from './ui/Announcer.tsx';
 import { CommandPalette } from './ui/CommandPalette.tsx';
+import { Glyph } from './ui/Icon.tsx';
 import { cardUp, dialogUp, typing } from './ui/modal.ts';
 import { Pane } from './ui/Pane.tsx';
 import { Rail } from './ui/Rail.tsx';
@@ -335,7 +336,7 @@ function Shell() {
             aria-expanded={rail}
             onClick={() => setRail((r) => !r)}
           >
-            ☰
+            <Glyph glyph="☰" />
           </button>
           <span className="topbar-title">
             <Safe text={name} />

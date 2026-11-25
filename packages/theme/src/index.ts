@@ -86,28 +86,28 @@ export const DEFAULT_SCHEME: SchemeName = 'neon';
 
 export const neonDark: SchemePalette = {
   bg: '#0d0b10',
-  panel: '#18121d',
-  panelRaised: '#1e1622',
-  line: '#382638',
-  text: '#f4eef5',
-  textMuted: '#a898ab',
+  panel: '#16111b',
+  panelRaised: '#211824',
+  line: '#3d2b40',
+  text: '#f5eff7',
+  textMuted: '#b7a9bc',
   holo: '#ff168a',
-  alarm: '#ff4757',
+  alarm: '#ff5575',
   gold: '#ffb020',
   player: '#ffb020',
 };
 
 export const neonLight: SchemePalette = {
-  bg: '#fdf6f9',
+  bg: '#faf7fa',
   panel: '#ffffff',
-  panelRaised: '#fbeaf3',
-  line: '#e6b3cc',
-  text: '#1a1020',
-  textMuted: '#655063',
-  holo: '#cc0068',
-  alarm: '#c8102e',
-  gold: '#a85000',
-  player: '#a85000',
+  panelRaised: '#f3ecf3',
+  line: '#e2d4e2',
+  text: '#211626',
+  textMuted: '#65546b',
+  holo: '#c0125c',
+  alarm: '#b01c42',
+  gold: '#8f5506',
+  player: '#8f5506',
 };
 
 export const emberDark: SchemePalette = {

@@ -9,6 +9,8 @@ export default {
   enhanceApp() {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
+    // The Mikata design system: Bio Digital dark, Bio Pearl light (the neon scheme).
+    root.dataset.scheme = 'neon';
     const sync = () =>
       root.setAttribute('data-theme', root.classList.contains('dark') ? 'dark' : 'light');
     sync();

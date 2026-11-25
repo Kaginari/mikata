@@ -13,6 +13,7 @@ import { type Change, changeOf, type DiffLine, stat } from '../data/diff.ts';
 import { shownBody } from '../data/names';
 import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
+import { Glyph } from './Icon.tsx';
 
 /** Output lines a done call shows before it folds. */
 export const OUTPUT_LINES = 3;
@@ -366,7 +367,7 @@ function Verdict({ e }: { e: Extract<Entry, { kind: 'verdict' }> }) {
   return (
     <div className="verdict">
       <span className="chip" data-verdict={tone}>
-        {mark} end gate · {word}
+        <Glyph glyph={mark} /> end gate · {word}
       </span>
       {counts.length > 0 && <span className="verdict-counts"> · {counts.join(' · ')}</span>}
       {first && (
@@ -406,7 +407,9 @@ export const EntryView = memo(function EntryView({
         <div className={e.head ? 'msg msg-body' : 'msg msg-body msg-cont'}>
           {e.head && (
             <span className="msg-who">
-              <span aria-hidden="true">✦ </span>
+              <span aria-hidden="true">
+                <Glyph glyph="✦" />{' '}
+              </span>
               <Safe text={me || 'the body'} />
             </span>
           )}
@@ -467,7 +470,9 @@ export function Streaming({ text, me, head }: { text: string; me: string; head: 
     <div className={head ? 'msg msg-body msg-live' : 'msg msg-body msg-cont msg-live'}>
       {head && (
         <span className="msg-who">
-          <span aria-hidden="true">✦ </span>
+          <span aria-hidden="true">
+            <Glyph glyph="✦" />{' '}
+          </span>
           <Safe text={me || 'the body'} />
         </span>
       )}

@@ -229,7 +229,7 @@ export function SessionPane({ side }: { side: Side | undefined }) {
                       <span aria-hidden="true">└ </span>
                       <Mark
                         tone={
-                          b.state === 'failed' ? 'alarm' : b.state === 'working' ? 'holo' : 'muted'
+                          b.state === 'failed' ? 'alarm' : b.state === 'working' ? 'ok' : 'muted'
                         }
                         glyph={b.state === 'failed' ? '✕' : b.state === 'working' ? '●' : '○'}
                       >

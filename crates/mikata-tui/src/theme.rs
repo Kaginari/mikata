@@ -340,8 +340,8 @@ impl Scheme {
             Self::Harbor => r(0x60_c1e5, 0xa0_e0ef, 0xff_5c7a, 0x1b_365d),
             // colorhunt ff933e ffcb56 ffe9a9 73a5ca
             Self::Dune => r(0xff_933e, 0xff_cb56, 0xe5_484d, 0x73_a5ca),
-            // hot ff168a, amber ffb020, error ff4757, plum 382638 (the owner's, 2026-11-25)
-            Self::Neon => r(0xff_168a, 0xff_b020, 0xff_4757, 0x38_2638),
+            // Bio: hot ff168a, amber ffb020, error ff5575, plum 3d2b40 (the owner's, 2026-11-25)
+            Self::Neon => r(0xff_168a, 0xff_b020, 0xff_5575, 0x3d_2b40),
             // colorhunt 309898 ff9f00 f4631e cb0404
             Self::Spice => r(0x3c_b8b8, 0xff_9f00, 0xe8_2a22, 0x30_9898),
             Self::Hud => return None,
@@ -359,31 +359,31 @@ impl Scheme {
             return base;
         };
         let mut p = match (self, variant) {
-            // Neon's dark page is set whole, not leaned from the base: hot pink to amber over a
-            // near-black plum (the owner's palette, 2026-11-25).
+            // Bio Digital, neon's dark page, set whole: hot pink to amber over a near-black plum,
+            // lime for what lives (the owner's design system, 2026-11-25).
             (Self::Neon, Variant::Dark) => Palette {
                 bg: Rgb::hex(0x0d_0b10),
-                panel: Rgb::hex(0x18_121d),
-                panel_raised: Rgb::hex(0x1e_1622),
-                line: Rgb::hex(0x38_2638),
-                text: Rgb::hex(0xf4_eef5),
-                text_muted: Rgb::hex(0xa8_98ab),
+                panel: Rgb::hex(0x16_111b),
+                panel_raised: Rgb::hex(0x21_1824),
+                line: Rgb::hex(0x3d_2b40),
+                text: Rgb::hex(0xf5_eff7),
+                text_muted: Rgb::hex(0xb7_a9bc),
                 holo: r.accent,
                 alarm: r.alarm,
                 gold: r.human,
             },
-            // Its light page too: the same hot pink and amber, deepened only as far as reading on
-            // a pink-white page needs (a lean toward the text left them dull).
+            // Bio Pearl, its light page: the brand's hot pink, red and amber deepened only as far
+            // as reading on the pearl surfaces needs (a lean toward the text left them dull).
             (Self::Neon, Variant::Light) => Palette {
-                bg: Rgb::hex(0xfd_f6f9),
+                bg: Rgb::hex(0xfa_f7fa),
                 panel: Rgb::hex(0xff_ffff),
-                panel_raised: Rgb::hex(0xfb_eaf3),
-                line: Rgb::hex(0xe6_b3cc),
-                text: Rgb::hex(0x1a_1020),
-                text_muted: Rgb::hex(0x65_5063),
-                holo: Rgb::hex(0xcc_0068),
-                alarm: Rgb::hex(0xc8_102e),
-                gold: Rgb::hex(0xa8_5000),
+                panel_raised: Rgb::hex(0xf3_ecf3),
+                line: Rgb::hex(0xe2_d4e2),
+                text: Rgb::hex(0x21_1626),
+                text_muted: Rgb::hex(0x65_546b),
+                holo: Rgb::hex(0xc0_125c),
+                alarm: Rgb::hex(0xb0_1c42),
+                gold: Rgb::hex(0x8f_5506),
             },
             (_, variant) => Self::leaned(base, r, variant),
         };
@@ -510,7 +510,8 @@ impl Theme {
             };
         }
         let success = match (scheme, variant) {
-            (Scheme::Neon, Variant::Dark) => Rgb::hex(0xa3_ff56),
+            (Scheme::Neon, Variant::Dark) => Rgb::hex(0xb6_f542),
+            (Scheme::Neon, Variant::Light) => Rgb::hex(0x42_6a12),
             _ => races.elf,
         };
         Self {

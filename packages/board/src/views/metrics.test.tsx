@@ -113,8 +113,9 @@ test('the metrics page: the runs’ health, verdicts and endings, and spend per 
   // The window's runs: how many tested after writing, the verdicts and endings counted.
   expect(text).toContain('a test ran after the last code write in 1 of 2');
   const tallies = [...host.querySelectorAll('.tally-row')].map((r) => r.textContent);
-  expect(tallies).toContain('✓pass1 · 50%');
-  expect(tallies).toContain('✕fail1 · 50%');
+  expect(tallies).toContain('pass1 · 50%');
+  expect(tallies).toContain('fail1 · 50%');
+  expect(host.querySelector('.tally-row [data-glyph="✓"]')).not.toBeNull();
   expect(tallies).toContain('·interrupted1 · 50%');
   // One row a run, linked to its transcript.
   const link = host.querySelector('a[href="#/w/w-sqlglot/r/r1731500000000-42"]');
@@ -123,7 +124,8 @@ test('the metrics page: the runs’ health, verdicts and endings, and spend per 
   expect(text).toContain('+41 −7');
   expect(text).toContain('18%');
   // The run that did not test after its last write is marked.
-  expect(text).toMatch(/⚠\s*no/);
+  expect(text).toMatch(/\bno\b/);
+  expect(host.querySelector('[data-glyph="⚠"]')).not.toBeNull();
   // Spend per model and per body: the panels are there.
   const titles = [...host.querySelectorAll('.panel-title')].map((t) => t.textContent);
   expect(titles).toContain('Per model');
