@@ -1,4 +1,4 @@
-import { cpSync, statSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
@@ -35,13 +35,6 @@ export default withMermaid(
     },
     // The brand's files are the site's public files: the icon is the logo and the favicon.
     vite: { publicDir: fileURLToPath(new URL('../../assets/brand', import.meta.url)) },
-    // A canvas links to its SVG at full size: the SVGs are served beside the pages, at /canvas/.
-    buildEnd(site) {
-      cpSync(join(site.srcDir, 'canvas'), join(site.outDir, 'canvas'), {
-        recursive: true,
-        filter: (path) => path.endsWith('.svg') || statSync(path).isDirectory(),
-      });
-    },
     head: [
       ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
       ['link', { rel: 'icon', type: 'image/png', href: '/mikata-icon@64.png' }],
@@ -99,6 +92,8 @@ export default withMermaid(
             { text: 'Races', link: '/experimental/races' },
             { text: 'Communication between bodies', link: '/experimental/communication' },
             { text: 'Ontology', link: '/experimental/ontology' },
+            { text: 'Plugins', link: '/experimental/plugins' },
+            { text: 'The lab in the code', link: '/experimental/the-lab-in-the-code' },
             { text: 'How it was built: M0 to M14', link: '/experimental/roadmap-m0-m14' },
             { text: 'Race cards brief', link: '/experimental/race-cards-prompt' },
             { text: 'Research: DIKWP-MESH', link: '/experimental/research/dikwp-mesh' },

@@ -14,44 +14,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -59,19 +59,23 @@ config:
     wrappingWidth: 200
 ---
 flowchart TD
-    B["this brief"] --> I["an image model<br/>the character art only"]
-    I --> A[("the art<br/>no frame, no text")]
-    L["the compiled race law"] --> F["the board's SVG<br/>frame, banner, plate, words"]
-    A --> C(["the card"])
-    F --> C
-    classDef law fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    subgraph MIKATA_BG[" "]
+      direction TB
+      B("this brief") --> I("an image model<br/>the character art only")
+      I --> A[("the art<br/>no frame, no text")]
+      L("the compiled race law") --> F("the board's SVG<br/>frame, banner, plate, words")
+      A --> C(["the card"])
+      F --> C
+    end
+    classDef law fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class L law
-    classDef make fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef make fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class B,I,F make
-    classDef art fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef art fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class A art
-    classDef card fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    classDef card fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
     class C card
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## In plain words

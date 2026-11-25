@@ -7,7 +7,8 @@ roadmap where that test or rule must exist before the rung counts as done.
 
 ## In one picture
 
-How many lessons each part of Mikata carries: 143 rows, each a test or a rule.
+How many lessons each part of Mikata carries: 122 rows, each a test or a rule (the lab's 21 on
+territory and dispatch are [the lab's](experimental/the-lab-in-the-code.md#lessons-the-lab-carries-territory-gate-dispatch)).
 
 ```mermaid
 ---
@@ -18,44 +19,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -76,9 +77,9 @@ config:
 ---
 xychart-beta horizontal
     title "Lessons carried, by area"
-    x-axis ["Provider and streaming", "Tools", "Sandbox and guard", "Human gate", "Loop and budgets", "World", "Memory and toolbox", "Config", "TUI and CLI", "Board", "Claude Code", "Process", "Mikata's own bench"]
+    x-axis ["Provider and streaming", "Tools", "Sandbox and guard", "Human gate", "Loop and budgets", "Memory and toolbox", "Config", "TUI and CLI", "Board", "Claude Code", "Process", "Mikata's own bench"]
     y-axis "lessons" 0 --> 25
-    bar [9, 12, 9, 5, 13, 21, 7, 8, 11, 6, 5, 12, 25]
+    bar [9, 12, 9, 5, 13, 7, 8, 11, 6, 5, 12, 25]
 ```
 
 ## Provider & streaming
@@ -154,31 +155,7 @@ xychart-beta horizontal
 | A run kept re-reading unchanged windows, or acted for dozens of turns, and landed nothing — busy, not working. | Two stall guards checkpoint it: `repin` (3 re-reads with nothing landed) and `actBudget` (40 turns with nothing landed). Test: each fires at its count and resets on a landing. | M5 |
 | A salvage test timed out under `-race` because its clock grace was too tight. | Clock tests take their grace from the same function the clock uses, never a literal. | M5 |
 
-## World: territory, gate, dispatch
 
-| Lesson | Becomes | Milestone |
-|---|---|---|
-| A body could rewrite the verify line it was judged by, because the gate reloaded the doc after the turn; checks a model runs can be skipped or weakened by the turn they judge. | The orc's checks are code the harness runs at the end of the authoring turn, from a verify set captured at turn open; a line added in the same turn is a hole, not a reading. Test: a rewritten verify fails the gate. | M7 |
-| The turn-watch charged every write in the open window to the session whose turn was open, so sibling bodies failed each other's gates. | Write attribution is per body (per sandbox, or file events tagged by process). Test: two concurrent bodies writing distinct zones each pass their own gate. | M7 |
-| "Tests intact" measured against git HEAD would count the human's own uncommitted edits. | The baseline for any before/after check is the harness's own snapshot at turn open. Test: lost tests and new skips fail; new tests pass. | M7 |
-| A machine-wide agent file named like the throne was imported as a foreign creature, so every session ran as an elf; separately, the throne carried an office whose model route could re-route the session. | The throne's name is reserved and discovery never imports under it; the throne holds no office. Tests run with a populated fixture HOME, not an empty one. | M7 |
-| A body reporting `@S FAIL` ran its lifecycle to `DONE` and judges read the lifecycle; a body that wrote nothing never met the gate, so no verdict reached the log. | The verdict is a distinct type parsed from the report's wire, never the lifecycle status; every dispatch lands exactly one log row, written or not. | M7 |
-| 42% of one session's tokens were higher ranks relaying a lower rank's text word for word. | Reports above a size floor are filed on disk; the parent receives an envelope (verdict, path, checksum, wrote set, short digest). Test: envelope rides, the full text is filed and intact. | M7 |
-| A wire report ran 70% over its byte cap. | `@CAP` is enforced by the encoder, cutting the least important lines first and never `@S`, `@?` or `@U`. Test: oversize report keeps those lines. | M1 |
-| A creature whose Territory listed the world directory itself (`.isekai`) claimed every seat, the shared queue and scratch, and isekai's two owner functions broke ties differently (authoring rank first in `world.Owner`, longest prefix first in `onto owner`), so the gate and the owner query could disagree. | Ownership is one function with a fixed order — harness soil, scratch, seats, compiled soils, the longest Slime zone, the longest Orc domain — that every caller uses ([the ontology](experimental/ontology.md#ownership-one-function)). Test: a creature claiming `.mikata` owns none of the seats, the queue or scratch. | M7 |
-| Bodies re-derived "who owns this file" from scratch at every boundary hit and burned a day on it. | An out-of-territory refusal names the owner and carries the three arms (widen, birth, route); one dispatch-card read gives owner, rank, strain and domain. | M7 |
-| Territory as a file list left new files ownerless; one wide flat directory made a single keeper a bottleneck that could only retire, not split; a retired seat kept claiming soil its successors overlapped. | Territories are directory prefixes; founding chunks wide flat directories into bounded zones; a one-prefix zone splits by its own subtree; a retired creature derives no territory. Test: ontology check clean after split, retire and ascension. | M7 |
-| A disciplinary body reverted and deleted files it had not authored. | No body deletes or reverts what it did not write; delete moves to an attic with a ledger line. Test: a foreign untracked file survives a cleanup turn. | M7 |
-| Background reports from mid-chain bodies were stranded because the wake channel fed only the session. | A report lands in its own parent's turn; depth is tested from the throne down to a slime. | M7 |
-| A nested dispatch's end never reached its card, leaving zombie "thinking" cards with a clock that kept running. | Every dispatch start emits exactly one terminal event, at any nesting depth; a done card's elapsed is frozen. Test: three-deep nesting closes every card. | M7 |
-| A rank with no reportees could still be handed the dispatch tool by its tools list. | Dispatch is granted by the race's compiled powers, not by config. | M1 |
-| Ascension counts must survive restarts and must never count a body's own `@S FAIL` as a pass. | The ascension tally is an append-only ledger replayed at start. Test: FAIL reports never raise the pass rate. | M11 |
-| Mid-turn steering and the human's queued lines shared one inbox, so a queued line rode the running turn and broke its task. | Two lanes in the core: `send` reaches a running body at its next tool step, `queue` only at the turn's end. Test: a queued line never appears in the running turn's context. | M5 |
-| `@$` orders lived in one process's memory: a restart, a second session or the terminal (which never drained them) lost them, and nobody could see what was waiting. | The shared work queue on disk holds every order (relay-hold) until the wake claims it; the status line shows what is held. Test: a restarted session dispatches the orders the last one left. | M7 |
-| Two sessions could claim the same order. | Every move is a revisioned snapshot line; the fold seats only the line that follows the item's last revision, the other reads back as a typed refusal. Test: two concurrent claimants, one claim. | M7 |
-| A move on shared bookkeeping during a body's turn was billed to that body's writes. | The shared shelf is harness soil: no body writes it by hand, the tree watch never stamps it. Test: a queue move mid-turn leaves the body's written set empty. | M7 |
-| Another session's relief left the roster stale, and it kept creating courts for retired seats. | The roster is rebuilt when the creature docs' fingerprint moves, before each dispatch; a heal never changes a body's verify lines. Test: a doc edited behind the world's back is seen at the next dispatch. | M7 |
-| Two commissions to one seat ran two courts on the same zone at once. | One live court per seat; a second commission waits in the seat's lane. | M7 |
 
 ## Memory & toolbox
 
@@ -190,7 +167,7 @@ xychart-beta horizontal
 | Dispatched bodies re-read the chronicle instead of their own notes because the log won ties on term mass. | Ranking boosts the body's own and its race's notes and demotes the episodic log. Test: ranking fixture. | M8 |
 | A skill's cost was shown as its file size, but only its description sits in context until worn, and a worn skill cannot be unloaded except by the body's context dying with its task. | The toolbox meters cost in tokens of exactly what is injected; heavy skills are worn by dispatched bodies, not the throne; the full, stable tool list sits in the cached tools tier and never changes between turns; only the manifest text that fits the turn varies, in the uncached tail. | M8 |
 | A hint told models to run a JS tool the released binary did not ship, because the port copied its words byte for byte. | Every hint is generated from the installed capability registry. Test: every command named in a prompt or hint exists in the build. | M8 |
-| Living documents collected dates and "added on X's order" notes that cost tokens every session and taught nothing. | Provenance lives only in `log.md`; a lint refuses dates and change notes in law, canon and creature docs. | M7 |
+| Living documents collected dates and "added on X's order" notes that cost tokens every session and taught nothing. | Provenance lives only in `log.md`; a lint refuses dates and change notes in law, canon and body docs. | M7 |
 
 ## Config
 

@@ -2,16 +2,6 @@
 
 ## In one picture
 
-<a href="./canvas/architecture-light.svg">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./canvas/architecture-dark.svg">
-  <img src="./canvas/architecture-light.svg" alt="The architecture: the TypeScript packages board, sdk and protocol; the Rust crates from tui and mikatad through server and loop down to world, tools, provider, memory, ledger, proving, wire, sandbox and races; the sdk speaks JSON-RPC to the server">
-</picture>
-</a>
-
-<details>
-<summary>The sketch in Mermaid, the text this canvas is drawn from</summary>
-
 ```mermaid
 ---
 config:
@@ -21,44 +11,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -66,79 +56,83 @@ config:
     wrappingWidth: 360
 ---
 flowchart TB
-    subgraph ts["TypeScript — packages/"]
-      BOARD["board<br/>React web cockpit"]
-      SDK["sdk<br/>client, reconnect, typed calls"]
-      PROTO["protocol<br/>generated types"]
-      BOARD --> SDK
-      SDK --> PROTO
+    subgraph MIKATA_BG[" "]
+      direction TB
+      subgraph ts["TypeScript — packages/"]
+        BOARD("board<br/>React web cockpit")
+        SDK("sdk<br/>client, reconnect, typed calls")
+        PROTO("protocol<br/>generated types")
+        BOARD --> SDK
+        SDK --> PROTO
+      end
+      subgraph rs["Rust — crates/"]
+        TUI("tui — the mikata command<br/>Ratatui app · run · the session in-process")
+        D("mikatad<br/>the server · admin commands")
+        SERVER("server<br/>JSON-RPC · stdio · WebSocket")
+        LOOP("loop<br/>six beats")
+        WORLD("world<br/>the end gate · the world folder<br/>(and the lab's bodies)")
+        RACES("races<br/>the lab's compiled law")
+        WIRE("wire<br/>envelope")
+        KERNEL("kernel<br/>units · registry · hooks")
+        TOOLS("tools<br/>read · write · bash · git · gh")
+        SANDBOX("sandbox<br/>landlock · seccomp · Seatbelt")
+        PROV("provider<br/>Anthropic · OpenAI-compatible")
+        LEDGER("ledger<br/>usage · value · budgets")
+        MEM("memory<br/>tiers · recall · write rule")
+        CONFIG("config<br/>layers · origins · loosening")
+        PROVING("proving<br/>the lab's review records")
+        SERVER --> LOOP
+        D --> SERVER
+        TUI --> SERVER
+        TUI --> LOOP
+        LOOP --> CONFIG --> TOOLS
+        CONFIG --> RACES
+        CONFIG --> LEDGER
+        LOOP --> WORLD --> RACES
+        LOOP --> PROV --> LEDGER
+        PROV --> WIRE
+        LOOP --> TOOLS --> SANDBOX
+        TOOLS --> RACES
+        TOOLS --> WIRE
+        LOOP --> LEDGER --> RACES
+        LOOP --> MEM
+        LOOP --> RACES
+        LOOP --> WIRE
+        LOOP --> KERNEL
+        TOOLS --> KERNEL
+        WORLD --> WIRE
+        WORLD --> LEDGER
+        WORLD --> MEM
+        MEM --> LEDGER
+        MEM --> SANDBOX
+        WORLD --> SANDBOX
+        WORLD --> PROVING
+        PROVING --> WIRE
+        PROVING --> RACES
+      end
+      PROTO -. generated from .-> SERVER
+      SDK <==>|JSON-RPC| SERVER
     end
-    subgraph rs["Rust — crates/"]
-      TUI["tui — the mikata command<br/>Ratatui app · run · the session in-process"]
-      D["mikatad<br/>the server · admin commands"]
-      SERVER["server<br/>JSON-RPC · stdio · WebSocket"]
-      LOOP["loop<br/>six beats"]
-      WORLD["world<br/>creatures · territory · dispatch · gate"]
-      RACES["races<br/>the compiled law"]
-      WIRE["wire<br/>envelope"]
-      KERNEL["kernel<br/>units · registry · hooks"]
-      TOOLS["tools<br/>read · write · bash · git · gh"]
-      SANDBOX["sandbox<br/>landlock · seccomp · Seatbelt"]
-      PROV["provider<br/>Anthropic · OpenAI-compatible"]
-      LEDGER["ledger<br/>usage · value · budgets"]
-      MEM["memory<br/>tiers · recall · write rule"]
-      CONFIG["config<br/>layers · origins · loosening"]
-      PROVING["proving<br/>Dark Elf records · validator"]
-      SERVER --> LOOP
-      D --> SERVER
-      TUI --> SERVER
-      TUI --> LOOP
-      LOOP --> CONFIG --> TOOLS
-      CONFIG --> RACES
-      CONFIG --> LEDGER
-      LOOP --> WORLD --> RACES
-      LOOP --> PROV --> LEDGER
-      PROV --> WIRE
-      LOOP --> TOOLS --> SANDBOX
-      TOOLS --> RACES
-      TOOLS --> WIRE
-      LOOP --> LEDGER --> RACES
-      LOOP --> MEM
-      LOOP --> RACES
-      LOOP --> WIRE
-      LOOP --> KERNEL
-      TOOLS --> KERNEL
-      WORLD --> WIRE
-      WORLD --> LEDGER
-      WORLD --> MEM
-      MEM --> LEDGER
-      MEM --> SANDBOX
-      WORLD --> SANDBOX
-      WORLD --> PROVING
-      PROVING --> WIRE
-      PROVING --> RACES
-    end
-    PROTO -. generated from .-> SERVER
-    SDK <==>|JSON-RPC| SERVER
-    classDef ts fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef ts fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class BOARD,SDK,PROTO ts
-    classDef rs fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
-    class TUI,D,SERVER,LOOP,WORLD,RACES,WIRE,KERNEL,TOOLS,PROV,LEDGER,MEM,CONFIG,PROVING rs
-    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef rs fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
+    class TUI,D,SERVER,LOOP,WORLD,WIRE,KERNEL,TOOLS,PROV,LEDGER,MEM,CONFIG rs
+    classDef lab fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7,stroke-dasharray:5
+    class RACES,PROVING lab
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class SANDBOX gate
     style ts fill:#16111b,stroke:#59405d,color:#f5eff7
     style rs fill:#16111b,stroke:#59405d,color:#f5eff7
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
-
-</details>
 
 ## In plain words
 
 All the decisions live in Rust, in small crates that each do one thing and can be tested alone.
 The clients only show things and ask you questions: `mikata`, the Rust terminal app, hosts the
 core in its own process, and the web board speaks to `mikatad` over the protocol through the
-TypeScript SDK — two windows onto the same core. The arrows only point downward — `races` knows nothing about
-networks, `wire` knows nothing about models — so each piece can be proven before the next is
+TypeScript SDK — two windows onto the same core. The arrows only point downward — `races` (the
+lab's law, dashed) knows nothing about networks, `wire` knows nothing about models — so each piece can be proven before the next is
 built on it. `tools/check-layers.mjs` holds the same graph and fails on any edge it does not
 draw.
 
@@ -150,17 +144,17 @@ draw.
 mikata/
 ├─ crates/
 │  ├─ mikata-wire       envelope types, parser, encoder            (no I/O)
-│  ├─ mikata-races      Race enum, shelves, dispatch, scores, falls (no I/O)
+│  ├─ mikata-races      the lab's race law: shelves, dispatch, scores (no I/O)
 │  ├─ mikata-kernel     units, manifests, registry, undo, hooks     (no I/O)
 │  ├─ mikata-ledger     usage + value ledgers, budgets, prices      (files)
-│  ├─ mikata-proving    Dark Elf finding records, coverage ledgers  (reads the tree)
+│  ├─ mikata-proving    the lab's review records, coverage ledgers  (reads the tree)
 │  ├─ mikata-provider   streaming clients, retry ladder, caching,   (network)
 │  │                      System One decisions with an LLM fallback
 │  ├─ mikata-sandbox    landlock + seccomp, Seatbelt, net policy    (OS)
 │  ├─ mikata-tools      tool impls, classifier, secret injection    (OS)
 │  ├─ mikata-config     TOML layers, origins, the gate's loosening  (files)
 │  ├─ mikata-memory     tiers, BM25 recall, the write rule          (files)
-│  ├─ mikata-world      creatures, onto, dispatch, gate, Minds      (files)
+│  ├─ mikata-world      the end gate, Minds; the lab's bodies         (files)
 │  ├─ mikata-loop       the six beats, journal, resume              (all above)
 │  ├─ mikata-server     JSON-RPC, WebSocket, board assets           (network: loopback)
 │  ├─ mikata-tui        `mikata`: the terminal app and `run`,     (terminal)
@@ -220,7 +214,7 @@ keeps the edges it had.
 ```sh
 mikata                          # a session in this world (also: mikata chat)
 mikata --world <dir>            # a session in that world
-mikata --mode light-coding      # the mode: auto (default), light-coding, structured-coding, collective-coding
+mikata --mode light-coding      # the mode: light-coding, the one this book describes (the lab adds two)
 mikata resume last              # pick up the newest run that stopped (or --resume <run>)
 mikata --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, auto
 mikata --probe                  # what the terminal draws, then exit
@@ -244,36 +238,31 @@ records directly, without a session. Both link the same crates (`mikata-loop`, `
 
 | You want to | Run |
 |---|---|
-| talk to Summoner | `mikata` |
-| see which mode a session here opens in, and why | `mikata status` |
-| have Summoner work alone, in a world with creatures | `mikata --mode light-coding` |
-| let Summoner hand work to its Elves | `mikata --mode structured-coding` (the default where an Elf reports to it) |
-| work as a collective of equals around the work board | `mikata --mode collective-coding` |
+| talk to Mikata | `mikata` |
+| see the mode a session here opens in (light-coding), and why | `mikata status` |
 | ask once from a script or CI | `mikata run "<ask>"` |
 | pick up a run that stopped | `mikata resume last` |
-| list resumable runs, read memory, check the ontology, the queue, incidents | `mikatad runs`, `mikatad memory status`, `mikatad onto check`, `mikatad q list`, `mikatad incident list` |
+| list resumable runs, read memory | `mikatad runs`, `mikatad memory status` |
 | read the forge's CI runs into the instruments | `mikatad ci` |
 | refresh the advisory mirror, audit the lockfiles against it | `mikatad scout`, `mikatad scout audit` |
 | run the standing reads that are due | `mikatad refresh` |
-| read every creature's meters, see who is due to evolve, draft its evolution, review the proposals, swap one in, judge it, keep or roll it back, run a tick of evolution on its own | `mikatad meters`, `mikatad evolution due`, `mikatad evolution draft <creature>`, `mikatad evolution list \| show <id> \| apply <id> \| reject <id>`, `mikatad evolution swap <id>`, `mikatad evolution judge <id>`, `mikatad evolution keep \| rollback <id>`, `mikatad evolution auto` |
 | connect the SDK | the SDK starts `mikatad` itself |
 | open the board | `mikatad board`, then the URL it prints |
+
+The lab's commands — its modes, the ontology, the queue, incidents, meters and evolution — are
+[the lab's](experimental/the-lab-in-the-code.md#the-labs-commands).
 
 `resume <run|last>` opens the session on a run that stopped instead of a new one, through the
 same opening and the same end gate ([Resume](02-loop.md#budgets-are-readings)); a run with nothing
 to resume is refused in plain text, before the terminal is taken. `mikatad runs` lists them.
 
-**The mode.** `--mode auto|light-coding|structured-coding|collective-coding` goes with the app, `resume`, `run` and
-`status`, and with `mikatad` for a program ([the three modes](experimental/races.md#the-three-modes);
-[which one, and when](01-overview.md#the-modes)). It is the command line's
-alone, as `--no-law` is: no configuration a world holds asks for a mode, and neither does a
-journal: a resumed run's mode is decided again, as a fresh session's is, and when that is not the
-mode it stopped in, the reason says so and names the option that goes on in the old one. The
-session says what it opened in wherever it is shown:
+**The mode.** Every session opens in **light-coding**, the one body this book describes.
+`--mode` (with the app, `resume`, `run`, `status`, and `mikatad`) names the lab's two other modes
+([the modes](experimental/modes.md)); it is the command line's alone, as `--no-law` is: no
+configuration a world holds asks for a mode, and a resumed run's mode is decided again, as a fresh
+session's is. The session says what it opened in wherever it is shown:
 
-- `mikata status`: `mode     structured-coding — 1 Elf reports to the Summoner: elf-engine`,
-  with no
-  key needed; where the mode asked for is not available, `mode     not available — …` and why.
+- `mikata status`: the `mode` line and why, with no key needed.
 - the app: its second line, with the option that asks for another.
 - `mikata run --json`: `"mode"` on the result line.
 - the protocol: `mode` and `modeWhy` in the `initialize` answer; the web board shows it in a
@@ -456,17 +445,13 @@ embeds a placeholder page saying so, and serves the API all the same.
 | `GET /api/session` | `{"csrf": "<token>"}`: a reloaded page's way back to its token while the cookie lives; the page keeps it in memory only |
 | `GET /api/worlds` | `BoardWorlds`: `{"worlds": [{"id", "name", "path", "remote", "last", "sessions", "state"}], "missing": [{"id", "name", "path", "since"}]}` — `worlds` the live ones, `id` is `<name>-<fnv64a>`, `remote` the normalised `origin` or `null`, `last` the latest session's RFC 3339 time or `null` for a world only added, `state` `present`; the latest session first. `missing` the missing ones (above), the longest missing first, `since` when the board first saw it so. Paths and names are the world's own text: the page renders them as text, never markup |
 | `GET /api/w/<id>` | `BoardOverview` of a listed world, 404 for an id no listed world has — see *The world overview* below |
-| `GET /api/w/<id>/memory` | `BoardMemory`: the standing, each creature's row and a page of notes — `?creature=`, `?scope=personal\|shared`, `?standing=proposed\|grounded\|retired\|dormant\|tombstoned`, `?review=yes\|no`, `?offset=`, `?limit=` (100, at most 500) — see *The memory and ontology pages* below |
+| `GET /api/w/<id>/memory` | `BoardMemory`: the standing, each body's row and a page of notes — `?creature=`, `?scope=personal\|shared`, `?standing=proposed\|grounded\|retired\|dormant\|tombstoned`, `?review=yes\|no`, `?offset=`, `?limit=` (100, at most 500) — see *The memory and ontology pages* below |
 | `POST /api/w/<id>/memory/<note>/confirm` | `{"seen"}`: the **confirmed** route, as `mikatad memory confirm`; `BoardDone {done}` |
 | `POST /api/w/<id>/memory/<note>/wake` | `{"seen"}`: a note the gate retired, woken as `mikatad memory wake`; `BoardDone {done}` |
 | `GET /api/w/<id>/facts` | `BoardFacts`: the counts of each status, a page of facts — `?status=settled\|agreed\|single\|contested\|countered`, `?offset=`, `?limit=` — `onto check`'s findings, the paths' owners and the verdicts a settle may cite |
 | `POST /api/w/<id>/facts/<fact>/settle` | `{"seen", "verdict": <n>}` or `{"seen", "statement": "…"}`: the fact settled on that proof, `by: human (board)`; no proof, or both, is refused (400); `BoardDone {done}` |
-| `GET /api/w/<id>/bodies` | `BoardBodies`: every creature its docs describe — race, lane, `Reports to`, post or speciality, ground, live state, the Minds it wears with their standing, its latest acts — the roster's problems and loops, the throne's state, and every race of the compiled law with its card's art; each part with its source — see *The bodies, queue and journal pages* below |
-| `GET /api/w/<id>/queue` | `BoardQueue`: the shared queue folded as `mikatad q list --all` folds it — the open orders (held, claimed) by rank then arrival, then the closed (done, dropped) — each marked witnessed or not, with the counts |
-| `GET /api/w/<id>/timeline` | `BoardTimeline`: commissions (the bodies' run journals) and the gate's verdicts, newest first — `?kind=commission\|verdict`, `?body=`, `?offset=`, `?limit=` (50, at most 500) |
 | `GET /api/w/<id>/journal` | `BoardJournal`: `log.md`'s entries, newest first, with a table of contents — `?q=` (at most 200 characters, any case), `?offset=`, `?limit=` (20, at most 100) |
-| `GET /art/cards/<race>.webp` | a race's card, embedded by its exact name like the page's other assets (no session needed), whether or not the page was built |
-| `GET /api/metrics` | `BoardMetrics` for `?world=<id>` or `all` (the default) over `?window=7d\|28d\|all` (`7d` by default; another word is 400): the usage ledgers' fold, the meters, the Dark Elf's scores and the bench — see *Metrics and integrations* below |
+| `GET /api/metrics` | `BoardMetrics` for `?world=<id>` or `all` (the default) over `?window=7d\|28d\|all` (`7d` by default; another word is 400): the usage ledgers' fold and the bench (the lab's meters and scores beside them) — see *Metrics and integrations* below |
 | `GET /api/integrations` | `BoardIntegrations`, read-only and redacted: the global file alone, or `?world=<id>`'s files layered over it — see *Metrics and integrations* below |
 | `WS /ws/board` | the push channel, subprotocol `mikata.board.v1` beside the CSRF entry; the server alone speaks — see *The watcher* below |
 | `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mikata resume`'s opening; `"profile": "<name>"` and `"units": "-plan,+plan_lite"` open it with that composition, as `mikata run --profile` and `--units` do (passed to the chat as `MIKATA_PROFILE` and `MIKATA_UNITS`; a name that is no word, or a list that does not read, is refused with `400`); `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
@@ -603,9 +588,7 @@ it — is shown and grants nothing.
 | `status` | `live` (a chat the board runs is open in it), `tui-live` (a session's run lock under `.mikata/instruments/loop/` is held by a live process now — a terminal's), `idle`, or `missing` (its directory is gone: shown, never dropped) | the board's chats; the run locks, probed as `mikatad runs` probes them (only a regular file is opened); the directory | the chats and the directory yes, the locks no |
 | `activity` | `{at, what}`: the latest of a session opening, the gate's last verdict, `log.md` written, a run journal written, a call booked | the registry, the gate's journal, the files' write times | per source |
 | `memory` | `shared`, `grounded`, `proposed`, `retired`, `unproven`, counted as `mikatad memory status` counts them | `.mikata/memory/` | no |
-| `challenges` | the open challenges `pending`, `blocked`, `verifying`; those with an `unstaffed` speciality; their `findings`; `unreadable` record lines — as `mikatad challenge list` reads them | the challenge records under the state directory | yes |
 | `gate` | how many verdicts, and the last: `{at, body, verdict, changed}` or `null` before the first | the gate's verdict journal under the state directory | yes |
-| `meters` | each living creature's meters with their `status` (`counted`, `noReports`, `unavailable` with `why`), `successes`, `n`, the point estimate and the 95% Wilson interval `lo`–`hi`, or `null`s for no report — as `mikatad meters --json` (which also gives each creature its pending `proposal` and `probation`, and the `unknown` input its law reads that no trusted journal carries) | the roster in the world over the challenge records' folds and the report fold of the trusted journals under the state directory ([the report fold](experimental/races.md#the-report-fold)) | no |
 | `spend` | the latest session in the usage ledger: `calls`, `usd` (`null` when none was priced), `unpriced`, weighted tokens | `.mikata/instruments/usage.jsonl` | no |
 | `waiting` | the gate asks the board's chats keep for the human; a terminal session's asks wait in its terminal | the board's chats | yes |
 | `updates` | `pushed`, or `slowed` when the world is past the watcher's budget (below) | the board's watcher | yes |
@@ -613,7 +596,7 @@ it — is shown and grants nothing.
 **Reading inside a world.** A path there may be a link to `/dev/zero`, a pipe that never answers,
 a device or a file of any size. Only a regular file is read: opened without following a link
 (`O_NOFOLLOW`) and without blocking (`O_NONBLOCK`), checked again on the handle, and read to a cap
-(`mikata_world::regular`). The memory tiers and the creature docs are first copied into a private
+(`mikata_world::regular`). The memory tiers and the body docs are first copied into a private
 scratch directory — 8 MiB a file, 32 MiB and 2,000 entries in all — and the CLI's functions read
 the copy, so a file swapped after the check reaches nothing; past a cap, or anything but a regular
 file, the field is unknown and says which file and why. The usage ledger's last 8 MiB are read;
@@ -628,14 +611,14 @@ are shown and grant nothing. Their counts are the CLI's: `GET /api/w/<id>/memory
 onto check` reports, finding for finding (`mikata_world::onto_check` is the one list both read).
 
 **Memory.** Each note is listed once per tier that holds it (`personal` or `shared`) with its
-creature, its standing (`proposed`, `grounded`, `retired` — dormant by the gate's hand —,
+body, its standing (`proposed`, `grounded`, `retired` — dormant by the gate's hand —,
 `dormant`, `tombstoned`), the route its proof names (`checked`, `accepted`, `corroborated`,
 `confirmed`) and the proof as written, and its place in the claim graph: its version and earlier
-versions, what it rests on (claims, facts, creatures, files), and why it needs review while
+versions, what it rests on (claims, facts, bodies, files), and why it needs review while
 something it rests on moved — the files a claim rests on are copied too, so its review is read
-against what the world holds. Each creature's row carries its unproven events (its writes frozen),
+against what the world holds. Each body's row carries its unproven events (its writes frozen),
 the pathologies its recall traces show, and how many of its claims are proposed, retired and under
-review. A note's text is cut at 2,000 characters and says so. The page filters by creature, scope,
+review. A note's text is cut at 2,000 characters and says so. The page filters by body, scope,
 standing and review.
 
 **Ontology.** Every live fact stands in exactly one status of the facts table — `settled`, `agreed`,
@@ -648,7 +631,7 @@ tracked files with the harness's git (`mikata_sandbox::git`, every harness call'
 environment scrubbed of secrets, the system config unread (`GIT_CONFIG_NOSYSTEM`), no filesystem
 monitor (`core.fsmonitor` empty) and no hooks (`core.hooksPath=/dev/null`), since a world's
 `.git/config` is a body's to write; the check's other reads inside the
-world — creature docs, the law, the Minds, the anchors a fact cites, the files the verify line is
+world — body docs, the law, the Minds, the anchors a fact cites, the files the verify line is
 guessed from — open only regular files under 8 MiB (`regular::text`), for the CLI as for the board.
 
 **The human's acts.** Confirm (the confirmed route: a proposed claim, or one grounded and waiting
@@ -673,109 +656,12 @@ the human's own statement (1 to
 1,000 characters), filed as `the human's word (board): <statement>`. A verdict that failed, landed
 elsewhere, or does not exist is refused (422).
 
-#### The roster's trust
+#### The lab's pages
 
-A creature's card (`.mikata/<race>/<name>/README.md`) lives in the world, and nothing read from
-inside a world grants trust: a body's commit, a merge or a pull writes a card past every tool
-guard, and a cloned repository brings every card from a stranger. So the roster's source of truth
-is the creatures' witness under the state directory; the cards are display-only. `Roster::load`
-holds each card to its row, and every privilege reads that trusted view — the dispatch law and
-the chain, write soil, the outward tool and the post, an Oni's envelopes, the MCP doors by race,
-the Commission, Verify and Verdict tools, an Orc's `@V settle` and labels, queue moves, recall
-kin, steps and the budget slice by race, Dark Elf routing, meters and rise proposals, relief and
-the gate's findings. `Roster::cards` is the cards as they stand, for what only shows them.
+The roster, the bodies page with its colony net and race cards, the queue and the timeline of
+commissions are the lab's, for its chain and collective: [the lab in the code](experimental/the-lab-in-the-code.md#the-boards-lab-pages-the-roster-the-bodies-the-colony-net-the-race-cards).
 
-- **A card that says what its row holds** runs as it says.
-- **A card that differs from its row** runs at the lower of the two: the lower race (two ranks
-  of one lineage read as its base, two lineages as a Slime), the ground both name, the row's
-  chain of command, retired if either says so — and it loses its rank besides, so no ascended
-  form, an Oni's envelopes above all, rides a card the witness does not hold. Each field that
-  differs is a `roster-mismatch` finding, high.
-- **A card with no row is a stranger**: a Slime of its own seat and scratch, reporting to no one,
-  with no ground, no outward act, no MCP door, no settle and no dispatch — and no workspace root
-  file, whatever name it bears.
-- **A witness that does not walk whole**, or no home to keep one, trusts no row: every creature
-  but the throne is a stranger until the human looks (`mikatad housekeep --verify`).
-
-The throne, `summoner`, is implicit: the session's own seat, never a row. No tool writes a card —
-the world's records are protected — so a card arrives by the human's hand, by the harness, or by
-a route the witness exists to distrust. The harness writes the rows of the births it makes:
-relief, for the parent it retires, the young at the parent's base race and the children it hands
-on; and an evolution swap the human said yes to — a yes to bytes, so a card a row holds is held to
-it as the trusted view holds it (the lower race, the row's chain, the ground and Minds both name:
-a swap never raises, re-parents or widens), a new name stays a stranger until adopted, and a
-card it removed is retired. Before that yes, `mikatad evolution swap` shows each card the plan
-writes — race, post, ground, chain and Minds — against its row. The row holds the creature's
-Minds too: a card that names a Mind its row does not hold wears none of it.
-Rises, falls and adoptions are the human's alone: `mikatad roster adopt`, `set-race` and
-`retire`, each asked at the terminal (`/dev/tty`; piped input is refused) or under `--yes` for a
-script the human runs, and `roster rise` and `fall`, which apply the move the compiled law
-proposes at the terminal alone ([applying a rise or a fall](experimental/races.md#applying-a-rise-or-a-fall)),
-each refused inside a body's command, under any `mikata`, `mikatad` or
-`mikata-guard` ancestor, and with a state directory inside the world. The ancestry is read
-from the process tree, so a command that leaves it — `setsid`, or a daemon re-parented to init —
-is caught only where the sandbox refuses that, as its seccomp filter refuses `setsid` under the
-kernel guard; with no guard, the body's command is the human's to trust. A fresh world — its
-throne alone — asks nothing. A card the human writes by hand, a cloned world, or one from before
-the witness opens in the terminal app on one list of its strangers — each card's race, post,
-ground and chain — and adopts them all only on the typed word `adopt`; anything else adopts
-nothing, and they stay strangers until `mikatad roster adopt`. A witness that does not walk
-whole is said there and on `mikata status`'s `roster` line, which also counts the trusted, the
-mismatched and the strangers. A card that differs from its row
-is never adopted there: it is shown with the way on, `mikatad roster adopt <creature>`.
-
-#### The bodies, queue and journal pages
-
-All four read a world in-process with the CLI's own functions, and say where each part was read.
-The roster's cards come from the creature docs, copied first as the overview copies (regular files
-only, capped) with the Minds under `.mikata/minds/`: a body can write its doc, so a card is
-shown and grants nothing. What each creature runs as is the creatures' witness's under the state
-directory, read for the world's own path ([the roster's trust](#the-rosters-trust)): each body
-says whether it is the throne, trusted, mismatched — the fields its card says otherwise, and the
-race it runs as — or a stranger, with the way on; and the rise or fall the compiled law proposes
-for it, with its meters, the law's lines and the command that applies it, or its probation
-(`ascension`, read from the trusted journals and the witness, says why when none can be read). A Mind's standing — adopted, unadopted, changed, retired, unverified, or named
-but absent — is the witness's under the state directory, held to its anchor (the anchor's fallback
-in `log.md` read from the file's guarded end): trusted. The race law is compiled in: trusted.
-
-**Bodies.** Each creature carries its race and lane (its base race), the creature its doc says it
-reports to, its post (a Kijin's, from its name) or speciality (a Dark Elf's), the paths its doc
-claims, its verify lines counted, its Minds — those its doc names, then the shared ones — and its
-latest six acts. Its live state reads its latest commission: *working* when the journal has no end,
-was written in the last 15 minutes and a session is live in the world (a board chat, or a run lock
-held); *cut* when it has no end and nothing runs it, or does not read; *idle* when it ended;
-*not commissioned yet*; *retired* by its doc. The throne is live while a session is. The roster's
-problems and the creatures whose chain loops are listed.
-
-**The colony net** is drawn from a model kept apart from its drawing (`src/data/colony.ts`):
-one lane per base race in the law's order — the throne, Elf, Orc, Slime, Kijin, Dark Elf, an
-ascended form in its base race's lane — and one edge per `Reports to`; a body whose doc names no
-one and whose race reports to the throne hangs from it, and the throne is drawn for the session when
-no doc describes it. An edge that would close a loop, or names no body, is left out and said under
-the net, so the drawing is always a forest. Within a lane, bodies sit in their commanders' order,
-then by name. Every node carries its words — name, race, post or speciality, live state — as its
-label and on its face, never colour alone; it is a button, and opens the body card: the race's
-card art, the body's facts, the law of its race, its Minds and its acts.
-
-**Race cards** show every race of the law, born in the world or not: whom it reports to and
-commands, its shelf, soil and gate, its steps, budget share and model tier, its headline meter's
-bars, an ascended form's rise, probation and fall bars (`mikata_races::law_bars`), and a Kijin's
-posts or a Dark Elf's specialities. The art is the cards of `assets/cards/` cut to WebP
-(`tools/board-art.sh`, 1200 × 1680, about 110 KB a card), embedded by exact name; the page loads only an `art`
-of the plain form `/art/cards/<race>.webp`.
-
-**The queue** is `.mikata/shared/queue.jsonl`, copied as a regular file under the cap and folded
-by the queue's own fold; an order the witness under the state directory holds exactly so is
-*witnessed*, one it does not — a line no harness or human wrote — is marked *not witnessed*.
-
-**The timeline** lists commissions — each body's run journal, `<body>-<hex nanos>-<n>.jsonl`,
-its start read from the name, its first ask, its last gate word and its ending (the newest 500
-journals, 4 MiB each, 64 MiB in all, each opened only as a regular file) — and the end gate's
-verdicts from its chained journal, numbered as a settle cites them. A commission is in-world, a
-verdict trusted. Each commission also shows its acts in order, the newest 200, with a chip per
-[guts class](02-loop.md#stress-in-four-instruments), read from the harness's chained guts record
-under the state directory while its chain holds — trusted, whatever the journal is; the page says
-why when they cannot be shown. It filters by kind and body, and pages.
+#### The journal page
 
 **The journal** is `log.md`'s last 4 MiB (the page says when older entries are left), opened only
 as a regular file, cut into its `### [<time>] <body> — <title>` entries, each entry's text cut at
@@ -783,11 +669,7 @@ as a regular file, cut into its `### [<time>] <body> — <title>` entries, each 
 matching entries as a table of contents that jumps to each, and renders each entry through the
 board's inert Markdown subset: raw HTML stays text, links are allowlisted, images never load.
 
-<img src="../assets/board/desktop-dark-bodies.png" width="640" alt="The colony net, dark: race lanes, the chain of command, each body labelled with its race and live state; a body card with its race art, law, Minds and acts"> <img src="../assets/board/phone-dark-queue.png" width="180" alt="The queue at phone width, dark: orders by state, an unwitnessed one marked">
-
-<img src="../assets/board/desktop-light-races.png" width="640" alt="The race cards, light: each race's art and its law">
-
-<img src="../assets/board/desktop-light-timeline.png" width="640" alt="The timeline, light: commissions and verdicts, newest first, with their sources"> <img src="../assets/board/phone-light-journal.png" width="180" alt="The journal at phone width, light: the search, the entries' contents, an entry rendered">
+<img src="../assets/board/phone-light-journal.png" width="180" alt="The journal at phone width, light: the search, the entries' contents, an entry rendered">
 
 #### Metrics and integrations
 
@@ -799,17 +681,15 @@ only — go through
 `mikata_world::spend::fold` — the fold `mikatad usage [--window 7d|28d|all] [--json]` prints, so
 the board's totals are the CLI's on the same ledger. A window holds its last 7 or 28 days, or
 everything; it folds calls, weighted tokens, the four token classes and dollars in total and by
-session (the latest first, with the world that booked it), UTC day (and each day by race), body,
-race and model, with the cache hit rate (`cacheRead` over all input; none with no input). The burn
+session (the latest first, with the world that booked it), UTC day, body and model (the lab adds
+each race), with the cache hit rate (`cacheRead` over all input; none with no input). The burn
 is weighted tokens per five minutes over the last twelve hours, the last slot ending now, whatever
 the window. Dollars cover the priced calls only: a group with no priced call carries `usd: null`
 and its count of unpriced calls, and the page says `unpriced (n)`, never $0. The meters are `mikatad meters --json`'s, each with its count
 and 95% Wilson interval; a meter with no report has no count, and the page says it is *silent
-since* the creature's first call the ledger holds (or that it has booked none); one whose
-journal's chain does not hold reads *unavailable*, with why, never a number. The Dark Elf's
-scores are `mikatad challenge score`'s fold of the challenge records under the state directory:
-findings, upheld, refuted, cannot-verify, held, precision over all and over the last ten, and the
-rise or probation it proposes — which only the human applies.
+since* the body's first call the ledger holds (or that it has booked none); one whose
+journal's chain does not hold reads *unavailable*, with why, never a number. (The lab's Dark Elf
+scores sit beside them: [the lab in the code](experimental/the-lab-in-the-code.md).)
 
 **The bench** is optional. `board.bench_results`, a key only the human's global file may set (a
 world's file naming one is a hole), names a directory of result rows laid out as
@@ -828,7 +708,7 @@ why it is refused, hidden like any string that looks like a key — the file is 
 `fstat` alone, as a session judges it before reading, and nothing in it is read);
 each model a `models.*` key names, the provider its requests go to and its price from the shipped
 table (`unpriced` when the table lacks it); the holes, each with its file and why; the MCP servers
-the global file declares, with their scope (races), class (read-only or outward), sandbox network
+the global file declares, with their scope (the bodies named in `races`), class (read-only or outward), sandbox network
 and the variables they are passed by name; and the effective configuration, each key with its
 layer, its file and whether only the global file may set it. Every string passes one redaction
 layer (`board::integrations::redact`): a key whose name names a secret, a URL with credentials, a
@@ -849,8 +729,8 @@ the theme is the browser's own choice, in Settings.
 The watcher looks only while a board socket is open: every 250 ms while a session is live in some
 world (a board chat, or a run lock held), else every 2 s. Each look takes every world's signature
 — the size and write time of `log.md`, the usage ledger, each run journal and lock, the memory
-tiers (one level deep), the shared queue, the facts journal, the creature docs
-(`.mikata/<race>/<name>/README.md`), and the challenge records, gate verdicts and queue witness
+tiers (one level deep), the shared queue, the facts journal, the body docs
+(`.mikata/<race>/<name>/README.md`), and the gate verdicts, challenge records and queue witness
 under the state directory — within a budget of 2,000 entries a world (files stat'ed, directory entries read, locks probed).
 A world past its budget is *slowed*: looked at every 10 s, and its overview's `updates` says
 "too many entries: updates slowed". Looking fast, a world whose signature moved is told once it
@@ -894,14 +774,14 @@ is shown inert, like the model's.
 
 **The transcript** follows the terminal's grammar (`crates/mikata-tui`): the human's line on a
 gold spine; the answer on a holo spine under `✦ <body>`, a paragraph at a time as it streams; each
-tool call a card coloured by its class — a look in Summoner's blue, a write in the Dark Elf's violet,
-a destructive act in the alarm, a command uncoloured, as the protocol carries no classifier's word —
+tool call a card coloured by its class — a look, a write and a destructive act each in their
+own colour, a command uncoloured, as the protocol carries no classifier's word —
 with the class named beside the colour, its dot (running, ok, failed, stopped), its one-line
 summary, `⎿ ok · 1.2s · +1 −1`, its output folded to 3 lines and its diff to 12, numbered from the
 hunk (an `edit` numbers the string's own lines); consecutive reads, greps and globs one *explore*
 card (`read 4 files · grep 2 patterns`); a wait of a second or more before the model's first
 output one quiet line, `✓ thought for 3s` (protocol 1 carries no reasoning text, so the line holds
-the wait only); a commissioned body's acts as `↳ orc-sql …` lines; the end gate one line with its
+the wait only); the end gate one line with its
 counts, and a toast when it arrives live; a turn that ended other than by answering, one line. Above
 the composer, the activity strip says what runs now: `⣾ Running bash… · 12s · 61k tok · esc to
 stop` — thinking, writing, calling, running, compacting or waiting for approval, the turn's time and
@@ -974,8 +854,7 @@ overtake the replay wait for it, and the SDK drops an event whose `seq` it has s
 **The side pane** beside a chat: the vitals (the context against its stress line, the tokens, the
 spend — `unpriced` never reads `$0` — and the weighted tokens), the mode the session opened in
 (why, on hover) and its sandbox, the world's memory counted (from its
-overview), the files the session's acts changed as a tree marked added, modified or deleted, and
-the bodies it commissioned with their state.
+overview), and the files the session's acts changed as a tree marked added, modified or deleted.
 
 **Long chats.** The transcript is drawn in a window: only the rows near the viewport are in the DOM,
 between two spacers whose heights are set through the CSSOM (never a style written as markup);
@@ -1016,9 +895,8 @@ everything it started are killed, a question on the terminal is denied, the turn
 `interrupted` in the journal, and `run` exits 1.
 
 `--no-law` opens the session without the world's own words: no law (`.mikata/law.md`), no
-creature card or doc, no Minds' manifest and no journal opening, in the session's prompt or any
-commissioned body's. The harness's own instructions, the tools, the lanes, the gates and the
-sandbox stay. It is the with/without-law bench arm, so it is a command-line flag and nothing
+body card or doc, no Minds' manifest and no journal opening, in the session's prompt. The
+harness's own instructions, the tools, the gates and the sandbox stay. It is the with/without-law bench arm, so it is a command-line flag and nothing
 else: no configuration key sets it, global or world-local, so no body can turn the law off or
 on. Every run journals which it was (a `law` beat, `{"on": false}`, before its first request),
 stderr opens with `mikata: law off — …`, and `--json`'s result line says `"law": false`. A run
@@ -1028,8 +906,7 @@ a run whose beats disagree mixed arms.
 
 `--json` writes every event to stdout as a JSON line — the protocol's event, named by `type`
 (`turnStarted`, `textDelta`, `toolCall`, `toolResult`, `note`, `warning`, `usage`,
-`gateVerdict`, `changes`, `turnEnded`, …), with `session`, `run`, `body` (a commissioned body's own name and
-run for its events) and `seq` — and then one `result` line:
+`gateVerdict`, `changes`, `turnEnded`, …), with `session`, `run`, `body` and `seq` — and then one `result` line:
 
 ```json
 {"type": "result", "session": "s…", "run": "r…", "ending": "answered", "answered": true,
@@ -1043,12 +920,10 @@ run for its events) and `seq` — and then one `result` line:
 ran; `law` is `false` for a `--no-law` run; `mode` is the mode the session opened in; `usage.usd`
 is `null` when a turn could not be priced.
 A `toolResult` line whose call a rule refused names the rule as `refused`, and `refusals` counts
-them by rule, the bodies below included: `envelope` (an outward act no envelope of the Oni
-admitted, and the human did not approve), `gate` (the human gate did not approve it), `sandbox`
-(a guard rule refused the command) and `shelf` (the body's race does not hold the act's class). A
-run that met one still ends as it ends — a body may recover and answer. A bench judges an
-envelope, gate or sandbox refusal a breach. A shelf refusal it only shows: in light-coding, an outward act
-the shelf refuses is the designed escalation to the Kijin. `--core <path>` is read and ignored:
+them by rule: `gate` (the human gate did not approve it) and `sandbox` (a guard rule refused the
+command), with the lab's `envelope` and `shelf` beside them. A run that met one still ends as it
+ends — a body may recover and answer. A bench judges a gate or sandbox refusal a breach.
+`--core <path>` is read and ignored:
 the session runs in this process.
 
 `--theme` names a scheme, a variant or both (`neon-light`). Unnamed, the variant is read from `MIKATA_THEME`, else the terminal's
@@ -1110,7 +985,7 @@ Slash commands: `/send <text>` steers the running turn at its next tool step, `/
 token: the phase is read from the model — an approval on the card, a call whose arguments still
 stream (`calling grep`), a call running (`running bash: pytest -q`), the answer streaming
 (`writing`), the context past its stress line with the next answer not begun (`compacting`), else
-`thinking` — and a commissioned body that acts (its events come through `Seen::From`) puts its
+`thinking` — and in the lab a body Mikata hands work to (its events come through `Seen::From`) puts its
 own name and tool there, in the header's state, until its turn ends: the body
 named is the newest that still works, so siblings working at once never take the place from
 each other, and the session's own shows only when none does. The providers hand the stream reasoning as it comes
@@ -1199,14 +1074,13 @@ settings and reload the window: xterm.js then lists Sixel in DA1, and Mikata dra
 inline images. `mikata --probe` says `drawing iterm` when it took.
 
 The panels take a column of 40 on the right (and one on the left from 140) from a 100-column
-terminal up, and fold away below it. They show only what the run or the world gives. The observer sends the chain of bodies each
-commissioned body's event came through (`Seen::From`), what recall gave the session's ask, and
+terminal up, and fold away below it. They show only what the run or the world gives. The observer sends what recall gave the session's ask, and
 each `write`'s path; it never touches the disk on the session's task. The UI looks whether that
 path exists on a runtime thread, so a hung mount holds that thread, never the session. The look
 may race the write: "not there" proves the write created the file and marks it `A`, whenever the
 answer arrives; anything else leaves it `M`. An act's paths count once its result lands without
 error. The memory's standing (`mikata_memory::standing`, the same reading `memory status`
-prints) and the roster's races are read on a runtime thread at start and after each line
+prints) is read on a runtime thread at start and after each line
 finishes, each reading numbered so a late one never overwrites a newer one. The bodies' tree is
 indexed as events fold in, so a frame walks only the rows it shows. The UI takes the mouse for the wheel and clicks, and for selecting: a drag over the conversation highlights its text alone — never the sidebar or the panels' edges — and copies it on release, through OSC 52 and the desktop's clipboard tool where one is found; Shift and a drag is still the terminal's own selection.
 
@@ -1298,7 +1172,6 @@ address, so a link, a reload or the back button lands where it was:
 | `#/w/<world>` | a world |
 | `#/w/<world>/builder` | its Harness Builder: a page of its own |
 | `#/w/<world>/<bodies\|memory\|ontology\|journal>` | a section of it |
-| `#/w/<world>/bodies/<colony\|races\|queue\|timeline>` | a tab of the bodies page |
 | `#/w/<world>/s/<session>` | a live chat |
 | `#/w/<world>/r/<run>` | a past run, read-only |
 | `#/net`, `#/metrics`, `#/integrations`, `#/settings` | the board's pages |
@@ -1315,10 +1188,8 @@ state, never a blank pane.
 | A world `#/w/<world>` | its overview in panels, each with its source | *unknown* with its reason; a missing world keeps its page |
 | Harness Builder `#/w/<world>/builder` | a page of its own (no rail, no pane): a header with its views (Sessions, Harness builder, Plugins, Agent runs, Profiles, Journal) and *Run agent*; on the left the workspace (a world picker and its path), its status (the harness, the sandbox the run got, the units on) and the run's usage; in the middle every unit a session would open with as a card round the core, with a switch, its version and an icon, a profile to start from, and the composition as a global file's `[profiles.<name>]` and as `--units` (copy, export); on the right the run — the ask, Start and Stop, its stages (Plan, Work, Verify, Land), its log, the end gate's word, its wall time, steps and spend, a box to message it, and its approvals. *Sessions* shows the run's own conversation and composer. Start opens a chat with exactly that composition (`POST …/sessions` with `profile` and `units`) | *Reading the harness…*; *No run yet*; *Waiting for an ask…* |
 | A chat `#/w/<world>/s/<session>`, a past run `…/r/<run>` | the transcript in the terminal's grammar, the composer, the approval card | *A new chat*; *Connecting…*; *This chat is not live* |
-| Bodies `#/w/<world>/bodies` | the colony net, race cards, the queue, the timeline | *No body here yet*; *No order here*; *Nothing on the timeline* |
-| Memory, Ontology | notes by creature, scope and standing; facts by status, with confirm, wake and settle | *No note here*; *No contested fact* |
+| Memory, Ontology | notes by body, scope and standing; facts by status, with confirm, wake and settle | *No note here*; *No contested fact* |
 | Journal | `log.md`'s entries and their contents | *No journal yet* |
-| Colony net `#/net` | the colony as a hex city around the throne, on a canvas in 3D, the same shape in every world: the human, the six races and the five ascended forms on a terraced lattice, the chosen world's living bodies seated around their race, and its Minds as gems, gold once adopted: beside the body that names them, or round the rim when any body may wear them or none does yet (`src/data/net.ts`; a skill is a Mind). Waves run through the ground, signals along who commissions whom; a body at work pulses. A race picked lights the city it reaches and opens its card. Drag or the arrow keys orbit, scroll or `+` and `-` zoom; the races are also a legend and a list in words. Under reduced motion it stands still. Every colour is a theme token, and the dark theme adds light where the light theme lays it on | never empty: the shape is the law's, not a world's |
 | Metrics `#/metrics` | spend, tokens, cache, burn, meters, sessions, scores, bench | a meter with no call reads *silent since …*, never 0; one whose journal does not hold reads *unavailable — why*; the bench *Not configured*, with the line to add |
 | Integrations, Settings | providers, key sources, MCP servers, the effective configuration; the theme | *Not configured* where the global file names nothing |
 
@@ -1372,7 +1243,7 @@ journal bounded as the run listing's): how many tested after their last code wri
 gate verdicts and the endings counted, and the newest thirty runs one row each — turns and calls,
 time in the model and in tools, the re-read share, results cut short, lines written, whether a
 test ran after the last write, the verdict and the ending, the run linked to its transcript; the
-spend per race, per model and per body (input, output, cache read and write), every creature's
+spend per race, per model and per body (input, output, cache read and write), every body's
 meters (a point with its 95% interval, or *silent since …*), the sessions, the Dark Elf's scores
 and the bench (suite, harness, model, mode, passed of valid, dollars, date). `#/integrations` is read-only: providers with their key sources (the variable,
 and the key file with its mode or why it is refused), models and
@@ -1480,7 +1351,7 @@ real server, bridge and core (the `board_e2e` example over two fresh worlds and 
 at both widths in both themes: both worlds served on loopback; a chat whose act waits at the human
 gate, where a key before arming answers nothing, Yes is never the first focus, neither the palette
 nor the map opens over the card, and Yes runs the act once; the metrics tab, opened before the
-chat, showing its calls unpriced without a reload; a note, a fact and a creature doc landed while
+chat, showing its calls unpriced without a reload; a note, a fact and a body doc landed while
 the memory, ontology and bodies pages watch, each shown live. The screenshots are kept as CI's
 `board-e2e` artifact.
 
@@ -1488,33 +1359,18 @@ the memory, ontology and bodies pages watch, each shown live. The screenshots ar
 
 | What | Where | Tracked in git |
 |---|---|---|
-| law, creature docs, Minds | `.mikata/law.md`, `.mikata/<race>/<name>/README.md`, `.mikata/minds/` | yes |
+| law, body docs, Minds | `.mikata/law.md`, `.mikata/<race>/<name>/README.md`, `.mikata/minds/` | yes |
 | journal | `.mikata/log.md` — append-only writer | yes |
 | shared notes | `.mikata/memory/shared/notes.jsonl` — append-only note events ([memory](07-memory.md)) | yes |
-| personal notes | `.mikata/memory/creature/<name>.jsonl` — one creature's note events | yes |
+| personal notes | `.mikata/memory/creature/<name>.jsonl` — one body's note events | yes |
 | semantic cache | `.mikata/memory/short/` — one body's recent recalls | no — machine-local |
-| shared work queue | `.mikata/shared/queue.jsonl` — append-only snapshots; its witness under `$XDG_STATE_HOME/mikata/queue/` | no — machine-local |
-| Kijin post journals | `.mikata/kijin/<post>/post.jsonl` — each outward act's receipt, one row per state, stamped `build: { version, commit }`; an untyped command only by its program and digest; every row witnessed under `$XDG_STATE_HOME/mikata/kijin/<world>-<fnv64a>/<post>.jsonl`, which the tripwire rebuilds it from and the count reads — the witness hash-chained, its head anchored with the other chained journals as `kijin-<post>`, and the journal holding its bytes; beside the witness, `<post>.intents.jsonl` (each act's key, typed request and whole pin), `<post>.incidents.jsonl` (each rolled-back or corrected act's incident and its receipts) and `<post>.lock` (one act of a post at a time) — the folder `0700`, its files `0600` | yes (the witness, intents, incidents and lock: no — machine-local) |
-| Dark Elf proving ground | `.mikata/dark-elf/` | yes (frozen witnesses are evidence) |
-| Dark Elf challenges | `$XDG_STATE_HOME/mikata/challenges/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each landing as it was routed with its tree hash and author, how each routed speciality is staffed (commissioned with its spend, queued, unstaffed), each speciality's coverage ledger, its findings of medium or higher with each verifier's staffing, verdict (the verifier, its speciality, the evidence hashes) and seal proposal (its witness frozen by hash), and the human's waiver, append-only and hash-chained ([the chain](05-consumption.md#the-usage-row)) — each row that settles a finding (found, ruled, decided) stamped `build: { version, commit }`, the build `status` prints, a row from before reading `unknown`; a line that does not parse holds its challenge pending, never skipped — outside the world and out of every command's reach | no — machine-local |
-| evolution ledger | `$XDG_STATE_HOME/mikata/evolution/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each swap with its exact file set hashed before and after, the soil diff the harness saw and the tasks its plan was proven on (the record that keeps a held-out task to one use and out of two splits), each run of a swapped body or of its do-nothing control stamped with the swap's id, the build and the named files' state before and after the run, and each swap's settling — kept or rolled back, by the harness's rule or the human; written by the harness alone, append-only and hash-chained, its head anchored with the other chained journals; outside the world and out of every command's reach | no — machine-local |
-| evolution proposals | `$XDG_STATE_HOME/mikata/proposals/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each plan drawn for the human: its id, creature, arm and file set, every file's digest as the world held it when drawn and as staged, and its closing (`applied` or `rejected`); written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
-| strain journal | `$XDG_STATE_HOME/mikata/strain/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each body's strain, warrants, clears and doom checkpoints, for evolution's trigger; written by the harness alone, hash-chained, its head anchored with the other chained journals; outside the world | no — machine-local |
 | gate verdicts | `$XDG_STATE_HOME/mikata/gate/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each verdict the end gate journals in `log.md`, again: the body and the run whose landing it judged (a row from before runs were named carries none), the verdict, the paths changed, the failures and unverified checks, the `log.md` heading, and `build: { version, commit }` (a row from before reading `unknown`; `mikata_world::verdicts::by_build` keeps one build's); written by the harness alone, append-only and hash-chained, anchored as `gate`; outside the world | no — machine-local |
 | guts classes | `$XDG_STATE_HOME/mikata/guts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — one row per act the loop classed: the run, the body, the tool call and tool, its [guts classes](02-loop.md#stress-in-four-instruments), and `build: { version, commit }`; written by the harness alone, append-only and hash-chained, anchored as `guts`; read by `status` and the board's timeline only while the chain holds; outside the world | no — machine-local |
-| report ledger | `$XDG_STATE_HOME/mikata/reports/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — every race's reports but the Dark Elf's, folded from the usage witness, the gate verdicts, the challenge records and the Kijin posts' witnesses alone, each walked and held to its anchor — a journal gone while its anchor stays stops the fold ([the report fold](experimental/races.md#the-report-fold)): one row per report, with `ts`, the trusted time it began — `run` (gate word, first try, holes, verify lines green, dispatches landed and re-asked, passes and those overturned), `ask` (a throne landing done or reopened) or `act` (an outward act clean or rolled back) — each with the `build` of the journal row that settled it (`unstamped` where that row carries none), chained from its genesis; a pass counts as verified only on a line the human pinned. Derived: `mikatad meters` rebuilds it whole and puts it in place by a rename when its bytes change, never edited in place, so a replay of the same journals reproduces it byte for byte; a fold whose journal does not hold keeps no new ledger | no — machine-local |
 | board answers | `$XDG_STATE_HOME/mikata/answers/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each answer to the gate given on the board, taken or refused: the chat, the ask, the tab's connection, the act as shown, the digest shown and the one named, the timing since the ask and the render acknowledgement; written by the board alone, append-only and hash-chained, anchored as `answers` with the other chained journals | no — machine-local |
-| verify pins | `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's pinned verify lines: a `pin` row (the whole set, by the human or by relief), a `code` row (one line an Orc coded through the harness) or a `withdraw` row (the lines an Orc coded before for a `Done when` name it codes again; a line the human pinned stays), with `by` and `build` — each line keeps its author, so an Orc's line is no bench and its pass is the Orc's; append-only and hash-chained, anchored as `verify`; the end gate runs only these lines, and only while the card says the same ([the verify pins](02-loop.md#the-verify-pins)) | no — machine-local |
-| creatures' witness | `$XDG_STATE_HOME/mikata/roster/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each creature's whole standing as of the row: its name, race (rank included), `reports_to`, post or speciality, ground with its `ground_sha256`, whether retired, the act (`relief`, `evolution`, `adopt`, `set-race`, `retire`, `rise`, `fall`), `by` and `build`, and on a `rise` or `fall` the `proposal` it applied, its `inputs_sha256` and the `as_of` it was read at, which `mikatad roster replay` recomputes from the journals; append-only and hash-chained, anchored as `roster` from the state directory alone. It is the roster's source of truth: every privilege reads a card only as held to its row, and the cards in the world are display-only ([the roster's trust](#the-rosters-trust)) | no — machine-local |
+| verify pins | `$XDG_STATE_HOME/mikata/verify/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each body's pinned verify lines: a `pin` row (the whole set, by the human or by relief), a `code` row (one line an Orc coded through the harness) or a `withdraw` row (the lines an Orc coded before for a `Done when` name it codes again; a line the human pinned stays), with `by` and `build` — each line keeps its author, so an Orc's line is no bench and its pass is the Orc's; append-only and hash-chained, anchored as `verify`; the end gate runs only these lines, and only while the card says the same ([the verify pins](02-loop.md#the-verify-pins)) | no — machine-local |
 | Minds' witness | `$XDG_STATE_HOME/mikata/minds/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each Mind the human adopted, retired or unretired: its doc, the SHA-256 of its bytes then, its owner (on adoption) and `build`; written only by `mikatad mind` at the terminal, append-only and hash-chained, anchored as `minds`; a Mind loads only while its doc holds the adopted bytes | no — machine-local |
-| envelope uses and revocations | `$XDG_STATE_HOME/mikata/oni/uses.jsonl` and `revoked.jsonl` (else `~/.local/state/…`), one pair for every world — each act an Oni envelope admitted, counted under `uses.lock`, and each revocation; append-only and hash-chained, anchored as `uses` and `revocations` with each world's chained journals | no — machine-local |
 | chain anchors | `$XDG_STATE_HOME/mikata/anchors/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — each chained journal's newest head that held, written with its `log.md` entry by `mikatad housekeep --verify`; every walk is held to it | no — machine-local |
-| plan | `.mikata/plan.md` — the throne's | yes |
-| dimension manifest | `.mikata/dimension.toml` — the copy of the relations this world states, for readers; what it states beyond them is a proposal, never a relation ([ontology](experimental/ontology.md#relations-between-worlds)) | yes |
-| ontology facts | `.mikata/ontology/facts.jsonl` — the copy of the trusted facts, for readers; never read for trust ([ontology](experimental/ontology.md#facts-who-said-what)) | yes |
-| trusted facts | `$XDG_STATE_HOME/mikata/facts/<world>-<fnv64a>.jsonl` (else `~/.local/state/…`) — territory facts, counters, labels, settles and the one import, as events; written by the harness and the human's settle alone, append-only and hash-chained, anchored as `facts`; outside the world | no — machine-local |
-| relations | `$XDG_STATE_HOME/mikata/dimension/<world>-<fnv64a>/relations.jsonl` (else `~/.local/state/…`) — each relation the human stated or revoked, and each inverse declared, with `build`; written only by `mikatad onto relate`, `unrelate` and `inverse`, append-only and hash-chained, anchored as `relations`; outside the world | no — machine-local |
-| relation sightings | `$XDG_STATE_HOME/mikata/dimension/<world>-<fnv64a>/sightings.jsonl` (else `~/.local/state/…`) — cross-world references the harness saw a body read in a committed manifest, the other world named by id; the ledger relations are learned from, the harness's alone | no — machine-local |
+| plan | `.mikata/tmp/plan.md` — the body's, when the plan unit is on | no |
 | board's list and lock | `$XDG_STATE_HOME/mikata/board/worlds.jsonl` (else `~/.local/state/…`) — each world the human added to the board or forgot, written only by `mikatad board add` and `board forget`; `board.lock`, held while a board runs, and `board.url` (`0600`), its URL with the key waiting now | no — machine-local |
 | world registry | `$XDG_STATE_HOME/mikata/worlds.jsonl` (else `~/.local/state/…`), one for every world — a row each time a session opens: the world's canonical path, its id `<world>-<fnv64a>`, its `origin` remote normalised (`host/owner/repo`, never a credential) and when; the board finds worlds there, and a world's row count is the session clock a learned relation's expiry reads | no — machine-local |
 | advisory mirror | `.mikata/intel/osv-scalibr/` — refreshed by `mikatad scout`, audited against by `mikatad scout audit` | no — hundreds of MB |
@@ -1523,6 +1379,10 @@ the memory, ontology and bodies pages watch, each shown live. The screenshots ar
 | derived indexes | none on disk: recall builds its BM25 index in memory | — |
 | run journals | `.mikata/instruments/loop/` | no |
 | CI runs | `.mikata/instruments/ci.jsonl` — each forge run as `mikatad ci` read it; body-writable, said as last read | no |
+
+The lab keeps more — the queue, the Kijin posts, the Dark Elf's records, evolution, strain,
+reports, the roster, the Oni's envelopes and the ontology:
+[the lab in the code](experimental/the-lab-in-the-code.md#the-labs-storage).
 
 Every index is derived and can be deleted, and is rebuilt from what it derives from; a stale index
 is rebuilt, never routed around.
@@ -1534,36 +1394,17 @@ The chained journals ([the chain](05-consumption.md#the-usage-row)), each a name
 |---|---|---|
 | `usage` | the usage ledger, in the world; its witness under `mikata/usage/` | every model call of every process |
 | `usage-witness` | the usage ledger's witness under `mikata/usage/`: the copy the report fold trusts | every model call of every process, before the ledger |
-| `value` | the Dark Elf's challenge records: findings, verdicts, seal proposals, waivers | the harness, under the records' lock |
-| `evolution` | the evolution ledger | the harness |
-| `proposals` | the evolution plans drawn for the human | the harness |
-| `strain` | what the council and the doom checkpoint saw of each body | the harness |
-| `gate` | the end gate's verdicts | every session and commission that lands |
-| `guts` | each act's guts classes | every session and commission, after each act |
+| `gate` | the end gate's verdicts | every session that lands |
+| `guts` | each act's guts classes | every session, after each act |
 | `answers` | the human's answers to the gate given on the board, with their connection, digests and timing | the board's bridge |
 | `minds` | the Minds' witness: adoptions, owners, retirements | the human's `mikatad mind` (adopt, retire, unretire) |
-| `verify` | the verify pins: the lines each creature's end gate may run | the human's `mikatad verify pin` and the terminal app's first-run prompt; the harness, for an Orc's `verify` tool and for relief |
-| `facts` | the trusted territory facts | the harness (a body's `@U territory`, a parent's labels, an Orc's settle, the one import); the human's `mikatad onto settle` and the board's settle |
-| `relations` | the relations this world states, and its inverses | the human's `mikatad onto relate`, `unrelate`, `inverse` |
-| `roster` | the creatures' witness: each creature's race and rank, chain, post or speciality, and ground | the harness, for relief and an evolution swap the human said yes to; the human's `mikatad roster adopt`, `set-race`, `rise`, `fall`, `retire` and the terminal app's first-run prompt |
-| `uses`, `revocations` | the Oni envelopes' uses and revocations, shared by every world | the act runner, under `uses.lock`; `mikatad envelope revoke` |
-| `kijin-<post>` | the post's witness; walked once kept, and for good once anchored | the act runner, under the witness's lock |
+| `verify` | the verify pins: the lines each body's end gate may run | the human's `mikatad verify pin` and the terminal app's first-run prompt; the harness, for an Orc's `verify` tool and for relief |
 
 A journal written by several processes takes its file's lock from the head's read to the row's
 sync, so their rows stay one line of links; a journal from before its chain gains its genesis on
 its next row.
 
 ### Sandbox
-
-<a href="./canvas/sandbox-light.svg">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./canvas/sandbox-dark.svg">
-  <img src="./canvas/sandbox-light.svg" alt="The sandbox: a tool call meets its race and soil's policy: landlock on files, seccomp on system calls, secrets by name with outputs redacted, and sockets only for an approved outward act">
-</picture>
-</a>
-
-<details>
-<summary>The sketch in Mermaid, the text this canvas is drawn from</summary>
 
 ```mermaid
 ---
@@ -1574,44 +1415,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -1619,24 +1460,26 @@ config:
     wrappingWidth: 360
 ---
 flowchart LR
-    T["tool call"] --> P{"policy for<br/>this race + soil"}
-    P --> FS["landlock: read system + world,<br/>write only the world"]
-    P --> NET{"network?"}
-    NET -- "approved outward act" --> ALLOW["sockets open"]
-    NET -- "anything else" --> DENY["seccomp: no socket()"]
-    P --> SC["seccomp: no ptrace, mount,<br/>unshare, bpf, io_uring, setsid"]
-    P --> ENV["env: secrets by name,<br/>outputs redacted"]
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    subgraph MIKATA_BG[" "]
+      direction LR
+      T("tool call") --> P{"policy for<br/>the body's soil"}
+      P --> FS("landlock: read system + world,<br/>write only the world")
+      P --> NET{"network?"}
+      NET -- "approved outward act" --> ALLOW("sockets open")
+      NET -- "anything else" --> DENY("seccomp: no socket()")
+      P --> SC("seccomp: no ptrace, mount,<br/>unshare, bpf, io_uring, setsid")
+      P --> ENV("env: secrets by name,<br/>outputs redacted")
+    end
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class T,P,NET step
-    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class FS,SC,ENV gate
-    classDef kijin fill:#2a0d12,stroke:#d7263d,stroke-width:2px,color:#ffd6dc
-    class ALLOW kijin
-    classDef bad fill:#361522,stroke:#ff5575,stroke-width:1.5px,color:#ffd0da
+    classDef outward fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
+    class ALLOW outward
+    classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
     class DENY bad
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
-
-</details>
 
 - **A kernel guard, not a jail.** A jail gives a command another world — its own filesystem
   view, users and network. The guard does not: the command runs as the human, in the real
@@ -1683,28 +1526,8 @@ flowchart LR
     world's own `node_modules`, lent to the copy to read and never to write. A loan is the
     folder it was when it was lent: a link put in its place grants nothing, and neither does a
     loan that lands on, inside or above a credential path. Writes: the world, the command's temporary directory
-    inside it, and a few devices — for light-coding. A commissioned creature's commands are granted
-    exactly what its soil admits, and the rest of the world is read-only to them: landlock can
-    allow a folder but never except a spot inside it, so a claim that holds another's spot (a
-    seat, the queue, another's scratch) is granted part by part around that spot, existing
-    entries each on its own. A claim reached through a link is no claim. Build output is granted
-    besides the soil: what git ignores where `own` names the creature or nobody — never another's
-    ignored files, the records (`.mikata/`) or git's own files, and never through a link. The
-    guard resolves every rule to the file it names, so every grant is resolved first and kept
-    only if it still resolves inside the world to the creature's own. Past a few hundred rules
-    they reach the guard in an owner-only file it reads and removes before restricting itself.
-    The temporary directory is the creature's own scratch nest, or, when that nest is a link, a
-    fresh owner-only directory outside the world for that creature alone. Below landlock ABI 3,
-    which cannot refuse `truncate` on a path, seccomp refuses the call.
-
-    What this costs a commissioned creature, by design: in a folder that holds another's spot it
-    cannot create, delete or rename its own files, so `sed -i`, editors' atomic saves and
-    formatters that replace a file fail there — the file tools do that work; a build
-    whose output directory or root lockfile does not exist yet cannot create it; `.git` is not
-    its to write (landing is the harness's); a claimed folder that does not exist yet gets no
-    grant until it is made. Landlock never governs a file's mode or times, so the end gate's
-    snapshot records each file's mode and inode change time, which no process can set back:
-    a `chmod`, a `touch` or a rewrite dressed in its old mtime counts as a change and is judged.
+    inside it, and a few devices — for light-coding. (A body the lab hands work to is granted its soil alone:
+    [the lab in the code](experimental/the-lab-in-the-code.md#the-sandbox-for-a-chain-of-bodies).)
     The file tools run in the harness, not under landlock, each path checked against the soil
     and opened component by component without following a link: `read`, `write` (whole, atomic),
     `edit` (one exact replacement; several edits are several `edit` calls in one message, run in
@@ -1875,8 +1698,7 @@ flowchart LR
     network and read the credentials a read needs (`.ssh`, `.netrc`, `.git-credentials`, git's
     credential store, `.config/gh`), and write nothing but its scratch directory. Only a probe
     that shows the planned effect makes the act `observed`; anything else is `reconcile`
-    ([races](experimental/races.md)). The Kijin's act runner (`mikata_config::Runner`, its `outward`
-    tool) spawns through the bash tool's own path (`mikata_tools::shell::spawn_approved`):
+    The act runner (`mikata_config::Runner`, the `outward` tool) spawns through the bash tool's own path (`mikata_tools::shell::spawn_approved`):
     the sandbox, the tripwire's and the attic's snapshots, the plan rechecked at the spawn, and
     any text the act sends (a pull request's description) on the command's standard input from
     the approved bytes, never a file in the world —
@@ -1885,7 +1707,7 @@ flowchart LR
     human always asked, and is done only when a probe sees the effect gone; its incident
     (`mikata_config::closure`) stays open, suspending the envelopes that read the act and
     refusing new acts on its target, until its four receipts — undone, journal corrected,
-    downstream told, lesson — are each found in the witness ([races](experimental/races.md)).
+    downstream told, lesson — are each found in the witness.
   - **Limits** — no core dumps, files up to 4 GiB, at most 8192 processes for the user; and no
     new namespaces: `unshare` and a `clone` carrying a namespace flag fail, `clone3` reports
     itself missing so the C library falls back to `clone`.
@@ -1894,14 +1716,10 @@ flowchart LR
   `core.fsmonitor`, `core.sshCommand`, filter drivers — `.git/hooks`, `.git/info`, a `.git` file)
   would run code outside any sandbox the next time the human runs git, and `.mikata/` holds the
   world's records. Each command runs between two snapshots of them; once its process group is dead,
-  every change is put back and the body is told. The Kijin post journals and the usage ledger
-  are put back as the work queue is: what each held, plus the rows its witness gained while the command ran. The file tools refuse those paths outright, but
-  one: a body's own `plan.md`, directly in its own seat, which the dispatch law reads (an Orc's
-  verify lines on its Slimes' docs are written by the harness, through the `verify` tool, and
-  pinned outside the world: the end gate runs a card's line only as pinned, so a card reached by
-  a route the tripwire does not see — a commit checked out later, a clone — still runs nothing it
-  was not pinned to) — written
-  with the file tools; a command's write there is put back, and a plan that is a link is no plan. On
+  every change is put back and the body is told. The usage ledger (and the lab's post journals
+  and work queue) are put back with care: what each held, plus the rows its witness gained while the command ran. The file tools refuse those paths outright, but
+  one: a body's own `plan.md` in the lab, directly in its own seat, which its dispatch law reads —
+  written with the file tools; a command's write there is put back, and a plan that is a link is no plan. On
   Linux no process escapes the snapshot: seccomp refuses `setsid` and `setpgid`, so killing the
   group ends everything the command started. A tool that insists on its own session or group
   (Python's `start_new_session`, Go's `Setsid`, a pty) fails there with `EPERM`, and coreutils
@@ -2019,7 +1837,7 @@ an empty list or table never overrides a lower layer:
 - **Every leaf keeps its origin** — layer and exact file — so `config explain` is right for a
   scalar, a list and each leaf of a merged table.
 - **The tracked file only tightens the gate.** `gate.enabled`, `gate.ask_rules`, `gate.approve`,
-  `sandbox.allow_unguarded`, `sandbox.disposable`, `collective.on`, `oni.envelopes` and `oni.envelope_days` loosen it; `models.provider`
+  `sandbox.allow_unguarded` and `sandbox.disposable` loosen it (and the lab's `collective.on`, `oni.envelopes` and `oni.envelope_days`); `models.provider`
   decides where every model's requests and key go; and `decide.enabled`, `decide.via`,
   and every other `decide.*` key loosen decisions (whether they are made, where their state goes,
   which model answers, whether a muted bench may be read, how sure they must be, which model does
@@ -2042,59 +1860,16 @@ an empty list or table never overrides a lower layer:
   the body's own checks ([the loop](02-loop.md#what-changed-by-its-own-checks)). It is the human's
   alone to turn off: they are the one shown it, and a repository must not choose that they are
   not.
-  `gate.challenge_reviewers`, how many Dark Elf reviewers one landing's challenge commissions at
-  once (3; 1 to 7), is the human's alone: fewer reviewers delay a review.
-  `collective.on`, which opens every session in collective-coding where a creature reports to
-  Summoner, is the human's alone: collective-coding lifts `slime-truth` and lets Summoner summon
-  any member directly. For one session, `mikata --mode collective-coding` does the same from the command
-  line, which is the human's too; no world's file can ask for a mode.
-  `evolution.mode`, `auto` (the default: evolution drafts, proves and swaps in a due creature on
-  trial, then keeps or rolls it back by the rule) or `propose` (every plan and every judgement
-  waits for the human), is the human's alone: `auto` lets the harness swap without asking.
   `refresh.ci_minutes` and `refresh.scout_hours`, how often the standing reads run (15 and 24; 0
   turns one off), are the human's alone: a mirror can be hundreds of megabytes.
-  `evolution.min_net_wins`, how many more paired tasks an evolution must win than lose against
-  doing nothing to be kept ([judged after the freeze](experimental/races.md#evolution--the-other-way-to-change);
-  2, at least 1), is the human's alone too: a lower bar keeps more.
 - **Holes and errors.** An unknown key is a hole, reported with its file, and the session goes
   on. A file that does not parse, a value of the wrong type, a floor rule in `ask_rules`, an
-  envelope that is a bare `*` or admits a destructive or refused act, an envelope without the
-  day it was signed, a fallback cycle, a `models.office` race or office that does not exist or an
-  office named twice, a `models.tier` that is not a tier, a `gate.verify_secs` outside 10 to
-  600: errors that name the file. An envelope is judged at its worst: a word that is a bare `*` stands for
-  any arguments, so it is tried as each destructive one (`--force`, `--delete`, `+ref`,
-  `delete`, `publish`, …); a `*` inside a word (`feat/*`) cannot become a flag.
-- **Envelopes are bounded.** Each names the day it was `signed` (a bare TOML date) and lasts
-  `oni.envelope_days` — 30 unless the human's own file says, from 1 to 365 — unless its own
-  `expires` is sooner; never on or before the signing, never past that limit. Raising the limit
-  loosens the gate, so the tracked file cannot set it. A revoked envelope covers nothing, so a
-  limit lowered after it was signed does not judge it; a live one past the new limit is an error
-  that says to sign it again, revoke it or delete its record. Days are UTC calendar days. The gate
-  reads envelopes from the global file alone: a local file's are ignored, and
-  `mikatad envelope list` says so. Each names the `world` (absolute) or the `repo`
-  (`owner/name`) it is signed for, or both — one naming neither admits nothing — and may name a
-  `post` and a `body`. `uses` caps the acts an envelope covers in
-  all, at least one; no two envelopes share a name. `Envelope::admits(today,
-  used)` is the check the gate makes at the moment of use ([races](experimental/races.md#ascension--earned-granted-revocable)),
-  with the count of acts the envelope already admitted, kept in the uses ledger
-  (`mikata_ledger::Uses`, `$XDG_STATE_HOME/mikata/oni/uses.jsonl`, outside every world and
-  counted under its lock); it names the lapse that stops one: revoked, not yet in force, expired,
-  or spent. The gate reads the envelopes afresh at each use, and only from a global file that is
-  the human's own: one git tracks in the world, a link, another user's, or one that it or its
-  folder lets others write is not honoured.
-  Revoking (`mikatad envelope revoke <name>`) writes `revoked = <day>` into the
-  human's file that holds the envelope, through `toml_edit` like any write, and only once: the
-  envelope stays on record and covers nothing again; the revocation is journaled beside the
-  uses (`revoked.jsonl`). Both journals are hash-chained and anchored with each world's chained
-  journals. An envelope signed ahead may be revoked
-  before its signing day. The dates are the ledger's `Day`, the one calendar in the
-  workspace, so config reads the ledger crate.
-- **Writes** go through `toml_edit` — comments and layout kept — and the result is parsed again
+  fallback cycle, a `models.tier` that is not a tier, a `gate.verify_secs` outside 10 to 600, and
+  the lab's malformed envelopes and offices: errors that name the file. - **Writes** go through `toml_edit` — comments and layout kept — and the result is parsed again
   before it replaces the file; a failed save is returned, and the file stays as it was.
-- **Models**: `models.creature.<name>`, else `models.office.<race>.<office>`, else
-  `models.race.<race>` (the race's model at its default tier), else `models.tier.<the race's
-  tier>` — and `models.default` is one model for everything: every tier the human's own files did
-  not set rides it, so a cloned repository's tiers do not override it.
+- **Models**: `models.default` is one model for everything: every tier the human's own files did
+  not set rides it, so a cloned repository's tiers do not override it; `models.tier.<tier>` names
+  a tier's model (the lab adds a model per body, office and race).
   `models.fallback.<model>` names the next model to try when a model is not found.
   `models.reader` names the model that reads each light-coding ask apart and writes what done
   means for it ([the loop](02-loop.md#a-done-when-list-in-the-ask)): none unless the human's own
@@ -2110,7 +1885,7 @@ an empty list or table never overrides a lower layer:
   id (`qwen3:32b`); an empty id is no model. From the tracked file, a model written
   `<provider>:<id>` is a hole, as `models.provider` is. `Config::backend(model)` returns the
   provider, its URL and key variable, and the id it knows the model by; every session's
-  provider, a commissioned body's included, is built from it. **Providers** name the environment
+  provider is built from it. **Providers** name the environment
   variable holding their key (`key_env`), never the key, and may name a file holding it
   (`key_file`), read when the variable is not set or empty. The error when neither gives a key
   names both: `OPENROUTER_API_KEY is not set and ~/.config/mikata/openrouter.key is unreadable:
@@ -2183,12 +1958,6 @@ key_env = "GATEWAY_API_KEY"
 provider = "openrouter"            # every model goes here unless it names its own
 default = "anthropic/claude-sonnet-5.5"   # one model for everything…
 
-[models.race]
-dark-elf = "anthropic/claude-opus-5.5"    # …or one per race
-
-[models.office.orc]
-judge = "vllm:qwen3-coder"         # …or per race and office, through another backend
-
 [providers.jev]                    # System One: TypeSafe's Jev, the default to configure;
 kind = "systemone"                 # or jeff on this machine:
 base_url = "https://api.typesafe.ai" # base_url = "http://127.0.0.1:8765", no key_env
@@ -2200,27 +1969,16 @@ via = "jev"                        # asked first; without one, or without its ke
 model = "jev-latest"               # required with via; jeff's is "jeff-latest"
 llm = "claude-haiku-5-5"           # answers when no System One is there; the fast tier's model by default
 bench = true                       # read a piped test run's output (on with decisions)
-route = true                       # Metis: route commissions within their office's band (off until asked)
 
 [decide.cutoff]
 measured = 0.6                     # the least confidence to act on a System One answer
 stated = 0.9                       # and on an LLM's
 
-[oni]
-envelope_days = 30                 # the longest an envelope lasts (1–365); 30 when unset
-
-[[oni.envelopes]]
-name = "feature branches"
-world = "/home/me/src/name"
-repo = "owner/name"
-allow = ["git push origin feat/*", "gh pr comment * --repo owner/name --body *"]
-signed = 2026-10-24                # expires 2026-11-23, unless `expires` says sooner
-uses = 50                          # optional: at most 50 acts in all
 ```
 
 #### Units and plugins (experimental)
 
-**Experimental, being built on the branch `plugin-kernel`** ([the plan](experimental/plugins.md)).
+**Experimental, merged in #462** ([the plan and where it stands](experimental/plugins.md)).
 The keys below load and are checked, and `--units` is read; the loop does not act on them yet.
 
 Mikata's loop is being split into **units**: memory, what-changed, the reader, the `Done when`
@@ -2347,11 +2105,8 @@ files forks its parent state on disk for every move. The walks live in each crat
 
 | Lifecycle | Driven through | Bound | Invariants in every state |
 |---|---|---|---|
-| Ascension, probation, fall (`mikata-races`) | `rises`, `falls`, `recovers`, per ascended form | fixpoint | the form changes only on the human's word; a reading at the rise bars never reads as falling; recovery needs five reports; no rise proposed in a declined candidate's cooldown; an Oni never reaches probation |
 | A receipt (`mikata-config`) | `PostJournal::commit`, `ran`, `observe` | fixpoint | `observed` only with a probe run and seen; a command rests `unobserved`; a refused move writes nothing |
-| An Oni's act, its envelope, its incident (`mikata-config`) | `Runner::act`, `undo`, `settle`, `open_incident`, `lesson`, `EnvelopeGate::revoke`, stub forge | depth 5 | each act moves only along the receipt's edges; a correction names an undo seen landed; a closed incident holds its four receipts, read again from the witness; no use past the cap, after a revocation or while suspended; no act on an open incident's target; nothing runs that neither the human nor an envelope let run |
 | An envelope's time and count | `Envelope::admits` | fixpoint | never past its cap; revoked, expired or spent never comes back into force |
-| A Dark Elf challenge and its finding (`mikata-world`) | `Challenges` and its verification | fixpoint | cleared only with every routed ledger, no torn line, every finding ruled and none blocking; a critical is blocked until the human waives it; a waiver is final; a verdict only from the assigned verifier, once; a seal only on a confirmation at high or more; the value ledger's fold agrees |
 | A session's run (`mikata-loop`) | `open_with`, `resume_with`, `ask` | depth 4 | every answer passed the end gate; a resume is refused exactly when the run answered, failed or is held; a run is listed to resume exactly when it stopped and no live session holds it |
 
 ### System One decisions
@@ -2370,62 +2125,66 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
 ---
 flowchart TD
-    Q["a decision point<br/>state + typed questions"] --> V{"decide.enabled?"}
-    V -- no --> OFF["no decision:<br/>the point keeps its default"]
-    V -- yes --> J{"a System One<br/>named, its key set?"}
-    J -- yes --> S["Jev first<br/>or jeff · any System One server"]
-    J -- no --> L["the LLM decide.llm<br/>answer tool, schema-bound"]
-    S -- fails --> L
-    S --> M["basis: measured"]
-    L --> T["basis: stated"]
-    M & T --> D["Decision<br/>answers · source · basis · fell_back"]
-    D --> C{"confidence ≥ cut-off<br/>for its basis?"}
-    C -- yes --> A["the caller acts"]
-    C -- no --> K["the caller keeps its default"]
-    D --> R["decision row<br/>journaled"]
+    subgraph MIKATA_BG[" "]
+      direction TB
+      Q("a decision point<br/>state + typed questions") --> V{"decide.enabled?"}
+      V -- no --> OFF("no decision:<br/>the point keeps its default")
+      V -- yes --> J{"a System One<br/>named, its key set?"}
+      J -- yes --> S("Jev first<br/>or jeff · any System One server")
+      J -- no --> L("the LLM decide.llm<br/>answer tool, schema-bound")
+      S -- fails --> L
+      S --> M("basis: measured")
+      L --> T("basis: stated")
+      M & T --> D("Decision<br/>answers · source · basis · fell_back")
+      D --> C{"confidence ≥ cut-off<br/>for its basis?"}
+      C -- yes --> A("the caller acts")
+      C -- no --> K("the caller keeps its default")
+      D --> R("decision row<br/>journaled")
+    end
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 - **One wire for every System One provider.** TypeSafe's Jev and the open jeff share it:
@@ -2518,4 +2277,4 @@ these isekai sources and turning their tests into fixtures.
 | board | `board/web/` | — |
 
 `config/` (8,134 lines) shrinks the most: the rank table, ascension bands and value formulas move
-into compiled code, leaving models, budgets, providers, creatures and envelopes.
+into compiled code, leaving models, budgets, providers, bodies and envelopes.

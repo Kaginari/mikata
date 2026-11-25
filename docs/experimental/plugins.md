@@ -22,44 +22,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -67,24 +67,28 @@ config:
     wrappingWidth: 200
 ---
 flowchart TD
-    G["your global file<br/>[plugins.&lt;id&gt;]"] --> H{"handshake<br/>MCP + mikata/hook"}
-    H -->|no mikata capability| MCP["a plain MCP server"]
-    H -->|grants cut to yours| K(["the kernel<br/>loads it at a safe point"])
-    K --> HK["its hooks<br/>each under a deadline"]
-    HK -->|a reply in its grant| K
-    HK -->|miss, crash, over the grant| ST["a strike"]
-    ST -->|three in a session| Q["quarantined<br/>unloaded, the body told"]
-    K -->|/plugin unload, swap| U["unloaded<br/>its registrations undone"]
-    classDef you fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    subgraph MIKATA_BG[" "]
+      direction TB
+      G("your global file<br/>[plugins.&lt;id&gt;]") --> H{"handshake<br/>MCP + mikata/hook"}
+      H -->|no mikata capability| MCP("a plain MCP server")
+      H -->|grants cut to yours| K(["the kernel<br/>loads it at a safe point"])
+      K --> HK("its hooks<br/>each under a deadline")
+      HK -->|a reply in its grant| K
+      HK -->|miss, crash, over the grant| ST("a strike")
+      ST -->|three in a session| Q("quarantined<br/>unloaded, the body told")
+      K -->|/plugin unload, swap| U("unloaded<br/>its registrations undone")
+    end
+    classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class G you
-    classDef core fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    classDef core fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
     class K core
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class H,HK,MCP step
-    classDef bad fill:#361522,stroke:#ff5575,stroke-width:1.5px,color:#ffd0da
+    classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
     class ST,Q bad
-    classDef done fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef done fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class U done
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## What the owner asked for

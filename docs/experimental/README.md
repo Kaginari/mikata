@@ -23,44 +23,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -68,17 +68,21 @@ config:
     wrappingWidth: 220
 ---
 flowchart TD
-    M(["Mikata<br/>one body a project"]) -->|--mode| S["structured-coding<br/>a chain that hands work down"]
-    M -->|--mode| C["collective-coding<br/>a collective of equals"]
-    S --> R[("the races<br/>summoner, elf, orc, slime, …")]
-    C --> R
-    M -.-> P["plugins<br/>every part a unit"]
-    classDef core fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    subgraph MIKATA_BG[" "]
+      direction TB
+      M(["Mikata<br/>one body a project"]) -->|--mode| S("structured-coding<br/>a chain that hands work down")
+      M -->|--mode| C("collective-coding<br/>a collective of equals")
+      S --> R[("the races<br/>summoner, elf, orc, slime, …")]
+      C --> R
+      M -.-> P("plugins<br/>every part a unit")
+    end
+    classDef core fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
     class M core
-    classDef frozen fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
+    classDef frozen fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class S,C,R frozen
-    classDef live fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef live fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class P live
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## Why it is the lab now
@@ -101,6 +105,8 @@ on them until there is work where structure should clearly win.
 | [Races](races.md) | the six races and five ascensions: duties, powers, limits, scores, falls; soil, Kijin posts, the Dark Elf's witness rule |
 | [Communication between bodies](communication.md) | the wire envelope, the dispatch rules, one order down the chain and back, the shared queue |
 | [Ontology](ontology.md) | who owns each path, facts with who said them, relations between worlds |
+| [Plugins](plugins.md) | every part of the loop a unit, plugins swapped while a session runs: the plan of record and where it stands |
+| [The lab in the code](the-lab-in-the-code.md) | the technical detail of the lab's parts, moved out of the chapters that describe Mikata as tested |
 | [How it was built: M0 to M14](roadmap-m0-m14.md) | the whole harness, rung by rung, as Mnemorph built it |
 | [Race cards brief](race-cards-prompt.md) | the brief for the cards' artwork |
 | [Research: DIKWP-MESH](research/dikwp-mesh.md) | the mathematics behind the ontology's outer layer |

@@ -1,8 +1,8 @@
 # Memory
 
 Mikata's memory is built on one rule: **a model's words never become shared memory on their
-own; something accountable must stand behind them** — a check that ran, the human, or, weaker, a
-commissioner's verdict or a second creature's independent evidence. The design takes its rules
+own; something accountable must stand behind them** — a check that ran, or the human (in the
+lab, weaker, a commissioner's verdict or a second body's independent evidence). The design takes its rules
 from Yucong Duan's [DIKWP MIKATA-85](https://github.com/YucongDuan/DIKWP-MNEMORPH-85), a
 reconstructive memory runtime for LLM agents (a small reference implementation, its weights
 untuned), and fits them onto what Mikata already has — an append-only journal, a verify beat
@@ -19,44 +19,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -64,26 +64,30 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    subgraph archive["archive — never rewritten"]
-      LOG["log.md · ledgers<br/>git objects"]
+    subgraph MIKATA_BG[" "]
+      direction TB
+      subgraph archive["archive — never rewritten"]
+        LOG("log.md · ledgers<br/>git objects")
+      end
+      subgraph traces["traces — the memory"]
+        N("notes<br/>polarity · salience<br/>confidence · source")
+      end
+      LOG -->|"each note points at<br/>its evidence"| N
+      N --> RC("recall<br/>BM25 + relation + priors<br/>+ one seat for dissent")
+      RC --> PL("plan<br/>the model proposes")
+      PL --> ACT("act")
+      ACT --> V{"verify ·<br/>end gate"}
+      V -->|"pass: grounded"| N
+      V -->|"fail: a revise note"| N
+      PL -. "@U, claims:<br/>personal, proposed" .-> N
     end
-    subgraph traces["traces — the memory"]
-      N["notes<br/>polarity · salience<br/>confidence · source"]
-    end
-    LOG -->|"each note points at<br/>its evidence"| N
-    N --> RC["recall<br/>BM25 + relation + priors<br/>+ one seat for dissent"]
-    RC --> PL["plan<br/>the model proposes"]
-    PL --> ACT["act"]
-    ACT --> V{"verify ·<br/>end gate"}
-    V -->|"pass: grounded"| N
-    V -->|"fail: a revise note"| N
-    PL -. "@U, claims:<br/>personal, proposed" .-> N
-    classDef truth fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef truth fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class LOG truth
-    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class N,RC,PL,ACT step
-    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class V gate
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## In plain words
@@ -99,7 +103,7 @@ evidence it came from, each marked as agreeing, disagreeing or correcting. Trace
 the archive never does, so any belief can be walked back to the bytes behind it.
 
 Memory also has two scopes. **Personal** memory belongs to one body's name (in light-coding, the
-session's body, which counts as the Summoner): it writes there freely, and only it recalls from
+session's body, which counts as the Mikata): it writes there freely, and only it recalls from
 there, so its mistakes cannot spread. **Shared** memory is what every session of the world reads,
 and only confirmed notes enter it.
 
@@ -138,7 +142,7 @@ Six rules follow:
 | Layer | What it is | Where | Changes? |
 |---|---|---|---|
 | Archive | journal entries, ledger rows, commits, gate verdicts | `.mikata/log.md`, `.mikata/instruments/*.jsonl`, git | never rewritten |
-| Traces, personal | one creature's notes | `.mikata/memory/creature/<name>.jsonl` (tracked) | by appended events only |
+| Traces, personal | one body's notes | `.mikata/memory/creature/<name>.jsonl` (tracked) | by appended events only |
 | Traces, shared | the world's notes | `.mikata/memory/shared/notes.jsonl` (tracked) | by appended events only |
 | Short | one body's semantic cache | `.mikata/memory/short/` (machine-local) | freely; dies with the task |
 
@@ -163,7 +167,7 @@ event, and a status change, a demotion or a tombstone is a `status` event, a con
 dependency a `review` event, each naming the note it changes; the current state is a fold over the
 events.
 On a split, each heir's file receives the events of the notes whose source lies in its ground —
-a note with no path to read goes to every heir — and the old creature's file is kept whole. Two
+a note with no path to read goes to every heir — and the old body's file is kept whole. Two
 machines that both append never conflict, because the fold does not trust line order:
 
 - every event is one full line, written and synced before the writer returns, like a usage row;
@@ -189,12 +193,10 @@ the rest.
 A fresh session is given what earlier ones learned by the harness itself, never by a file the
 host may or may not load:
 
-- **The law** (`.mikata/law.md`, at most 4,000 characters) closes every body's system prompt,
-  Summoner's and each commissioned body's. It changes only as the human's diff, so the prompt stays
+- **The law** (`.mikata/law.md`, at most 4,000 characters) closes Mikata's system prompt. It changes only as the human's diff, so the prompt stays
   the stable, cached prefix ([consumption](05-consumption.md#cache-first-prompt-layout)).
 - **The journal's last entries** (`.mikata/log.md`, the last five within 8,000 characters, the
-  oldest dropped first) open the session's first ask, in the changing tail, and are said once. A
-  commissioned body gets its commission instead.
+  oldest dropped first) open the session's first ask, in the changing tail, and are said once.
 
 **Where memory ends and the ask begins is said in words.** Whatever the harness quotes above an
 ask — the notes recalled for it, the ontology's facts, the journal's entries — is quoted as
@@ -208,8 +210,8 @@ human's words and no more.
 ### Recall
 
 Recall keeps the lessons already written for it: never rebuild the index inline, stay silent when
-the query has no content words, and boost the body's own and its race's notes over the episodic
-log. On top of BM25 it adds priors and dissent, over a budget of $k = 6$ anchors ($k \ge 2$):
+the query has no content words, and boost the body's own notes (in the lab, its race's too) over
+the episodic log. On top of BM25 it adds priors and dissent, over a budget of $k = 6$ anchors ($k \ge 2$):
 
 ```math
 \mathrm{score}(\tau) =
@@ -237,13 +239,14 @@ $c$ at each size follows $\sqrt{N}$. The cost: a few notes that all share one to
 apart by little, so only the strongest clear the floor. One model, small tasks, a note's task as its only label: refit
 when a campaign leaves more.
 
-$\mathrm{rel}(\tau)$ is Mikata's own term, the relation lesson made a number: 1.0 for the
-body's own creature, 0.6 for its race, 0.3 for any other shared note, 0.1 for the episodic log.
+$\mathrm{rel}(\tau)$ is Mikata's own term, the relation lesson made a number: 1.0 for the body's
+own notes, 0.3 for any other shared note, 0.1 for the episodic log (and 0.6 for its race's, in the
+lab).
 
 The starting weights take MIKATA-85's where it has them — $w_q = 0.42$, $w_s = 0.10$,
 $w_\kappa = 0.07$, $w_t = 0.07$, $\beta = 0.10$, $H = 120$ days — and give its context and purpose
-weights ($0.25 + 0.09$) to the relation term: $w_r = 0.34$. The commission's `@ASK` office, not a
-free-text purpose, picks which notes a findings, verdict or draft body is shown first. The
+weights ($0.25 + 0.09$) to the relation term: $w_r = 0.34$. (In the lab, a commission's `@ASK`
+office picks which notes a findings, verdict or draft body is shown first.) The
 relevance floor $\theta = 0.12$ applies to the meaning term alone,
 $w_q\,\widehat{\mathrm{bm25}}(q,\tau) \ge \theta$: the priors rank notes that match, they never
 make a note match (with them in the sum, a body's own note would clear the floor with no match
@@ -270,7 +273,7 @@ the 168 notes the runs were shown): by their words alone, 18 of the 20 runs that
 were shown a note their own earlier run wrote, and of about six notes shown 1.3 were their own
 task's and 3.3 other tasks'. Kept with their ask: 20 of 20, 2.8 their own and 2.1 other tasks'.
 The notes are in `crates/mikata-memory/tests/fixtures/carried-recall.json` and a test holds the
-twenty. A commissioned body's claims carry no ask: its commission says what it is about. What
+twenty. What
 this does not show: that being shown its own notes makes a run cheaper or better. On that
 campaign it did not ([the bench](bench.md)).
 
@@ -280,12 +283,12 @@ Scope says who may recall a note; standing says how far it is trusted. They are 
 
 | | proposed | grounded |
 |---|---|---|
-| **personal** | the creature's own claims, `@U` lines, guesses | its claims that passed a route below |
+| **personal** | the body's own claims, `@U` lines, guesses | its claims that passed a route below |
 | **shared** | — never: nothing unconfirmed is shared | the world's memory |
 
-A creature's recall reads its personal notes and the shared notes, ranked together, with the
+A body's recall reads its personal notes and the shared notes, ranked together, with the
 relation term already favouring its own. A proposed note is marked as such on the wire.
-Personal memory survives the creature's bodies; on a split, each heir inherits the notes whose
+Personal memory survives the body's bodies; on a split, each heir inherits the notes whose
 sources fall in its territory, and on retirement they are archived, never deleted.
 
 **Routes from personal to shared.** A note is promoted, as a new event that points at its proof,
@@ -294,8 +297,8 @@ by exactly one of:
 | Route | Proof | For |
 |---|---|---|
 | **checked** | the end gate passed, ran at least one verify line over a non-empty diff, *and* the claim names a path that diff changed and the check that tests it (`check=<verify line or test>`), which ran in that gate | work that wrote files |
-| **accepted** | the commissioner's verdict names the claim and accepts it (the verdict-current) | research, reads, reviews — work with nothing to test |
-| **corroborated** | a second creature lands a matching claim from different evidence anchors | anything, including failed runs |
+| **accepted** | in the lab: the commissioner's verdict names the claim and accepts it (the verdict-current) | research, reads, reviews — work with nothing to test |
+| **corroborated** | a second body lands a matching claim from different evidence anchors | anything, including failed runs |
 | **confirmed** | the human says so: `mikatad memory confirm <claim>` | anything |
 
 An answer that changed nothing passes the end gate untouched; that pass proves nothing about
@@ -310,7 +313,7 @@ Bodies on the same model share blind spots, so their errors are not independent:
 counts only when the two claims cite different anchors (different files, entries or commits),
 never the same note recalled twice. A claim's anchors are its evidence: the files its run read with
 the read tool or changed — a search or a shell command leaves none. When a claim no check grounds
-is kept, it is compared with the proposed claims of every other creature outside its own line (a
+is kept, it is compared with the proposed claims of every other body outside its own line (a
 parent restating its child's offered claim is an echo, not a second voice): one with the same
 content words, at least three of them, negated alike, said within 30 days, resting on evidence
 that shares no file with its own, grounds both, each citing the other. The newer is shared; the
@@ -374,9 +377,8 @@ Writes to the traces are a function of observed outcomes, never of model output 
 | a session that stopped before it landed anything | personal | grounded | revise | 1.0 | 0.9 |
 | a stopped session's last words (`handoff`) | personal | proposed | support | 0.6 | 0.5 |
 
-A `@U` line lands this way whoever says it: a commissioned body's, in its report, as its
-dispatcher reads it; a body answering the human — Summoner alone in light-coding — in its own answer, which
-its prompt asks to end with them, grounded by that ask's own passing gate when they name its diff.
+A `@U` line lands this way in Mikata's own answer, which its prompt asks to end with them (in the
+lab, a body's report too), grounded by that ask's own passing gate when they name its diff.
 
 **An answer to the human is markdown, and is read as markdown.** Between bodies a tag counts only
 where it opens a line: a report is written for a parser. A body answering the human sets its
@@ -392,7 +394,7 @@ lessons that way and another 97 of 108.
 Only the record beat, the gate and the promotion routes hold the write path, and that is a
 type, not a habit: a `Claim<Proposed>` becomes a `Claim<Grounded>` only through a value that
 carries its route's proof (a gate verdict, a passed verify line, a commissioner's verdict, a
-second creature's anchors, a human answer). A body cannot ground its own words.
+second body's anchors, a human answer). A body cannot ground its own words.
 
 **Why it matters.** Let a fraction $f_t$ of $N_t$ notes be wrong, and let each turn add $m$
 notes. If notes come from the model's own output, which is wrong when recall was wrong or when the
@@ -416,15 +418,6 @@ for the routes whose observation is independent of what the model said: **checke
 correlated with the writer's — the same model family shares blind spots — so their $\delta$ is
 larger and unknown until the record measures it; that is why they ground at a lower $\kappa$.
 
-**Accepted** is the commissioner's word, and it names the claim. A commission's report offers
-each claim its body left proposed, by id, as a hole — never cut, however long the report — and the
-commissioner checks what it can (reading the source, asking a second body) and accepts a claim with
-an `@V accept <id>` line in its own answer. When that answer ends the ask, each id grounds its claim
-if this ask's orders offered it and its body still holds it proposed, citing the acceptance. Only
-this ask's offers count: a body never accepts its own words, an order that was refused offers
-nothing, and the orders a wake or an escalation runs offer none. An id naming nothing it may accept
-is said and grounds nothing; a claim it does not accept stays personal and proposed.
-
 A check also observes only what it tests. The end gate runs the verify lines and checks that the
 tests stayed intact; it never reads a claim. A claim about the diff (*`src/parser.rs` now handles
 the empty case*) is observed by a test that exercises it; a claim about the world beyond the
@@ -436,7 +429,7 @@ route at all. A **checked** proof carries what its diff changed, and grounds onl
 one of those paths or the directories above them (by its specific terms: `src/a.rs:12` names
 `src/a.rs`, a path names its file); a diff of only files every project has (`Cargo.toml`,
 `README.md`) observes none;
-any other claim of the landing stays proposed, offered for the commissioner to accept.
+any other claim of the landing stays proposed.
 
 A passing line proves only what it runs: a compile check that passed says nothing of what `pop`
 does. So a claim also names its check, last: `@U law src/stack.py pop on an empty stack raises
@@ -448,8 +441,8 @@ no check, or one that did not run, stays proposed, and the report says why
 (`[memory: … ; 1 not checked: it names no check (…)]`); **accepted**, **corroborated** and
 **confirmed** still promote it. What **checked** proves is therefore narrow: the body bound the claim
 to a check, and that check, written before the turn, passed over the claim's own diff — not that
-the check exercises every word of the claim. A commissioned body and a body answering the human
-are asked to name the file a claim is about and its check
+the check exercises every word of the claim. Mikata is asked to name the file a claim is about and
+its check
 (`@U law <path> <fact> check=<verify line or test>`); the drain asks for the file, so a claim about the work can be proven by the work's
 own tests. `memory
 status` opens with how much of the world's memory stands — shared and grounded, personal and
@@ -474,8 +467,7 @@ with it are told apart.
   the notes its ask recalled, and with none it wrote nothing: the first failure on any task, and
   every failure in a world with an empty memory, left no trace, and the ask that came again met
   the same wall. A session's own body now keeps the failure under its ask all the same, linking
-  nothing, in its personal tier. A commissioned body's failure is its dispatcher's to weigh, as
-  before.
+  nothing, in its personal tier.
 - **A session that stops leaves an account.** Steps, clock, context or budget spent before an
   answer: nothing landed, and until now nothing was written either, in the journal or in
   memory. The harness now journals the stop (the ask, why, the files changed and not landed,
@@ -547,12 +539,12 @@ The rules for a failure that did recall notes are unchanged:
   A first attributable failure *doubts* the note: its confidence drops by 0.1, never under 0.3, so
   it ranks lower and is still shown. It is *retired* — dormant, its events kept, no longer
   recalled — once two distinct attributable failures outnumber the passing asks that cited it, all
-  counted since it was last grounded. Both copies of a grounded note, the creature's and the
+  counted since it was last grounded. Both copies of a grounded note, the body's and the
   shared one, move together. A shared note whose owner's memory is frozen is left for the human.
-- **Distilled** (`distilled`). When an evolution whose traits cite a creature's desk notes is kept
+- **Distilled** (`distilled`). When an evolution whose traits cite a body's desk notes is kept
   ([evolution](experimental/races.md#evolution--the-other-way-to-change)), those notes go to sleep —
   dormant, their events kept, no longer recalled — with why: the evolution that distils them.
-  The trait in the creature's doc carries them now. Only the owner's live personal notes move,
+  The trait in the body's doc carries them now. Only the owner's live personal notes move,
   each once; a frozen memory moves none.
 
 With equal recency and the default weights, its prior over an ordinary grounded note is
@@ -566,7 +558,7 @@ note that matches the query 0.37 better. That holds at equal relation, equal mat
 strength — a revision the gate grounded weighs as a checked note — and recall makes it
 so: a revise note is weighed with the closest relation among the notes it cites (all it links,
 when it cites none — a note merely recalled into the failed run is never blamed by company), and
-matched with their words beside its own, though how common a word is stays the notes' own count — a correction written by another creature's failed run, in its
+matched with their words beside its own, though how common a word is stays the notes' own count — a correction written by another body's failed run, in its
 failure's words, stands where the note it corrects stands. Nothing is stored; only recall weighs
 it. Recency, by contrast, can move a score by at most
 $w_t = 0.07$.
@@ -582,9 +574,9 @@ the human's alone, refused to a body — grounds it again in every tier that hol
 evidence after the waking counts. It undoes only a retirement: a note put to sleep otherwise, or
 never grounded, keeps its standing and its route.
 
-It also lists each creature's proposed claims, newest first, ten at most, each with its vouch:
+It also lists each body's proposed claims, newest first, ten at most, each with its vouch:
 `mikatad memory confirm <claim>` — the human's alone, refused to a body — grounds the claim by
-the **confirmed** route, in its creature's tier and in shared memory, citing the human's word.
+the **confirmed** route, in its body's tier and in shared memory, citing the human's word.
 The board's memory page lists every note with its route, proof and claim-graph state, and offers
 the same two acts — confirm and wake — through the same functions, behind a dialog that names the
 note, cited as the human's from the board ([the board](03-architecture.md#the-memory-and-ontology-pages)).
@@ -622,7 +614,7 @@ and facts when it is proposed or corrected.
 
 **Review on invalidate.** When something a claim rests on moves, the claim *needs review*: a
 `review` event naming the cause, never a deletion and never a retirement. For a claim superseded or
-retired, a creature, or a file a landing changed, every claim resting on a marked claim is marked
+retired, a body, or a file a landing changed, every claim resting on a marked claim is marked
 too, transitively, each claim visited once, so a cycle ends. A doubt and a newly contested fact —
 which one body's failure or counter can cause — mark only the claims resting on them directly, so
 one body never flags a whole subgraph; a claim already
@@ -646,7 +638,7 @@ q = 0.6\,r + 0.2\,\frac{\min(c,3)}{3} + 0.1\cdot 2^{-d/365} + 0.1\,h,
 ```
 
 - $r$, the route: **confirmed** 1.0, **checked** 0.9, **corroborated** 0.75, **accepted** 0.6 — the
-  human's word and a check observe independently of the model, a second creature's evidence and a
+  human's word and a check observe independently of the model, a second body's evidence and a
   commissioner's verdict rest on other model bodies; a revision the gate grounded is an observed
   failure (0.9), a schema rests on what it distilled (0.6);
 - $c$, how many more times its current version was grounded, by distinct proofs;
@@ -656,7 +648,7 @@ q = 0.6\,r + 0.2\,\frac{\min(c,3)}{3} + 0.1\cdot 2^{-d/365} + 0.1\,h,
 
 A weaker source never yields a stronger claim: a claim's strength is capped by the weakest claim it
 rests on, so a grounded claim resting on a hypothesis is one. A claim resting on no other is
-*observed*; one resting on grounded claims, *derived*. A claim out of sight — another creature's
+*observed*; one resting on grounded claims, *derived*. A claim out of sight — another body's
 personal note — caps nothing and counts as unhealthy; a cycle is cut where it closes. The breakdown
 reads in one line, such as `observed 0.93 = 0.5 + 0.5·(0.6·r0.90 + 0.2·c0.00 + 0.1·a0.99 + 0.1·h1.00)`.
 
@@ -668,7 +660,7 @@ good health and is still recalled.
 
 ### Consolidation and forgetting
 
-The desk's distillation — when a creature's desk is distilled into a rule, a trait or a wrap-up
+The desk's distillation — when a body's desk is distilled into a rule, a trait or a wrap-up
 ([evolution](experimental/races.md#evolution--the-other-way-to-change)) — merges agreeing notes into one
 schema note: $s = 0.8$, confidence the mean of the four most salient merged notes' confidence,
 capped at 0.95, and the two most salient originals stay active beside it, as in
@@ -688,13 +680,13 @@ tier is that place: git's local exclude, set when a session opens, keeps it off 
 
 ### Pathologies as instruments
 
-`mikatad memory status` reports, per creature, three findings read by code:
+`mikatad memory status` reports, per body, three findings read by code:
 
 | Finding | Read as | The lawful act |
 |---|---|---|
 | **replay loop** | the same recall fingerprint, $\mathrm{SHA256}(\text{query}, \text{selected anchors}, \text{office})$ — MIKATA-85 also hashes its synthesised text, which Mikata does not produce — at least 3 times in the last 5 recalls with no new outcome and no dissent selected | inject the best dissenting note or escalate one hop, the way the identical-call loop breaker does for tools |
 | **lock-in** | a revise note exists, yet every agreeing note recalled is older than it and no dissent was selected | reopen the recall with the newest revision forced in |
-| **unproven write** | a note event whose `by` or proof does not resolve in the fold — a hand edit, a bad merge, an import that skipped its checks | ignore the event in recall, freeze the creature's memory writes and tell the human |
+| **unproven write** | a note event whose `by` or proof does not resolve in the fold — a hand edit, a bad merge, an import that skipped its checks | ignore the event in recall, freeze the body's memory writes and tell the human |
 
 An event resolves by its author and its proof:
 
@@ -706,17 +698,17 @@ An event resolves by its author and its proof:
 | `import` | it cites its source |
 | `record` | it claims no standing — or, for a schema, its proof names the notes it rests on (`distilled: <ids>`, `abstracted: <id>`), each grounded in the same tier |
 
-A standing is a `grounded` status or a confidence. An unresolved event touching a creature — in
-its personal or short tier, or on a shared note it owns — freezes that creature's proposals,
+A standing is a `grounded` status or a confidence. An unresolved event touching a body — in
+its personal or short tier, or on a shared note it owns — freezes that body's proposals,
 groundings, revisions and cache; `mikatad memory status` names each event, its file and why, and
 exits 1 until the human removes or re-proves it. A run that recalls past one says so in a warning.
-A shared note with no owner freezes no creature; its unresolved events are reported under their
+A shared note with no owner freezes no body; its unresolved events are reported under their
 own row. A schema rests on schemas too, and an heir inherits a schema with every note it links
 to, so a split never leaves a schema resting on nothing.
 
 The replay loop and lock-in are read at each recall, before the body sees it:
 
-- **The office** is the commission's (`findings`, `verdict`, `draft`), or `ask` for a body asked
+- **The office** is `ask` for a body asked (in the lab, the commission's: `findings`, `verdict`, `draft`)
   directly.
 - **Nothing landed** means the ask's end gate passed no change: its trace's outcome is the
   journal heading of a passing verdict, so failing the same way again is no new outcome. An ask
@@ -732,11 +724,11 @@ The replay loop and lock-in are read at each recall, before the body sees it:
   retired. "Heard" is read from this machine's traces. A forced note takes the place
   of the lowest-ranked agreeing anchor, which is counted cut.
 
-Each act is said as a warning in the run's journal. `memory status` lists, per creature, a replay
+Each act is said as a warning in the run's journal. `memory status` lists, per body, a replay
 loop still within its last five traces and how often each act was forced; they leave its exit
 status alone, since code already acted on them — only an unproven write waits on the human.
 
-There is no aggregate memory score. A high recall hit rate cannot make up for a creature that
+There is no aggregate memory score. A high recall hit rate cannot make up for a body that
 never accepts a correction.
 
 ### The toolbox
@@ -750,7 +742,7 @@ Know-how a body may load, in two levels, priced by exactly what each injects:
 - **Level two, wearing.** The `wear` tool, on every body's shelf, injects the Mind's whole text,
   headed by its source — its doc and the SHA-256 of the bytes worn, computed by the harness — so a worn Mind is
   traced to them, and a changed one reads as another; the manifest's price is that injected text at four bytes a token, and the ledger counts the
-  real tokens once it is worn. A worn Mind cannot be unloaded, so a throne that can hand work down
+  real tokens once it is worn. A worn Mind cannot be unloaded, so a body that can hand work down (in the lab)
   never wears one over 2,000 tokens: the body below that needs it wears it and dies with its
   task.
 - **Adopting and retiring a Mind.** A Mind is know-how, never law, and its provenance is kept

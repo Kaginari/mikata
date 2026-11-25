@@ -15,44 +15,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -60,28 +60,32 @@ config:
     wrappingWidth: 360
 ---
 flowchart TD
-    D["D<br/>the book"] --> M0["M0<br/>foundations"]
-    M0 --> M1["M1<br/>wire + races"]
-    M1 --> M2["M2<br/>ledger + meters"]
-    M2 --> M3["M3<br/>providers"]
-    M3 --> M4["M4<br/>tools + sandbox + gate"]
-    M4 --> M4a["M4a<br/>config"]
-    M4a --> M5["M5<br/>one body loops"]
-    M5 --> M5b["M5b<br/>long runs"]
-    M5b --> M6["M6<br/>protocol + CLI<br/>light-coding dogfood"]
-    M6 --> M7["M7<br/>the world"]
-    M7 --> M8["M8<br/>memory + toolbox"]
-    M8 --> M9["M9<br/>Kijin"]
-    M8 --> M10["M10<br/>Dark Elf"]
-    M9 --> M11["M11<br/>value · evolution<br/>ascension"]
-    M10 --> M11
-    M11 --> M12["M12<br/>board"]
-    M12 --> M13["M13<br/>integrations"]
-    M13 --> M14["M14<br/>1.0"]
-    classDef good fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    subgraph MIKATA_BG[" "]
+      direction TB
+      D("D<br/>the book") --> M0("M0<br/>foundations")
+      M0 --> M1("M1<br/>wire + races")
+      M1 --> M2("M2<br/>ledger + meters")
+      M2 --> M3("M3<br/>providers")
+      M3 --> M4("M4<br/>tools + sandbox + gate")
+      M4 --> M4a("M4a<br/>config")
+      M4a --> M5("M5<br/>one body loops")
+      M5 --> M5b("M5b<br/>long runs")
+      M5b --> M6("M6<br/>protocol + CLI<br/>light-coding dogfood")
+      M6 --> M7("M7<br/>the world")
+      M7 --> M8("M8<br/>memory + toolbox")
+      M8 --> M9("M9<br/>Kijin")
+      M8 --> M10("M10<br/>Dark Elf")
+      M9 --> M11("M11<br/>value · evolution<br/>ascension")
+      M10 --> M11
+      M11 --> M12("M12<br/>board")
+      M12 --> M13("M13<br/>integrations")
+      M13 --> M14("M14<br/>1.0")
+    end
+    classDef good fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class D,M0,M1,M2,M3,M4,M4a,M5,M5b,M6,M7,M8,M9,M10,M11,M12,M13 good
-    classDef doing fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    classDef doing fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class M14 doing
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 Green rungs are built; the amber one is under way. The

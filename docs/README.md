@@ -21,44 +21,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -66,73 +66,51 @@ config:
     wrappingWidth: 240
 ---
 flowchart TD
-    O["Overview<br/>what Mikata does with an ask"] --> LP["The loop<br/>one turn, the end gate"]
-    LP --> A["Architecture<br/>crates, TUI, board, sandbox"]
-    A --> P["Client protocol"]
-    A --> C["Consumption"]
-    A --> MC["MCP"]
-    A --> ME["Memory"]
-    B[("The bench<br/>every screen, measured")]
-    R["Roadmap"]
-    LS["Lessons"]
-    RL["Releasing"]
-    X[("The lab<br/>races, chains, plugins")]
-    LP -.-> B
-    B -.-> R
-    classDef core fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    subgraph MIKATA_BG[" "]
+      direction TB
+      O("Overview<br/>what Mikata does with an ask") --> LP("The loop<br/>one turn, the end gate")
+      LP --> A("Architecture<br/>crates, TUI, board, sandbox")
+      A --> P("Client protocol")
+      A --> C("Consumption")
+      A --> MC("MCP")
+      A --> ME("Memory")
+      B[("The bench<br/>every screen, measured")]
+      R("Roadmap")
+      LS("Lessons")
+      RL("Releasing")
+      X[("The lab<br/>races, chains, plugins")]
+      LP -.-> B
+      B -.-> R
+    end
+    classDef core fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
     class O,LP core
-    classDef page fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    classDef page fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class A,P,C,MC,ME page
-    classDef proof fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    classDef proof fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class B proof
-    classDef ref fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    classDef ref fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class R,LS,RL ref
-    classDef lab fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
+    classDef lab fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class X lab
+    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
 ## Diagrams
 
-Two layers, one picture each:
+Every page has at least one, written as Mermaid in the page's text: it renders on GitHub as in
+the book, diffs in review, and is checked by `node tools/check-diagrams.mjs` (in `just docs` and
+CI), which fails on a diagram Mermaid cannot parse. Numbers the book reports are charted as
+`xychart-beta`, one measure a chart (never two scales on one), its table beside it as the table
+view.
 
-- **Canvases** — the overview, the loop, the architecture, the sandbox, the client protocol and
-  consumption (and, in the lab, the races and one order down the chain) are drawn on tldraw's
-  canvas: one document per page, `docs/canvas/<page>.tldr` (a tldraw page per sketch; a lab page's
-  is `experimental-<page>.tldr`), and each sketch
-  exported as `docs/canvas/<sketch>-light.svg` and `-dark.svg`, which the page shows in the
-  reader's theme. A `.tldr` opens in [tldraw offline](https://github.com/tldraw/tldraw-offline),
-  tldraw.com and tldraw's VS Code extension.
-- **Mermaid sketches** — every page also keeps its diagrams as Mermaid in the text. They render
-  on GitHub, diff in review, and are the source a canvas is drawn from: under a canvas, its sketch
-  sits folded in a "The sketch in Mermaid" section.
-- **Charts** — numbers the book reports are charted as Mermaid `xychart-beta`, one measure a
-  chart (never two scales on one), its table beside it as the table view.
-
-Every page has at least one. All of them wear Mikata's design system: a Mermaid block carries
-the **Bio Digital** palette in its front matter (`theme: base`: night panels, hot-pink lines, lime
-for what checks and passes, amber for you, coral for what is kept, muted grey for what is
-outside), so GitHub draws it as the book does; a canvas is exported in **Bio Pearl** for a light
-page and **Bio Digital** for a dark one (`tools/canvas/page.js` repaints tldraw's palette, and
-arrows are drawn hot). No emoji in a diagram: words say what a node is.
-
-A canvas is drawn, never edited by hand: `pnpm --filter @mikata/canvas draw` lays each sketch
-out with tldraw's own Mermaid converter (`@tldraw/mermaid`) in headless Chromium and writes the
-`.tldr` and both SVGs; the same sketches always make the same files. Its labels are written as
-plain SVG text in tldraw's hand-drawn font, cut down to the characters they use, so an SVG holds
-no HTML and fetches nothing. A canvas must read in the page's column: no wider than 2:1, its
-labels at 10 px or more at 900 px wide, or the draw fails; a long sketch is re-laid for its canvas
-only (the loop and the sandbox top-down, the architecture by ELK, one order's messages wrapped and
-its rows spaced), its Mermaid text kept as written. A node its sketch dashes keeps the dashed
-border. Each canvas links to its SVG at full size. The list of sketches and their layouts is
-`tools/canvas/draw.mjs`'s; it needs the Chromium `@playwright/test` pins once (`pnpm --filter
-@mikata/canvas exec playwright install chromium`).
-
-When the code changes a flow, the sketch and its canvas change in the same change (Vitality).
-Canvases are reviewed like code: a tldraw document or an SVG can carry script, and tldraw
-offline's own `.tldraw` archive can embed a document script that runs when it is opened, so the
-book keeps `.tldr` and SVG only. `node tools/check-canvas.mjs` (in `just docs` and CI) fails on
-anything else in `docs/canvas/`, and on any script, event handler, `javascript:` URL, link or
-source outside the file, `<foreignObject>`, embed or media there.
+They wear Mikata's design system, the same on GitHub as in the book: each block's front matter
+carries the palette (`theme: base`), and the whole diagram sits on the night background. A block
+is filled with its border's colour and its words are set to read on it: hot pink for Mikata's
+core, plum for a step, lime for what checks and passes, amber for you, coral for what is kept,
+muted plum for what is outside. Corners are rounded; a decision stays a diamond and a store a
+cylinder. Lines are hot pink. In a chart each harness keeps its colour: Mikata hot `#ff168a`,
+Maki amber `#cd7d00`, OpenCode blue `#3986e4`, checked apart for colour-blind readers. No emoji in
+a diagram: words say what a block is.
 
 ## Reading order
 

@@ -5,16 +5,6 @@ board. They all speak one JSON-RPC 2.0 API to `mikatad`.
 
 ## In one picture
 
-<a href="./canvas/client-protocol-light.svg">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./canvas/client-protocol-dark.svg">
-  <img src="./canvas/client-protocol-light.svg" alt="The client protocol: the SDK client initializes and prompts mikatad; the turn's events stream back; gate/ask waits for the client's allow; the gate verdict and the turn's end close it">
-</picture>
-</a>
-
-<details>
-<summary>The sketch in Mermaid, the text this canvas is drawn from</summary>
-
 ```mermaid
 ---
 config:
@@ -24,44 +14,44 @@ config:
     background: "#0d0b10"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
-    primaryColor: "#211824"
+    primaryColor: "#3d2b40"
     primaryTextColor: "#f5eff7"
-    primaryBorderColor: "#ff168a"
-    secondaryColor: "#2c2030"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
-    secondaryBorderColor: "#ff655c"
+    secondaryBorderColor: "#59405d"
     tertiaryColor: "#16111b"
     tertiaryTextColor: "#f5eff7"
-    tertiaryBorderColor: "#59405d"
+    tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#16111b"
+    edgeLabelBackground: "#0d0b10"
     clusterBkg: "#16111b"
-    clusterBorder: "#59405d"
-    noteBkgColor: "#332711"
-    noteTextColor: "#ffe1a8"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
-    actorBorder: "#ff168a"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
-    labelBoxBorderColor: "#ff168a"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
-    activationBkgColor: "#3a0f26"
+    activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
     sequenceNumberColor: "#0d0b10"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#0d0b10"
     compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
+    compositeTitleBackground: "#3d2b40"
     altBackground: "#16111b"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
@@ -69,8 +59,10 @@ config:
     wrappingWidth: 360
 ---
 sequenceDiagram
-    participant C as SDK client
-    participant D as mikatad
+    box rgb(13, 11, 16)
+      participant C as SDK client
+      participant D as mikatad
+    end
     rect rgb(13, 11, 16)
       rect rgba(2,132,199,0.10)
       C->>D: initialize {clientInfo}
@@ -80,7 +72,7 @@ sequenceDiagram
       rect rgba(63,169,245,0.14)
       D--)C: event/turnStarted
       D--)C: event/textDelta …
-      D--)C: event/toolCall {id, name, input} — body: elf-engine, for a body below
+      D--)C: event/toolCall {id, name, input}
       D--)C: event/usage {tokens, cacheRead, usd, spentWt}
       end
       rect rgba(212,175,55,0.22)
@@ -93,8 +85,6 @@ sequenceDiagram
       end
     end
 ```
-
-</details>
 
 ## In plain words
 
@@ -120,12 +110,12 @@ says yes, and an unanswered ask is a no.
 
 Each message is one line of JSON. `initialize` opens the session and answers `{protocol, version,
 world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}`:
-`mode` is `light-coding`, `structured-coding` or `collective-coding`, and `modeWhy` says why the
-session opened in it,
-in words for the human. A client that speaks another `protocol` stops rather than misread. Each event is the notification `event/<type>`, its fields beside the
+`mode` is `light-coding` (or one of the lab's two), and `modeWhy` says why the session opened in
+it, in words for the human. A client that speaks another `protocol` stops rather than misread. Each event is the notification `event/<type>`, its fields beside the
 envelope. `session/prompt {text}` answers `{queued}` at once: a line sent while a turn runs
 waits its turn, and the session takes lines strictly in the order they came. `gate/ask` sends
-`{race, class, act, why, outside, plan?}`, and the client answers `{allow, reason?}`. An act an Oni envelope admitted asks nothing: the client is shown it as a `warning` event. `plan` is
+`{race, class, act, why, outside, plan?}` (`race` names the asking body's kind: `summoner` for
+Mikata's own), and the client answers `{allow, reason?}`. `plan` is
 the short form of the plan a command's approval binds to
 ([the sandbox](03-architecture.md#sandbox)); an ask that spawns nothing has none. A `usage` event
 carries the turn's tokens, cache reads and writes, its price, and the run's spend and context
@@ -178,12 +168,9 @@ context against the stress line, the cache's share, and what the human's caps le
 streamed. **`mikata status`** prints the build's version, the world, the model and its
 provider, where the provider's key comes from (its variable and the file that names it, never the
 value), the sandbox actually in force (or `none — <reason>`), what the caps leave, the
-configuration's holes, and each living creature's meters on one line — each with its count and
-its 95% interval, or `no reports` where no fold reads it yet
-([meters](experimental/races.md#ascension--earned-granted-revocable)), and the last run's acts counted per
-[guts class](02-loop.md#stress-in-four-instruments), printed even when no session opens. **`mikatad onto owner <path>...`** asks the core who owns each path, by
-which rule and claim ([ontology](experimental/ontology.md#ownership-one-function)), with no session and no
-key. **Enter** sends, and while a turn runs the line waits its turn; **Alt+Enter** starts a new
+configuration's holes (and, in a world of the lab's bodies, each one's meters), and the last
+run's acts counted per
+[guts class](02-loop.md#stress-in-four-instruments), printed even when no session opens. **Enter** sends, and while a turn runs the line waits its turn; **Alt+Enter** starts a new
 line; **`/send <text>`** steers the turn that runs, the text reaching the body after its next tool
 step as the human's; **Esc** stops the turn; **Ctrl+C** stops the turn, or quits when nothing
 runs; **↑ ↓** walk the history. An approval is chosen with **1** (**y**), **2** (**n**) or **3**
@@ -199,12 +186,8 @@ Rules:
   when the client asked from further back, so a gap is never silent. The board's bridge answers the same
   request in pages, `more: true` while another follows; the core answers all it keeps
   (`more: false`).
-- An event from a body the session commissioned carries that body and its run, at any depth: the
-  client sees the whole order at work. The terminal shows such events as short lines under the
-  body's name — what it started on, each tool call, a gate that refused it, how it ended — and
-  never lets them touch the session's own turn; the hello names the session's own body, so even a
-  replay that opens mid-commission tells them apart. An approval names the body asking, and a
-  body's dollars below count in the session's spend.
+- In the lab, an event from a body the session hands work to carries that body and its run, at
+  any depth; the hello names the session's own body, so a client tells them apart.
 - Leaving ends everything at once: on `shutdown`, or when the client's end closes, every act
   waiting at the gate is denied, the turn in flight stops, lines still queued never run, and the
   core exits once its output is written. Esc (`session/interrupt`) denies an act waiting at the
