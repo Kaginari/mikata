@@ -370,6 +370,8 @@ pub struct Run {
     checks: crate::changes::Checks,
     /// The ask's own `## Done when` list and the checks handed in for it ([`crate::done`]).
     done: crate::done::List,
+    /// The body's todo list, when the `todo` unit gave it the tool ([`crate::todo`]).
+    todos: crate::todo::Todos,
     /// The landings answered again because only that list failed ([`crate::done::ROUNDS`]).
     done_rounds: u32,
     /// The list as the last landing was judged by it.
@@ -547,6 +549,10 @@ pub struct Setup {
 impl Run {
     /// A fresh run.
     #[must_use]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one field a line: the run's whole state is made here"
+    )]
     pub fn new(body: Body, limits: Limits, setup: Setup) -> Self {
         let interrupt = Arc::new(Interrupt::default());
         let frame = frame(&body.system, &setup.tools);
@@ -580,6 +586,7 @@ impl Run {
             start: None,
             checks: crate::changes::Checks::default(),
             done: crate::done::List::default(),
+            todos: crate::todo::Todos::default(),
             done_rounds: 0,
             done_judged: crate::done::Judged::default(),
             reader: None,
@@ -4391,6 +4398,10 @@ impl Run {
                 self.commissioner.is_some(),
                 room,
             );
+        }
+        // The todo list is the harness's to keep: a step marked completed has its check run.
+        if name == crate::todo::TODO && self.tools.iter().any(|t| t.name() == crate::todo::TODO) {
+            return self.todos.update(input, &self.tools, &mut self.cx);
         }
         // A check for a line of the `Done when` list is the harness's to hold.
         if name == crate::done::CHECK && self.tools.iter().any(|t| t.name() == crate::done::CHECK) {

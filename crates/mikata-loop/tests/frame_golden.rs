@@ -326,3 +326,23 @@ async fn the_plan_lite_takes_the_plans_place() {
         "the one bullet in the plan's place, every other line as it was"
     );
 }
+
+/// `+todo` adds its one line to the prompt and its tool, and nothing else.
+#[tokio::test]
+async fn the_todo_unit_adds_its_line_and_its_tool() {
+    let todo = frame_with(&world("todo", &[]), None, &[("MIKATA_UNITS", "+todo")]).await;
+    let bare = frame(&world("todo-bare", &[]), None).await;
+    let text = |v: &Value| v["system"][0]["text"].as_str().unwrap().to_owned();
+    assert_eq!(mikata_loop::todo::with_todo(&text(&bare)), text(&todo));
+    let names = |v: &Value| -> Vec<String> {
+        v["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    let (with, without) = (names(&todo), names(&bare));
+    assert!(with.contains(&"todo".to_owned()) && !without.contains(&"todo".to_owned()));
+    assert_eq!(with.len(), without.len() + 1);
+}

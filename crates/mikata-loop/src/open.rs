@@ -646,6 +646,10 @@ fn build(
     if off(crate::units::MEMORY) {
         body.system = crate::solo::without_lessons(&body.system);
     }
+    let todo = on_at_open(config, &composition, crate::todo::TODO);
+    if todo {
+        body.system = crate::todo::with_todo(&body.system);
+    }
     let gate_said = !off(crate::units::GATE);
     let cx = if mode == Mode::Light {
         cx
@@ -693,6 +697,10 @@ fn build(
     let (caps, capped, unread, budget) = read_caps(config, &usage, &session_id)?;
     let mut tools = registry();
     tools.push(Box::new(crate::wear_tool::WearTool));
+    // The todo list, when the session asked for it: a tool the body reaches for when it wants.
+    if todo {
+        tools.push(Box::new(crate::todo::TodoTool));
+    }
     // Light-coding's body hands the harness its checks for a `Done when` list.
     if mode == Mode::Light {
         tools.push(Box::new(crate::done::CheckTool));

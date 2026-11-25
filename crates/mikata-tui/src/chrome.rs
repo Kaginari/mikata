@@ -372,6 +372,7 @@ fn unit_words(id: &str) -> &'static str {
         "plan_lite" => "plan what is stated",
         "returns" => "tree readings",
         "challenge" => "review challenge",
+        "todo" => "checked todo list",
         _ => "plugin",
     }
 }

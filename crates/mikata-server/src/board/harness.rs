@@ -155,10 +155,11 @@ mod tests {
         assert!(
             h.units
                 .iter()
-                .filter(|u| u.id != "plan" && u.id != "plan_lite")
+                .filter(|u| !mikata_loop::units::OFF_BY_DEFAULT.contains(&u.id.as_str()))
                 .all(|u| u.on),
             "every other native unit is on"
         );
+        assert!(h.units.iter().any(|u| u.id == "todo" && !u.on), "the todo unit is listed, off");
         assert!(
             h.profiles
                 .iter()

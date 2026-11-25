@@ -13,6 +13,7 @@ import {
   faBookOpenReader,
   faBrain,
   faChessRook,
+  faClipboardCheck,
   faClockRotateLeft,
   faCodeCompare,
   faComments,
@@ -86,6 +87,11 @@ const NATIVE: Record<string, { name: string; about: string; icon: IconDefinition
   fold: { name: 'Folding', about: 'Compact old tool output.', icon: faCompress },
   stress: { name: 'Stress signals', about: 'Detect repeated or stalled work.', icon: faGaugeHigh },
   returns: { name: 'Returns', about: 'Read the tree back after each act.', icon: faRotateLeft },
+  todo: {
+    name: 'Todo list',
+    about: 'Steps kept when it wants; a step with a check is run when marked done.',
+    icon: faClipboardCheck,
+  },
 };
 
 /** The cards' order round the core: half on the left, the rest on the right. */
@@ -101,6 +107,7 @@ const ORDER = [
   'fold',
   'stress',
   'returns',
+  'todo',
 ];
 
 const rank = (id: string) => {

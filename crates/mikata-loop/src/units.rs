@@ -48,7 +48,7 @@ pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
         MEMORY | READER | GATE | HOLD | CHALLENGE => Some(switch(id, SafePoint::Ask, false)),
         FOLD | STRESS => Some(switch(id, SafePoint::Batch, false)),
         WHAT_CHANGED => Some(switch(id, SafePoint::Ask, true)),
-        PLAN | PLAN_LITE => Some(Box::new(Switch::new(
+        PLAN | PLAN_LITE | crate::todo::TODO => Some(Box::new(Switch::new(
             Manifest::new(id, env!("CARGO_PKG_VERSION"))
                 .safe_point(SafePoint::Session)
                 .frame(mikata_kernel::FramePolicy::Frame),
@@ -126,10 +126,13 @@ pub const PLAN: &str = "plan";
 ///   body on prose asks, where a held `Done when` list passed them in earlier screens.
 /// - `small-fix`: the plan off; the default since stage 13, kept so a profile named in a global
 ///   file or a script still reads.
+/// - `todo`: the todo list on ([`crate::todo`]): steps the body keeps when it wants, each one it
+///   gives a check held by the harness.
 pub const PROFILES: &[(&str, &str)] = &[
     ("planned", "+plan"),
     ("prose", "+plan_lite"),
     ("small-fix", "-plan"),
+    ("todo", "+todo"),
 ];
 
 /// The build's profile `name`, as a composition.
@@ -146,10 +149,10 @@ pub fn profile(name: &str) -> Option<mikata_config::Composition> {
 pub const PLAN_LITE: &str = "plan_lite";
 
 /// The native units the default composition leaves off: asked for by name.
-pub const OPTIONAL: &[&str] = &[PLAN_LITE];
+pub const OPTIONAL: &[&str] = &[PLAN_LITE, crate::todo::TODO];
 
 /// The units a session opens without unless the human's ask or global file switches them on.
-pub const OFF_BY_DEFAULT: &[&str] = &[PLAN, PLAN_LITE];
+pub const OFF_BY_DEFAULT: &[&str] = &[PLAN, PLAN_LITE, crate::todo::TODO];
 
 /// The ids of the native units, in the order the default composition loads them.
 pub const NATIVE: &[&str] = &[
