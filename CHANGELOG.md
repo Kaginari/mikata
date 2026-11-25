@@ -98,10 +98,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
-- **Mikata's new mark: a living cell flowing into a digital one** — membrane and nucleus, a cell
-  becoming, a hexagon and its circuit, hot pink through coral to amber. The icon and its sizes,
-  the logos, the favicon (the digital cell alone, at 32 px), the social card, the TUI's picture
-  and the board all carry it; `node tools/brand.mjs` renders them from `assets/source`.
+- **Mikata's new mark: a living cell flowing into a digital one** — a nucleus and its organelles
+  on the left, a hexagon with a circuit round its core on the right, hot pink through coral to
+  amber. The icon and its sizes, the logos, the favicon, the social card, the TUI's picture and
+  the board all carry it; `node tools/brand.mjs` renders them from `assets/source`.
 
 - **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
   mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*

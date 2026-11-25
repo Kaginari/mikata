@@ -423,7 +423,7 @@ export function BuilderView({
         <header className="bapp-head">
           <div className="bapp-brand">
             <span className="bapp-logo">
-              <Logo plain />
+              <Logo />
             </span>
             <span>
               mikata <span lang="ja">味方</span>

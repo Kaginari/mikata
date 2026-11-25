@@ -1,5 +1,4 @@
-<!-- The icon at 32 px and under (the favicon): the mark's digital cell and its circuit alone, on
-     the tile; the whole mark does not read that small. -->
+<!-- The icon at 32 px and under (the favicon): the mark as large as the tile allows. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
@@ -9,8 +8,6 @@
       <stop offset="0" stop-color="#FF168A"/><stop offset="1" stop-color="#FFB020"/>
     </linearGradient>
   </defs>
-  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#tile)" stroke="url(#rim)" stroke-width="16" stroke-opacity=".7"/>
-  <svg x="40" y="40" width="432" height="432" viewBox="960 -30 680 680">
-    <image href="mikata-mark.png" x="0" y="0" width="1642" height="594"/>
-  </svg>
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#tile)" stroke="url(#rim)" stroke-width="14" stroke-opacity=".7"/>
+  <image href="mikata-mark.png" x="20" y="106" width="472" height="300"/>
 </svg>

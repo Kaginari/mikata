@@ -1,5 +1,5 @@
 <!-- Mikata's logo for a dark page: the mark over the wordmark. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <image href="mikata-mark.png" x="14" y="96" width="372" height="135"/>
-  <text x="200" y="320" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="700" font-size="46" letter-spacing="2" fill="#F4EEF5">mikata <tspan font-family="Noto Sans JP, sans-serif" font-size="40">味方</tspan></text>
+  <image href="mikata-mark.png" x="50" y="64" width="300" height="191"/>
+  <text x="200" y="338" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="700" font-size="46" letter-spacing="2" fill="#F4EEF5">mikata <tspan font-family="Noto Sans JP, sans-serif" font-size="40">味方</tspan></text>
 </svg>

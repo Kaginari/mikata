@@ -65,16 +65,21 @@ writeFileSync(out('mikata-logo-dark.png'), await render('mikata-logo-dark.svg', 
 writeFileSync(out('mikata-logo-light.png'), await render('mikata-logo-light.svg', 512, 512));
 writeFileSync(out('social-preview.png'), await render('social-preview.svg', 1280, 640));
 const i64 = await render('mikata-icon-small.svg', 64, 64);
-// The mark alone, 600 px wide, for the board's header and core.
-await page.setViewportSize({ width: 600, height: 217 });
+// The mark alone, 400 px wide, for the board's header and core.
 await page.setContent(
-  `<style>html,body{margin:0;background:transparent}img{display:block;width:600px;height:217px}</style><img src="data:image/png;base64,${readFileSync(src('mikata-mark.png')).toString('base64')}">`,
+  `<style>html,body{margin:0;background:transparent}img{display:block;width:400px}</style><img src="data:image/png;base64,${readFileSync(src('mikata-mark.png')).toString('base64')}">`,
 );
-await page.evaluate(() => document.querySelector('img').decode());
+const markH = await page.evaluate(async () => {
+  const i = document.querySelector('img');
+  await i.decode();
+  return Math.round(i.getBoundingClientRect().height);
+});
+await page.setViewportSize({ width: 400, height: markH });
 writeFileSync(
   join(repo, 'packages', 'board', 'public', 'mikata-mark.png'),
-  await page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: 600, height: 217 } }),
+  await page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: 400, height: markH } }),
 );
+console.log(`board mark: 400×${markH}`);
 await browser.close();
 
 // The favicon: an ICO holding two PNGs, 32 and 64 px.

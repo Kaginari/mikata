@@ -37,9 +37,6 @@
   display: block;
   height: auto;
 }
-.mikata-mark-plain {
-  filter: brightness(0) invert(1);
-}
 .bapp h1,
 .bapp h2,
 .bapp h3,
@@ -113,7 +110,8 @@
   white-space: nowrap;
 }
 .bapp-logo .mikata-mark {
-  width: 104px;
+  width: 64px;
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--mn-bg) 60%, transparent));
 }
 .bapp-branddesc {
   display: none;
@@ -130,7 +128,7 @@
   }
 }
 .bapp-core .bapp-core-logo {
-  width: 86%;
+  width: 72%;
   margin: 0 auto;
 }
 .bapp-nav {
