@@ -295,7 +295,7 @@ xychart-beta
 | The same twelve, on 1.1.0 as released | the published archive's own binaries, every run counted | **10 of 12** (plain: 6 of 12); $0.45 a pass, against $0.59 |
 | Ten single fixes, 1.1.0 with a reader named | each task once; one task not run under the cap | 7 of 9 (plain on the same nine: 7 of 9); $0.59 a pass, against $0.44 |
 | The plan, none and a lighter one, two bodies (stage 13) | sqlglot; qwen on four prose asks three times, Claude Haiku 5.5 on fixes and prose twice | qwen: the plan 3 of 12, none **5**, the lighter one 4; Haiku 18 of 18 each, none at 85% of the plan's calls |
-| The plan, none, a todo, and Maki on mathjs (stage 14) | twenty fixes an arm, qwen, one build (845e493) | none **17 of 20**, the plan 17, the todo 17, Maki 15; $0.177 a pass with none, $0.215 with the plan, $0.150 for Maki |
+| The plan, none, a todo, Maki and OpenCode on mathjs (stage 14) | twenty fixes an arm, qwen, one build (845e493) | none **17 of 20**, the plan 17, the todo 17, Maki 15, OpenCode 16; $0.177 a pass with none, $0.215 with the plan, $0.150 for Maki, $0.285 for OpenCode |
 
 On the largest work the single body never filled its context: no run was compacted. It ran out of
 steps, not memory, and with more steps it finished on its own.
@@ -679,7 +679,8 @@ prose, twice. A difference was three passes in twelve.
 **Stage 14, mathjs,** the codebase where Maki is cheapest. qwen pinned to one provider, one build
 (845e493), ten fixes twice an arm, and a fourth arm: a `todo` list the body keeps when it wants,
 where a step may carry a command the harness runs when the step is marked done. A difference was
-four passes in twenty. $14.26 for 96 runs.
+four passes in twenty. $14.26 for 96 runs; OpenCode 1.19.6 was added after, on the same 24 tasks,
+model and provider, as a second reference ($5.64).
 
 | | Passes | Calls | $ | $ a pass | $ a call |
 |---|---|---|---|---|---|
@@ -687,6 +688,7 @@ four passes in twenty. $14.26 for 96 runs.
 | the plan | 17 of 20 | 1,094 | 3.66 | 0.215 | 0.0033 |
 | a todo | 17 of 20 | 1,033 | 3.22 | 0.189 | 0.0031 |
 | Maki 0.7.3 | 15 of 20 | 785 | 2.25 | 0.150 | 0.0029 |
+| OpenCode 1.19.6 | 16 of 20 | 1,150 | 4.55 | 0.285 | 0.0040 |
 
 ```mermaid
 ---
@@ -749,15 +751,16 @@ config:
       yAxisTitleColor: "#b7a9bc"
       yAxisTickColor: "#59405d"
       yAxisLineColor: "#59405d"
-      plotColorPalette: "#ff168a, #cd7d00"
+      plotColorPalette: "#ff168a, #cd7d00, #3986e4"
 ---
 xychart-beta
     title "Stage 14, mathjs: passes of 20"
-    x-axis ["none", "the plan", "a todo", "Maki"]
+    x-axis ["none", "the plan", "a todo", "Maki", "OpenCode"]
     y-axis "passes" 0 --> 20
     %% one series a harness, in its own colour; -1 leaves the others' bars undrawn
-    bar [17, 17, 17, -1]
-    bar [-1, -1, -1, 15]
+    bar [17, 17, 17, -1, -1]
+    bar [-1, -1, -1, 15, -1]
+    bar [-1, -1, -1, -1, 16]
 ```
 
 ```mermaid
@@ -821,15 +824,16 @@ config:
       yAxisTitleColor: "#b7a9bc"
       yAxisTickColor: "#59405d"
       yAxisLineColor: "#59405d"
-      plotColorPalette: "#ff168a, #cd7d00"
+      plotColorPalette: "#ff168a, #cd7d00, #3986e4"
 ---
 xychart-beta
     title "Stage 14, mathjs: dollars a pass"
-    x-axis ["none", "the plan", "a todo", "Maki"]
-    y-axis "dollars a pass" 0 --> 0.25
+    x-axis ["none", "the plan", "a todo", "Maki", "OpenCode"]
+    y-axis "dollars a pass" 0 --> 0.3
     %% one series a harness, in its own colour; -1 leaves the others' bars undrawn
-    bar [0.177, 0.215, 0.189, -1]
-    bar [-1, -1, -1, 0.15]
+    bar [0.177, 0.215, 0.189, -1, -1]
+    bar [-1, -1, -1, 0.15, -1]
+    bar [-1, -1, -1, -1, 0.285]
 ```
 
 - **The plan earned no pass on either.** Level with none on both codebases and both bodies, and
@@ -841,7 +845,11 @@ xychart-beta
   more calls and passed two more fixes. On 1.1.0 a mathjs pass cost more than three times
   Maki's; the screens differ in build, day and provider routing, so read the two side by side
   with care.
-- Prose on mathjs, four runs an arm (none 2, the plan 3, the todo 3, Maki 2), is too few to read.
+- **OpenCode passed 16 and paid the most:** $0.285 a pass, $0.0040 a call. Three of its runs —
+  fix 01 twice, fix 04 once — took more than 180 calls and a dollar each, and one of the three
+  passed.
+- Prose on mathjs, four runs an arm (none 2, the plan 3, the todo 3, Maki 2, OpenCode 3), is too
+  few to read.
 
 ### A second codebase
 

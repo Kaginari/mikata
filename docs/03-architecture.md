@@ -784,7 +784,7 @@ as a regular file, cut into its `### [<time>] <body> — <title>` entries, each 
 matching entries as a table of contents that jumps to each, and renders each entry through the
 board's inert Markdown subset: raw HTML stays text, links are allowlisted, images never load.
 
-<img src="./img/board/journal-phone-light.png" width="180" alt="The journal at phone width, light: the search, the entries' contents, an entry rendered">
+<img src="./img/board/journal-dark.png" width="640" alt="The journal of a real world, dark: the search, the entries' contents, each landing with what was asked, what changed and what verified it">
 
 #### Metrics and integrations
 
@@ -923,7 +923,7 @@ interrupts — the turn stops and what waits at the gate is denied. A tab that o
 its composer is disabled and offers *Take over*, which a tab of the browser that opened the chat may
 use. *End chat* ends it for every tab.
 
-<img src="./img/board/approval-chat-dark.png" width="640" alt="The approval card in a chat, dark: the act shown whole, its reasons, the plan it binds to, the answers numbered">
+<img src="./img/board/approval-dark.png" width="640" alt="A real approval, dark: Mikata asking to run git push, the act whole, why it asks, the plan, head, diff and target it is bound to, the answers numbered">
 
 **The approval card.** A waiting ask is put to the human on the approval card, the TUI's card on
 the web, with the TUI's protections; nothing else on the page answers an ask. It is a modal over
@@ -1263,9 +1263,9 @@ Vite into static files, with no router, state or chart library. It looks like th
 and reads like claude.ai: a **rail** on the left, the **centre**, and a foldable **pane** on the
 right.
 
-<img src="./img/board/worlds-dark.png" width="640" alt="The board at desktop width, dark: the rail with the worlds, the worlds in the centre, the pane at a glance"> <img src="./img/board/worlds-phone-light.png" width="180" alt="The worlds at phone width, light">
+<img src="./img/board/worlds-dark.png" width="640" alt="The running board, dark: the rail with the worlds, a real world with its sessions, gate and spend, the pane at a glance">
 
-<img src="./img/board/builder-dark.png" width="640" alt="A world's Harness Builder, dark: the units and plugins wired to the Mikata core, the run verified on the right">
+<img src="./img/board/builder-dark.png" width="640" alt="A real world's Harness Builder, dark: its units wired to the Mikata core, the plan and its lighter form off, a real run verified on the right">
 
 **The rail.** At its head Mikata's icon and name, the name running the logo's gold into cyan
 (`--mn-brand-*`, fixed in every scheme, a deeper ink of each on a light page), then search, the **worlds** (each with its state in words: *present*
@@ -1374,9 +1374,9 @@ bar's parts then sharing its height in proportion. Colours are the theme's token
 from the series' name, and every series is named in a legend beside it, never colour alone. Words
 a world wrote reach a chart only as escaped text in `<title>` nodes.
 
-<img src="./img/board/metrics-dark.png" width="640" alt="The metrics page, dark: the totals line, spend per day on a log axis with its legend, the cache hit rate, the burn"> <img src="./img/board/metrics-phone-dark.png" width="180" alt="The metrics page at phone width, dark">
+<img src="./img/board/metrics-dark.png" width="640" alt="The metrics page of the running board, dark: the totals line, spend per day, the cache hit rate, the burn, the runs' verdicts and endings">
 
-<img src="./img/board/integrations-light.png" width="640" alt="The integrations page, light: providers with their key sources, never values; models and prices; MCP servers">
+<img src="./img/board/integrations-light.png" width="640" alt="The integrations page of the running board, light: the provider with its key source, never its value; the model; MCP servers">
 
 **Data.** The page first trades the key in its address (`#k=<key>`, see the board server above):
 before anything renders, the key leaves the address bar and the history, and is posted once to

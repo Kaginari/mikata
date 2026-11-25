@@ -182,9 +182,11 @@ test('a profile starts the switches from its own composition', async ({ page }) 
 
 /** Where the README's screenshots of the board go. */
 const docs = (file: string) =>
-  fileURLToPath(new URL(`../../../docs/img/board/${file}.png`, import.meta.url));
+  fileURLToPath(new URL(`../test-results/readme/${file}.png`, import.meta.url));
 
-// The README's pictures of the board, written only on demand: README_SHOTS=1.
+// The board's pages over a fake bridge, photographed on demand (README_SHOTS=1) into
+// test-results/readme/. The README's and the book's pictures are the real board's, taken on a
+// running `mikatad board` with a real world and a real run, never these.
 for (const theme of ['dark', 'light'] as const) {
   test(`the README's pictures of the board, ${theme}`, async ({ page }, info) => {
     test.skip(

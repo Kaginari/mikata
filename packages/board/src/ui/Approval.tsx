@@ -403,8 +403,15 @@ function ApprovalCard({ live, waiting, more }: { live: Live; waiting: Waiting; m
       >
         <h2 className="approval-title" id="approval-title">
           <Mark tone="gold" glyph="◆">
-            <Shown text={shownBody(a.body)} /> (<Shown text={a.race} />) wants to run{' '}
-            {a.class === 'outward' ? 'an' : 'a'} <Shown text={a.class} /> act
+            <Shown text={shownBody(a.body)} />
+            {/* Mikata's own body needs no kind beside its name; a lab body says its race. */}
+            {!/^summoner(\/|$)/.test(a.body) && (
+              <>
+                {' '}
+                (<Shown text={a.race} />)
+              </>
+            )}{' '}
+            wants to run {a.class === 'outward' ? 'an' : 'a'} <Shown text={a.class} /> act
           </Mark>
           {more > 0 && <span className="approval-more">{more} more waiting</span>}
         </h2>

@@ -46,7 +46,8 @@ export const WORLD_STATUS: Record<WorldStatus, { glyph: string; tone: Tone; labe
 
 /** The races, in the order the law lists them, with their token names. */
 export const RACES = [
-  ['summoner', 'Summoner'],
+  // Mikata's own body: `summoner` inside the code, Mikata on the page (names.ts).
+  ['summoner', 'Mikata'],
   ['elf', 'Elf'],
   ['orc', 'Orc'],
   ['slime', 'Slime'],

@@ -1,6 +1,6 @@
 import type { Arrived } from '@mikata/protocol';
 import { describe, expect, it } from 'vitest';
-import { Chat, groupCounts, summary } from './chat.ts';
+import { Chat, groupCounts, humanWords, summary, THE_ASK } from './chat.ts';
 
 let seq = 0;
 const ev = (type: string, fields: Record<string, unknown> = {}, body = 'summoner') => {
@@ -180,4 +180,10 @@ describe('the transcript', () => {
     expect(summary('grep', { pattern: 'x' })).toBe('x');
     expect(summary('t', { n: 1 })).toBe('{"n":1}');
   });
+});
+
+it('a turn shows the human their own words, not what the harness quoted above them', () => {
+  const quoted = `Recalled from memory (a proposed note is unproven):\n@M n1 personal proposed support: x\n\n${THE_ASK}\n\nAdd format(minutes).`;
+  expect(humanWords(quoted)).toBe('Add format(minutes).');
+  expect(humanWords('Add format(minutes).')).toBe('Add format(minutes).');
 });

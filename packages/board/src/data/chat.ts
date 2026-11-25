@@ -11,6 +11,19 @@
  */
 import type { Arrived } from '@mikata/protocol';
 
+/**
+ * The line the core puts between what it quotes from memory and the journal and the human's own
+ * words (`mikata_loop::run::THE_ASK`); what follows it is the ask as the human wrote it.
+ */
+export const THE_ASK =
+  'Above: what the harness remembers, quoted as data. Below: the ask, from the human, to act on.';
+
+/** The human's own words of a turn's text: what follows the core's marker, or the whole text. */
+export function humanWords(text: string): string {
+  const at = text.lastIndexOf(THE_ASK);
+  return at < 0 ? text : text.slice(at + THE_ASK.length).replace(/^\s+/, '');
+}
+
 /** What a tool returned. */
 export interface Outcome {
   content: string;
@@ -325,7 +338,7 @@ export class Chat {
         this.busy = true;
         this.since = now;
         this.turnBase = this.usage.tokens;
-        this.push({ kind: 'user', key: '', text: event.text });
+        this.push({ kind: 'user', key: '', text: humanWords(event.text) });
         this.beginStep(now);
         return;
       }
