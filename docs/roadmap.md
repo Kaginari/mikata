@@ -4,12 +4,107 @@ What comes next for Mikata, in order. Each step is measured on [the bench](bench
 book says anything of it: a bar written first, then the runs, then the verdict, whatever it says.
 How everything so far was built, milestone by milestone, is [M0 to M14](experimental/roadmap-m0-m14.md).
 
-## Now: 1.1.0, what done means
+## In one picture
 
-1.0.0 was the first release as Mikata. 1.1.0 holds what came of the largest gap we had measured,
-asks without examples: a `## Done when` list in the ask, held by the harness; a reader that
-writes it; and the list of what changed when an answer lands ([releasing](releasing.md)). Next,
-the site.
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 220
+---
+flowchart TD
+    R["1.1.0<br/>what done means, held"] --> N(["Now · main<br/>a harness you compose"])
+    N --> D["Next<br/>what the loop carries by default"]
+    D --> M["Next<br/>a memory that pays"]
+    M --> F["Then<br/>a fold for long runs"]
+    F --> S["Later<br/>the split, wider"]
+    L[("The lab<br/>kept, not developed")]
+    N -.-> L
+    classDef shipped fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    class R shipped
+    classDef now fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    class N now
+    classDef next fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    class D,M next
+    classDef later fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    class F,S later
+    classDef lab fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
+    class L lab
+```
+
+## Now: main after 1.1.0, a harness you compose
+
+1.0.0 was the first release as Mikata. 1.1.0 (21 November) holds what came of the largest gap we
+had measured, asks without examples: a `## Done when` list in the ask, held by the harness; a
+reader that writes it; and the list of what changed when an answer lands
+([releasing](releasing.md)). Since then, on `main`, for the next release:
+
+- **Every part of the loop is a unit, and plugins load while a session runs** (experimental):
+  units switched by configuration, by `--units` or live, profiles for a kind of work, plugins
+  that speak MCP plus `mikata/hook` ([plugins](experimental/plugins.md)).
+- **A leaner loop:** `multiedit` retired, a command's own `/tmp`, a refusal that says why.
+- **A session that learns from a mistake:** a first failure remembered under its ask, your
+  correction held as a line of that ask's list, `/wrong` in the terminal ([memory](07-memory.md)).
+- **The faces:** the terminal UI as a dashboard, and the board's Harness Builder, both in
+  Mikata's design system; the site is live at mikata.kaginari.org.
+
+## Next: what the loop carries by default
+
+The prompt's plan (write a `Done when` list and run each line before answering) is most of what
+the units cost: switched off, Haiku took 208 calls against 370 on ten fixes, 10 of 10 each, and
+29 of 30 in 744 calls against 30 of 30 in 1,000 on thirty
+([plugins: where it stands](experimental/plugins.md#where-it-stands)). With qwen, on prose asks,
+the plan passed 3 of 12, none 5 and a lighter plan 4: the gain it was kept for did not show.
+Proposed, not merged: the plan off by default, the plan and a lighter one a switch away (#466).
+Before it lands, a `todo` unit the body keeps when it wants, with a check per step, is measured
+against no plan and the plan on mathjs, the codebase where Maki is cheapest; its verdict decides.
 
 ## Next: asks without examples
 

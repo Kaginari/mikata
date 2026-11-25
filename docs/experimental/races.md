@@ -15,49 +15,94 @@
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 flowchart TD
-    V(["🐉 Player · human"])
-    R["👑 Summoner · throne"]
+    V(["Player · human"])
+    R["Summoner · throne"]
     subgraph chain["the chain — builds"]
-      E["🌿 Elf"] --> O["🪓 Orc"] --> S["💧 Slime"]
+      E["Elf"] --> O["Orc"] --> S["Slime"]
     end
     subgraph standing["standing beside — reach and challenge"]
-      K["👹 Kijin"]
-      D["🌑 Dark Elf"]
+      K["Kijin"]
+      D["Dark Elf"]
     end
     V --- R
     R --> E
     R --> K
     R --> D
 
-    E -. ascends .-> HE["✨ High Elf"]
-    O -. ascends .-> HO["⚔️ High Orc"]
-    S -. ascends .-> NS["💎 Named Slime"]
-    K -. ascends .-> ON["🔥 Oni"]
-    D -. ascends .-> AD["🌘 Arch Dark Elf"]
-    classDef human fill:#f8efcf,stroke:#D4AF37,stroke-width:2px,color:#3a2e05
+    E -. ascends .-> HE["High Elf"]
+    O -. ascends .-> HO["High Orc"]
+    S -. ascends .-> NS["Named Slime"]
+    K -. ascends .-> ON["Oni"]
+    D -. ascends .-> AD["Arch Dark Elf"]
+    classDef human fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
     class V human
-    classDef throne fill:#dbeefe,stroke:#3FA9F5,stroke-width:2px,color:#0b2540
+    classDef throne fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
     class R throne
-    classDef elf fill:#dcf3e6,stroke:#2FA36B,stroke-width:2px,color:#0b2a1a
+    classDef elf fill:#0d2419,stroke:#2fa36b,stroke-width:2px,color:#cdf0dc
     class E elf
-    classDef orc fill:#f8e8d2,stroke:#C9822B,stroke-width:2px,color:#3a2408
+    classDef orc fill:#2a1c0b,stroke:#c9822b,stroke-width:2px,color:#f8e2c4
     class O orc
-    classDef slime fill:#d6f5f1,stroke:#19C3B0,stroke-width:2px,color:#06302b
+    classDef slime fill:#0b2624,stroke:#19c3b0,stroke-width:2px,color:#c9f6f0
     class S slime
-    classDef kijin fill:#fbdde1,stroke:#D7263D,stroke-width:2px,color:#3d0710
+    classDef kijin fill:#2a0d12,stroke:#d7263d,stroke-width:2px,color:#ffd6dc
     class K kijin
-    classDef dark fill:#ebe2fb,stroke:#7B4FD6,stroke-width:2px,color:#22114a
+    classDef dark fill:#1d1430,stroke:#7b4fd6,stroke-width:2px,color:#e2d6fb
     class D dark
     classDef risen fill:#fff7d6,stroke:#b8860b,stroke-width:2px,stroke-dasharray:5 3,color:#3a2e05
     class HE,HO,NS,ON,AD risen
-    style chain fill:#f0fdf4,stroke:#2FA36B
-    style standing fill:#faf5ff,stroke:#7B4FD6
+    style chain fill:#16111b,stroke:#59405d,color:#f5eff7
+    style standing fill:#16111b,stroke:#59405d,color:#f5eff7
 ```
 
 </details>
@@ -1369,8 +1414,53 @@ playbooks adapt Cloudflare's security-audit-skill (MIT;
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
@@ -1385,9 +1475,9 @@ stateDiagram-v2
     Probation --> Base: does not recover — falls, record kept
     classDef risen fill:#fff7d6,stroke:#b8860b,stroke-width:2px,stroke-dasharray:5 3,color:#3a2e05
     class Ascended risen
-    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class Candidate,Probation gate
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class Base step
 ```
 

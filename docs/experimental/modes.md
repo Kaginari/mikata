@@ -12,32 +12,77 @@ Each section says what the mode is, what it cost, and where it stopped.
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
-flowchart LR
+flowchart TD
     subgraph light["light-coding (the default)"]
-      L1["👑 Summoner<br/>one body: plan, write, check, answer"]
+      L1["Summoner<br/>one body: plan, write, check, answer"]
     end
     subgraph structured["structured-coding (experimental)"]
-      S1["👑 Summoner"] --> S2["🌿 Elf<br/>plans a lane"]
-      S2 --> S3["🪓 Orc<br/>codes the check first"]
-      S3 --> S4["💧 Slime<br/>writes its zone"]
+      S1["Summoner"] --> S2["Elf<br/>plans a lane"]
+      S2 --> S3["Orc<br/>codes the check first"]
+      S3 --> S4["Slime<br/>writes its zone"]
     end
     subgraph collective["collective-coding (experimental)"]
-      C1["👑 Summoner<br/>writes the board, splits by zone"] --> C2["member"]
+      C1["Summoner<br/>writes the board, splits by zone"] --> C2["member"]
       C1 --> C3["member"]
       C1 --> C4["member"]
     end
-    classDef throne fill:#dbeefe,stroke:#3FA9F5,stroke-width:2px,color:#0b2540
+    classDef throne fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
     class L1,S1,C1 throne
-    classDef elf fill:#dcf3e6,stroke:#2FA36B,stroke-width:2px,color:#0b2a1a
+    classDef elf fill:#0d2419,stroke:#2fa36b,stroke-width:2px,color:#cdf0dc
     class S2 elf
-    classDef orc fill:#f8e8d2,stroke:#C9822B,stroke-width:2px,color:#3a2408
+    classDef orc fill:#2a1c0b,stroke:#c9822b,stroke-width:2px,color:#f8e2c4
     class S3 orc
-    classDef slime fill:#d6f5f1,stroke:#19C3B0,stroke-width:2px,color:#06302b
+    classDef slime fill:#0b2624,stroke:#19c3b0,stroke-width:2px,color:#c9f6f0
     class S4,C2,C3,C4 slime
 ```
 

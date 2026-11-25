@@ -108,6 +108,7 @@ export default withMermaid(
       outline: { level: [2, 3] },
       search: { provider: 'local' },
     },
-    mermaid: { look: 'handDrawn', theme: 'neutral' },
+    // Each block carries its own Bio Digital theme (front matter), for GitHub as for the book.
+    mermaid: { theme: 'base' },
   }),
 );

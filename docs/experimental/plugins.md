@@ -1,12 +1,91 @@
 # Plugins: a small loop, every part a unit, swapped while a session runs
 
-Status: **being built on branch `plugin-kernel`; stage 1 (the tracer) met on 2026-11-24** (decided by the owner on 2026-11-23/24). This page
-is the plan of record and the contract every lane builds against. It changes only by a commit on
-that branch that says why.
+Status: **built and merged into `main` as #462 (2026-11-24), experimental**; decided by the owner
+on 2026-11-23/24. This page is the plan of record and the contract the kernel was built against;
+where it stands is [below](#where-it-stands).
 
 Ground: the analysis in `Kaginari/harness-lab` (`plugin-kernel/`, above all
 `designs/design-runtime.txt`), read against Mikata at `b3e42a4`; the Cordis paper
 (arXiv 2608.25512) for revertible registrations.
+
+## In one picture
+
+A plugin's life in a session: declared by you, checked at the handshake, run at its hooks under a
+deadline, and taken out after three strikes.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 200
+---
+flowchart TD
+    G["your global file<br/>[plugins.&lt;id&gt;]"] --> H{"handshake<br/>MCP + mikata/hook"}
+    H -->|no mikata capability| MCP["a plain MCP server"]
+    H -->|grants cut to yours| K(["the kernel<br/>loads it at a safe point"])
+    K --> HK["its hooks<br/>each under a deadline"]
+    HK -->|a reply in its grant| K
+    HK -->|miss, crash, over the grant| ST["a strike"]
+    ST -->|three in a session| Q["quarantined<br/>unloaded, the body told"]
+    K -->|/plugin unload, swap| U["unloaded<br/>its registrations undone"]
+    classDef you fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
+    class G you
+    classDef core fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    class K core
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    class H,HK,MCP step
+    classDef bad fill:#361522,stroke:#ff5575,stroke-width:1.5px,color:#ffd0da
+    class ST,Q bad
+    classDef done fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    class U done
+```
 
 ## What the owner asked for
 
@@ -271,6 +350,7 @@ A missed bar is reported as missed; a stage that misses is not built on until it
 | Stage 4, parts (first screen) | 2026-11-24: `plan` off 208 calls against 370, 10 of 10 each; `stress` off level |
 | Stage 5, where the plan pays | 2026-11-24: fixes, plan off 29 of 30 in 744 calls against 30 of 30 in 1,000; prose 12 and 12, 257 calls against 331 (Haiku). The `small-fix` profile |
 | Stage 6, the plan with qwen | 2026-11-24: fixes, 8 of 10 each, 1,210 calls against 1,293: nothing shown |
+| Stage 13, the default plan | 2026-11-25: with qwen on prose asks the plan passed 3 of 12, none 5 and a lighter plan (`plan_lite`) 4: no gain shown; with Haiku 18 of 18 each, the lighter plan at 84% of the plan's calls and none at 85%. Proposed, not merged: the plan off by default, `plan` and `plan_lite` one switch away (#466); stage 14 measures a `todo` unit against it |
 | Live, the real binary | 2026-11-24: `mikatad` on stdio with Haiku, `no-force-push` loaded by `units/change` between two asks, vetoed the body's force push; no prefix move |
 
 A switch unit is the first step for a part: it can be measured off before its code moves. Its

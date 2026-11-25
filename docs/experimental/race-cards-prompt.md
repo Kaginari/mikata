@@ -3,6 +3,77 @@
 A brief for an image model: one card per race and ascended form, plus a card back. The cards are
 shown on the board, in the docs and in the decks.
 
+## In one picture
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 200
+---
+flowchart TD
+    B["this brief"] --> I["an image model<br/>the character art only"]
+    I --> A[("the art<br/>no frame, no text")]
+    L["the compiled race law"] --> F["the board's SVG<br/>frame, banner, plate, words"]
+    A --> C(["the card"])
+    F --> C
+    classDef law fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
+    class L law
+    classDef make fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
+    class B,I,F make
+    classDef art fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
+    class A art
+    classDef card fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
+    class C card
+```
+
 ## In plain words
 
 The image model paints **only the character art** — no frame, no plates, no text. Image models

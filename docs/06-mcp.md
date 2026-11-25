@@ -5,12 +5,57 @@
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
-flowchart LR
+flowchart TD
     H["your global config"] -->|"servers, races,<br/>classes, network"| C
     S[("MCP server<br/>in the sandbox")] <-->|"listed on first open,<br/>cached on disk"| C["MCP client<br/>class · scope · rank · price"]
     subgraph mikata["Mikata"]
@@ -20,16 +65,16 @@ flowchart LR
       A -. "the ask's end" .-> L
       C <-->|"close scores in a large catalog:<br/>one rerank, names only"| F["fast tier"]
     end
-    classDef human fill:#f8efcf,stroke:#D4AF37,stroke-width:2px,color:#3a2e05
+    classDef human fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
     class H human
-    classDef outside fill:#eceff3,stroke:#6b7280,stroke-width:1.5px,color:#111827
+    classDef outside fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
     class S outside
-    classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
+    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
     class C,L store
     class F outside
-    classDef throne fill:#dbeefe,stroke:#3FA9F5,stroke-width:2px,color:#0b2540
+    classDef throne fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
     class A throne
-    style mikata fill:#f0f9ff,stroke:#3FA9F5
+    style mikata fill:#16111b,stroke:#59405d,color:#f5eff7
 ```
 
 ## In plain words
@@ -66,6 +111,12 @@ hangs or dies becomes a hole naming it, never a wait. Every word a server sends 
 is treated as data from outside: escaped, capped and marked as untrusted, to a body and to the
 reranker alike. Every load and call is journaled by the harness, outside the world, never by a
 model.
+
+**A plugin is an MCP server too (experimental).** A program you declare in `[plugins.<id>]`
+speaks MCP plus `mikata/hook`: at the handshake it says which points of the loop it hooks, and
+from then on the loop asks it at each of them, under a deadline, cut to the grant you gave it. A
+plugin with the `tools` grant also offers its tools here, through the same doors as any server.
+How a plugin loads, strikes out and swaps mid-session is [the plugins page](experimental/plugins.md).
 
 ## Technical detail
 

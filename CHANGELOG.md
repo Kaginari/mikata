@@ -24,7 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   page of its own: a header with its views and **Run agent**, the workspace, its status and the
   run's usage on the left, the run on the right (its ask, Start and Stop, its approvals, a box to
   message the session), and a Sessions view with the run's conversation and a composer. Set in
-  Manrope and JetBrains Mono, with Font Awesome Free icons and Mikata's new mark. A wide diff in
+  Manrope and JetBrains Mono, with Lucide line icons and Mikata's new mark. A wide diff in
   a chat is now reachable from the keyboard.
   Every unit a session in the world would open with is a card round the core — its version,
   whether the configuration has it on, a switch — with the build's and the global file's
@@ -97,6 +97,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   lands at last, the stop's notes go out of recall.
 
 ### Changed
+
+- **Mikata's design system: Bio Digital and Bio Pearl.** The board, the Harness Builder, the
+  plugin inspector, the book and the site wear one system, biological intelligence meeting
+  digital: hot pink, coral and amber for the brand; lime for what lives, connects and verifies
+  (olive words on it); semantic tokens only, every text colour at WCAG AA on every surface and on
+  its own tint in both themes. Lucide line icons replace Font Awesome and every glyph the board
+  drew as a character. The Harness Builder wires each unit and plugin to the core (native pink,
+  plugin amber, off dashed, lime and flowing while a run is live); the plugin inspector shows
+  each unit's kind, whether it is loaded or connected, and its id. Every page of the book has a
+  diagram or a chart in the system's colours, on GitHub as on the site.
 
 - **Mikata's new mark: a living cell flowing into a digital one** — a nucleus and its organelles
   on the left, a hexagon with a circuit round its core on the right, hot pink through coral to

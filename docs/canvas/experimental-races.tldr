@@ -49,7 +49,7 @@
 			"typeName": "page"
 		},
 		{
-			"x": 175.615234375,
+			"x": 155.625,
 			"y": 407.115234375,
 			"rotation": 0,
 			"isLocked": false,
@@ -63,11 +63,11 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": 22.34376255285239,
+				"bend": 23.66583076039624,
 				"start": {
-					"x": 41.8212890625,
+					"x": 44.375,
 					"y": 0
 				},
 				"end": {
@@ -93,7 +93,7 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 217.4365234375,
+			"x": 200,
 			"y": 112.623046875,
 			"rotation": 0,
 			"isLocked": false,
@@ -107,11 +107,11 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": 28.327104161671556,
+				"bend": 30.035245385225124,
 				"start": {
-					"x": 41.8212890625,
+					"x": 44.375,
 					"y": 0
 				},
 				"end": {
@@ -137,7 +137,7 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 118.3251953125,
+			"x": 123.125,
 			"y": 358.4921875,
 			"rotation": 0,
 			"isLocked": false,
@@ -147,7 +147,7 @@
 			"type": "geo",
 			"parentId": "shape:017",
 			"props": {
-				"w": 198.22265625,
+				"w": 153.75,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -171,7 +171,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "🪓 Orc"
+									"text": "Orc"
 								}
 							]
 						}
@@ -182,7 +182,7 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 167.12890625,
+			"x": 174.375,
 			"y": 64,
 			"rotation": 0,
 			"isLocked": false,
@@ -192,7 +192,7 @@
 			"type": "geo",
 			"parentId": "shape:017",
 			"props": {
-				"w": 184.2578125,
+				"w": 140,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -216,7 +216,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "🌿 Elf"
+									"text": "Elf"
 								}
 							]
 						}
@@ -237,7 +237,7 @@
 			"type": "geo",
 			"parentId": "shape:017",
 			"props": {
-				"w": 226.23046875,
+				"w": 186.25,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -261,7 +261,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "💧 Slime"
+									"text": "Slime"
 								}
 							]
 						}
@@ -272,7 +272,7 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 400.1171875,
+			"x": 362.5,
 			"y": 64,
 			"rotation": 0,
 			"isLocked": false,
@@ -282,7 +282,7 @@
 			"type": "geo",
 			"parentId": "shape:023",
 			"props": {
-				"w": 259.47265625,
+				"w": 222.5,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -306,7 +306,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "🌑 Dark Elf"
+									"text": "Dark Elf"
 								}
 							]
 						}
@@ -327,7 +327,7 @@
 			"type": "geo",
 			"parentId": "shape:023",
 			"props": {
-				"w": 206.9921875,
+				"w": 166.25,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -351,7 +351,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "👹 Kijin"
+									"text": "Kijin"
 								}
 							]
 						}
@@ -362,8 +362,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 1306.7431640625,
-			"y": 562.6074210740443,
+			"x": 1189.375,
+			"y": 515.361328125,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -376,7 +376,7 @@
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 0,
 				"start": {
@@ -412,8 +412,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 175.615234375,
-			"y": 1101.5917960740444,
+			"x": 155.625,
+			"y": 1054.345703125,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -426,7 +426,7 @@
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 0,
 				"start": {
@@ -462,8 +462,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 217.4365234375,
-			"y": 857.0996085740443,
+			"x": 200,
+			"y": 809.853515625,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -476,15 +476,15 @@
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": 88.32706880182377,
+				"bend": 86.81594992060015,
 				"start": {
 					"x": 0,
 					"y": 0
 				},
 				"end": {
-					"x": 405.302734375,
+					"x": 380,
 					"y": 244.4921875
 				},
 				"arrowheadStart": "none",
@@ -512,8 +512,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 259.2578125,
-			"y": 291.7382804490443,
+			"x": 244.375,
+			"y": 244.4921875,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -526,11 +526,11 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": 168.51558326592678,
+				"bend": 165.69066573416407,
 				"start": {
-					"x": 683.6279296875,
+					"x": 616.875,
 					"y": 0
 				},
 				"end": {
@@ -556,8 +556,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 259.2578125,
-			"y": 562.6074210740443,
+			"x": 244.375,
+			"y": 515.361328125,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -570,15 +570,15 @@
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": 133.6034281328715,
+				"bend": 127.56491966974923,
 				"start": {
 					"x": 0,
 					"y": 0
 				},
 				"end": {
-					"x": 356.4990234375,
+					"x": 328.75,
 					"y": 294.4921875
 				},
 				"arrowheadStart": "none",
@@ -606,8 +606,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 942.8857421875,
-			"y": 291.7382804490443,
+			"x": 861.25,
+			"y": 244.4921875,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -620,15 +620,15 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": -136.104444514211,
+				"bend": -125.65929810723628,
 				"start": {
 					"x": 0,
 					"y": 0
 				},
 				"end": {
-					"x": 363.857421875,
+					"x": 328.125,
 					"y": 270.869140625
 				},
 				"arrowheadStart": "none",
@@ -650,8 +650,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 942.8857421875,
-			"y": 291.7382804490443,
+			"x": 861.25,
+			"y": 244.4921875,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -664,7 +664,7 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 0,
 				"start": {
@@ -694,8 +694,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 942.8857421875,
-			"y": 562.6074210740443,
+			"x": 861.25,
+			"y": 36.123046875,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -705,10 +705,54 @@
 			"props": {
 				"kind": "arc",
 				"elbowMidPoint": 0.5,
+				"dash": "draw",
+				"size": "m",
+				"fill": "none",
+				"color": "red",
+				"labelColor": "black",
+				"bend": 0.5660265412573866,
+				"start": {
+					"x": 0,
+					"y": 0
+				},
+				"end": {
+					"x": 0,
+					"y": 208.369140625
+				},
+				"arrowheadStart": "none",
+				"arrowheadEnd": "none",
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph"
+						}
+					]
+				},
+				"labelPosition": 0.5,
+				"font": "draw",
+				"scale": 1
+			},
+			"parentId": "shape:026",
+			"index": "a8",
+			"typeName": "shape"
+		},
+		{
+			"x": 861.25,
+			"y": 515.361328125,
+			"rotation": 0,
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"id": "shape:016",
+			"type": "arrow",
+			"props": {
+				"kind": "arc",
+				"elbowMidPoint": 0.5,
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 0,
 				"start": {
@@ -744,52 +788,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 942.8857421875,
-			"y": 59.74609294904431,
-			"rotation": 0,
-			"isLocked": false,
-			"opacity": 1,
-			"meta": {},
-			"id": "shape:016",
-			"type": "arrow",
-			"props": {
-				"kind": "arc",
-				"elbowMidPoint": 0.5,
-				"dash": "draw",
-				"size": "m",
-				"fill": "none",
-				"color": "black",
-				"labelColor": "black",
-				"bend": 0.5660265412573866,
-				"start": {
-					"x": 0,
-					"y": 0
-				},
-				"end": {
-					"x": 0,
-					"y": 231.9921875
-				},
-				"arrowheadStart": "none",
-				"arrowheadEnd": "none",
-				"richText": {
-					"type": "doc",
-					"content": [
-						{
-							"type": "paragraph"
-						}
-					]
-				},
-				"labelPosition": 0.5,
-				"font": "draw",
-				"scale": 1
-			},
-			"parentId": "shape:026",
-			"index": "a8",
-			"typeName": "shape"
-		},
-		{
 			"x": 0,
-			"y": 449.9843741990443,
+			"y": 402.73828125,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -798,7 +798,7 @@
 			"type": "geo",
 			"parentId": "shape:026",
 			"props": {
-				"w": 424.3798828125,
+				"w": 399.375,
 				"h": 750.23046875,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -833,8 +833,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 1141.1376953125,
-			"y": 808.4765616990443,
+			"x": 1.875,
+			"y": 1300.21484375,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -843,7 +843,7 @@
 			"type": "geo",
 			"parentId": "shape:026",
 			"props": {
-				"w": 331.2109375,
+				"w": 307.5,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "dashed",
@@ -867,142 +867,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "🌘 Arch Dark Elf"
-								}
-							]
-						}
-					]
-				}
-			},
-			"index": "aH",
-			"typeName": "shape"
-		},
-		{
-			"x": 486.8798828125,
-			"y": 1052.9687491990444,
-			"rotation": 0,
-			"isLocked": false,
-			"opacity": 1,
-			"meta": {},
-			"id": "shape:019",
-			"type": "geo",
-			"parentId": "shape:026",
-			"props": {
-				"w": 271.71875,
-				"h": 97.24609375,
-				"geo": "rectangle",
-				"dash": "dashed",
-				"growY": 0,
-				"url": "",
-				"scale": 1,
-				"flipX": false,
-				"flipY": false,
-				"color": "orange",
-				"labelColor": "black",
-				"fill": "solid",
-				"size": "m",
-				"font": "draw",
-				"align": "middle",
-				"verticalAlign": "middle",
-				"richText": {
-					"type": "doc",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "⚔️ High Orc"
-								}
-							]
-						}
-					]
-				}
-			},
-			"index": "aB",
-			"typeName": "shape"
-		},
-		{
-			"x": 486.8798828125,
-			"y": 808.4765616990443,
-			"rotation": 0,
-			"isLocked": false,
-			"opacity": 1,
-			"meta": {},
-			"id": "shape:020",
-			"type": "geo",
-			"parentId": "shape:026",
-			"props": {
-				"w": 257.75390625,
-				"h": 97.24609375,
-				"geo": "rectangle",
-				"dash": "dashed",
-				"growY": 0,
-				"url": "",
-				"scale": 1,
-				"flipX": false,
-				"flipY": false,
-				"color": "orange",
-				"labelColor": "black",
-				"fill": "solid",
-				"size": "m",
-				"font": "draw",
-				"align": "middle",
-				"verticalAlign": "middle",
-				"richText": {
-					"type": "doc",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "✨ High Elf"
-								}
-							]
-						}
-					]
-				}
-			},
-			"index": "a9",
-			"typeName": "shape"
-		},
-		{
-			"x": 7.373046875,
-			"y": 1347.4609366990444,
-			"rotation": 0,
-			"isLocked": false,
-			"opacity": 1,
-			"meta": {},
-			"id": "shape:021",
-			"type": "geo",
-			"parentId": "shape:026",
-			"props": {
-				"w": 336.484375,
-				"h": 97.24609375,
-				"geo": "rectangle",
-				"dash": "dashed",
-				"growY": 0,
-				"url": "",
-				"scale": 1,
-				"flipX": false,
-				"flipY": false,
-				"color": "orange",
-				"labelColor": "black",
-				"fill": "solid",
-				"size": "m",
-				"font": "draw",
-				"align": "middle",
-				"verticalAlign": "middle",
-				"richText": {
-					"type": "doc",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "💎 Named Slime"
+									"text": "Named Slime"
 								}
 							]
 						}
@@ -1013,8 +878,143 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 767.8857421875,
-			"y": 219.4921866990443,
+			"x": 1038.125,
+			"y": 761.23046875,
+			"rotation": 0,
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"id": "shape:019",
+			"type": "geo",
+			"parentId": "shape:026",
+			"props": {
+				"w": 302.5,
+				"h": 97.24609375,
+				"geo": "rectangle",
+				"dash": "dashed",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false,
+				"color": "orange",
+				"labelColor": "black",
+				"fill": "solid",
+				"size": "m",
+				"font": "draw",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Arch Dark Elf"
+								}
+							]
+						}
+					]
+				}
+			},
+			"index": "aH",
+			"typeName": "shape"
+		},
+		{
+			"x": 461.875,
+			"y": 1005.72265625,
+			"rotation": 0,
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"id": "shape:020",
+			"type": "geo",
+			"parentId": "shape:026",
+			"props": {
+				"w": 236.25,
+				"h": 97.24609375,
+				"geo": "rectangle",
+				"dash": "dashed",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false,
+				"color": "orange",
+				"labelColor": "black",
+				"fill": "solid",
+				"size": "m",
+				"font": "draw",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "High Orc"
+								}
+							]
+						}
+					]
+				}
+			},
+			"index": "aB",
+			"typeName": "shape"
+		},
+		{
+			"x": 461.875,
+			"y": 761.23046875,
+			"rotation": 0,
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"id": "shape:021",
+			"type": "geo",
+			"parentId": "shape:026",
+			"props": {
+				"w": 222.5,
+				"h": 97.24609375,
+				"geo": "rectangle",
+				"dash": "dashed",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false,
+				"color": "orange",
+				"labelColor": "black",
+				"fill": "solid",
+				"size": "m",
+				"font": "draw",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "High Elf"
+								}
+							]
+						}
+					]
+				}
+			},
+			"index": "a9",
+			"typeName": "shape"
+		},
+		{
+			"x": 686.25,
+			"y": 172.24609375,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -1032,7 +1032,7 @@
 				"scale": 1,
 				"flipX": false,
 				"flipY": false,
-				"color": "light-blue",
+				"color": "red",
 				"labelColor": "black",
 				"fill": "solid",
 				"size": "m",
@@ -1047,7 +1047,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "👑 Summoner · throne"
+									"text": "Summoner · throne"
 								}
 							]
 						}
@@ -1058,8 +1058,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 776.8896484375,
-			"y": 449.9843741990443,
+			"x": 715.625,
+			"y": 402.73828125,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -1068,7 +1068,7 @@
 			"type": "geo",
 			"parentId": "shape:026",
 			"props": {
-				"w": 722.08984375,
+				"w": 647.5,
 				"h": 211.24609375,
 				"geo": "rectangle",
 				"dash": "draw",
@@ -1103,8 +1103,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 790.4799175262451,
-			"y": -8.009556893284753e-7,
+			"x": 722.2377967834473,
+			"y": 0,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -1113,8 +1113,8 @@
 			"type": "geo",
 			"parentId": "shape:026",
 			"props": {
-				"w": 304.81164932250977,
-				"h": 119.4921875,
+				"w": 278.02440643310547,
+				"h": 72.24609375,
 				"geo": "ellipse",
 				"dash": "draw",
 				"growY": 0,
@@ -1137,7 +1137,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "🐉 Player · human"
+									"text": "Player · human"
 								}
 							]
 						}
@@ -1148,8 +1148,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 844.6337890625,
-			"y": 808.4765616990443,
+			"x": 784.375,
+			"y": 761.23046875,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -1158,7 +1158,7 @@
 			"type": "geo",
 			"parentId": "shape:026",
 			"props": {
-				"w": 196.50390625,
+				"w": 153.75,
 				"h": 97.24609375,
 				"geo": "rectangle",
 				"dash": "dashed",
@@ -1182,7 +1182,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "🔥 Oni"
+									"text": "Oni"
 								}
 							]
 						}
@@ -1194,7 +1194,7 @@
 		},
 		{
 			"x": 0,
-			"y": 8.009556893284753e-7,
+			"y": 0,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -1300,7 +1300,7 @@
 			"meta": {},
 			"id": "binding:006",
 			"fromId": "shape:008",
-			"toId": "shape:018",
+			"toId": "shape:019",
 			"type": "arrow",
 			"props": {
 				"isPrecise": false,
@@ -1336,7 +1336,7 @@
 			"meta": {},
 			"id": "binding:008",
 			"fromId": "shape:009",
-			"toId": "shape:021",
+			"toId": "shape:018",
 			"type": "arrow",
 			"props": {
 				"isPrecise": false,
@@ -1372,7 +1372,7 @@
 			"meta": {},
 			"id": "binding:010",
 			"fromId": "shape:010",
-			"toId": "shape:019",
+			"toId": "shape:020",
 			"type": "arrow",
 			"props": {
 				"isPrecise": false,
@@ -1444,7 +1444,7 @@
 			"meta": {},
 			"id": "binding:014",
 			"fromId": "shape:012",
-			"toId": "shape:020",
+			"toId": "shape:021",
 			"type": "arrow",
 			"props": {
 				"isPrecise": false,
@@ -1534,42 +1534,6 @@
 			"meta": {},
 			"id": "binding:019",
 			"fromId": "shape:015",
-			"toId": "shape:007",
-			"type": "arrow",
-			"props": {
-				"isPrecise": false,
-				"isExact": false,
-				"normalizedAnchor": {
-					"x": 0.5,
-					"y": 0.5
-				},
-				"snap": "none",
-				"terminal": "start"
-			},
-			"typeName": "binding"
-		},
-		{
-			"meta": {},
-			"id": "binding:020",
-			"fromId": "shape:015",
-			"toId": "shape:025",
-			"type": "arrow",
-			"props": {
-				"isPrecise": false,
-				"isExact": false,
-				"normalizedAnchor": {
-					"x": 0.5,
-					"y": 0.5
-				},
-				"snap": "none",
-				"terminal": "end"
-			},
-			"typeName": "binding"
-		},
-		{
-			"meta": {},
-			"id": "binding:021",
-			"fromId": "shape:016",
 			"toId": "shape:022",
 			"type": "arrow",
 			"props": {
@@ -1586,8 +1550,8 @@
 		},
 		{
 			"meta": {},
-			"id": "binding:022",
-			"fromId": "shape:016",
+			"id": "binding:020",
+			"fromId": "shape:015",
 			"toId": "shape:024",
 			"type": "arrow",
 			"props": {
@@ -1599,6 +1563,42 @@
 				},
 				"snap": "none",
 				"terminal": "start"
+			},
+			"typeName": "binding"
+		},
+		{
+			"meta": {},
+			"id": "binding:021",
+			"fromId": "shape:016",
+			"toId": "shape:007",
+			"type": "arrow",
+			"props": {
+				"isPrecise": false,
+				"isExact": false,
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"snap": "none",
+				"terminal": "start"
+			},
+			"typeName": "binding"
+		},
+		{
+			"meta": {},
+			"id": "binding:022",
+			"fromId": "shape:016",
+			"toId": "shape:025",
+			"type": "arrow",
+			"props": {
+				"isPrecise": false,
+				"isExact": false,
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"snap": "none",
+				"terminal": "end"
 			},
 			"typeName": "binding"
 		}
