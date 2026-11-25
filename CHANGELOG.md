@@ -20,6 +20,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **The board's Harness Builder** (`#/w/<world>/builder`, first under the world in the rail), a
+  page of its own: a header with its views and **Run agent**, the workspace, its status and the
+  run's usage on the left, the run on the right (its ask, Start and Stop, its approvals, a box to
+  message the session), and a Sessions view with the run's conversation and a composer. Set in
+  Manrope and JetBrains Mono, with Font Awesome Free icons and Mikata's new mark. A wide diff in
+  a chat is now reachable from the keyboard.
+  Every unit a session in the world would open with is a card round the core — its version,
+  whether the configuration has it on, a switch — with the build's and the global file's
+  profiles to start from. The composition shows as a global file's `[profiles.<name>]` and as
+  the `--units` list; **Start run** opens a chat with exactly that harness (sandboxed as every
+  chat) and the page follows it live: Plan, Work, Verify, Land, each step on a timeline, the end
+  gate's word, the wall time, the steps and the spend. New: `GET /api/w/<world>/units`, and
+  `POST /api/w/<world>/sessions` takes `profile` and `units`, refused unless they read.
+
 - **A `/tmp` of the command's own.** On Linux, where the kernel allows it, each sandboxed
   command gets its own `/tmp`: a folder of the project's scratch (`.mikata/tmp/slash-tmp/`)
   mounted there for that command alone. A scratch file kept in `/tmp` is now a plain write that
@@ -91,6 +105,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   of 18 either way, at 84% of the calls without it. Lines you write under `## Done when` are held
   as before. New: the `plan_lite` unit (`--units +plan_lite`, `--profile prose`): one line in the
   plan's place that copies and checks only the outputs the ask states.
+
+- **Mikata's new mark: a living cell flowing into a digital one** — a nucleus and its organelles
+  on the left, a hexagon with a circuit round its core on the right, hot pink through coral to
+  amber. The icon and its sizes, the logos, the favicon, the social card, the TUI's picture and
+  the board all carry it; `node tools/brand.mjs` renders them from `assets/source`.
 
 - **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
   mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*

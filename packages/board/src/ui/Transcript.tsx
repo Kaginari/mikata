@@ -144,7 +144,12 @@ function Diff({
     const shown = open ? all : change.head;
     const more = change.lines - shown.length;
     return (
-      <div className="diff">
+      <section
+        className="diff"
+        aria-label="The change"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a wide diff scrolls with the keys
+        tabIndex={0}
+      >
         {shown.map((t, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: lines never reorder
           <Row key={i} line={{ kind: 'add', text: t, n: i + 1 }} />
@@ -152,13 +157,18 @@ function Diff({
         {(more > 0 || open) && change.lines > change.head.length && (
           <Toggle open={open} more={more} onToggle={onToggle} />
         )}
-      </div>
+      </section>
     );
   }
   const shown = open ? change.lines : change.lines.slice(0, DIFF_LINES);
   const more = change.lines.length - shown.length;
   return (
-    <div className="diff">
+    <section
+      className="diff"
+      aria-label="The change"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a wide diff scrolls with the keys
+      tabIndex={0}
+    >
       {shown.map((l, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: lines never reorder
         <Row key={i} line={l} />
@@ -166,7 +176,7 @@ function Diff({
       {(more > 0 || open) && change.lines.length > DIFF_LINES && (
         <Toggle open={open} more={more} onToggle={onToggle} />
       )}
-    </div>
+    </section>
   );
 }
 

@@ -441,6 +441,16 @@ pub struct BoardStarted {
     pub hello: Value,
 }
 
+/// The composition a chat opens with, as the board's Harness Builder asked for it: a profile,
+/// then changes to it. Both already checked to read.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Asked {
+    /// `MIKATA_PROFILE`.
+    pub profile: Option<String>,
+    /// `MIKATA_UNITS`.
+    pub units: Option<String>,
+}
+
 /// An ask as a human is shown it: every field the child sent, passed through `shown`.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Shown {
@@ -1649,6 +1659,7 @@ impl Bridge {
         world_id: &str,
         resume: Option<&str>,
         owner: &str,
+        asked: Asked,
     ) -> Result<BoardStarted, Refused> {
         {
             let mut s = lock(&self.sessions);
@@ -1663,14 +1674,19 @@ impl Bridge {
             }
             s.1 += 1;
         }
-        let out = self.open(world, world_id, resume, owner).await;
+        let out = self.open(world, world_id, resume, owner, &asked).await;
         lock(&self.sessions).1 -= 1;
         out
     }
 
     /// The child's command: its program and arguments, in the world, with its scrubbed
     /// environment and the board's pid to die with, in a group of its own.
-    fn command(&self, world: &Path, resume: Option<&str>) -> tokio::process::Command {
+    fn command(
+        &self,
+        world: &Path,
+        resume: Option<&str>,
+        asked: &Asked,
+    ) -> tokio::process::Command {
         let keys = provider_keys(&self.child.global, world);
         let mut cmd = tokio::process::Command::new(&self.child.program);
         cmd.args((self.child.args)(world, resume))
@@ -1682,6 +1698,13 @@ impl Bridge {
             .stderr(std::process::Stdio::piped())
             .env(BOARD_PID, std::process::id().to_string())
             .kill_on_drop(true);
+        // The composition the human built on the board, as `--profile` and `--units` give it.
+        if let Some(p) = &asked.profile {
+            cmd.env("MIKATA_PROFILE", p);
+        }
+        if let Some(u) = &asked.units {
+            cmd.env("MIKATA_UNITS", u);
+        }
         #[cfg(unix)]
         cmd.process_group(0);
         cmd
@@ -1693,9 +1716,10 @@ impl Bridge {
         world_id: &str,
         resume: Option<&str>,
         owner: &str,
+        asked: &Asked,
     ) -> Result<BoardStarted, Refused> {
         let limits = self.limits;
-        let mut cmd = self.command(world, resume);
+        let mut cmd = self.command(world, resume, asked);
         let mut child = cmd
             .spawn()
             .map_err(|e| (502, format!("the chat's process did not start: {e}")))?;

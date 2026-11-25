@@ -22,6 +22,7 @@ pub mod browser;
 pub mod control;
 pub mod facts;
 pub mod guard;
+pub mod harness;
 pub mod health;
 pub mod instance;
 pub mod integrations;
@@ -475,6 +476,7 @@ impl Board {
             )
             .route("/api/sessions", get(sessions))
             .route("/api/w/{world}/runs", get(runs_of))
+            .route("/api/w/{world}/units", get(units_of))
             .route("/api/w/{world}/runs/{run}", get(run_of))
             .route("/ws/session/{id}", get(socket))
             .fallback(asset)
@@ -1054,12 +1056,27 @@ async fn integrations_of(State(board): State<Arc<Board>>, uri: Uri) -> Response 
 struct Start {
     #[serde(default)]
     resume: Option<String>,
+    /// A profile to open with, by name (`--profile`).
+    #[serde(default)]
+    profile: Option<String>,
+    /// Changes to the composition (`--units`): `-plan,+plan_lite`.
+    #[serde(default)]
+    units: Option<String>,
 }
 
 /// Whether `run` may name a run to resume: `last`, or a session's run id (`r<ms>-<pid>`) — never
 /// a path, `.` or `..`.
 fn run_name(run: &str) -> bool {
     run == "last" || mikata_loop::resume::is_session_run(run)
+}
+
+/// Whether `name` may name a profile: a short word of letters, digits, `-` and `_`.
+fn profile_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 64
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 /// The cookie on `headers` that names a live session.
@@ -1085,6 +1102,19 @@ async fn start(
             "`resume` names a run's id, or `last`",
         );
     }
+    if let Some(p) = &body.profile
+        && !profile_name(p)
+    {
+        return refuse(
+            StatusCode::BAD_REQUEST,
+            "`profile` names a profile: letters, digits, `-`, `_`",
+        );
+    }
+    if let Some(u) = &body.units
+        && let Err(e) = mikata_loop::Composition::parse(u)
+    {
+        return refuse(StatusCode::BAD_REQUEST, &format!("`units`: {e}"));
+    }
     let Some(owner) = live_cookie(&board, &headers) else {
         return refuse(StatusCode::UNAUTHORIZED, "no session");
     };
@@ -1105,6 +1135,10 @@ async fn start(
             &w.id,
             body.resume.as_deref(),
             &owner,
+            bridge::Asked {
+                profile: body.profile.clone(),
+                units: body.units.clone(),
+            },
         )
         .await
     {
@@ -1138,6 +1172,17 @@ async fn runs_of(State(board): State<Arc<Board>>, Path(world): Path<String>) -> 
     let read = tokio::task::spawn_blocking(move || present(&board, &world).map(|p| runs::list(&p)));
     match read.await {
         Ok(Ok(r)) => Json(r).into_response(),
+        Ok(Err(refused)) => *refused,
+        Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
+    }
+}
+
+/// `GET /api/w/<world>/units`: [`harness::BoardUnits`], the harness a session would open with.
+async fn units_of(State(board): State<Arc<Board>>, Path(world): Path<String>) -> Response {
+    let read =
+        tokio::task::spawn_blocking(move || present(&board, &world).map(|p| harness::list(&p)));
+    match read.await {
+        Ok(Ok(h)) => Json(h).into_response(),
         Ok(Err(refused)) => *refused,
         Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }

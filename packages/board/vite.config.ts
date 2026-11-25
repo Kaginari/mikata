@@ -76,6 +76,10 @@ export const BOARD_HEADERS = {
 export default defineConfig({
   plugins: [react(), fixtures()],
   preview: { host: '127.0.0.1', port: PREVIEW_PORT, strictPort: true, headers: BOARD_HEADERS },
-  build: { sourcemap: false },
+  // Fonts are files of their own, never data: URLs: the board's CSP takes fonts from 'self' only.
+  build: {
+    sourcemap: false,
+    assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
+  },
   test: { include: ['src/**/*.test.{ts,tsx}'] },
 });

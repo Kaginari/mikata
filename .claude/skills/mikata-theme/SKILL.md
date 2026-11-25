@@ -6,8 +6,8 @@ description: Mikata's visual theme — the holographic HUD look. Use when buildi
 # The Mikata theme
 
 **Techno-arcane**: deep night surfaces, one cyan **holo** accent that glows, gold kept for you and
-for titles. Mikata's logo (`assets/source/mikata-logo-dark.svg`: two cells mid-division, gold you
-and cyan Mikata, hexagon nuclei) is the reference look; when in doubt, match it. The races keep
+for titles. Mikata's logo (`assets/source/mikata-mark.png`: a living cell flowing into a digital one,
+hot pink through coral to amber) is the reference look; when in doubt, match it. The races keep
 their **hex** frames and their own colours in the experimental modes; their old banner and icon
 sheet (`docs/experimental/assets/mnemorph-banner.jpg`, `assets/source/race-icons.jpg`) are
 references for race surfaces only.

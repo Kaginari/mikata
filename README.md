@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/mikata-logo-dark.png">
-    <img src="./assets/brand/mikata-logo-light.png" alt="Mikata: two cells mid-division, gold for you and cyan for Mikata" width="220">
+    <img src="./assets/brand/mikata-logo-light.png" alt="Mikata: a living cell flowing into a digital one" width="220">
   </picture>
 </p>
 
@@ -174,6 +174,16 @@ answer landed; it denies every act that needs your approval unless you pass `--g
 ([`mikata run`](docs/03-architecture.md#mikata-run)). From a checkout, `cargo run -p mikata-tui --`
 runs the same binary.
 
+### The terminal app
+
+<img src="docs/img/tui/dashboard-dark.png" width="820" alt="The terminal app: a header bar, the Checks, Guardrails and Units panels, the agent loop with two-row tool cards, Done when, Budgets and Session, a footer bar">
+
+A dashboard round the conversation: what the end gate checks and holds, the budgets, the units on
+and off, the files and bodies at work. A tool card is two rows until you open it (a click or
+Ctrl+T). **F2** (or `/view center|focus|zen`) switches to the conversation with its bars, or to
+the conversation alone; Ctrl+O hides the panels
+([the terminal app](docs/03-architecture.md#the-terminal-app)).
+
 **Say what the result must be.** An ask with examples of the expected output passed twice as often
 on our bench as the same ask in prose: Mikata checks its work against what you wrote, so one
 example of what must change and one of what must not is worth more than a paragraph.
@@ -196,6 +206,12 @@ every shortcut.
 | Chat | <img src="docs/img/board/chat-dark.png" width="400" alt="A chat, dark: tool cards, a numbered diff, the end gate's verdict, the session pane"> | <img src="docs/img/board/chat-light.png" width="400" alt="A chat, light"> |
 | Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval card, dark: the act whole with every hidden character escaped, Yes disabled until read"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval card, light"> |
 | Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
+
+**The Harness Builder** (`#/w/<world>/builder`, first under each world) composes a session's units
+with switches, starts a run with exactly that harness and follows it live: its stages, its log,
+the end gate's word, its spend, its approvals.
+
+<img src="docs/img/board/builder-dark.png" width="820" alt="The Harness Builder: the units as cards round the core, the composition as TOML, the run live on the right with its stages, log and the end gate's verdict">
 
 ## Build it
 
