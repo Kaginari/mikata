@@ -211,8 +211,6 @@ for (const theme of ['dark', 'light'] as const) {
     await page.screenshot({ path: docs(`sessions-${theme}`) });
     await views.getByRole('button', { name: 'Harness builder' }).click();
     await page.screenshot({ path: docs(`builder-${theme}`) });
-    await views.getByRole('button', { name: 'Plugins' }).click();
-    await page.screenshot({ path: docs(`plugins-${theme}`) });
     await views.getByRole('button', { name: 'Profiles' }).click();
     await page.screenshot({ path: docs(`profiles-${theme}`) });
     // An act the run asks the human for: the card over the page.
