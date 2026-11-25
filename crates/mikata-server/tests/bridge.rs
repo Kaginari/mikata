@@ -1062,6 +1062,11 @@ async fn a_crash_says_why_and_a_resume_names_only_a_run() {
         r#"{"resume": "."}"#,
         r#"{"resume": "../r1-2"}"#,
         r#"{"resume": "--world"}"#,
+        // The Harness Builder's composition: a profile is a name, units a `--units` list.
+        r#"{"profile": "../etc"}"#,
+        r#"{"profile": ""}"#,
+        r#"{"units": "plan"}"#,
+        r#"{"units": "-plan,,+x"}"#,
     ] {
         let (status, _) = r.post_body(&b, bad).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{bad}");

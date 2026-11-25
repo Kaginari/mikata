@@ -1,0 +1,17 @@
+<!-- GitHub's link card, 1280×640. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <defs>
+    <radialGradient id="glow" cx="0.3" cy="0.45" r="0.8">
+      <stop offset="0" stop-color="#3a1430"/><stop offset="1" stop-color="#0d0b10"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FF168A"/><stop offset=".55" stop-color="#FF655C"/><stop offset="1" stop-color="#FFB020"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <rect y="604" width="1280" height="36" fill="url(#bar)"/>
+  <image href="mikata-mark.png" x="70" y="112" width="598" height="380"/>
+  <text x="718" y="300" font-family="JetBrains Mono, monospace" font-weight="700" font-size="92" fill="#F4EEF5">mikata</text>
+  <text x="718" y="400" font-family="Noto Sans JP, sans-serif" font-weight="700" font-size="84" fill="#FF655C">味方</text>
+  <text x="722" y="470" font-family="Manrope, sans-serif" font-weight="600" font-size="34" fill="#C0ADBF">the coding agent on your side</text>
+</svg>

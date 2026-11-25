@@ -20,6 +20,7 @@ import { Pane } from './ui/Pane.tsx';
 import { Rail } from './ui/Rail.tsx';
 import { ShortcutMap } from './ui/ShortcutMap.tsx';
 import { BodiesView } from './views/Bodies.tsx';
+import { BuilderView } from './views/Builder.tsx';
 import { LiveChat, PastChat, type Side } from './views/Chat.tsx';
 import { IntegrationsView } from './views/Integrations.tsx';
 import { JournalView } from './views/Journal.tsx';
@@ -268,6 +269,21 @@ function Shell() {
       }
       return !p;
     });
+
+  // The Harness Builder is a page of its own: its header, its columns, no rail and no pane.
+  if (route.name === 'section' && route.section === 'builder' && world) {
+    return (
+      <>
+        <BuilderView
+          key={world.id}
+          w={world}
+          worlds={load.state === 'ready' ? load.data.worlds : []}
+          chats={chats}
+        />
+        {createPortal(<Announcer />, document.body)}
+      </>
+    );
+  }
 
   return (
     <div

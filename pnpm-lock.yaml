@@ -234,6 +234,15 @@ importers:
 
   packages/board:
     dependencies:
+      "@fontsource/jetbrains-mono":
+        specifier: ^5.3.0
+        version: 5.3.0
+      "@fontsource/manrope":
+        specifier: 5.3.0
+        version: 5.3.0
+      "@fortawesome/free-solid-svg-icons":
+        specifier: 7.3.1
+        version: 7.3.1
       "@mikata/protocol":
         specifier: workspace:*
         version: link:../protocol
@@ -1212,6 +1221,18 @@ packages:
         integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==,
       }
 
+  "@fontsource/jetbrains-mono@5.3.0":
+    resolution:
+      {
+        integrity: sha512-fqDfB5I9f1p1TV486aUgB9t8zP84P0O1FtQR5Ol9vjwPy+S+EIGlVYm1cvj2W5shcZMTg2nZFdVMoH5wFu8a1A==,
+      }
+
+  "@fontsource/manrope@5.3.0":
+    resolution:
+      {
+        integrity: sha512-obJ1Dv3+uCA6HlHgW8u4BGYxJR9In2HW7gjJhlflEvkrj1X1iSEwu0fToL+JYGC/FEKFfIz1sBuPduvcL2gIAA==,
+      }
+
   "@formatjs/fast-memoize@3.1.7":
     resolution:
       {
@@ -1235,6 +1256,20 @@ packages:
       {
         integrity: sha512-udBTb6Heg/sleurLkUdPq+T9B7FvhiZ+8EyauSpqkqKPF+S5TUplO/tZmok7JC86Zk+OKhP8rIGi8bYRF9WJaA==,
       }
+
+  "@fortawesome/fontawesome-common-types@7.3.1":
+    resolution:
+      {
+        integrity: sha512-k0C0sdHmZtAo6dRDtd1Z/qcpyHbL0CKsjV8seMY/21xGhY5Wsv0XRmiI/xEEH4y2c9b1+jvgNs/3EqhV27yUEA==,
+      }
+    engines: { node: ">=6" }
+
+  "@fortawesome/free-solid-svg-icons@7.3.1":
+    resolution:
+      {
+        integrity: sha512-v0BLa0eqg7ubvVWeNSHVBs8fWH/GJicERZoJaxJ3FE/lj67VSqzoMg9pzfZVOfLMX10y0pGwQAuxoRVVH2patg==,
+      }
+    engines: { node: ">=6" }
 
   "@iconify-json/simple-icons@1.2.100":
     resolution:
@@ -6131,6 +6166,10 @@ snapshots:
 
   "@floating-ui/utils@0.2.12": {}
 
+  "@fontsource/jetbrains-mono@5.3.0": {}
+
+  "@fontsource/manrope@5.3.0": {}
+
   "@formatjs/fast-memoize@3.1.7": {}
 
   "@formatjs/icu-messageformat-parser@3.5.22":
@@ -6144,6 +6183,12 @@ snapshots:
       "@formatjs/fast-memoize": 3.1.7
       "@formatjs/icu-messageformat-parser": 3.5.22
       intl-messageformat: 12.1.4
+
+  "@fortawesome/fontawesome-common-types@7.3.1": {}
+
+  "@fortawesome/free-solid-svg-icons@7.3.1":
+    dependencies:
+      "@fortawesome/fontawesome-common-types": 7.3.1
 
   "@iconify-json/simple-icons@1.2.100":
     dependencies:

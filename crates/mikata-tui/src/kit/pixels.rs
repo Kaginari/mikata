@@ -492,7 +492,7 @@ pub fn square(cols: u16, cell: (u16, u16)) -> (u16, u32, u32) {
     (rows, wide, u32::from(rows) * ch)
 }
 
-/// Mikata's logo, a 256 px RGBA PNG: the two cells on their tile, which the sidebar's head shows
+/// Mikata's logo, a 256 px RGBA PNG: the fusion cell on its tile, which the sidebar's head shows
 /// as real pixels.
 pub const LOGO: &[u8] = include_bytes!("../../assets/brand/mikata-icon.png");
 

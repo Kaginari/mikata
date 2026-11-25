@@ -57,7 +57,7 @@ impl Slot {
 /// What a picture shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Art {
-    /// Mikata's logo: the two cells, gold for you and cyan for Mikata.
+    /// Mikata's logo: a living cell flowing into a digital one.
     Logo,
 }
 

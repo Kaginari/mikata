@@ -39,7 +39,7 @@ on them until there is work where structure should clearly win.
 ## Mnemorph's marks
 
 The emblem, the dragon and the crowned slime, and the banner above are Mnemorph's; Mikata's own
-logo is two cells mid-division, gold for you and cyan for Mikata. Mnemorph's files are kept here:
+logo is a living cell flowing into a digital one. Mnemorph's files are kept here:
 
 | | |
 |---|---|

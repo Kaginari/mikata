@@ -48,7 +48,7 @@ export function tokens(n: number): string {
 }
 
 /** The transcript, virtualized, the text streaming and the live line after it. */
-function TranscriptView({
+export function TranscriptView({
   view,
   me,
   tail,
@@ -199,7 +199,7 @@ function Toasts({ entries }: { entries: readonly Entry[] }) {
   );
 }
 
-function Composer({ live }: { live: Live }) {
+export function Composer({ live }: { live: Live }) {
   const [text, setText] = useState('');
   const view = live.view;
   const busy = view?.busy ?? false;
