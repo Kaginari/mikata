@@ -424,9 +424,10 @@ embeds a placeholder page saying so, and serves the API all the same.
 | `GET /api/metrics` | `BoardMetrics` for `?world=<id>` or `all` (the default) over `?window=7d\|28d\|all` (`7d` by default; another word is 400): the usage ledgers' fold, the meters, the Dark Elf's scores and the bench — see *Metrics and integrations* below |
 | `GET /api/integrations` | `BoardIntegrations`, read-only and redacted: the global file alone, or `?world=<id>`'s files layered over it — see *Metrics and integrations* below |
 | `WS /ws/board` | the push channel, subprotocol `mikata.board.v1` beside the CSRF entry; the server alone speaks — see *The watcher* below |
-| `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mikata resume`'s opening; `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
+| `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mikata resume`'s opening; `"profile": "<name>"` and `"units": "-plan,+plan_lite"` open it with that composition, as `mikata run --profile` and `--units` do (passed to the chat as `MIKATA_PROFILE` and `MIKATA_UNITS`; a name that is no word, or a list that does not read, is refused with `400`); `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
 | `GET /api/sessions` | `BoardSessions`: `{"sessions": [{"id", "world", "session", "run", "controlled", "tabs", "asks"}]}`, the live chats |
 | `WS /ws/session/<id>` | a tab on a live chat (below), subprotocol `mikata.v1` |
+| `GET /api/w/<id>/units` | `BoardUnits`: `{"units": [{"id", "kind", "version", "on", "frame", "tightens"}], "profiles": [{"name", "units", "from"}], "holes"}` — the harness a session in the world would open with: every native unit with its version and whether the configuration has it on, every plugin the global file declares, the build's profiles then the global file's; `holes` says what did not read. The Harness Builder reads it |
 | `GET /api/w/<id>/runs` | `BoardRuns`: `{"runs": [{"id", "when", "state", "why", "ask", "turns"}], "more"}` — a listed, present world's session runs from its journals, newest first, at most 100 (`more` counts the rest); `state` is `live` (a session holds its lock now), `stopped` (a checkpoint, an interrupt, a turn cut short: it may be resumed), `ended` (answered or failed) or `unknown` with `why` (too large, a line that does not read, not a regular file). See *The board's chat* below |
 | `GET /api/w/<id>/runs/<run>` | `BoardTranscript`: `{"run", "state", "events", "dropped", "skipped"}` — a run's journal as the protocol's events (`{jsonrpc, method, params}`, `seq` from 1), the newest 10,000; `400` for a name that is no session run's id, `404` for no such run, `422` for a journal past 32 MiB or not a regular file |
 
@@ -1008,43 +1009,40 @@ the session runs in this process.
 `--theme` names a scheme, a variant or both (`neon-light`). Unnamed, the variant is read from `MIKATA_THEME`, else the terminal's
 background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`, else neon.
 
-```
-╭─ ◈ MIKATA · summoner · deepseek-v4-flash ───────────────────────────────────────────────── ● thinking 0s ╮
-│ ᴄᴏɴᴠᴇʀꜱᴀᴛɪᴏɴ ─────────────────────────────────────────────────────────── │ ꜱᴇꜱꜱɪᴏɴ ───────────────────── │
-│ ▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▘ │ ▾ vitals ──────────────────── │
-│                                                                          │ ᴄᴛx  ━━━━────── 41% / 150.0k  │
-│ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄   │ ᴛᴏᴋ  60.9k                    │
-│ ▌ ● edit  sqlglot/parser.py  write                                   ▕▄▖ │ ᴄᴏꜱᴛ $0.04                    │
-│ ▌   ⎿ ok · 0ms · +1 −1                                               ▕ ▌ │                               │
-│ ▌      - return this                                                 ▕ ▌ │ ▾ memory ──────────────────── │
-│ ▌    1 + return self._parse_collate(this)                            ▕ ▌ │ recalled 3 this ask           │
-│ ▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▘ │ grounded 5 · shared 2         │
-│                                                                          │ ✓ “collations drop in         │
-│   ↳ orc-sql  is working on: judge                                        │   \u{202e}_parse_types\u{1b}… │
-│                                                                          │                               │
-│   ↳ slime-parser  bash pytest tests/test_parser.py                       │ ▾ files · 1 ───────────────── │
-│  ▄▀▀▀▀▄  ⣾ Thinking… (0s · 61k tokens · esc to interrupt)                │ sqlglot/                      │
-│ ▀▀▀▀▀▀▀▀   slime-parser · running bash                                   │ └ M parser.py                 │
-│ ▀▀▀▀▀▀▀▀                                                                 │                               │
-│  ▀▀▀▀▀▀                                                                  │ ▾ bodies · 2 · 2 live ─────── │
-│ ╭─ ᴀꜱᴋ ────────────────────────────────────── enter queues for summoner ─╮ │ ◆ summoner            ⣾ working │
-│ │ ›  a line now waits its turn                                         │ │ … +2 more                     │
-│ ╰──────────────────────────────────────────────────────────────────────╯ │                               │
-╰─ $0.04 · 60.9k tok · ctx 41% · esc stop · enter queue · pgup scroll · world ~/sqlglot ───────────────────╯
-```
+#### The terminal app
+
+<img src="./img/tui/dashboard-dark.png" width="760" alt="The terminal app, dark: a header bar of chips, the Checks, Guardrails and Units panels on the left, the agent loop with two-row tool cards in the middle, Done when, Budgets and Session on the right, a footer bar">
+
+<img src="./img/tui/approval-dark.png" width="380" alt="An approval over the dimmed dashboard: the act boxed under a $ prompt, its reason, the answers as buttons"> <img src="./img/tui/focus-dark.png" width="380" alt="The Focus view: the bars and the conversation, no panels">
+
+The frames are drawn by the app itself: `cargo run -p mikata-tui --example frame -- <width> <height>
+<dark|light> [scheme] [focus|zen|gate] > frame.json`, then `node tools/tui-shot.mjs frame.json out.png`.
 
 | Part | What it shows |
 |---|---|
-| header | Mikata's mark (the name drawn across the water races' blues), the session's body and its model on the left; the session's id and its state on the right — `○ idle`, `● running bash 3s`, `◆ waiting for you` |
-| panes | labelled in small capitals on their edges: ᴄᴏɴᴠᴇʀꜱᴀᴛɪᴏɴ, ꜱᴇꜱꜱɪᴏɴ (the sidebar), ᴀꜱᴋ (the input) |
-| welcome | the card the conversation opens on: on first run it sits at the top of the conversation, like a header, and scrolls away with the transcript as messages come — a short transcript fills from the top, the room it leaves below it, above the input. One title line, **◆ Mikata**, the version and the tagline; what Mikata does in four lines (one body that writes "done" down and checks it, the end gate, the split by project, memory with provenance); the world, the model, the session, **memory** (the grounded and shared counts, read by the sidebar's survey) and **verify** (the session card's verify line, or "none — memory can't be grounded" and the line to add, the test command the project's manifest names) in small capitals; the first keys |
-| transcript | each message and call a raised panel — a spine in its colour, a lit top edge, a shadow one cell right and half a row down: the human's lines in gold; the body's Markdown (headings, emphasis, code highlighted, lists, quotes, links, tables) in cyan with `✦`, one panel however many pieces it streamed in; tool calls as cards in their class's colour (a look blue, a write violet, an outward act orange, a destructive one red) — `● bash  pytest -q  read`, then `⎿ running…`, then `⎿ ok · 2.0s · 3 lines` or `⎿ failed · 800ms`; output folded to three lines, a numbered diff for `edit`, `multiedit` and `patch`, a new file's head for `write`, each expanded whole by a click or a key; consecutive reads, indexes, greps and globs as one card (`read 4 files · grep 3 patterns`, its calls ok, failed or stopped counted); the reasoning as one quiet line; the end gate's verdict as one line with its counts |
-| activity strip | above the input from the frame an ask is sent until its turn ends: a spinner, the phase as a verb in a moving shimmer, the time the turn has run, its tokens; under it the body and the phase in words, and the context when it nears its stress line |
-| sidebar | at its head, on a column 30 rows tall or more, Mikata's logo — a living cell flowing into a digital one — over the state of the body working now; **vitals**: the context as a gauge against the stress line, the tokens, the spend; **memory**: the notes recall gave this ask, the grounded and shared counts and the claim grounded last, as `mikatad memory status` reads them; **files**: the paths the session's acts changed, marked `A`, `M` or `D`, as a tree of their directories; **bodies**: the session's body and the bodies it commissioned, nested as they commissioned each other, each in its race's colour with what it is doing. A click on a section's title folds it (`▸`) or opens it (`▾`) |
-| input | multi-line; a line sent while a turn runs waits its turn, shown above the input |
-| approval | a modal over the dimmed view: a strip naming the gate with its countdown, the act's class in its colour, the act, the plan its approval binds to, its reasons and the paths it opens outside the world, the answers numbered; the input's edge reads "answer the card first" |
-| toast | the end gate's verdict, `◆ end gate pass`, floating in at the top right and fading out on the spring; never drawn over an open approval |
-| status bar | the spend in dollars and tokens, the context against its stress line (gold from 75%, alarm from 90%), the keys that matter now, the world |
+| header bar | Mikata, the world's repo and branch, the mode as a pill, the model, the sandbox on or off; the state on the right — `○ idle`, `● running bash 3s`, `◆ waiting for you`. Three rows, framed, from 36 rows tall; one row below |
+| agent loop | the conversation in a panel of its own (no frame round it under 60×16): the welcome, the transcript, the activity strip and the input |
+| welcome | the card the conversation opens on: on first run it sits at the top of the conversation and scrolls away with the transcript as messages come. One title line, **◆ Mikata**, the version and the tagline; what Mikata does in four lines (one body that writes "done" down and checks it, the end gate, the split by project, memory with provenance); the world, the model, the session, **memory** and **verify** in small capitals; the first keys |
+| transcript | each message and call a rounded card in its colour: the human's lines in gold; the body's Markdown (headings, emphasis, code highlighted, lists, quotes, links, tables) with `✦`; tool calls in their class's colour (a look blue, a write violet, an outward act orange, a destructive one red). **A tool card is two rows until opened**: `● bash  pytest -q  read`, then `⎿ ok · 2.0s · 412 passed · +3 lines` — the output's last line and how many it stands for, an edit's `+3 −0`, a failure's last line in alarm; a click or Ctrl+T opens its output, its numbered diff or a new file's head whole. Consecutive reads, indexes, greps and globs are one card (`read 4 files · grep 3 patterns`); the reasoning one quiet line; the end gate's verdict one line with its counts |
+| activity strip | above the input from the frame an ask is sent until its turn ends: a spinner, the phase as a verb in a moving shimmer, the time the turn has run, its tokens |
+| Done when | the body's list from its plan, each line ticked once the end gate passes the answer |
+| Checks | each check the end gate holds — every verify command, *tests intact*, *duties done* — as ok, failed or no result, with its time: from the gate's latest verdict, or the body's own later run of the command; a bar of how many held |
+| Budgets | steps, wall clock, the context against its stress line as a gauge, the spend |
+| Guardrails | what the sandbox holds every command to (the project, the network, a `/tmp` of its own) and what the gates hold the session to (verify must pass, no test deleted or skipped, outward acts ask you), each ticked where it is in force |
+| Units | every unit the run lists, a few words on what it does, and an ON or OFF pill |
+| Session | **memory** (the notes recall gave this ask, the grounded and shared counts, the claim grounded last), **files** (the paths the session's acts changed, `A`, `M` or `D`, as a tree), **bodies** (the session's body and the bodies it commissioned, nested, each in its race's colour with what it is doing); Mikata's logo at its head where the terminal draws pictures and the panel has room. A click on a section's title folds it |
+| footer bar | the verify line and the last answer's word on the left, the keys that matter now, the steps, the time and the spend on the right |
+| approval | a modal over the dimmed view: a strip naming the gate with its countdown, the act's class, the act boxed under a `$` prompt, its reason, the plan its approval binds to and the paths it opens outside the world, the answers as buttons (`[1] ✔ approve once`, `[2] ✘ deny`, `[3] ✘ deny, say why`; stacked with their full words when narrow); the input reads "answer the card first" |
+| toast | the end gate's verdict, `◆ end gate pass`, floating in at the top right and fading out; never drawn over an open approval |
+
+From 140 columns, Checks, Guardrails and Units stand in a column of their own on the left; narrower,
+every panel shares the right column as room allows, the Session panel keeping half of it, and a
+panel that cannot show four of its lines gives its place up. Below 100 columns the panels fold away.
+The colours are the `neon` scheme's unless `--theme` names another: hot pink `#ff168a` through coral
+to amber `#ffb020` on a near-black plum, success `#a3ff56`, error `#ff4757`.
+
+**Views.** F2, or `/view center|focus|zen`, switches while the session runs: *center* is the
+dashboard above, *focus* the bars and the conversation, *zen* the conversation and its input alone.
 
 | Key | Does |
 |---|---|
@@ -1053,21 +1051,22 @@ background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`,
 | ↑ ↓ | move between lines, then through the lines sent before |
 | PgUp PgDn, Shift+↑ ↓, Ctrl+Home End, the wheel | scroll the transcript |
 | Alt+↑ ↓ | move the focus between cards (calls, groups, thoughts), scrolling each into view |
-| Ctrl+T, a click on a card | expand the focused (or clicked) card — a call's folded output, a group's calls, a thought's text — or fold it again; with none focused, the newest |
-| Ctrl+O | show or hide the sidebar |
+| Ctrl+T, a click on a card | open the focused (or clicked) card — a call's output or diff, a group's calls, a thought's text — or fold it again; with none focused, the newest |
+| F2 | the next view: center, focus, zen |
+| Ctrl+O | show or hide the panels |
 | Esc | stop the turn; back to the end of the transcript |
 | Ctrl+C | stop the turn, or leave when none runs |
 | 1 or y, 2 or n, 3, then Enter | answer an approval — yes, no, or no with a reason typed for the model; ↑ ↓ move the pick while the whole act shows — from no pick to No, stopping at the ends, never onto Yes unasked — and read a long act otherwise; Esc denies it |
 
 Slash commands: `/send <text>` steers the running turn at its next tool step, `/theme <scheme> [dark|light]`,
-`/clear`, `/help`, `/quit`.
+`/view center|focus|zen`, `/clear`, `/help`, `/quit`.
 
 **It shows its work as it happens.** The status appears in the frame after Enter, before any
 token: the phase is read from the model — an approval on the card, a call whose arguments still
 stream (`calling grep`), a call running (`running bash: pytest -q`), the answer streaming
 (`writing`), the context past its stress line with the next answer not begun (`compacting`), else
 `thinking` — and a commissioned body that acts (its events come through `Seen::From`) puts its
-own name and tool there, under the logo at the sidebar's head, until its turn ends: the body
+own name and tool there, in the header's state, until its turn ends: the body
 named is the newest that still works, so siblings working at once never take the place from
 each other, and the session's own shows only when none does. The providers hand the stream reasoning as it comes
 and a call's arguments piece by piece (`StreamEvent::Thinking`, `StreamEvent::ToolInput`; the
@@ -1080,9 +1079,9 @@ never leaves it doubled. A call's card appears at its first byte, its summary fi
 arguments arrive, its class read by the classifier off the UI thread; its duration is the time
 to its result. Time is the model's clock, advanced by its ticks.
 
-The sidebar's head is Mikata's logo, embedded from `assets/brand/mikata-icon.png` (256 px), and it
-never moves: idle or working, it asks no tick. It is shown only as the real picture: a terminal
-that draws no images shows no logo, and the head is the state line alone. A logo built from block
+The Session panel's head is Mikata's logo, embedded from `crates/mikata-tui/assets/brand/mikata-icon.png`
+(256 px), and it never moves: idle or working, it asks no tick. It is shown only as the real
+picture, where the panel keeps ten rows under it: a terminal that draws no images shows no logo. A logo built from block
 characters was tried, and at 32 sub-pixels across it was never sharp enough.
 
 **The logo in real pixels.** Where the terminal draws images, the logo is its 256 px PNG, laid on
@@ -1154,8 +1153,8 @@ To see the pictures in VS Code's terminal, turn on `terminal.integrated.enableIm
 settings and reload the window: xterm.js then lists Sixel in DA1, and Mikata draws iTerm2's
 inline images. `mikata --probe` says `drawing iterm` when it took.
 
-The sidebar takes 36 columns on the right from a 100-column terminal up, and folds away below it.
-It shows only what the run or the world gives. The observer sends the chain of bodies each
+The panels take a column of 40 on the right (and one on the left from 140) from a 100-column
+terminal up, and fold away below it. They show only what the run or the world gives. The observer sends the chain of bodies each
 commissioned body's event came through (`Seen::From`), what recall gave the session's ask, and
 each `write`'s path; it never touches the disk on the session's task. The UI looks whether that
 path exists on a runtime thread, so a hung mount holds that thread, never the session. The look
@@ -1252,6 +1251,7 @@ address, so a link, a reload or the back button lands where it was:
 |---|---|
 | `#/` | every world, live first, then by latest activity |
 | `#/w/<world>` | a world |
+| `#/w/<world>/builder` | its Harness Builder: a page of its own |
 | `#/w/<world>/<bodies\|memory\|ontology\|journal>` | a section of it |
 | `#/w/<world>/bodies/<colony\|races\|queue\|timeline>` | a tab of the bodies page |
 | `#/w/<world>/s/<session>` | a live chat |
@@ -1268,6 +1268,7 @@ state, never a blank pane.
 |---|---|---|
 | Worlds `#/` | each world's row: status, latest session, memory standing, challenges, gate, spend | *No worlds yet*, with the command that adds one (`mikatad board add <dir>`); *Loading worlds…* |
 | A world `#/w/<world>` | its overview in panels, each with its source | *unknown* with its reason; a missing world keeps its page |
+| Harness Builder `#/w/<world>/builder` | a page of its own (no rail, no pane): a header with its views (Sessions, Harness builder, Plugins, Agent runs, Profiles, Journal) and *Run agent*; on the left the workspace (a world picker and its path), its status (the harness, the sandbox the run got, the units on) and the run's usage; in the middle every unit a session would open with as a card round the core, with a switch, its version and an icon, a profile to start from, and the composition as a global file's `[profiles.<name>]` and as `--units` (copy, export); on the right the run — the ask, Start and Stop, its stages (Plan, Work, Verify, Land), its log, the end gate's word, its wall time, steps and spend, a box to message it, and its approvals. *Sessions* shows the run's own conversation and composer. Start opens a chat with exactly that composition (`POST …/sessions` with `profile` and `units`) | *Reading the harness…*; *No run yet*; *Waiting for an ask…* |
 | A chat `#/w/<world>/s/<session>`, a past run `…/r/<run>` | the transcript in the terminal's grammar, the composer, the approval card | *A new chat*; *Connecting…*; *This chat is not live* |
 | Bodies `#/w/<world>/bodies` | the colony net, race cards, the queue, the timeline | *No body here yet*; *No order here*; *Nothing on the timeline* |
 | Memory, Ontology | notes by creature, scope and standing; facts by status, with confirm, wake and settle | *No note here*; *No contested fact* |
