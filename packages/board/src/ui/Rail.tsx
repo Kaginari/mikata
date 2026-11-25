@@ -11,6 +11,7 @@ import { format, type Route, type WorldSection, worldOf } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { CHOICES, type Choice } from '../theme.ts';
 import { ago } from '../time.ts';
+import { Glyph } from './Icon.tsx';
 import { Mark, STATUS } from './Mark.tsx';
 import { Wordmark } from './Wordmark.tsx';
 
@@ -26,7 +27,7 @@ export const SECTIONS: readonly [WorldSection, string, string][] = [
   ['bodies', '⛬', 'Bodies & queue'],
   ['memory', '✧', 'Memory'],
   ['ontology', '◇', 'Ontology'],
-  ['journal', '▤', 'Journal'],
+  ['journal', '▦', 'Journal'],
 ];
 
 /**
@@ -69,7 +70,7 @@ function Item({
   return (
     <a className="rail-item" href={href} aria-current={current ? 'page' : undefined}>
       <span className="rail-glyph" aria-hidden="true">
-        {glyph}
+        <Glyph glyph={glyph} />
       </span>
       {children}
     </a>
@@ -154,7 +155,7 @@ function ChatList({
           aria-current={route.name === 'run' && route.run === r.id ? 'page' : undefined}
         >
           <Mark
-            tone={r.state === 'stopped' ? 'gold' : r.state === 'live' ? 'holo' : 'muted'}
+            tone={r.state === 'stopped' ? 'gold' : r.state === 'live' ? 'ok' : 'muted'}
             glyph={r.state === 'live' ? '●' : r.state === 'stopped' ? '◇' : '○'}
           >
             <span className="rail-chat-name">
@@ -247,7 +248,10 @@ function Theme({ choice, onChoice }: { choice: Choice; onChoice: (c: Choice) => 
           aria-pressed={choice === c}
           onClick={() => onChoice(c)}
         >
-          <span aria-hidden="true">{THEME_GLYPH[c]}</span> {c}
+          <span aria-hidden="true">
+            <Glyph glyph={THEME_GLYPH[c]} />
+          </span>{' '}
+          {c}
         </button>
       ))}
     </div>

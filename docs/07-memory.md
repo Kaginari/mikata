@@ -13,31 +13,76 @@ and an end gate — and the BM25 recall it has chosen. The rules are ported; no 
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
-flowchart LR
-    subgraph archive["📜 archive — never rewritten"]
+flowchart TD
+    subgraph archive["archive — never rewritten"]
       LOG["log.md · ledgers<br/>git objects"]
     end
-    subgraph traces["🧠 traces — the memory"]
+    subgraph traces["traces — the memory"]
       N["notes<br/>polarity · salience<br/>confidence · source"]
     end
     LOG -->|"each note points at<br/>its evidence"| N
-    N --> RC["📚 recall<br/>BM25 + relation + priors<br/>+ one seat for dissent"]
-    RC --> PL["🤔 plan<br/>the model proposes"]
-    PL --> ACT["🔧 act"]
-    ACT --> V{"✅ verify ·<br/>end gate"}
+    N --> RC["recall<br/>BM25 + relation + priors<br/>+ one seat for dissent"]
+    RC --> PL["plan<br/>the model proposes"]
+    PL --> ACT["act"]
+    ACT --> V{"verify ·<br/>end gate"}
     V -->|"pass: grounded"| N
     V -->|"fail: a revise note"| N
     PL -. "@U, claims:<br/>personal, proposed" .-> N
-    classDef truth fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
+    classDef truth fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class LOG truth
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class N,RC,PL,ACT step
-    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class V gate
 ```
 

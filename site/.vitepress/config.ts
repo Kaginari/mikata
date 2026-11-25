@@ -45,12 +45,14 @@ export default withMermaid(
     head: [
       ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
       ['link', { rel: 'icon', type: 'image/png', href: '/mikata-icon@64.png' }],
+      // The design system's scheme before the first paint, so no page flashes the old palette.
+      ['script', {}, "document.documentElement.dataset.scheme = 'neon';"],
       ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
       [
         'link',
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Rajdhani:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap',
         },
       ],
     ],
@@ -106,6 +108,7 @@ export default withMermaid(
       outline: { level: [2, 3] },
       search: { provider: 'local' },
     },
-    mermaid: { look: 'handDrawn', theme: 'neutral' },
+    // Each block carries its own Bio Digital theme (front matter), for GitHub as for the book.
+    mermaid: { theme: 'base' },
   }),
 );

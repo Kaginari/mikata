@@ -194,21 +194,20 @@ the running board's URL, with a new key waiting. The board answers at `127.0.0.1
 `localhost` and refuses every other host name, to block DNS rebinding. `mikatad board stop` stops
 it ([the board](docs/03-architecture.md#the-board)).
 
-It is every world on the machine in one page: chats in the terminal's grammar, the approval card
-with the terminal's protections, memory and metrics, live. ⌘K (Ctrl+K) jumps anywhere; `?` lists
-every shortcut.
+It is every world on the machine in one page, and for each world a **Harness Builder**
+(`#/w/<world>/builder`): the session's conversation, its units switched on and off around the core,
+a run started with exactly that harness and followed live — its stages, its log, the end gate's
+word, its spend — and its approvals, with the terminal's protections. ⌘K (Ctrl+K) jumps anywhere;
+`?` lists every shortcut. It wears Mikata's design system: **Bio Digital** in the dark, **Bio
+Pearl** in the light — hot pink to amber for the brand, lime for what lives, connects and verifies.
 
 | | Dark | Light |
 |---|---|---|
-| Chat | <img src="docs/img/board/chat-dark.png" width="400" alt="A chat, dark: tool cards, a numbered diff, the end gate's verdict, the session pane"> | <img src="docs/img/board/chat-light.png" width="400" alt="A chat, light"> |
-| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval card, dark: the act whole with every hidden character escaped, Yes disabled until read"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval card, light"> |
-| Metrics | <img src="docs/img/board/metrics-dark.png" width="400" alt="The metrics page, dark: totals, spend per day, cache hit, burn"> | <img src="docs/img/board/metrics-light.png" width="400" alt="The metrics page, light"> |
-
-**The Harness Builder** (`#/w/<world>/builder`, first under each world) composes a session's units
-with switches, starts a run with exactly that harness and follows it live: its stages, its log,
-the end gate's word, its spend, its approvals.
-
-<img src="docs/img/board/builder-dark.png" width="820" alt="The Harness Builder: the units as cards round the core, the composition as TOML, the run live on the right with its stages, log and the end gate's verdict">
+| Sessions | <img src="docs/img/board/sessions-dark.png" width="400" alt="The Sessions view, dark: the run's conversation with its tool cards and the end gate's pass, the workspace, status and usage on the left, the live run on the right"> | <img src="docs/img/board/sessions-light.png" width="400" alt="The Sessions view, light"> |
+| Harness builder | <img src="docs/img/board/builder-dark.png" width="400" alt="The Harness builder, dark: the units and plugins as cards wired to the Mikata core, native units in pink, a plugin in amber, one off and dashed; the run verified on the right"> | <img src="docs/img/board/builder-light.png" width="400" alt="The Harness builder, light"> |
+| Plugin inspector | <img src="docs/img/board/plugins-dark.png" width="400" alt="The plugin inspector, dark: every native unit and plugin with its kind, whether it is loaded or connected, and its id"> | <img src="docs/img/board/plugins-light.png" width="400" alt="The plugin inspector, light"> |
+| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval over the dimmed page, dark: the act whole, its reason, the plan it binds to, the answers numbered"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval, light"> |
+| Profiles | <img src="docs/img/board/profiles-dark.png" width="400" alt="The Profiles view, dark: the build's profiles, each with its composition and Apply"> | <img src="docs/img/board/profiles-light.png" width="400" alt="The Profiles view, light"> |
 
 ## Build it
 

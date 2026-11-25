@@ -4,7 +4,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { Bridge, CHAT, hello, LIVE, openChat, RUN } from './fake.ts';
+import { askLine, Bridge, CHAT, hello, LIVE, openChat, RUN } from './fake.ts';
 
 const shot = (file: string) =>
   fileURLToPath(new URL(`../test-results/screens/${file}.png`, import.meta.url));
@@ -31,6 +31,22 @@ const units = {
   })),
   profiles: [{ name: 'small-fix', units: '-plan', from: 'build' }],
   holes: [],
+};
+
+/** The README's composition: the native units and two plugins, one connected, one off. */
+const shown = {
+  ...units,
+  units: [
+    ...units.units,
+    ...['license-guard', 'pr-notes'].map((id, i) => ({
+      id: `plugin:${id}`,
+      kind: 'plugin',
+      version: '',
+      on: i === 0,
+      frame: false,
+      tightens: false,
+    })),
+  ],
 };
 
 /** A run in the TUI's grammar: the plan written, an edit, the verify line, the gate, the answer. */
@@ -163,3 +179,79 @@ test('a profile starts the switches from its own composition', async ({ page }) 
   await page.getByRole('button', { name: 'Profiles' }).first().click();
   await expect(page.getByRole('heading', { name: 'Profiles', level: 1 })).toBeVisible();
 });
+
+/** Where the README's screenshots of the board go. */
+const docs = (file: string) =>
+  fileURLToPath(new URL(`../../../docs/img/board/${file}.png`, import.meta.url));
+
+// The README's pictures of the board, written only on demand: README_SHOTS=1.
+for (const theme of ['dark', 'light'] as const) {
+  test(`the README's pictures of the board, ${theme}`, async ({ page }, info) => {
+    test.skip(
+      !process.env.README_SHOTS || info.project.name !== 'desktop',
+      'README_SHOTS=1, desktop',
+    );
+    // Settled pictures: no transition caught half-way.
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    const bridge = new Bridge();
+    bridge.onPrompt = (text) => run(bridge, text);
+    await openChat(page, bridge, `#/w/${LIVE.id}/builder`, async (p) => {
+      await p.route(`**/api/w/${LIVE.id}/units`, (r) =>
+        r.fulfill({ contentType: 'application/json', body: JSON.stringify(shown) }),
+      );
+      await p.route(`**/api/w/${LIVE.id}/sessions`, (r) =>
+        r.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            session: {
+              id: CHAT,
+              world: LIVE.id,
+              session: 's-1',
+              run: RUN,
+              controlled: true,
+              tabs: 1,
+              asks: 0,
+            },
+            hello,
+          }),
+        }),
+      );
+    });
+    const views = page.getByRole('navigation', { name: "The builder's views" });
+    await page
+      .getByLabel('Your ask')
+      .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
+    await page.getByRole('button', { name: /Start run/ }).click();
+    await expect(page.getByRole('heading', { name: '✓ Verified' })).toBeVisible();
+    await page.mouse.move(0, 999);
+    await page.screenshot({ path: docs(`sessions-${theme}`) });
+    await views.getByRole('button', { name: 'Harness builder' }).click();
+    await page.mouse.move(0, 999);
+    await page.screenshot({ path: docs(`builder-${theme}`) });
+    await views.getByRole('button', { name: 'Plugins' }).click();
+    await page.mouse.move(0, 999);
+    await page.screenshot({ path: docs(`plugins-${theme}`) });
+    await views.getByRole('button', { name: 'Profiles' }).click();
+    await page.mouse.move(0, 999);
+    await page.screenshot({ path: docs(`profiles-${theme}`) });
+    // An act the run asks the human for: the card over the page.
+    await views.getByRole('button', { name: 'Sessions' }).click();
+    bridge.say(
+      askLine('gate-1', {
+        body: 'mikata',
+        race: 'summoner',
+        class: 'outward',
+        act: 'git push origin fix/duration-parsing',
+        why: ['pushes a branch to a remote'],
+        outside: [],
+        plan: 'plan 3f9a1c2e4b5d · head 1a2b3c4d',
+      }),
+    );
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+    // Armed: the answers take keys now, as the human would see it a moment after it opens.
+    await expect(page.getByRole('alertdialog')).not.toContainText('Arming');
+    await page.screenshot({ path: docs(`approval-${theme}`) });
+  });
+}

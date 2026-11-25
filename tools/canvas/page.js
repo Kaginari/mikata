@@ -8,10 +8,84 @@ import { createMermaidDiagram, defaultMermaidNodeRenderSpec } from '@tldraw/merm
 import mermaid from 'mermaid';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { getSnapshot, parseTldrawJsonFile, serializeTldrawJson, Tldraw } from 'tldraw';
+import {
+  DEFAULT_THEME,
+  getSnapshot,
+  parseTldrawJsonFile,
+  serializeTldrawJson,
+  Tldraw,
+} from 'tldraw';
 import 'tldraw/tldraw.css';
 
 const assetUrls = getAssetUrls({ baseUrl: '/tldraw-assets' });
+
+// Mikata's design system on the canvas: Bio Pearl for the light sketch, Bio Digital for the dark.
+// The Mermaid classDefs' strokes map to tldraw's names (hot → red, amber → yellow, coral →
+// light-red, lime → light-green, muted → grey; the rest is ink, "black"); each name is repainted
+// here, its stroke the role's colour and its fill the role's tint.
+const BIO = {
+  light: {
+    background: '#faf7fa',
+    text: '#211626',
+    solid: '#ffffff',
+    roles: {
+      black: ['#211626', '#f3ecf3'],
+      grey: ['#796780', '#f3ecf3'],
+      red: ['#d91670', '#fde4f0'],
+      'light-red': ['#e84d48', '#fde8e6'],
+      yellow: ['#e99a16', '#fff4d9'],
+      orange: ['#e99a16', '#fff4d9'],
+      'light-green': ['#65a30d', '#f2fbd9'],
+      green: ['#65a30d', '#f2fbd9'],
+      violet: ['#d91670', '#fde4f0'],
+      'light-violet': ['#e84d48', '#fde8e6'],
+      blue: ['#d91670', '#fde4f0'],
+      'light-blue': ['#e84d48', '#fde8e6'],
+    },
+  },
+  dark: {
+    background: '#0d0b10',
+    text: '#f5eff7',
+    solid: '#16111b',
+    roles: {
+      black: ['#f5eff7', '#211824'],
+      grey: ['#95849c', '#211824'],
+      red: ['#ff168a', '#3a0f26'],
+      'light-red': ['#ff655c', '#2a1820'],
+      yellow: ['#ffb020', '#332711'],
+      orange: ['#ffb020', '#332711'],
+      'light-green': ['#b6f542', '#202c13'],
+      green: ['#b6f542', '#202c13'],
+      violet: ['#ff168a', '#3a0f26'],
+      'light-violet': ['#ff655c', '#2a1820'],
+      blue: ['#ff168a', '#3a0f26'],
+      'light-blue': ['#ff655c', '#2a1820'],
+    },
+  },
+};
+for (const [mode, bio] of Object.entries(BIO)) {
+  const theme = DEFAULT_THEME.colors[mode];
+  theme.background = bio.background;
+  theme.negativeSpace = bio.background;
+  theme.text = bio.text;
+  theme.solid = bio.solid;
+  for (const [name, [stroke, tint]] of Object.entries(bio.roles)) {
+    Object.assign(theme[name], {
+      solid: stroke,
+      fill: tint,
+      semi: tint,
+      linedFill: tint,
+      pattern: stroke,
+      frameStroke: stroke,
+      frameHeadingStroke: stroke,
+      frameFill: bio.solid,
+      frameHeadingFill: bio.solid,
+      frameText: bio.text,
+      noteFill: tint,
+      noteText: bio.text,
+    });
+  }
+}
 const DOCUMENT_RECORDS = new Set(['document', 'page', 'shape', 'binding', 'asset']);
 const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 let blank;
@@ -135,6 +209,8 @@ window.mnDraw = async (sketches) => {
       editor.getCurrentPageShapesSorted().flatMap((shape) => {
         const props = {};
         if (shape.props.dash === 'solid') props.dash = 'draw';
+        // The connections carry the brand: an ink arrow is drawn hot.
+        if (shape.type === 'arrow' && shape.props.color === 'black') props.color = 'red';
         if (sketch.labelSize && ['geo', 'arrow'].includes(shape.type))
           props.size = sketch.labelSize;
         return Object.keys(props).length ? [{ id: shape.id, type: shape.type, props }] : [];

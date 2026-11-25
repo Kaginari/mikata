@@ -18,32 +18,79 @@ board. They all speak one JSON-RPC 2.0 API to `mikatad`.
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 sequenceDiagram
     participant C as SDK client
     participant D as mikatad
-    rect rgba(2,132,199,0.10)
-    C->>D: initialize {clientInfo}
-    D-->>C: {protocol, version, world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}
-    C->>D: session/prompt {text}
-    end
-    rect rgba(63,169,245,0.14)
-    D--)C: event/turnStarted
-    D--)C: event/textDelta …
-    D--)C: event/toolCall {id, name, input} — body: elf-engine, for a body below
-    D--)C: event/usage {tokens, cacheRead, usd, spentWt}
-    end
-    rect rgba(212,175,55,0.22)
-    D->>C: gate/ask {body, race, class, act, why, outside, plan}
-    C-->>D: {allow: true}
-    end
-    rect rgba(22,163,74,0.13)
-    D--)C: event/gateVerdict {passed, verdict, changed, failures, unverified}
-    D--)C: event/turnEnded {ending: answered}
+    rect rgb(13, 11, 16)
+      rect rgba(2,132,199,0.10)
+      C->>D: initialize {clientInfo}
+      D-->>C: {protocol, version, world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}
+      C->>D: session/prompt {text}
+      end
+      rect rgba(63,169,245,0.14)
+      D--)C: event/turnStarted
+      D--)C: event/textDelta …
+      D--)C: event/toolCall {id, name, input} — body: elf-engine, for a body below
+      D--)C: event/usage {tokens, cacheRead, usd, spentWt}
+      end
+      rect rgba(212,175,55,0.22)
+      D->>C: gate/ask {body, race, class, act, why, outside, plan}
+      C-->>D: {allow: true}
+      end
+      rect rgba(22,163,74,0.13)
+      D--)C: event/gateVerdict {passed, verdict, changed, failures, unverified}
+      D--)C: event/turnEnded {ending: answered}
+      end
     end
 ```
 
@@ -67,7 +114,7 @@ says yes, and an unanswered ask is a no.
 
 | Kind | Served | Planned |
 |---|---|---|
-| requests (client → core) | `initialize`, `session/prompt`, `session/send`, `session/interrupt`, `session/events {since}`, `shutdown` | `session/resume`, `queue/list`, `queue/move`, `world/status`, `ledger/query`, `config/explain` |
+| requests (client → core) | `initialize`, `session/prompt`, `session/send`, `session/interrupt`, `session/events {since}`, `units/list`, `units/change`, `shutdown` | `session/resume`, `queue/list`, `queue/move`, `world/status`, `ledger/query`, `config/explain` |
 | requests (core → client) | `gate/ask` — the human gate, the only call the core blocks on | |
 | events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `changes`, `turnEnded`, `held` | `dispatch`, `report`, `ascension`, `evolution` |
 
@@ -87,6 +134,14 @@ lines and their wake are done, carries how many orders the shared work queue hol
 carries the same count as the session opens, and the status line reads "N held" while it is not
 zero. A `toolResult` carries at most 16 000 bytes and
 says how many it cut; the journal keeps the whole.
+
+**The composition, live (experimental).** `units/list` answers the units the session runs —
+`{units: [{id, version, state}], digest, pending, refused}`, where a unit is a native unit's id
+(`memory`) or `plugin:<id>` and `digest` fingerprints the composition. `units/change {op, id}`
+asks for one change: `op` is `on` or `off`, or `swap` with `with` naming the unit that takes
+`id`'s place. It answers `{queued, pending}` at once; the loop applies the change at the unit's
+next safe point and the journal records it ([plugins](experimental/plugins.md)). Bad params
+answer `-32602`; before `initialize`, both say no session is open.
 
 `mikatad` serves it: `mikatad [--world <dir>] [--mode <mode>]` speaks on stdin and stdout,
 opens the session from the world's configuration on `initialize`, in the mode asked for or the

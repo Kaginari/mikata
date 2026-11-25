@@ -55,7 +55,7 @@ export const STATE_TONE: Record<BodyState, Tone> = {
 };
 
 const MIND: Record<MindStanding, { tone: Tone; glyph: string; words: string }> = {
-  adopted: { tone: 'holo', glyph: '✓', words: 'adopted: loads' },
+  adopted: { tone: 'ok', glyph: '✓', words: 'adopted: loads' },
   unadopted: { tone: 'gold', glyph: '○', words: 'unadopted: does not load' },
   changed: { tone: 'alarm', glyph: '⚠', words: 'changed since adoption: does not load' },
   retired: { tone: 'muted', glyph: '☾', words: 'retired' },
@@ -242,7 +242,7 @@ function Unreadable({ n }: { n: number }) {
 const GUTS: Record<GutsClass, { glyph: string; tone: Tone }> = {
   fail: { glyph: '✕', tone: 'alarm' },
   'red-pin': { glyph: '◌', tone: 'muted' },
-  positive: { glyph: '✓', tone: 'holo' },
+  positive: { glyph: '✓', tone: 'ok' },
   repeat: { glyph: '↻', tone: 'gold' },
   echo: { glyph: '≡', tone: 'gold' },
   thrash: { glyph: '⟳', tone: 'alarm' },

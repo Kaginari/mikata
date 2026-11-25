@@ -48,12 +48,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Font Awesome Free (the board's icons)
+## Lucide (the board's icons)
 
-- **Upstream:** <https://fontawesome.com>, npm `@fortawesome/free-solid-svg-icons` 7.3.1
-- **Licence:** icons CC BY 4.0, code MIT, © Fonticons, Inc.
-- **What Mikata uses:** solid icons drawn inline by the board's Harness Builder
-  (`packages/board/src/ui/Icon.tsx`), bundled into the board's assets.
+- **Upstream:** <https://lucide.dev>, npm `lucide-react` 1.79.0
+- **Licence:** ISC, © Lucide Icons and Contributors (parts derived from Feather, MIT,
+  © Cole Bemis)
+- **What Mikata uses:** line icons drawn inline by the board (`packages/board/src/ui/Icon.tsx`),
+  bundled into the board's assets.
 
 ## Manrope and JetBrains Mono (the board's fonts)
 

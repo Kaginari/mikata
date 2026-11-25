@@ -42,10 +42,58 @@
   --mn-race-player: #d4af37;
 
   /* type */
-  --mn-font-title: "Cinzel", "Trajan Pro", Georgia, serif;
-  --mn-font-ui: "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --mn-font-title: "Manrope", "Inter", "Segoe UI", system-ui, sans-serif;
+  --mn-font-ui: "Manrope", "Inter", "Segoe UI", system-ui, sans-serif;
   --mn-font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  --mn-font-prose: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mn-font-prose: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Semantic roles, derived here for every scheme from the palette above; Bio Digital and Bio
+   * Pearl (the neon scheme, the default) set them exactly. Components read these, never a hex. */
+  --mn-hot: var(--mn-holo);
+  --mn-coral: var(--mn-alarm);
+  --mn-amber: var(--mn-gold);
+  --mn-surface-hover: color-mix(in srgb, var(--mn-text) 7%, var(--mn-panel-raised));
+  --mn-line-strong: color-mix(in srgb, var(--mn-text) 22%, var(--mn-line));
+  --mn-text-faint: var(--mn-text-muted);
+  /* biological energy: what is alive, connected, verified. -fill is the lime itself (a fill, a
+   * dot, a switch); --mn-success is the same green made to read as text. */
+  --mn-success-fill: var(--mn-success);
+  --mn-success-text: var(--mn-success);
+  --mn-success-bg: color-mix(in srgb, var(--mn-success) 14%, var(--mn-panel));
+  --mn-success-border: color-mix(in srgb, var(--mn-success) 45%, var(--mn-line));
+  --mn-success-on: var(--mn-bg);
+  --mn-bio-1: var(--mn-success);
+  --mn-bio-2: var(--mn-success);
+  --mn-bio-3: var(--mn-success);
+  --mn-warning: var(--mn-gold);
+  --mn-warning-bg: color-mix(in srgb, var(--mn-gold) 14%, var(--mn-panel));
+  --mn-error: var(--mn-alarm);
+  --mn-error-bg: color-mix(in srgb, var(--mn-alarm) 14%, var(--mn-panel));
+  --mn-info: var(--mn-race-summoner);
+  --mn-info-bg: color-mix(in srgb, var(--mn-race-summoner) 14%, var(--mn-panel));
+  /* the harness graph */
+  --mn-edge-native: var(--mn-hot);
+  --mn-edge-plugin: var(--mn-amber);
+  --mn-edge-active: var(--mn-success-fill);
+  --mn-edge-disabled: var(--mn-line-strong);
+  --mn-canvas-grid: var(--mn-line);
+  /* the brand gradient (branding, primary actions, selected navigation, runtime connections),
+   * the bio gradient (execution and verification only); --mn-brand-surface is the brand where
+   * words sit on it (a header, a primary button, a selected item), deep enough for
+   * --mn-on-brand to read at AA. */
+  --mn-gradient: linear-gradient(
+    135deg,
+    var(--mn-hot),
+    color-mix(in oklab, var(--mn-hot) 55%, var(--mn-amber))
+  );
+  --mn-gradient-full: linear-gradient(135deg, var(--mn-hot), var(--mn-coral) 55%, var(--mn-amber));
+  --mn-gradient-bio: linear-gradient(135deg, var(--mn-bio-1), var(--mn-bio-2) 55%, var(--mn-bio-3));
+  --mn-brand-surface: var(--mn-gradient-full);
+  --mn-on-brand: var(--mn-bg);
+  /* the brand as the colour of words (a title clipped to it): AA on the page */
+  --mn-brand-ink: var(--mn-gradient-full);
+  --mn-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+  --mn-glow-success: 0 0 20px color-mix(in srgb, var(--mn-success-fill) 15%, transparent);
 
   /* shape and motion */
   --mn-radius: 8px;
@@ -69,6 +117,9 @@
   --mn-gold: #7a5c00;
   --mn-glow: rgb(0 112 122 / 0.3);
   --mn-glow-soft: rgb(0 112 122 / 0.1);
+  --mn-brand-surface: linear-gradient(135deg, var(--mn-holo), var(--mn-gold));
+  --mn-on-brand: var(--mn-panel);
+  --mn-brand-ink: var(--mn-brand-surface);
   color-scheme: light;
 }
 
@@ -79,34 +130,91 @@
  */
 
 :root[data-scheme="neon"]:not([data-theme="light"]) {
-  --mn-success: #a3ff56;
+  /* Bio Digital: biological intelligence meets digital, on a night page */
   --mn-bg: #0d0b10;
-  --mn-panel: #18121d;
-  --mn-panel-raised: #1e1622;
-  --mn-line: #382638;
-  --mn-text: #f4eef5;
-  --mn-text-muted: #a898ab;
+  --mn-panel: #16111b;
+  --mn-panel-raised: #211824;
+  --mn-line: #3d2b40;
+  --mn-text: #f5eff7;
+  --mn-text-muted: #b7a9bc;
   --mn-holo: #ff168a;
-  --mn-alarm: #ff4757;
+  --mn-alarm: #ff5575;
   --mn-gold: #ffb020;
   --mn-race-player: #ffb020;
-  --mn-glow: color-mix(in srgb, var(--mn-holo) 35%, transparent);
-  --mn-glow-soft: color-mix(in srgb, var(--mn-holo) 12%, transparent);
+  --mn-hot: #ff168a;
+  --mn-coral: #ff655c;
+  --mn-amber: #ffb020;
+  --mn-surface-hover: #2c2030;
+  --mn-line-strong: #59405d;
+  --mn-text-faint: #95849c;
+  --mn-success: #b6f542;
+  --mn-success-fill: #b6f542;
+  --mn-success-text: #c8fa73;
+  --mn-success-bg: #202c13;
+  --mn-success-border: #526b26;
+  --mn-success-on: #203008;
+  --mn-bio-1: #65a30d;
+  --mn-bio-2: #a3e635;
+  --mn-bio-3: #d9f95c;
+  --mn-warning: #ffc857;
+  --mn-warning-bg: #332711;
+  --mn-error: #ff5575;
+  --mn-error-bg: #361522;
+  --mn-info: #82b1ff;
+  --mn-info-bg: #17253c;
+  --mn-edge-disabled: #514655;
+  --mn-canvas-grid: #302635;
+  --mn-on-brand: #0d0b10;
+  --mn-glow: rgb(255 22 138 / 0.35);
+  --mn-glow-soft: rgb(255 22 138 / 0.15);
+  --mn-glow-success: 0 0 20px rgb(182 245 66 / 0.15);
+  --mn-shadow: 0 8px 32px rgb(0 0 0 / 30%);
 }
 
 :root[data-scheme="neon"][data-theme="light"] {
-  --mn-bg: #f4efe4;
-  --mn-panel: #fffbf4;
-  --mn-panel-raised: #dbdfe7;
-  --mn-line: #a5a9b8;
-  --mn-text: #111622;
-  --mn-text-muted: #454c58;
-  --mn-holo: #92155a;
-  --mn-alarm: #ae3644;
-  --mn-gold: #694f1f;
-  --mn-race-player: #694f1f;
-  --mn-glow: color-mix(in srgb, var(--mn-holo) 30%, transparent);
-  --mn-glow-soft: color-mix(in srgb, var(--mn-holo) 10%, transparent);
+  /* Bio Pearl: the same life on a pearl page. The text roles are the brand made to read at AA
+   * on every surface and tint (hot #c0125c, amber #8f5506, lime #426a12, error #b01c42); the brand itself stays in
+   * fills, edges and the gradients. */
+  --mn-bg: #faf7fa;
+  --mn-panel: #ffffff;
+  --mn-panel-raised: #f3ecf3;
+  --mn-line: #e2d4e2;
+  --mn-text: #211626;
+  --mn-text-muted: #65546b;
+  --mn-holo: #c0125c;
+  --mn-alarm: #b01c42;
+  --mn-gold: #8f5506;
+  --mn-race-player: #8f5506;
+  --mn-hot: #d91670;
+  --mn-coral: #e84d48;
+  --mn-amber: #e99a16;
+  --mn-surface-hover: #ede3ee;
+  --mn-line-strong: #cbb8cf;
+  --mn-text-faint: #796780;
+  --mn-success: #426a12;
+  --mn-success-fill: #a3e635;
+  --mn-success-text: #426a12;
+  --mn-success-bg: #f2fbd9;
+  --mn-success-border: #c4e77c;
+  --mn-success-on: #203008;
+  --mn-bio-1: #65a30d;
+  --mn-bio-2: #a3e635;
+  --mn-bio-3: #d9f95c;
+  --mn-warning: #8f5506;
+  --mn-warning-bg: #fff4d9;
+  --mn-error: #b01c42;
+  --mn-error-bg: #fde8ed;
+  --mn-info: #285fcc;
+  --mn-info-bg: #eaf1ff;
+  --mn-edge-active: #65a30d;
+  --mn-edge-disabled: #c5b6c9;
+  --mn-canvas-grid: #e5dbe7;
+  --mn-brand-surface: linear-gradient(135deg, #d91670, #d5305a 45%, #c2410c);
+  --mn-on-brand: #ffffff;
+  --mn-glow: rgb(217 22 112 / 0.22);
+  --mn-glow-soft: rgb(217 22 112 / 0.08);
+  --mn-glow-success: 0 0 20px rgb(163 230 53 / 0.15);
+  --mn-shadow: 0 8px 32px rgb(56 25 61 / 8%);
 }
 
 :root[data-scheme="ember"]:not([data-theme="light"]) {

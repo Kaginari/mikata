@@ -1,21 +1,19 @@
-/* The Harness Builder, a page of its own: the owner's board prototype, in the theme's tokens. */
+/* The Harness Builder, a page of its own: the owner's board prototype in the Mikata design system
+ * (Bio Digital dark, Bio Pearl light). Every colour is a semantic token; the brand gradient is for
+ * branding, primary actions, selected navigation and the runtime's connections, the bio gradient
+ * for execution and verification only. */
 
 .bapp {
-  --bapp-grad: linear-gradient(
-    135deg,
-    var(--mn-holo),
-    color-mix(in oklab, var(--mn-holo) 55%, var(--mn-gold))
-  );
   min-height: 100vh;
   background:
     radial-gradient(
       ellipse at 50% 0,
-      color-mix(in srgb, var(--mn-holo) 14%, transparent),
+      color-mix(in srgb, var(--mn-hot) 12%, transparent),
       transparent 55%
     ),
     var(--mn-bg);
   color: var(--mn-text);
-  font-family: "Manrope", var(--mn-font-ui);
+  font-family: var(--mn-font-ui);
   font-size: 14px;
 }
 .bapp .mono,
@@ -24,14 +22,22 @@
 .bapp-ask,
 .bapp-units,
 .bapp-metric span {
-  font-family: "JetBrains Mono", var(--mn-font-mono);
+  font-family: var(--mn-font-mono);
 }
-.fa-icon {
+.mn-icon {
   display: inline-block;
   flex: none;
   width: 1em;
   height: 1em;
   vertical-align: -0.125em;
+}
+.mn-spin {
+  animation: mn-spin 1s linear infinite;
+}
+@keyframes mn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .mikata-mark {
   display: block;
@@ -53,12 +59,17 @@
 .bapp select {
   padding: 9px 12px;
   border: 1px solid var(--mn-line);
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--mn-panel-raised);
   cursor: pointer;
+  transition:
+    border-color var(--mn-fast) var(--mn-ease),
+    background var(--mn-fast) var(--mn-ease);
 }
-.bapp button:hover:not(:disabled) {
-  border-color: var(--mn-holo);
+.bapp button:hover:not(:disabled),
+.bapp select:hover {
+  border-color: var(--mn-line-strong);
+  background: var(--mn-surface-hover);
 }
 .bapp button:disabled {
   opacity: 0.5;
@@ -68,57 +79,47 @@
 .bapp select:focus-visible,
 .bapp textarea:focus-visible,
 .bapp a:focus-visible {
-  outline: 2px solid var(--mn-gold);
-  outline-offset: 1px;
+  outline: 2px solid var(--mn-holo);
+  outline-offset: 2px;
 }
 .bapp-muted,
 .bapp small {
   color: var(--mn-text-muted);
 }
 .bapp-ok {
-  color: var(--mn-success);
+  color: var(--mn-success-text);
 }
 .bapp-warn {
-  color: var(--mn-alarm);
+  color: var(--mn-error);
 }
 
-/* ── the header ── */
+/* ── the header: the brand ── */
 .bapp-head {
   display: flex;
   align-items: center;
   gap: 17px;
   padding: 14px 22px;
-  border-radius: 0 0 15px 15px;
-  background: linear-gradient(
-    110deg,
-    color-mix(in srgb, var(--mn-holo) 80%, var(--mn-bg)),
-    var(--mn-holo) 44%,
-    color-mix(in oklab, var(--mn-holo), var(--mn-gold)) 76%,
-    var(--mn-gold)
-  );
-  box-shadow: 0 5px 24px var(--mn-glow-soft);
-  color: var(--mn-text);
+  border-radius: 0 0 16px 16px;
+  background: var(--mn-brand-surface);
+  box-shadow: var(--mn-shadow);
+  color: var(--mn-on-brand);
 }
 .bapp-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  font:
-    700 23px "JetBrains Mono",
-    var(--mn-font-mono);
+  font: 800 23px var(--mn-font-mono);
   letter-spacing: -1px;
   white-space: nowrap;
 }
 .bapp-logo .mikata-mark {
   width: 64px;
-  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--mn-bg) 60%, transparent));
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--mn-bg) 45%, transparent));
 }
 .bapp-branddesc {
   display: none;
   max-width: 150px;
-  font:
-    11px / 1.3 "JetBrains Mono",
-    var(--mn-font-mono);
+  font: 600 11px / 1.3 var(--mn-font-mono);
   letter-spacing: 0;
   white-space: normal;
 }
@@ -127,58 +128,77 @@
     display: block;
   }
 }
-.bapp-core .bapp-core-logo {
-  width: 72%;
-  margin: 0 auto;
-}
 .bapp-nav {
   display: flex;
   flex: 1;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 .bapp .bapp-nav button,
 .bapp-navlink {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 11px;
+  padding: 9px 12px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 9px;
   background: transparent;
-  color: var(--mn-text);
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--mn-on-brand);
+  font-size: 13.5px;
+  font-weight: 800;
   text-decoration: none;
 }
-.bapp .bapp-nav .bapp-active {
-  border-color: color-mix(in srgb, var(--mn-text) 35%, transparent);
-  background: color-mix(in srgb, var(--mn-bg) 55%, transparent);
+.bapp .bapp-nav button:hover:not(:disabled),
+.bapp-navlink:hover {
+  border-color: color-mix(in srgb, var(--mn-on-brand) 40%, transparent);
+  background: color-mix(in srgb, var(--mn-on-brand) 10%, transparent);
+}
+/* the selected page: a surface cut out of the brand */
+.bapp .bapp-nav .bapp-active,
+.bapp .bapp-nav .bapp-active:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--mn-panel);
+  color: var(--mn-text);
+  box-shadow: var(--mn-shadow);
+}
+.bapp-nav .bapp-active .mn-icon {
+  color: var(--mn-holo);
 }
 .bapp-head .bapp-muted {
-  color: var(--mn-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mn-on-brand);
   font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
 }
-.bapp-head .bapp-primary {
-  border-color: color-mix(in srgb, var(--mn-text) 50%, transparent);
-  background: color-mix(in srgb, var(--mn-holo) 85%, var(--mn-bg));
+.bapp .bapp-head .bapp-primary,
+.bapp .bapp-head .bapp-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--mn-panel);
+  color: var(--mn-text);
   white-space: nowrap;
 }
-.bapp .bapp-active {
-  border-color: color-mix(in srgb, var(--mn-holo) 65%, var(--mn-line));
-  background: color-mix(in srgb, var(--mn-holo) 20%, var(--mn-panel));
+.bapp .bapp-head .bapp-primary .mn-icon {
+  color: var(--mn-holo);
 }
 .bapp .bapp-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--mn-holo) 55%, var(--mn-gold));
-  background: linear-gradient(115deg, var(--mn-holo), var(--mn-gold));
-  color: var(--mn-text);
-  font-weight: 700;
+  border: 1px solid transparent;
+  background: var(--mn-brand-surface);
+  color: var(--mn-on-brand);
+  font-weight: 800;
+  box-shadow: 0 0 18px var(--mn-glow-soft);
+}
+.bapp .bapp-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--mn-brand-surface);
+  filter: saturate(1.15) brightness(1.05);
 }
 
 /* ── the three columns ── */
@@ -194,26 +214,101 @@
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--mn-line);
-  border-radius: 13px;
+  border-radius: 14px;
   background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--mn-holo) 6%, var(--mn-panel)),
-    var(--mn-panel) 35%,
-    color-mix(in srgb, var(--mn-bg) 60%, var(--mn-panel))
+    150deg,
+    color-mix(in srgb, var(--mn-hot) 5%, var(--mn-panel)),
+    var(--mn-panel) 40%
   );
+  box-shadow: var(--mn-shadow);
 }
 .bapp .bapp-section {
   display: block;
   margin: 20px 0 12px;
-  font:
-    800 12px "Manrope",
-    var(--mn-font-ui);
-  letter-spacing: 0.6px;
+  font: 800 12px var(--mn-font-ui);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
+  color: var(--mn-holo);
 }
 .bapp .bapp-panel > .bapp-section:first-child {
   margin-top: 0;
+}
+
+/* tags: a status as a pill, its colour and its words */
+.bapp .bapp-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bapp .bapp-tags li,
+.bapp .bapp-tag,
+.bapp .bapp-state,
+.bapp .bapp-verdict {
+  --tag-fg: var(--mn-text-muted);
+  --tag-bg: var(--mn-panel-raised);
+  --tag-line: var(--mn-line-strong);
+  --tag-dot: var(--mn-text-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 4px 12px;
+  border: 1px solid var(--tag-line);
+  border-radius: 999px;
+  background: var(--tag-bg);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tag-fg);
+  overflow-wrap: anywhere;
+}
+.bapp .bapp-tags li[data-tone="ok"],
+.bapp .bapp-tag[data-tone="ok"],
+.bapp .bapp-verdict {
+  --tag-fg: var(--mn-success-text);
+  --tag-bg: var(--mn-success-bg);
+  --tag-line: var(--mn-success-border);
+  --tag-dot: var(--mn-success-fill);
+}
+.bapp .bapp-tags li[data-tone="holo"],
+.bapp .bapp-tag[data-tone="holo"] {
+  --tag-fg: var(--mn-holo);
+  --tag-bg: color-mix(in srgb, var(--mn-hot) 10%, var(--mn-panel));
+  --tag-line: color-mix(in srgb, var(--mn-hot) 45%, var(--mn-line));
+  --tag-dot: var(--mn-hot);
+}
+.bapp .bapp-tags li[data-tone="alarm"],
+.bapp .bapp-state[data-state="Not landed"],
+.bapp .bapp-verdict[data-ok="false"] {
+  --tag-fg: var(--mn-error);
+  --tag-bg: var(--mn-error-bg);
+  --tag-line: color-mix(in srgb, var(--mn-error) 45%, var(--mn-line));
+  --tag-dot: var(--mn-error);
+}
+.bapp .bapp-state[data-state="Running"],
+.bapp .bapp-state[data-state="Starting"] {
+  --tag-fg: var(--mn-warning);
+  --tag-bg: var(--mn-warning-bg);
+  --tag-line: color-mix(in srgb, var(--mn-warning) 45%, var(--mn-line));
+  --tag-dot: var(--mn-amber);
+}
+/* verified: the bio gradient, olive words on lime */
+.bapp .bapp-state[data-state="Verified"] {
+  border-color: transparent;
+  background: var(--mn-gradient-bio);
+  color: var(--mn-success-on);
+  box-shadow: var(--mn-glow-success);
+}
+.bapp .bapp-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--tag-dot);
+  box-shadow: 0 0 8px var(--tag-dot);
 }
 
 /* the left column */
@@ -226,19 +321,39 @@
   color: var(--mn-text-muted);
   overflow-wrap: anywhere;
 }
-.bapp-navbtn {
+.bapp .bapp-navbtn {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  margin: 3px 0;
+  margin: 2px 0;
   padding: 9px 12px;
-  border: 1px solid var(--mn-line);
-  border-radius: 7px;
-  background: var(--mn-panel-raised);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
   color: var(--mn-text);
+  font-weight: 700;
   text-align: left;
   text-decoration: none;
+}
+.bapp .bapp-navbtn .mn-icon {
+  color: var(--mn-text-muted);
+}
+.bapp .bapp-navbtn:hover:not(:disabled) {
+  border-color: var(--mn-line);
+  background: var(--mn-surface-hover);
+}
+/* the selected page: the brand */
+.bapp .bapp-navbtn.bapp-active,
+.bapp .bapp-navbtn.bapp-active:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--mn-brand-surface);
+  color: var(--mn-on-brand);
+  font-weight: 800;
+  box-shadow: 0 0 16px var(--mn-glow-soft);
+}
+.bapp .bapp-navbtn.bapp-active .mn-icon {
+  color: var(--mn-on-brand);
 }
 .bapp-side > p {
   line-height: 1.5;
@@ -256,13 +371,18 @@
   margin-top: 8px;
   overflow: hidden;
   border-radius: 8px;
-  background: var(--mn-line);
+  background: var(--mn-panel-raised);
+  box-shadow: inset 0 0 0 1px var(--mn-line);
 }
 .bapp-bar i {
   display: block;
   height: 100%;
   border-radius: 8px;
-  background: var(--bapp-grad);
+  background: var(--mn-hot);
+}
+/* the run's progress is execution: the bio gradient */
+.bapp-metric[data-kind="progress"] .bapp-bar i {
+  background: var(--mn-gradient-bio);
 }
 
 /* the middle */
@@ -274,61 +394,141 @@
   margin-bottom: 18px;
 }
 .bapp-top h1 {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.6px;
+  letter-spacing: -0.8px;
 }
 .bapp-top h2 {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 800;
+  letter-spacing: -0.2px;
+  word-spacing: 2px;
 }
 .bapp-profile {
   white-space: nowrap;
 }
+
+/* the graph: the runtime at the centre, every unit wired to it */
 .bapp-graph {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr 0.85fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr 0.82fr 1fr;
+  column-gap: 48px;
   align-items: center;
-  padding: 18px 0;
+  padding: 22px 14px;
+  border: 1px solid var(--mn-line);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle, var(--mn-canvas-grid) 1px, transparent 1.4px) 0 0 / 18px 18px,
+    var(--mn-bg);
+}
+.bapp-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.bapp-edge {
+  fill: none;
+  stroke: var(--mn-edge-native);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+.bapp-edge[data-kind="plugin"] {
+  stroke: var(--mn-edge-plugin);
+}
+.bapp-edge[data-on="false"] {
+  stroke: var(--mn-edge-disabled);
+  stroke-dasharray: 4 6;
+  opacity: 1;
+}
+.bapp-port {
+  fill: var(--mn-edge-native);
+}
+.bapp-port[data-kind="plugin"] {
+  fill: var(--mn-edge-plugin);
+}
+.bapp-port[data-on="false"] {
+  fill: var(--mn-edge-disabled);
+}
+/* a run is live: what is on carries it, in the green of what lives */
+.bapp-graph[data-live="true"] .bapp-edge[data-on="true"] {
+  stroke: var(--mn-edge-active);
+  stroke-dasharray: 7 9;
+  opacity: 1;
+  filter: drop-shadow(0 0 4px var(--mn-edge-active));
+  animation: bapp-flow 0.9s linear infinite;
+}
+.bapp-graph[data-live="true"] .bapp-port[data-on="true"] {
+  fill: var(--mn-edge-active);
+}
+@keyframes bapp-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
 }
 .bapp-stack,
 .bapp-list {
+  position: relative;
   display: grid;
   gap: 13px;
 }
 .bapp-unit {
+  position: relative;
   min-height: 103px;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--mn-holo) 40%, var(--mn-line));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--mn-holo) 5%, var(--mn-panel-raised));
+  border: 1px solid var(--mn-line);
+  border-radius: 11px;
+  background: var(--mn-panel);
   color: var(--mn-text);
   text-decoration: none;
+  transition:
+    border-color var(--mn-fast) var(--mn-ease),
+    box-shadow var(--mn-fast) var(--mn-ease);
+}
+.bapp-unit:hover {
+  border-color: var(--mn-line-strong);
+  box-shadow: var(--mn-shadow);
 }
 .bapp-unit[data-on="false"] {
-  opacity: 0.55;
+  opacity: 0.6;
 }
 .bapp-unit h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
 }
 .bapp-unit h3 .bapp-switch,
 .bapp-unit h3 button {
   margin-left: auto;
 }
-.bapp-unit-icon {
-  width: 18px;
-  height: 18px;
-  color: color-mix(in srgb, var(--mn-holo) 75%, var(--mn-text));
+.bapp .bapp-unit-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mn-hot) 12%, var(--mn-panel));
+  color: var(--mn-holo);
+}
+.bapp-unit[data-kind="plugin"] .bapp-unit-icon {
+  background: color-mix(in srgb, var(--mn-amber) 16%, var(--mn-panel));
+  color: var(--mn-warning);
 }
 .bapp .bapp-unit p {
   margin: 8px 0;
   font-size: 12px;
   color: var(--mn-text-muted);
+}
+.bapp .bapp-unit small {
+  font: 11px var(--mn-font-mono);
+  color: var(--mn-text-faint);
 }
 .bapp-list .bapp-unit {
   min-height: 0;
@@ -342,50 +542,81 @@
   display: flex;
   align-items: center;
   flex: none;
-  width: 34px;
-  height: 19px;
+  width: 36px;
+  height: 20px;
   padding: 2px;
-  border: 0;
+  border: 1px solid var(--mn-line-strong);
   border-radius: 20px;
-  background: var(--mn-text-muted);
+  background: var(--mn-panel-raised);
 }
 .bapp-switch::before {
   content: "";
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--mn-bg);
+  background: var(--mn-text-faint);
+  transition: transform var(--mn-fast) var(--mn-ease);
 }
-.bapp .bapp-switch[aria-checked="true"] {
+/* on: connected, alive — olive on lime */
+.bapp .bapp-switch[aria-checked="true"],
+.bapp .bapp-switch[aria-checked="true"]:hover:not(:disabled) {
   justify-content: flex-end;
-  background: var(--mn-success);
+  border-color: var(--mn-success-border);
+  background: var(--mn-success-fill);
+  box-shadow: var(--mn-glow-success);
+}
+.bapp-switch[aria-checked="true"]::before {
+  background: var(--mn-success-on);
 }
 .bapp-core {
+  position: relative;
+  z-index: 1;
   padding: 25px 8px;
   border: 2px solid transparent;
-  border-radius: 17px;
+  border-radius: 18px;
   background:
-    linear-gradient(var(--mn-panel-raised), var(--mn-panel-raised)) padding-box,
-    var(--bapp-grad) border-box;
-  box-shadow: 0 0 28px var(--mn-glow-soft);
+    linear-gradient(var(--mn-panel), var(--mn-panel)) padding-box,
+    var(--mn-gradient-full) border-box;
+  box-shadow:
+    0 0 32px var(--mn-glow-soft),
+    var(--mn-shadow);
   text-align: center;
+}
+.bapp-core .bapp-core-logo {
+  width: 72%;
+  margin: 0 auto;
 }
 .bapp .bapp-core h2 {
   margin: 10px 0;
-  color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
+  background: var(--mn-brand-ink);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.bapp-core p {
+  font-weight: 700;
 }
 .bapp-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin: 12px 0;
+  margin: 14px 0 12px;
+}
+.bapp .bapp-tabs .bapp-active,
+.bapp .bapp-tabs .bapp-active:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--mn-brand-surface);
+  color: var(--mn-on-brand);
+  font-weight: 800;
 }
 .bapp-editor {
   min-height: 160px;
   margin: 0;
   padding: 13px;
   border: 1px solid var(--mn-line);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--mn-bg);
   font: 12px / 1.65 var(--mn-font-mono);
   overflow-x: auto;
@@ -408,27 +639,51 @@
   overflow-wrap: anywhere;
 }
 
+/* the plugin inspector */
+.bapp-inspect {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.bapp-inspect .bapp-unit {
+  min-height: 0;
+}
+.bapp .bapp-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--mn-hot) 40%, var(--mn-line));
+  border-radius: 999px;
+  font: 700 11px var(--mn-font-mono);
+  color: var(--mn-holo);
+}
+.bapp .bapp-kind[data-kind="plugin"] {
+  border-color: color-mix(in srgb, var(--mn-amber) 50%, var(--mn-line));
+  color: var(--mn-warning);
+}
+.bapp .bapp-kind[data-on="true"] {
+  border-color: var(--mn-success-border);
+  background: var(--mn-success-bg);
+  color: var(--mn-success-text);
+}
+.bapp-inspect footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* the right */
-.bapp-state {
-  font-weight: 600;
-  color: var(--mn-text-muted);
-}
-.bapp-state[data-state="Verified"] {
-  color: var(--mn-success);
-}
-.bapp-state[data-state="Running"],
-.bapp-state[data-state="Starting"] {
-  color: var(--mn-gold);
-}
-.bapp-state[data-state="Not landed"] {
-  color: var(--mn-alarm);
+.bapp .bapp-state {
+  font-size: 12px;
+  letter-spacing: 0.06em;
 }
 .bapp-ask {
   width: 100%;
   min-height: 70px;
   padding: 10px;
   border: 1px solid var(--mn-line);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--mn-bg);
   resize: vertical;
 }
@@ -439,17 +694,27 @@
   margin: 20px 0;
   padding: 0;
   list-style: none;
-  font: 12px var(--mn-font-mono);
-  color: var(--mn-text-muted);
+  font: 700 12px var(--mn-font-mono);
+  color: var(--mn-text-faint);
+}
+.bapp-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.bapp-steps-compact {
+  justify-content: center;
+  gap: 18px;
+  margin: 0;
 }
 .bapp-steps li[data-state="done"] {
-  color: var(--mn-success);
+  color: var(--mn-success-text);
 }
 .bapp-steps li[data-state="now"] {
-  color: var(--mn-gold);
+  color: var(--mn-holo);
 }
 .bapp-steps li[data-state="failed"] {
-  color: var(--mn-alarm);
+  color: var(--mn-error);
 }
 .bapp-steps li[data-state="skipped"] {
   opacity: 0.5;
@@ -459,39 +724,54 @@
   padding: 12px;
   overflow: auto;
   border: 1px solid var(--mn-line);
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--mn-bg);
   font: 12px / 1.8 var(--mn-font-mono);
   overflow-wrap: anywhere;
 }
 .bapp .bapp-log-ask {
   margin-bottom: 10px;
+  color: var(--mn-text-muted);
 }
 .bapp-log [data-tone="ok"] {
-  color: var(--mn-success);
+  color: var(--mn-success-text);
 }
 .bapp-log [data-tone="alarm"] {
-  color: var(--mn-alarm);
+  color: var(--mn-error);
 }
 .bapp-log [data-tone="now"],
 .bapp-log [data-tone="holo"] {
   color: var(--mn-holo);
 }
+/* the end gate's word: verification, in the bio green */
 .bapp-result {
+  position: relative;
   margin-top: 14px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--mn-success) 45%, var(--mn-line));
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--mn-success) 8%, var(--mn-panel));
-  color: var(--mn-success);
+  padding: 14px 14px 14px 18px;
+  overflow: hidden;
+  border: 1px solid var(--mn-success-border);
+  border-radius: 10px;
+  background: var(--mn-success-bg);
+  color: var(--mn-success-text);
+}
+.bapp-result::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--mn-gradient-bio);
 }
 .bapp-result h3 {
   font-size: 15px;
+  font-weight: 800;
 }
 .bapp-result[data-ok="false"] {
-  border-color: color-mix(in srgb, var(--mn-alarm) 45%, var(--mn-line));
-  background: color-mix(in srgb, var(--mn-alarm) 8%, var(--mn-panel));
-  color: var(--mn-alarm);
+  border-color: color-mix(in srgb, var(--mn-error) 45%, var(--mn-line));
+  background: var(--mn-error-bg);
+  color: var(--mn-error);
+}
+.bapp-result[data-ok="false"]::before {
+  background: var(--mn-error);
 }
 .bapp-numbers {
   display: grid;
@@ -504,7 +784,8 @@
   flex-direction: column-reverse;
   padding: 13px 6px;
   border: 1px solid var(--mn-line);
-  border-radius: 8px;
+  border-radius: 9px;
+  background: var(--mn-panel-raised);
   text-align: center;
 }
 .bapp-numbers dt {
@@ -513,12 +794,12 @@
 }
 .bapp-numbers dd {
   margin: 0 0 5px;
-  font: bold 17px var(--mn-font-mono);
+  font: 800 17px var(--mn-font-mono);
 }
 .bapp .bapp-notice {
   margin-top: 14px;
   font-size: 11px;
-  color: color-mix(in srgb, var(--mn-gold) 60%, var(--mn-text-muted));
+  color: var(--mn-warning);
 }
 
 /* the session: the conversation and its composer */
@@ -543,30 +824,64 @@
   padding: 8px 3px;
 }
 .bapp-message {
+  align-self: stretch;
   max-width: 93%;
   padding: 17px;
   border: 1px solid var(--mn-line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--mn-panel-raised);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 .bapp-message b {
   display: block;
   margin-bottom: 8px;
-  font:
-    600 12px "JetBrains Mono",
-    var(--mn-font-mono);
-  color: color-mix(in srgb, var(--mn-holo) 70%, var(--mn-text));
+  font: 800 12px var(--mn-font-mono);
+  letter-spacing: 0.06em;
+  color: var(--mn-holo);
 }
-.bapp-message p {
+.bapp .bapp-message p {
+  margin: 0 0 0.6em;
   line-height: 1.7;
+}
+.bapp .bapp-message p:last-child {
+  margin-bottom: 0;
+}
+.bapp-message-user {
+  align-self: flex-end;
+  border-color: color-mix(in srgb, var(--mn-hot) 40%, var(--mn-line));
+  background: color-mix(in srgb, var(--mn-hot) 9%, var(--mn-panel));
+}
+.bapp-message-user b {
+  color: var(--mn-gold);
+}
+.bapp .bapp-calls {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -6px 0 0 4px;
+  font: 12px var(--mn-font-mono);
+  color: var(--mn-text-muted);
+}
+.bapp-calls a {
+  color: var(--mn-holo);
+}
+.bapp .bapp-verdict {
+  align-self: flex-start;
 }
 .bapp-composer,
 .bapp-sidechat {
   margin-top: 15px;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--mn-holo) 35%, var(--mn-line));
-  border-radius: 10px;
+  border: 1px solid var(--mn-line-strong);
+  border-radius: 12px;
   background: var(--mn-panel-raised);
+}
+.bapp-composer:focus-within,
+.bapp-sidechat:focus-within {
+  border-color: var(--mn-hot);
+  box-shadow: 0 0 0 3px var(--mn-glow-soft);
 }
 .bapp-composer textarea,
 .bapp-sidechat textarea {
@@ -574,7 +889,7 @@
   min-height: 80px;
   padding: 10px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 7px;
   background: var(--mn-bg);
   resize: vertical;
 }
@@ -591,11 +906,24 @@
 .bapp-sidechat label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 700;
+  font-weight: 800;
 }
 .bapp-sidechat button {
   width: 100%;
   margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mn-spin,
+  .bapp-graph[data-live="true"] .bapp-edge[data-on="true"] {
+    animation: none;
+  }
+  .bapp button,
+  .bapp select,
+  .bapp-unit,
+  .bapp-switch::before {
+    transition: none;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -623,6 +951,11 @@
   }
   .bapp-graph {
     grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+  .bapp-edges {
+    display: none;
   }
   .bapp-core {
     grid-column: 1 / -1;

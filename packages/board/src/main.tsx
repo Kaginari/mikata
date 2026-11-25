@@ -1,4 +1,12 @@
 import '@mikata/theme/tokens.css';
+// The interface's faces, served by the board itself (the CSP allows no other font source).
+import '@fontsource/manrope/latin-400.css';
+import '@fontsource/manrope/latin-600.css';
+import '@fontsource/manrope/latin-700.css';
+import '@fontsource/manrope/latin-800.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-800.css';
 import './board.css';
 import './chat.css';
 import './ui/dialogs.css';

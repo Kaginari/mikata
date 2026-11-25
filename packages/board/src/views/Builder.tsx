@@ -7,36 +7,38 @@
  *
  * Every number on the page is the run's own or the configuration's; nothing is simulated.
  */
-import {
-  faArrowLeft,
-  faBook,
-  faBookOpenReader,
-  faBrain,
-  faChessRook,
-  faClockRotateLeft,
-  faCodeCompare,
-  faComments,
-  faCompress,
-  faCopy,
-  faCube,
-  faDownload,
-  faFolderOpen,
-  faGaugeHigh,
-  faLayerGroup,
-  faListCheck,
-  faLock,
-  faPaperPlane,
-  faPenRuler,
-  faPlay,
-  faPuzzlePiece,
-  faRotateLeft,
-  faShieldHalved,
-  faSliders,
-  faStop,
-  type IconDefinition,
-} from '@fortawesome/free-solid-svg-icons';
+
 import type { BoardProfile, BoardUnit, BoardWorld } from '@mikata/protocol';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  BookOpenText,
+  Box,
+  Brain,
+  Copy,
+  Download,
+  FolderOpen,
+  Gauge,
+  GitCompare,
+  History,
+  Layers,
+  ListChecks,
+  Lock,
+  type LucideIcon,
+  MessagesSquare,
+  PencilRuler,
+  Play,
+  Puzzle,
+  RotateCcw,
+  ScrollText,
+  Send,
+  ShieldCheck,
+  Shrink,
+  SlidersHorizontal,
+  Square,
+  Swords,
+  Wrench,
+} from 'lucide-react';
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Call, ChatView, Entry } from '../data/chat.ts';
 import { summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
@@ -44,48 +46,42 @@ import { composed, opening, toml, useHarness } from '../data/harness.ts';
 import { type Live, useLive } from '../data/live.ts';
 import { shownBody } from '../data/names.ts';
 import { format } from '../router.ts';
+import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
-import { Icon } from '../ui/Icon.tsx';
+import { Glyph, Icon } from '../ui/Icon.tsx';
 import { Logo } from '../ui/Logo.tsx';
-import { Composer, TranscriptView } from './Chat.tsx';
-import '@fontsource/manrope/latin-400.css';
-import '@fontsource/manrope/latin-600.css';
-import '@fontsource/manrope/latin-700.css';
-import '@fontsource/manrope/latin-800.css';
-import '@fontsource/jetbrains-mono/latin-400.css';
-import '@fontsource/jetbrains-mono/latin-600.css';
 import './builder.css';
 
 /** What a native unit does, and how the card names it. */
-const NATIVE: Record<string, { name: string; about: string; icon: IconDefinition }> = {
-  memory: { name: 'Memory', about: 'Lessons, corrections and handoffs.', icon: faBrain },
+const NATIVE: Record<string, { name: string; about: string; icon: LucideIcon }> = {
+  memory: { name: 'Memory', about: 'Lessons, corrections and handoffs.', icon: Brain },
   hold: {
     name: 'Done when',
     about: 'Hold the ask as a checklist and enforce it.',
-    icon: faListCheck,
+    icon: ListChecks,
   },
-  plan: { name: 'Plan', about: 'Write down what done means before the code.', icon: faPenRuler },
+  plan: { name: 'Plan', about: 'Write down what done means before the code.', icon: PencilRuler },
   plan_lite: {
     name: 'Plan (lite)',
     about: 'Copy and check only the outputs the ask states.',
-    icon: faPenRuler,
+    icon: PencilRuler,
   },
   challenge: {
     name: 'Challenge',
     about: 'Additional scrutiny before a landing.',
-    icon: faChessRook,
+    icon: Swords,
   },
-  gate: { name: 'End gate', about: 'Verify changes before landing.', icon: faShieldHalved },
+  gate: { name: 'End gate', about: 'Verify changes before landing.', icon: ShieldCheck },
   reader: {
     name: 'Reader',
     about: 'Derive "Done when" lines from a prose ask.',
-    icon: faBookOpenReader,
+    icon: BookOpenText,
   },
-  what_changed: { name: 'What changed', about: 'Compare before and after.', icon: faCodeCompare },
-  fold: { name: 'Folding', about: 'Compact old tool output.', icon: faCompress },
-  stress: { name: 'Stress signals', about: 'Detect repeated or stalled work.', icon: faGaugeHigh },
-  returns: { name: 'Returns', about: 'Read the tree back after each act.', icon: faRotateLeft },
+  what_changed: { name: 'What changed', about: 'Compare before and after.', icon: GitCompare },
+  fold: { name: 'Folding', about: 'Compact old tool output.', icon: Shrink },
+  stress: { name: 'Stress signals', about: 'Detect repeated or stalled work.', icon: Gauge },
+  returns: { name: 'Returns', about: 'Read the tree back after each act.', icon: RotateCcw },
 };
 
 /** The cards' order round the core: half on the left, the rest on the right. */
@@ -113,7 +109,7 @@ function described(u: BoardUnit) {
     NATIVE[u.id] ?? {
       name: u.id.replace(/^plugin:/, ''),
       about: "A plugin from the human's global file.",
-      icon: faPuzzlePiece,
+      icon: Puzzle,
     }
   );
 }
@@ -131,10 +127,26 @@ function Switch({ name, on, onFlip }: { name: string; on: boolean; onFlip: () =>
   );
 }
 
-function UnitCard({ u, on, onFlip }: { u: BoardUnit; on: boolean; onFlip: () => void }) {
+function UnitCard({
+  u,
+  on,
+  onFlip,
+  inspect = false,
+}: {
+  u: BoardUnit;
+  on: boolean;
+  onFlip: () => void;
+  inspect?: boolean;
+}) {
   const d = described(u);
+  const plugin = u.kind === 'plugin';
   return (
-    <article className="bapp-unit" data-on={on}>
+    <article
+      className="bapp-unit"
+      data-on={on}
+      data-kind={plugin ? 'plugin' : 'native'}
+      data-unit={u.id}
+    >
       <h3>
         <Icon icon={d.icon} className="bapp-unit-icon" />
         <Safe text={d.name} />
@@ -143,11 +155,110 @@ function UnitCard({ u, on, onFlip }: { u: BoardUnit; on: boolean; onFlip: () => 
       <p>
         <Safe text={d.about} />
       </p>
-      <small>
-        <Safe text={u.kind === 'plugin' ? 'Plugin' : `Native unit · v${u.version}`} />
-        {u.frame && ' · set as a run opens'}
-      </small>
+      {inspect ? (
+        <footer>
+          <span className="bapp-kind" data-kind={plugin ? 'plugin' : 'native'}>
+            <Safe text={plugin ? 'plugin' : `native · v${u.version}`} />
+          </span>
+          <span className="bapp-kind" data-on={on}>
+            {on ? (plugin ? 'connected' : 'loaded') : 'off'}
+          </span>
+          {u.frame && <span className="bapp-kind">set as a run opens</span>}
+          {u.tightens && <span className="bapp-kind">a world may hold it on</span>}
+          <span className="bapp-kind">
+            <Safe text={u.id} />
+          </span>
+        </footer>
+      ) : (
+        <small>
+          <Safe text={plugin ? 'Plugin' : `Native unit · v${u.version}`} />
+          {u.frame && ' · set as a run opens'}
+        </small>
+      )}
     </article>
+  );
+}
+
+type Wire = {
+  id: string;
+  kind: string;
+  on: boolean;
+  d: string;
+  a: [number, number];
+  b: [number, number];
+};
+
+/**
+ * The graph's wires: a curve from each unit's card to the core, measured from the cards as they
+ * are laid out and drawn again whenever the graph changes size. Decoration only: the cards say
+ * what is on.
+ */
+function Edges({ layout }: { layout: string }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [wires, setWires] = useState<Wire[]>([]);
+  useLayoutEffect(() => {
+    const graph = ref.current?.parentElement;
+    if (!graph || layout === '') return;
+    const draw = () => {
+      const base = graph.getBoundingClientRect();
+      const core = graph.querySelector('.bapp-core')?.getBoundingClientRect();
+      if (!core || core.width === 0) return;
+      const cards = [...graph.querySelectorAll<HTMLElement>('.bapp-stack .bapp-unit')];
+      const sides: [boolean, HTMLElement[]][] = [
+        [true, cards.filter((c) => c.getBoundingClientRect().right <= core.left)],
+        [false, cards.filter((c) => c.getBoundingClientRect().left >= core.right)],
+      ];
+      const out: Wire[] = [];
+      for (const [left, list] of sides) {
+        list.forEach((c, i) => {
+          const r = c.getBoundingClientRect();
+          const x1 = (left ? r.right : r.left) - base.left;
+          const y1 = r.top + r.height / 2 - base.top;
+          const x2 = (left ? core.left : core.right) - base.left;
+          const t = list.length > 1 ? i / (list.length - 1) : 0.5;
+          const y2 = core.top - base.top + core.height * (0.18 + 0.64 * t);
+          const mid = (x1 + x2) / 2;
+          out.push({
+            id: c.dataset.unit ?? `${left}-${i}`,
+            kind: c.dataset.kind ?? 'native',
+            on: c.dataset.on === 'true',
+            d: `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,
+            a: [x1, y1],
+            b: [x2, y2],
+          });
+        });
+      }
+      setWires(out);
+    };
+    draw();
+    const watch = new ResizeObserver(draw);
+    watch.observe(graph);
+    return () => watch.disconnect();
+  }, [layout]);
+  return (
+    <svg ref={ref} className="bapp-edges" aria-hidden="true" focusable="false">
+      {wires.map((w) => (
+        <g key={w.id}>
+          <path className="bapp-edge" data-kind={w.kind} data-on={w.on} d={w.d} />
+          <circle
+            className="bapp-port"
+            data-kind={w.kind}
+            data-on={w.on}
+            cx={w.a[0]}
+            cy={w.a[1]}
+            r={3.5}
+          />
+          <circle
+            className="bapp-port"
+            data-kind={w.kind}
+            data-on={w.on}
+            cx={w.b[0]}
+            cy={w.b[1]}
+            r={3.5}
+          />
+        </g>
+      ))}
+    </svg>
   );
 }
 
@@ -198,6 +309,29 @@ export function stages(view: ChatView | undefined, planOn: boolean): [Stage, Sta
   });
 }
 
+/** Plan · Work · Verify · Land, each marked by where the run is. */
+function Steps({
+  st,
+  label,
+  compact,
+}: {
+  st: [Stage, StageState][];
+  label: string;
+  compact?: boolean;
+}) {
+  return (
+    <ol className={compact ? 'bapp-steps bapp-steps-compact' : 'bapp-steps'} aria-label={label}>
+      {st.map(([s, at]) => (
+        <li key={s} data-state={at}>
+          <Glyph glyph={at === 'done' ? '✓' : at === 'failed' ? '✕' : at === 'now' ? '⣾' : '○'} />{' '}
+          {s}
+          <span className="visually-hidden">: {at}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /** The log's lines: a mark, its tone, and what happened. */
 function logLines(view: ChatView | undefined): [string, string, string][] {
   const out: [string, string, string][] = [];
@@ -243,12 +377,12 @@ function WithLive({
 
 type View = 'session' | 'builder' | 'plugins' | 'runs' | 'profiles';
 
-const VIEWS: [View, IconDefinition, string][] = [
-  ['session', faComments, 'Sessions'],
-  ['builder', faLayerGroup, 'Harness builder'],
-  ['plugins', faPuzzlePiece, 'Plugins'],
-  ['runs', faClockRotateLeft, 'Agent runs'],
-  ['profiles', faSliders, 'Profiles'],
+const VIEWS: [View, LucideIcon, string][] = [
+  ['session', MessagesSquare, 'Sessions'],
+  ['builder', Layers, 'Harness builder'],
+  ['plugins', Puzzle, 'Plugins'],
+  ['runs', History, 'Agent runs'],
+  ['profiles', SlidersHorizontal, 'Profiles'],
 ];
 
 const HEADS: Record<View, [string, string]> = {
@@ -286,8 +420,129 @@ function SideChat({ live }: { live: Live | undefined }) {
         disabled={!ready || !text.trim()}
         onClick={send}
       >
-        <Icon icon={faPaperPlane} /> {live?.view?.busy ? 'Steer the run' : 'Send message'}
+        <Icon icon={Send} /> {live?.view?.busy ? 'Steer the run' : 'Send message'}
       </button>
+    </div>
+  );
+}
+
+/** The session's conversation as the v5 board draws it: the human's lines and Mikata's answers as
+ * message cards; each run of tool calls one quiet line (the live run's log lists every step), and
+ * the end gate's word as a pill. The full chat, every card, is a link away. */
+function Conversation({ view, me, full }: { view: ChatView; me: string; full: string }) {
+  const out: ReactNode[] = [];
+  let calls: Call[] = [];
+  const flush = (key: string) => {
+    if (calls.length === 0) return;
+    const failed = calls.filter((c) => c.outcome?.isError).length;
+    const running = calls.filter((c) => c.outcome === undefined && !c.stopped).length;
+    out.push(
+      <p key={`calls-${key}`} className="bapp-calls">
+        <Icon icon={Wrench} /> {calls.length} tool call{calls.length === 1 ? '' : 's'}
+        {running > 0 ? ` · ${running} running` : failed > 0 ? ` · ${failed} failed` : ' · ok'} ·{' '}
+        <a href={full}>see each</a>
+      </p>,
+    );
+    calls = [];
+  };
+  for (const e of view.entries) {
+    if (e.kind === 'tool') {
+      calls.push(e.call);
+      continue;
+    }
+    if (e.kind === 'group') {
+      calls.push(...e.calls);
+      continue;
+    }
+    flush(e.key);
+    if (e.kind === 'user') {
+      out.push(
+        <article key={e.key} className="bapp-message bapp-message-user">
+          <b>YOU</b>
+          <Safe text={e.text} lines />
+        </article>,
+      );
+    } else if (e.kind === 'assistant') {
+      out.push(
+        <article key={e.key} className="bapp-message">
+          <b>{me.toUpperCase()}</b>
+          <Markdown text={e.text} />
+        </article>,
+      );
+    } else if (e.kind === 'verdict') {
+      const ok = e.verdict === 'PASS';
+      out.push(
+        <p key={e.key} className="bapp-verdict" data-ok={ok}>
+          {ok ? '✓ end gate · pass' : `✘ end gate · ${e.verdict.toLowerCase()}`}
+          {e.changed.length > 0 && ` · ${e.changed.length} changed`}
+        </p>,
+      );
+    } else if (e.kind === 'ending' && e.ending !== 'answered') {
+      out.push(
+        <p key={e.key} className="bapp-calls">
+          <Safe text={e.ending} />
+        </p>,
+      );
+    }
+  }
+  flush('end');
+  if (view.streaming) {
+    out.push(
+      <article key="streaming" className="bapp-message">
+        <b>{me.toUpperCase()}</b>
+        <Markdown text={view.streaming} />
+      </article>,
+    );
+  }
+  return <>{out}</>;
+}
+
+/** The v5 composer, on the live session: a line runs, or steers the turn that runs. */
+function SessionComposer({ live }: { live: Live }) {
+  const [text, setText] = useState('');
+  const busy = live.view?.busy ?? false;
+  const ready = live.role === 'controller' && live.link !== 'closed';
+  const send = () => {
+    const t = text.trim();
+    if (!t || !ready) return;
+    setText('');
+    if (busy) void live.steer(t);
+    else void live.prompt(t);
+  };
+  return (
+    <div className="bapp-composer">
+      <textarea
+        aria-label="Ask Mikata"
+        value={text}
+        disabled={!ready}
+        placeholder={
+          live.link === 'closed'
+            ? 'This chat has ended'
+            : busy
+              ? 'Steer the run: it reads this after its next step…'
+              : 'Ask Mikata to change, inspect or explain something…'
+        }
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            send();
+          }
+        }}
+      />
+      <div className="bapp-composerfoot">
+        <small>
+          {busy ? 'The run works · Enter steers it' : 'Enter to send'} · Shift+Enter for a newline
+        </small>
+        <button
+          type="button"
+          className="bapp-primary"
+          disabled={!ready || !text.trim()}
+          onClick={send}
+        >
+          <Icon icon={Send} /> {busy ? 'Steer' : 'Send'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -381,6 +636,9 @@ export function BuilderView({
   const card = (u: BoardUnit) => (
     <UnitCard key={u.id} u={u} on={on(u.id)} onFlip={() => flip(u.id)} />
   );
+  const inspectCard = (u: BoardUnit) => (
+    <UnitCard key={u.id} u={u} on={on(u.id)} onFlip={() => flip(u.id)} inspect />
+  );
 
   const page = (live: Live | undefined) => {
     const v = live?.view;
@@ -406,7 +664,7 @@ export function BuilderView({
     const progress = st.filter(([, s]) => s === 'done').length / 4;
     const lines = logLines(v);
     const meter = (label: string, value: string, frac: number) => (
-      <div className="bapp-metric" key={label}>
+      <div className="bapp-metric" key={label} data-kind={label.toLowerCase()}>
         <span>
           {label}
           <b>{value}</b>
@@ -446,11 +704,11 @@ export function BuilderView({
               className="bapp-navlink"
               href={format({ name: 'section', world: w.id, section: 'journal' })}
             >
-              <Icon icon={faBook} /> Journal
+              <Icon icon={ScrollText} /> Journal
             </a>
           </nav>
           <span className="bapp-muted">
-            ● LOCAL · <Safe text={w.name} />
+            <Glyph glyph="●" /> LOCAL · <Safe text={w.name} />
           </span>
           <button
             type="button"
@@ -458,7 +716,7 @@ export function BuilderView({
             disabled={starting || busy}
             onClick={() => void start()}
           >
-            <Icon icon={faPlay} /> Run agent
+            <Icon icon={Play} /> Run agent
           </button>
         </header>
         <div className="bapp-layout">
@@ -482,7 +740,7 @@ export function BuilderView({
               ))}
             </select>
             <p className="bapp-path">
-              <Icon icon={faFolderOpen} /> <Safe text={w.path} />
+              <Icon icon={FolderOpen} /> <Safe text={w.path} />
             </p>
             <p className="bapp-section">Navigation</p>
             {VIEWS.map(([k, icon, label]) => (
@@ -496,23 +754,28 @@ export function BuilderView({
               </button>
             ))}
             <a className="bapp-navbtn" href={format({ name: 'world', world: w.id })}>
-              <Icon icon={faArrowLeft} /> The full board
+              <Icon icon={ArrowLeft} /> The full board
             </a>
             <p className="bapp-section">Status</p>
-            {data && data.holes.length === 0 ? (
-              <p className="bapp-ok">● Harness ready</p>
-            ) : (
-              <p className="bapp-warn">
-                ● <Safe text={data?.holes.join(' · ') ?? 'reading the harness…'} />
-              </p>
-            )}
-            <p>
-              <Icon icon={faLock} /> Sandbox:{' '}
-              <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
-            </p>
-            <p>
-              <Icon icon={faCube} /> {enabled} of {units.length} units enabled
-            </p>
+            <ul className="bapp-tags" aria-label="Status">
+              {data && data.holes.length === 0 ? (
+                <li data-tone="ok">
+                  <i className="bapp-dot" aria-hidden="true" /> Harness ready
+                </li>
+              ) : (
+                <li data-tone="alarm">
+                  <i className="bapp-dot" aria-hidden="true" />{' '}
+                  <Safe text={data?.holes.join(' · ') ?? 'reading the harness…'} />
+                </li>
+              )}
+              <li data-tone={live?.hello?.sandbox ? 'holo' : undefined}>
+                <Icon icon={Lock} /> Sandbox:{' '}
+                <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
+              </li>
+              <li data-tone="holo">
+                <Icon icon={Box} /> {enabled} of {units.length} units enabled
+              </li>
+            </ul>
             <p className="bapp-section">Usage · this run</p>
             {meter('Steps', String(steps), steps / 100)}
             {meter(
@@ -553,19 +816,24 @@ export function BuilderView({
             {view === 'session' && (
               <div className="bapp-session">
                 <div className="bapp-sessionhead">
-                  <p className="bapp-ok">
-                    ●{' '}
+                  <p className="bapp-tag" data-tone={live?.link === 'open' ? 'ok' : 'holo'}>
+                    <i className="bapp-dot" aria-hidden="true" />{' '}
                     <Safe
                       text={run ? `${run.session} · ${live?.link ?? 'connecting'}` : 'No run yet'}
                     />
                   </p>
+                  {run && <Steps st={st} label="Session stages" compact />}
                   <button type="button" onClick={() => setView('builder')}>
-                    <Icon icon={faLayerGroup} /> Harness builder
+                    <Icon icon={Layers} /> Harness builder
                   </button>
                 </div>
                 <div className="bapp-conversation">
-                  {live?.view ? (
-                    <TranscriptView view={live.view} me={shownBody(live.hello?.body ?? '')} />
+                  {live?.view && live.view.entries.length > 0 ? (
+                    <Conversation
+                      view={live.view}
+                      me={shownBody(live.hello?.body ?? 'mikata')}
+                      full={format({ name: 'session', world: w.id, session: run?.session ?? '' })}
+                    />
                   ) : (
                     <article className="bapp-message">
                       <b>MIKATA</b>
@@ -577,7 +845,7 @@ export function BuilderView({
                   )}
                 </div>
                 {live ? (
-                  <Composer live={live} />
+                  <SessionComposer live={live} />
                 ) : (
                   <div className="bapp-composer">
                     <textarea
@@ -602,7 +870,7 @@ export function BuilderView({
                         disabled={!ask.trim() || starting}
                         onClick={() => void start()}
                       >
-                        <Icon icon={faPaperPlane} /> Send
+                        <Icon icon={Send} /> Send
                       </button>
                     </div>
                   </div>
@@ -611,7 +879,8 @@ export function BuilderView({
             )}
             {data && want && view === 'builder' && (
               <>
-                <div className="bapp-graph">
+                <div className="bapp-graph" data-live={busy}>
+                  <Edges layout={units.map((u) => `${u.id}:${on(u.id)}`).join(' ')} />
                   <div className="bapp-stack">{units.slice(0, half).map(card)}</div>
                   <section className="bapp-core" aria-label="The core">
                     <Logo className="bapp-core-logo" />
@@ -646,10 +915,10 @@ export function BuilderView({
                       void navigator.clipboard?.writeText(text).then(() => setCopied(true));
                     }}
                   >
-                    <Icon icon={faCopy} /> {copied ? 'Copied' : 'Copy TOML'}
+                    <Icon icon={Copy} /> {copied ? 'Copied' : 'Copy TOML'}
                   </button>
                   <button type="button" onClick={exportToml}>
-                    <Icon icon={faDownload} /> Export TOML
+                    <Icon icon={Download} /> Export TOML
                   </button>
                 </div>
                 <small className="bapp-muted">
@@ -661,10 +930,14 @@ export function BuilderView({
             {data && want && view === 'plugins' && (
               <div className="bapp-list">
                 <p className="bapp-section">Native units</p>
-                {units.filter((u) => u.kind === 'native').map(card)}
+                <div className="bapp-inspect">
+                  {units.filter((u) => u.kind === 'native').map(inspectCard)}
+                </div>
                 <p className="bapp-section">Plugins</p>
                 {units.some((u) => u.kind === 'plugin') ? (
-                  units.filter((u) => u.kind === 'plugin').map(card)
+                  <div className="bapp-inspect">
+                    {units.filter((u) => u.kind === 'plugin').map(inspectCard)}
+                  </div>
                 ) : (
                   <p className="bapp-muted">
                     No plugin declared: a <span className="mono">[plugins.&lt;id&gt;]</span> table
@@ -752,7 +1025,7 @@ export function BuilderView({
                 disabled={!live || !busy}
                 onClick={() => void live?.interrupt()}
               >
-                <Icon icon={faStop} /> Stop
+                <Icon icon={Square} /> Stop
               </button>
               <button
                 type="button"
@@ -760,7 +1033,7 @@ export function BuilderView({
                 disabled={!ask.trim() || starting || busy}
                 onClick={() => void start()}
               >
-                <Icon icon={faPlay} /> {starting ? 'Starting…' : 'Start run'}
+                <Icon icon={Play} /> {starting ? 'Starting…' : 'Start run'}
               </button>
             </div>
             {why && (
@@ -768,14 +1041,7 @@ export function BuilderView({
                 <Safe text={why} />
               </p>
             )}
-            <ol className="bapp-steps" aria-label="Stages">
-              {st.map(([s, at]) => (
-                <li key={s} data-state={at}>
-                  {at === 'done' ? '✔' : at === 'failed' ? '✘' : at === 'now' ? '◌' : '○'} {s}
-                  <span className="visually-hidden">: {at}</span>
-                </li>
-              ))}
-            </ol>
+            <Steps st={st} label="Stages" />
             <div className="bapp-log" role="log" aria-label="Run log">
               {run ? (
                 <>

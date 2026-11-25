@@ -15,26 +15,71 @@
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 flowchart TD
-    CAP["💰 your caps<br/>month · day · session"] --> SES["the session"]
+    CAP["your caps<br/>month · day · session"] --> SES["the session"]
     SES --> B["Mikata's body"]
     SES --> P["one body a project<br/>when an ask is split"]
-    B -. "spend" .-> L[("📒 usage ledger")]
+    B -. "spend" .-> L[("usage ledger")]
     P -. "spend" .-> L
     L -->|"read again before every model call"| CAP
-    L --> M["📊 meters<br/>status line · board"]
-    classDef you fill:#fdf3c4,stroke:#c9a400,stroke-width:2px,color:#3a2e05
+    L --> M["meters<br/>status line · board"]
+    classDef you fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
     class CAP you
-    classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
+    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
     class SES,L store
-    classDef mikata fill:#d7f8fb,stroke:#00a7b3,stroke-width:2px,color:#06302b
+    classDef mikata fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
     class B,P mikata
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class M step
 ```
 

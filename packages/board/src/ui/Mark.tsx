@@ -5,8 +5,10 @@
  */
 import type { WorldState, WorldStatus } from '@mikata/protocol';
 import type { ReactNode } from 'react';
+import { Glyph } from './Icon.tsx';
 
-export type Tone = 'holo' | 'muted' | 'alarm' | 'gold';
+/** holo: the interface; ok: alive, connected, verified (the bio green); alarm; gold: attention. */
+export type Tone = 'holo' | 'ok' | 'muted' | 'alarm' | 'gold';
 
 /** A glyph in a tone, followed by its label. */
 export function Mark({
@@ -21,7 +23,7 @@ export function Mark({
   return (
     <span className="mark" data-tone={tone}>
       <span className="mark-glyph" aria-hidden="true">
-        {glyph}
+        <Glyph glyph={glyph} />
       </span>
       <span className="mark-label">{children}</span>
     </span>
@@ -36,8 +38,8 @@ export const STATUS: Record<WorldState, { glyph: string; tone: Tone; label: stri
 
 /** How each world status is drawn: a glyph, a tone and its words. */
 export const WORLD_STATUS: Record<WorldStatus, { glyph: string; tone: Tone; label: string }> = {
-  live: { glyph: '●', tone: 'holo', label: 'live' },
-  'tui-live': { glyph: '●', tone: 'holo', label: 'live in a terminal' },
+  live: { glyph: '●', tone: 'ok', label: 'live' },
+  'tui-live': { glyph: '●', tone: 'ok', label: 'live in a terminal' },
   idle: { glyph: '○', tone: 'muted', label: 'idle' },
   missing: { glyph: '✕', tone: 'alarm', label: 'missing' },
 };

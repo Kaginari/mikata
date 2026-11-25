@@ -13,19 +13,64 @@ of letting the last writer win. That outer layer takes its rules from Yucong Dua
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 flowchart TB
-    subgraph core["⚖️ the core — one answer"]
+    subgraph core["the core — one answer"]
       DOCS["creature docs"] -->|derive| G["graph<br/>races · bonds · minds"]
       G -->|"infer to a<br/>fixed point"| GS["closed graph"]
       GS --> SH{"shapes"}
       GS --> OWN["own(path)<br/>exactly one owner"]
     end
-    subgraph plural["🌐 the outer layer — many voices, kept apart"]
+    subgraph plural["the outer layer — many voices, kept apart"]
       F["facts<br/>keyed · anchored · triaged"]
       R["relations<br/>between worlds"]
     end
@@ -36,12 +81,12 @@ flowchart TB
     SH --> FIND["findings<br/>code · severity"]
     CF --> FIND
     DO --> FIND
-    FIND -->|"critical, high"| GATE["⛔ the gate"]
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    FIND -->|"critical, high"| GATE["the gate"]
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class DOCS,G,GS,OWN,F,R,U,S step
-    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class SH,CF,DO,GATE gate
-    classDef truth fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
+    classDef truth fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class FIND truth
 ```
 

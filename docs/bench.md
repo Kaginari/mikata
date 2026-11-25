@@ -26,6 +26,148 @@ The same three harnesses, each as released, on two more screens, each task once
 | Maki 0.7.3 | 7 of 10 | $0.08 | 10 of 10 | $0.015 |
 | OpenCode 1.19.6 | 6 of 10 | $0.55 | 10 of 10 | $0.030 |
 
+The same twenty runs, charted (the table above is their table view):
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+    xyChart:
+      backgroundColor: "#0d0b10"
+      titleColor: "#f5eff7"
+      xAxisLabelColor: "#b7a9bc"
+      xAxisTitleColor: "#b7a9bc"
+      xAxisTickColor: "#59405d"
+      xAxisLineColor: "#59405d"
+      yAxisLabelColor: "#b7a9bc"
+      yAxisTitleColor: "#b7a9bc"
+      yAxisTickColor: "#59405d"
+      yAxisLineColor: "#59405d"
+      plotColorPalette: "#ff168a"
+---
+xychart-beta
+    title "Ten single fixes, two days: passes of 20"
+    x-axis ["Mikata", "Maki", "OpenCode"]
+    y-axis "passes" 0 --> 20
+    bar [16, 15, 14]
+```
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+    xyChart:
+      backgroundColor: "#0d0b10"
+      titleColor: "#f5eff7"
+      xAxisLabelColor: "#b7a9bc"
+      xAxisTitleColor: "#b7a9bc"
+      xAxisTickColor: "#59405d"
+      xAxisLineColor: "#59405d"
+      yAxisLabelColor: "#b7a9bc"
+      yAxisTitleColor: "#b7a9bc"
+      yAxisTickColor: "#59405d"
+      yAxisLineColor: "#59405d"
+      plotColorPalette: "#ff168a"
+---
+xychart-beta
+    title "The same runs: dollars a pass"
+    x-axis ["Mikata", "Maki", "OpenCode"]
+    y-axis "dollars a pass" 0 --> 1
+    bar [0.50, 0.91, 0.87]
+```
+
 ## In plain words
 
 - **On passes the three harnesses are level: on two codebases, and with two models.** Same

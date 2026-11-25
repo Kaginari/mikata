@@ -15,8 +15,53 @@
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
@@ -38,13 +83,13 @@ flowchart TD
     G -->|refused| W
     G -->|passes| A
     A --> V
-    classDef you fill:#fdf3c4,stroke:#c9a400,stroke-width:2px,color:#3a2e05
+    classDef you fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
     class V you
-    classDef mikata fill:#d7f8fb,stroke:#00a7b3,stroke-width:2px,color:#06302b
+    classDef mikata fill:#3a0f26,stroke:#ff168a,stroke-width:3px,color:#ffffff
     class M,P mikata
-    classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
+    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
     class L store
-    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class C,G gate
 ```
 
@@ -125,6 +170,19 @@ why. Two other modes, where the work is handed down a chain of bodies or shared 
 are kept as [experimental](experimental/): usable, measured, and frozen, since one body a project
 did better on every screen.
 
+### Compose it (experimental)
+
+Every part of the loop is a **unit** you can switch: memory, the end gate, the held `Done when`
+list, the fold, the stress signals, what-changed, the reader, the challenge, and the prompt's plan
+and its lighter form, both off by default (`[units]` in your global file, `--units` on `mikata
+run`, `/unit on|off` in the terminal). A **profile** names a mix for a kind of work (`--profile
+planned` puts the plan back, `--profile prose` its lighter form).
+A **plugin** is a program of yours that speaks MCP plus `mikata/hook`, run in the sandbox under a
+deadline, and loaded, unloaded or swapped while a session runs ([plugins](experimental/plugins.md)).
+The board's **Harness Builder** draws the units round the core and starts a run with exactly
+that composition. What each unit is worth is measured one at a time
+([plugins: where it stands](experimental/plugins.md#where-it-stands)).
+
 ## Technical detail
 
 ### The processes
@@ -132,12 +190,57 @@ did better on every screen.
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
-flowchart LR
+flowchart TD
     subgraph user["your machine"]
       CLI["mikata<br/>Rust · Ratatui<br/>the core in-process"]
       BOARD["board<br/>TypeScript · React<br/>in the browser"]
@@ -154,17 +257,17 @@ flowchart LR
     CORE --> SB
     CORE <--> W
     CORE <-->|HTTPS streaming| LLM
-    classDef ts fill:#fde7f3,stroke:#db2777,stroke-width:1.5px,color:#500724
+    classDef ts fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class BOARD ts
-    classDef rs fill:#ffedd5,stroke:#ea580c,stroke-width:1.5px,color:#431407
+    classDef rs fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
     class CLI,CORE rs
-    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class SB gate
-    classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
+    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
     class W store
-    classDef outside fill:#eceff3,stroke:#6b7280,stroke-width:1.5px,color:#111827
+    classDef outside fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
     class LLM outside
-    style user fill:#f8fafc,stroke:#94a3b8
+    style user fill:#16111b,stroke:#59405d,color:#f5eff7
 ```
 
 - **The core** (Rust crates) owns everything that must be correct: the loop, the gate, the
@@ -178,7 +281,8 @@ flowchart LR
   ([the client protocol](04-protocol.md)), the web board on loopback, and the world's admin
   commands (`mikatad runs`, `mikatad memory status`, …).
 - **The board** (TypeScript, React) is the web cockpit, served by `mikatad` on loopback. It
-  speaks the same protocol over a WebSocket.
+  speaks the same protocol over a WebSocket; its Harness Builder composes a run's units and
+  follows the run live.
 - One protocol, defined once in Rust; the TypeScript types are generated from it. A client can
   never drift from the core.
 

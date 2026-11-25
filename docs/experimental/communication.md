@@ -21,38 +21,85 @@ Two different conversations happen in Mikata, and they speak different languages
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 sequenceDiagram
     autonumber
     actor V as Player
-    participant R as 👑 Summoner
-    participant E as 🌿 elf-engine
-    participant O as 🪓 orc-engine
-    participant S as 💧 slime-wire
-    participant G as 🚪 gate
-    rect rgba(63,169,245,0.14)
-    V->>R: "the wire should read @W lines into Report.Wrote"
-    R->>R: plan · Done when: D1 · the map, on the board
-    R->>E: @ASK draft +unsaid · @BUDGET 200k wt · the ask · line D1
-    E->>E: plan item: orc-engine, wire parses @W | D1
-    E->>O: @ASK verdict +unsaid · @BUDGET 120k wt · line D1
-    O->>O: code the verify line for D1 on slime-wire's doc
-    O->>S: @ASK draft +unsaid · @BUDGET 60k wt · line D1
-    S->>S: edit wire/, its test, its doc · run D1 and the tests
-    end
-    rect rgba(217,119,6,0.16)
-    S->>G: end of turn
-    G-->>S: pass → log.md
-    end
-    rect rgba(22,163,74,0.13)
-    S-->>O: @S DONE · D1 PASS · @F wire/parse.rs:88 · @U territory … · @E
-    O-->>E: @S DONE · D1 PASS · @V landing holds · @E
-    E-->>R: @S DONE · D1 PASS · lane verdict · @E
-    R-->>V: "Done — @W lines now fill Report.Wrote, tested in wire/parse.rs."
+    participant R as Summoner
+    participant E as elf-engine
+    participant O as orc-engine
+    participant S as slime-wire
+    participant G as gate
+    rect rgb(13, 11, 16)
+      rect rgba(63,169,245,0.14)
+      V->>R: "the wire should read @W lines into Report.Wrote"
+      R->>R: plan · Done when: D1 · the map, on the board
+      R->>E: @ASK draft +unsaid · @BUDGET 200k wt · the ask · line D1
+      E->>E: plan item: orc-engine, wire parses @W | D1
+      E->>O: @ASK verdict +unsaid · @BUDGET 120k wt · line D1
+      O->>O: code the verify line for D1 on slime-wire's doc
+      O->>S: @ASK draft +unsaid · @BUDGET 60k wt · line D1
+      S->>S: edit wire/, its test, its doc · run D1 and the tests
+      end
+      rect rgba(217,119,6,0.16)
+      S->>G: end of turn
+      G-->>S: pass → log.md
+      end
+      rect rgba(22,163,74,0.13)
+      S-->>O: @S DONE · D1 PASS · @F wire/parse.rs:88 · @U territory … · @E
+      O-->>E: @S DONE · D1 PASS · @V landing holds · @E
+      E-->>R: @S DONE · D1 PASS · lane verdict · @E
+      R-->>V: "Done — @W lines now fill Report.Wrote, tested in wire/parse.rs."
+      end
     end
 ```
 
@@ -216,8 +263,53 @@ fingerprint) with a parser and an encoder that round-trip; property tests hold
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
@@ -241,11 +333,11 @@ flowchart TD
     C4 -- yes --> C5{"budget slice<br/>fits the envelope?"}
     C5 -- no --> NO5(["@? budget to parent"])
     C5 -- yes --> OK(["dispatch"])
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class Q,C0,C0a,C0b,C1,C1b,C2,C3,C4,C5 step
-    classDef good fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
+    classDef good fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class OK,VIA good
-    classDef bad fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#450a0a
+    classDef bad fill:#361522,stroke:#ff5575,stroke-width:1.5px,color:#ffd0da
     class NO1,NO2,NO3,NO4,NO5 bad
 ```
 
@@ -327,13 +419,58 @@ own `@V D4 …` is a claim, never a mark: it starts with neither `#` nor `accept
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
-flowchart LR
-    H(["🐉 you"]) -->|"typed while a turn runs"| Q["queue<br/>next turn, in order"]
+flowchart TD
+    H(["you"]) -->|"typed while a turn runs"| Q["queue<br/>next turn, in order"]
     H -->|"/send body: text"| S["send<br/>the body's next tool step"]
     BG["background body<br/>reports"] --> W["wake<br/>its own parent's next turn"]
     R["a report's @$ orders"] --> SQ[("shared work queue<br/>.mikata/shared/queue.jsonl")]
@@ -341,15 +478,15 @@ flowchart LR
     Q --> T
     W --> T
     TQ["mikatad q · the queue tool"] <--> SQ
-    classDef human fill:#f8efcf,stroke:#D4AF37,stroke-width:2px,color:#3a2e05
+    classDef human fill:#332711,stroke:#ffb020,stroke-width:2px,color:#ffe1a8
     class H human
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class Q,S,W,T step
-    classDef outside fill:#eceff3,stroke:#6b7280,stroke-width:1.5px,color:#111827
+    classDef outside fill:#16111b,stroke:#95849c,stroke-width:1.5px,color:#d8cfdc
     class BG,R outside
-    classDef store fill:#e8eaf6,stroke:#5c6bc0,stroke-width:1.5px,color:#1a237e
+    classDef store fill:#2a1820,stroke:#ff655c,stroke-width:1.5px,color:#ffe3e0
     class SQ store
-    classDef kijin fill:#fbdde1,stroke:#D7263D,stroke-width:2px,color:#3d0710
+    classDef kijin fill:#2a0d12,stroke:#d7263d,stroke-width:2px,color:#ffd6dc
     class TQ kijin
 ```
 

@@ -157,7 +157,12 @@ test('a refused act stays in its dialog with the server’s words, shown inert',
 test('the ontology tabs each status with its count; a contested fact shows both sides and anchors', async () => {
   await mount(<OntologyView w={WORLD} />);
   const tabs = [...host.querySelectorAll('[role="tab"]')].map((t) => t.textContent);
-  expect(tabs).toEqual(['⚔contested 1', '○single 1', '◆agreed 1', '✓settled 1', '✕countered 1']);
+  expect(tabs).toEqual(['contested 1', 'single 1', 'agreed 1', 'settled 1', 'countered 1']);
+  // Each with its own glyph, drawn as a line icon.
+  const glyphs = [...host.querySelectorAll('[role="tab"] [data-glyph]')].map((g) =>
+    g.getAttribute('data-glyph'),
+  );
+  expect(glyphs).toEqual(['⚔', '○', '◆', '✓', '✕']);
   const text = host.textContent ?? '';
   expect(text).toContain('Supporters · 2');
   expect(text).toContain('Counters · 2');
@@ -168,7 +173,7 @@ test('the ontology tabs each status with its count; a contested fact shows both 
   expect(text).toContain('domain sqlglot/');
   expect(host.querySelector('img')).toBeNull();
   // Every fact is in exactly one tab.
-  await click(button('◆agreed 1'));
+  await click(button('agreed 1'));
   const panel = host.querySelector('[role="tabpanel"]')?.textContent ?? '';
   expect(panel).toContain('the parser is hand-written');
   expect(panel).not.toContain('quoting is the tokenizer’s');

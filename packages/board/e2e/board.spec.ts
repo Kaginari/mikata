@@ -446,7 +446,7 @@ test('hostile names, paths and notes in an overview stay text', async ({ page })
   );
   expect(
     await page
-      .locator('main img, main script, main svg, main b, main a[href^="javascript"]')
+      .locator('main img, main script, main svg:not(.mn-icon), main b, main a[href^="javascript"]')
       .count(),
   ).toBe(0);
   expect(await page.evaluate(() => (window as { __pwned?: number }).__pwned)).toBeUndefined();

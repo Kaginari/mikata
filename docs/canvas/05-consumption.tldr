@@ -63,7 +63,7 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 152.86572302634158,
 				"start": {
@@ -107,16 +107,16 @@
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
-				"bend": 196.63924725420065,
+				"bend": 200,
 				"start": {
 					"x": 0,
 					"y": 0
 				},
 				"end": {
 					"x": 433.125,
-					"y": 356.3688087463379
+					"y": 330.6504201889038
 				},
 				"arrowheadStart": "none",
 				"arrowheadEnd": "arrow",
@@ -157,7 +157,7 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": -117.13020101785048,
 				"start": {
@@ -201,7 +201,7 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 33.93065960960739,
 				"start": {
@@ -245,12 +245,12 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 200,
 				"start": {
 					"x": 97.8125,
-					"y": 1010.7145118713379
+					"y": 984.9961233139038
 				},
 				"end": {
 					"x": 0,
@@ -282,7 +282,7 @@
 		},
 		{
 			"x": 591.25,
-			"y": 1106.583652496338,
+			"y": 1080.8652639389038,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -295,7 +295,7 @@
 				"dash": "draw",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 0,
 				"start": {
@@ -304,7 +304,7 @@
 				},
 				"end": {
 					"x": 0,
-					"y": 285.4996681213379
+					"y": 259.7812795639038
 				},
 				"arrowheadStart": "none",
 				"arrowheadEnd": "arrow",
@@ -339,7 +339,7 @@
 				"dash": "dotted",
 				"size": "m",
 				"fill": "none",
-				"color": "black",
+				"color": "red",
 				"labelColor": "black",
 				"bend": 0,
 				"start": {
@@ -348,7 +348,7 @@
 				},
 				"end": {
 					"x": 0,
-					"y": 356.3688087463379
+					"y": 330.6504201889038
 				},
 				"arrowheadStart": "none",
 				"arrowheadEnd": "arrow",
@@ -394,7 +394,7 @@
 				"scale": 1,
 				"flipX": false,
 				"flipY": false,
-				"color": "green",
+				"color": "red",
 				"labelColor": "black",
 				"fill": "solid",
 				"size": "m",
@@ -439,7 +439,7 @@
 				"scale": 1,
 				"flipX": false,
 				"flipY": false,
-				"color": "blue",
+				"color": "light-red",
 				"labelColor": "black",
 				"fill": "solid",
 				"size": "m",
@@ -499,7 +499,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "💰 your caps"
+									"text": "your caps"
 								}
 							]
 						},
@@ -520,7 +520,7 @@
 		},
 		{
 			"x": 416.25,
-			"y": 1296.2141799926758,
+			"y": 1244.7774028778076,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -538,7 +538,7 @@
 				"scale": 1,
 				"flipX": false,
 				"flipY": false,
-				"color": "blue",
+				"color": "red",
 				"labelColor": "black",
 				"fill": "solid",
 				"size": "m",
@@ -553,7 +553,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "📊 meters"
+									"text": "meters"
 								}
 							]
 						},
@@ -592,7 +592,7 @@
 				"scale": 1,
 				"flipX": false,
 				"flipY": false,
-				"color": "green",
+				"color": "red",
 				"labelColor": "black",
 				"fill": "solid",
 				"size": "m",
@@ -627,7 +627,7 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 453.75,
+			"x": 477.5,
 			"y": 1016.953125,
 			"rotation": 0,
 			"isLocked": false,
@@ -637,8 +637,8 @@
 			"type": "geo",
 			"parentId": "shape:014",
 			"props": {
-				"w": 275,
-				"h": 179.26105499267578,
+				"w": 227.5,
+				"h": 127.82427787780762,
 				"geo": "ellipse",
 				"dash": "draw",
 				"growY": 0,
@@ -646,7 +646,7 @@
 				"scale": 1,
 				"flipX": false,
 				"flipY": false,
-				"color": "blue",
+				"color": "light-red",
 				"labelColor": "black",
 				"fill": "solid",
 				"size": "m",
@@ -661,7 +661,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "📒 usage ledger"
+									"text": "usage ledger"
 								}
 							]
 						}

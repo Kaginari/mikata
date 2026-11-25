@@ -460,7 +460,10 @@
   background: color-mix(in srgb, var(--tone) 12%, transparent);
 }
 [data-verdict="ok"] {
-  --tone: var(--mn-race-elf);
+  --tone: var(--mn-success);
+  border-color: var(--mn-success-border);
+  color: var(--mn-success-text);
+  background: var(--mn-success-bg);
 }
 [data-verdict="gold"] {
   --tone: var(--mn-gold);

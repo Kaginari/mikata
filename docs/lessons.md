@@ -5,6 +5,82 @@ carry them as advice: each row becomes either a test that fails if the mistake c
 design rule the code makes impossible to break, and the milestone column names the rung of the
 roadmap where that test or rule must exist before the rung counts as done.
 
+## In one picture
+
+How many lessons each part of Mikata carries: 143 rows, each a test or a rule.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+    xyChart:
+      backgroundColor: "#0d0b10"
+      titleColor: "#f5eff7"
+      xAxisLabelColor: "#b7a9bc"
+      xAxisTitleColor: "#b7a9bc"
+      xAxisTickColor: "#59405d"
+      xAxisLineColor: "#59405d"
+      yAxisLabelColor: "#b7a9bc"
+      yAxisTitleColor: "#b7a9bc"
+      yAxisTickColor: "#59405d"
+      yAxisLineColor: "#59405d"
+      plotColorPalette: "#ff168a"
+  xyChart:
+    showDataLabel: true
+---
+xychart-beta horizontal
+    title "Lessons carried, by area"
+    x-axis ["Provider and streaming", "Tools", "Sandbox and guard", "Human gate", "Loop and budgets", "World", "Memory and toolbox", "Config", "TUI and CLI", "Board", "Claude Code", "Process", "Mikata's own bench"]
+    y-axis "lessons" 0 --> 25
+    bar [9, 12, 9, 5, 13, 21, 7, 8, 11, 6, 5, 12, 25]
+```
+
 ## Provider & streaming
 
 | Lesson | Becomes | Milestone |

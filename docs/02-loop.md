@@ -15,29 +15,74 @@
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 flowchart LR
-    P["👁️ perceive<br/>budget · clock · context"] --> RC["📚 recall<br/>memories · tool manifest"]
-    RC --> PL["🧠 plan<br/>one model call"]
-    PL --> A["✋ act<br/>one tool call"]
-    A --> VF["✅ verify<br/>did it work?"]
-    VF --> REC["📝 record<br/>journal · ledger"]
+    P["perceive<br/>budget · clock · context"] --> RC["recall<br/>memories · tool manifest"]
+    RC --> PL["plan<br/>one model call"]
+    PL --> A["act<br/>one tool call"]
+    A --> VF["verify<br/>did it work?"]
+    VF --> REC["record<br/>journal · ledger"]
     REC -->|more tool calls| P
-    REC -->|model answered| G{"🚪 end gate<br/>(if files written)"}
+    REC -->|model answered| G{"end gate<br/>(if files written)"}
     G -->|pass| DONE(["the answer"])
     G -->|fail, retries left| P
     G -->|fail, none left| FAIL(["FAIL, and why"])
-    classDef step fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#082f49
+    classDef step fill:#211824,stroke:#ff168a,stroke-width:1.5px,color:#f5eff7
     class P,RC,PL,A,VF,REC step
-    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#451a03
+    classDef gate fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class G gate
-    classDef good fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16
+    classDef good fill:#202c13,stroke:#9be22d,stroke-width:2px,color:#d9f95c
     class DONE good
-    classDef bad fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#450a0a
+    classDef bad fill:#361522,stroke:#ff5575,stroke-width:1.5px,color:#ffd0da
     class FAIL bad
 ```
 
@@ -91,8 +136,53 @@ soil.
 ```mermaid
 ---
 config:
-  look: handDrawn
-  theme: neutral
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#0d0b10"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#211824"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#ff168a"
+    secondaryColor: "#2c2030"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#ff655c"
+    tertiaryColor: "#16111b"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#59405d"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#16111b"
+    clusterBkg: "#16111b"
+    clusterBorder: "#59405d"
+    noteBkgColor: "#332711"
+    noteTextColor: "#ffe1a8"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#211824"
+    actorBorder: "#ff168a"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#211824"
+    labelBoxBorderColor: "#ff168a"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#3a0f26"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#0d0b10"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#211824"
+    labelBackgroundColor: "#16111b"
+    compositeBackground: "#16111b"
+    compositeTitleBackground: "#211824"
+    altBackground: "#16111b"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
@@ -105,27 +195,29 @@ sequenceDiagram
     participant T as territory
     participant H as human gate
     participant X as sandboxed tool
-    rect rgba(2,132,199,0.10)
-    M->>L: tool_use(bash, "git push origin feat/x")
-    L->>C: classify
-    C-->>L: outward
-    L->>R: is outward on this race's shelf?
-    end
-    alt not a Kijin
-      rect rgba(220,38,38,0.10)
-      R-->>L: refused — "route to kijin-forge"
-      L-->>M: tool_result(error, the route)
+    rect rgb(13, 11, 16)
+      rect rgba(2,132,199,0.10)
+      M->>L: tool_use(bash, "git push origin feat/x")
+      L->>C: classify
+      C-->>L: outward
+      L->>R: is outward on this race's shelf?
       end
-    else Kijin
-      L->>T: inside its post?
-      rect rgba(212,175,55,0.22)
-      L->>H: plan of the act (or a covering Oni envelope)
-      H-->>L: yes
-      end
-      rect rgba(22,163,74,0.13)
-      L->>X: run, secrets injected, outputs redacted
-      X-->>L: result
-      L-->>M: tool_result
+      alt not a Kijin
+        rect rgba(220,38,38,0.10)
+        R-->>L: refused — "route to kijin-forge"
+        L-->>M: tool_result(error, the route)
+        end
+      else Kijin
+        L->>T: inside its post?
+        rect rgba(212,175,55,0.22)
+        L->>H: plan of the act (or a covering Oni envelope)
+        H-->>L: yes
+        end
+        rect rgba(22,163,74,0.13)
+        L->>X: run, secrets injected, outputs redacted
+        X-->>L: result
+        L-->>M: tool_result
+        end
       end
     end
 ```
