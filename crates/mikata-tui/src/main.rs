@@ -332,6 +332,7 @@ fn chat(
     // account stays where it was: `mikata status`, the journal's `law` beat, `--help`.
     model.fact(Tag::Model, &opened.model, &opened.provider);
     model.fact(Tag::Sandbox, &opened.sandbox, "");
+    model.sandbox.clone_from(&opened.sandbox);
     model.fact(Tag::Mode, opened.mode.word(), &opened.mode_why);
     if let Some(e) = unhardened {
         model.fact(Tag::Warn, e, "");
@@ -359,6 +360,7 @@ fn chat(
         Ok(h) => h,
         Err(e) => return fail(&e, 1),
     };
+    model.units = Some(host.unit_desk());
     // The sidebar's memory and races come from the world, read off the UI thread.
     host.run(model.survey());
     board(&world, &tx, web);

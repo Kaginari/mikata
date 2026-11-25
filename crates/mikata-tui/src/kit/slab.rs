@@ -1,15 +1,13 @@
-//! Depth for Ratatui: a raised panel drawn in the cell grid with colour and block elements
-//! alone, as Isekai's frame draws its cards. The page is the plane; a slab stands on it with a
-//! lit top edge, a face tinted a few percent toward the hue that says what it is (the human's
-//! gold, the answer's cyan, a tool's class), a spine in that hue down its left edge, a shaded
-//! right and bottom bevel, and a shadow one cell right and half a row down — tinted from the
-//! plane, never black. A float (a toast, the approval) casts the deeper shadow.
+//! Cards for Ratatui, drawn in the cell grid: a rounded border in the hue that says what the
+//! card is (the human's gold, the answer's cyan, a tool's class), a face tinted a few percent
+//! toward that hue, and a lighter band for the head rows. No shadow: a card reads as the
+//! frame's own panels do.
 //!
 //! ```text
-//! ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-//! ▌ ● bash  pytest  ▕▄▖
-//! ▌   ⎿ ok · 2.0s    ▕ ▌
-//! ▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▘
+//! ╭──────────────────╮
+//! │ ● bash  pytest   │
+//! │   ⎿ ok · 2.0s    │
+//! ╰──────────────────╯
 //! ```
 //!
 //! Every tone is a step of one scale taken from the theme's own palette, so a slab re-renders in
@@ -21,12 +19,8 @@ use ratatui::text::{Line, Span};
 use super::text::{Align, Lines, fit};
 use crate::theme::{Rgb, Theme, Variant};
 
-/// The columns a slab's shadow takes right of its face: the near one dark, the far a fade.
-pub const SHADOW: usize = 2;
-
-/// The cells a slab's frame takes from its width: the spine, a space each side, the right
-/// bevel, and the shadow.
-pub const FRAME: usize = 4 + SHADOW;
+/// The cells a card's frame takes from its width: a border and a space each side.
+pub const FRAME: usize = 4;
 
 /// One surface's tones.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,30 +170,27 @@ impl Slab {
         width.saturating_sub(FRAME)
     }
 
-    /// `rows` raised on the slab, `width` cells wide with its shadow.
+    /// `rows` in the slab's card, `width` cells wide: a rounded border in its hue (the rule's
+    /// tone where it has none) and the face inside.
     #[must_use]
     pub fn render(&self, rows: Lines, width: usize) -> Lines {
         let s = &self.surface;
-        let bw = width.saturating_sub(SHADOW).max(4);
+        let bw = width.max(4);
         let inner = bw - 4;
-        let fg = |c: Rgb| Style::new().fg(c.color());
-        let on = |f: Rgb, b: Rgb| Style::new().fg(f.color()).bg(b.color());
-        let (shadow, far) = s.shadow;
+        let edge = s.spine.unwrap_or_else(|| s.shade.mix(s.gloss, 0.5));
+        let line = Style::new().fg(edge.color());
         let mut out: Lines = Vec::with_capacity(rows.len() + 2);
         if self.top {
-            out.push(Line::from(vec![
-                Span::styled("▄".repeat(bw), fg(s.gloss)),
-                Span::raw(" ".repeat(SHADOW)),
-            ]));
+            out.push(Line::from(Span::styled(
+                format!("╭{}╮", "─".repeat(bw - 2)),
+                line,
+            )));
         }
         for (i, row) in rows.into_iter().enumerate() {
             let face = if i < self.band { s.band } else { s.face };
-            let left = match s.spine {
-                Some(h) => Span::styled("▌", on(h, face)),
-                None => Span::styled("▏", on(s.gloss, face)),
-            };
             let bg = Style::new().bg(face.color());
-            let mut spans = vec![left, Span::styled(" ", bg)];
+            let side = Style::new().fg(edge.color());
+            let mut spans = vec![Span::styled("│", side), Span::styled(" ", bg)];
             let row = Line::from(
                 row.spans
                     .into_iter()
@@ -215,24 +206,14 @@ impl Slab {
             );
             spans.extend(fit(row, inner, Align::Left, bg).spans);
             spans.push(Span::styled(" ", bg));
-            spans.push(Span::styled("▕", on(s.shade, face.mix(s.shade, 0.4))));
-            if i == 0 && self.top {
-                spans.push(Span::styled("▄", fg(shadow)));
-                spans.push(Span::styled("▖", fg(far)));
-            } else {
-                spans.push(Span::styled(" ", Style::new().bg(shadow.color())));
-                spans.push(Span::styled("▌", fg(far)));
-            }
+            spans.push(Span::styled("│", side));
             out.push(Line::from(spans));
         }
         if self.bottom {
-            out.push(Line::from(vec![
-                Span::styled("▝", fg(s.shade)),
-                Span::styled("▀", on(s.shade, far)),
-                Span::styled("▀".repeat(bw - 2), on(s.shade, shadow)),
-                Span::styled(" ", Style::new().bg(shadow.color())),
-                Span::styled("▘", fg(far)),
-            ]));
+            out.push(Line::from(Span::styled(
+                format!("╰{}╯", "─".repeat(bw - 2)),
+                line,
+            )));
         }
         out
     }
@@ -255,11 +236,11 @@ mod tests {
         for l in &lines {
             assert_eq!(line_cells(l), 20, "{:?}", plain(l));
         }
-        assert!(plain(&lines[0]).starts_with("▄▄▄"));
-        assert!(plain(&lines[1]).starts_with("▌ head"));
-        assert!(plain(&lines[1]).ends_with("▕▄▖"));
-        assert!(plain(&lines[2]).ends_with("▕ ▌"));
-        assert!(plain(&lines[3]).starts_with("▝▀"));
+        assert!(plain(&lines[0]).starts_with("╭──"));
+        assert!(plain(&lines[1]).starts_with("│ head"));
+        assert!(plain(&lines[1]).ends_with(" │"));
+        assert!(plain(&lines[2]).ends_with(" │"));
+        assert!(plain(&lines[3]).starts_with("╰─"));
         // The band is a breath lighter than the face; the spine wears the hue.
         assert_ne!(s.band, s.face);
         assert_eq!(lines[1].spans[0].style.fg, Some(t.races.summoner.color()));
@@ -272,6 +253,6 @@ mod tests {
             .edges(false, false)
             .render(vec![Line::from("more")], 16);
         assert_eq!(lines.len(), 1);
-        assert!(plain(&lines[0]).starts_with("▏ more"));
+        assert!(plain(&lines[0]).starts_with("│ more"));
     }
 }

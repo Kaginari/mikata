@@ -227,6 +227,12 @@ impl Host {
         })
     }
 
+    /// The desk the run lists its units on, for the Units panel to read.
+    #[must_use]
+    pub fn unit_desk(&self) -> mikata_loop::units::UnitDesk {
+        std::sync::Arc::clone(&self.units)
+    }
+
     /// `/units` lists the session's units; `/unit` and `/plugin` ask the run for a change at its
     /// next safe point, through the desk it shares.
     fn units(&self, change: Option<(String, bool)>) {

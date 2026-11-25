@@ -94,7 +94,7 @@ fn a_scripted_turn_reaches_the_screen() {
                 + "\n"
         })
         .collect();
-    assert!(screen.contains("▌ fix the collate bug"), "{screen}");
+    assert!(screen.contains("│ fix the collate bug"), "{screen}");
     assert!(screen.contains("● edit  parser.py  write"), "{screen}");
     assert!(
         screen.contains("-     return this") && screen.contains("+     return collate(this)"),

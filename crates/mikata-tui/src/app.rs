@@ -259,6 +259,12 @@ pub struct Model {
     pub wrong: Option<mikata_loop::word::Preview>,
     /// The id of the last correction kept in this session: what `/withdraw` takes back.
     pub kept: Option<String>,
+    /// The session's units, as its run lists them ([`mikata_loop::units::Desk`]): the Units panel.
+    pub units: Option<mikata_loop::units::UnitDesk>,
+    /// What contains the session's commands, as `mikata status` says it.
+    pub sandbox: String,
+    /// The end gate's last word on an answer, and whether it passed.
+    pub last: Option<(String, bool)>,
 }
 
 /// The surveys: the next one's number, and the newest whose reading was applied.
@@ -326,6 +332,9 @@ impl Model {
             late: crate::probe::Late::default(),
             wrong: None,
             kept: None,
+            units: None,
+            sandbox: String::new(),
+            last: None,
         }
     }
 
@@ -627,6 +636,10 @@ fn status(m: &mut Model, event: &Event) {
                 "NOT_VERIFIED" => ("not verified", t.p.gold),
                 _ => ("fail", t.p.alarm),
             };
+            m.last = Some((
+                if verdict == "PASS" { "landed" } else { word }.to_owned(),
+                verdict == "PASS" && !*unchecked,
+            ));
             m.toast = Some(Toast::new(format!("◆ end gate {word}"), hue));
         }
         _ => {}
@@ -752,9 +765,11 @@ fn click(m: &mut Model, (x, y): (u16, u16)) {
     }
 }
 
-/// The glyphs a panel draws round its words, never copied: the spine, the rail, the bevel and
-/// the shadow.
-const EDGES: [char; 12] = ['▌', '▐', '▕', '▏', '▄', '▀', '▖', '▗', '▘', '▝', '█', '│'];
+/// The glyphs a panel draws round its words, never copied: a card's rounded border, and the
+/// spine, the rail and the bevel the older slabs drew.
+const EDGES: [char; 17] = [
+    '▌', '▐', '▕', '▏', '▄', '▀', '▖', '▗', '▘', '▝', '█', '│', '╭', '╮', '╰', '╯', '─',
+];
 
 /// The text `sel` covers in the cells the frame drew, as the human reads it: each row's words
 /// without the panel round them, a row of edges alone left out, the blank rows round it trimmed.
@@ -795,11 +810,11 @@ pub(crate) fn selected_text(h: &Hits, sel: Selection) -> String {
     out.join("\n")
 }
 
-/// A row's words without the panel: its spine or rail and the space after it, and the bevel and
-/// shadow at its end; the words' own indent kept.
+/// A row's words without the card: its left border and the space after it, and its right border
+/// at its end; the words' own indent kept.
 fn bare(raw: &str) -> String {
     let mut s = raw.trim_end();
-    // The bevel and the shadow: `▕▄▖`, `▕ ▌`.
+    // The card's right border, and the space before it.
     while let Some(c) = s.chars().last().filter(|c| EDGES.contains(c) || *c == ' ') {
         s = &s[..s.len() - c.len_utf8()];
     }

@@ -264,9 +264,9 @@ fn every_section_shows_what_the_observer_and_the_world_gave() {
     let scr = screen(&buf);
     println!("{scr}");
     for want in [
-        "vitals ─",
-        "COST $0.04",
-        "TOK  60.9k",
+        "Budgets",
+        "cost       $0.040",
+        "context    61.5k / 150.0k",
         "41%",
         "deepseek-v4-flash",
         "memory ─",
@@ -300,15 +300,12 @@ fn every_section_shows_what_the_observer_and_the_world_gave() {
     assert_eq!(buf[(ox, oy)].fg, RACES.orc.color());
     let slime_row = &rows(&buf)[usize::from(sy)];
     assert!(slime_row.contains("edit"), "{slime_row}");
-    // The gauge is drawn against the stress line.
+    // The Budgets panel's gauge is drawn against the stress line.
     let ctx_row = rows(&buf)
         .into_iter()
-        .find(|r| r.contains("CTX  ━"))
+        .find(|r| r.contains('━') && r.contains("41%"))
         .unwrap();
-    assert!(
-        ctx_row.contains('─') && ctx_row.contains("41%"),
-        "{ctx_row}"
-    );
+    assert!(ctx_row.contains("41%"), "{ctx_row}");
 }
 
 #[test]
@@ -410,7 +407,7 @@ fn a_drag_selects_the_conversation_alone_and_copies_it_bare() {
     );
     let buf = draw(&mut m, 120, 40);
     let (x, y) = find(&buf, "why does the collation drop").unwrap();
-    let side = find(&buf, "vitals").unwrap();
+    let side = find(&buf, "memory").unwrap();
     mouse(&mut m, MouseEventKind::Down(MouseButton::Left), (x, y));
     // Dragged past the conversation's edge, into the sidebar, and a row down.
     mouse(
@@ -506,7 +503,7 @@ fn a_key_expands_the_focused_card_and_the_focus_moves_between_cards() {
     assert!(screen(&buf).contains("line 10"));
     // The focused card wears the accent on its border.
     let (x, y) = find(&buf, "bash  pytest").unwrap();
-    assert_eq!(buf[(x - 4, y)].symbol(), "▌", "the card's spine");
+    assert_eq!(buf[(x - 4, y)].symbol(), "│", "the card's border");
     assert_eq!(buf[(x - 4, y)].fg, m.theme.p.holo.color());
     ctrl(&mut m, 't');
     assert!(!screen(&draw(&mut m, 120, 40)).contains("line 10"));

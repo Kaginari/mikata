@@ -84,7 +84,7 @@ fn the_sidebar_alone_wants_the_logo_over_plain_cells() {
     // 32 columns of 8 px, and a square of rows: 15 of 17 px.
     assert_eq!((side.area.width, side.area.height), (32, 15));
     assert_eq!(side.art, Art::Logo);
-    assert_eq!(side.bg, m.theme.p.bg);
+    assert_eq!(side.bg, m.theme.p.panel, "the Session panel's own fill");
     // The sidebar's alone: the welcome draws its wordmark in text.
     assert_eq!(wants.len(), 1);
     // Under the picture, plain cells on its own background: no glyph for it to hide.

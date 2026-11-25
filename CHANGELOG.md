@@ -84,6 +84,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The terminal UI is laid out as a dashboard.** A header bar names the repo, the branch, the
+  mode, the model and whether commands are sandboxed; the conversation sits in an *Agent loop*
+  panel; beside it, *Done when* ticks the body's list once the end gate passes the answer,
+  *Budgets* shows steps, wall clock, context against its stress line and cost, *Units* lists
+  every unit with an ON or OFF pill, and *Session* keeps memory, files and bodies (with Mikata's
+  logo where the terminal draws pictures). A footer bar holds the verify line, the last answer's
+  word, the keys that matter now, and the steps, time and spend. Borders run in one pink-to-gold
+  gradient; cards are rounded boxes, no longer shaded slabs. Small terminals keep one-row bars
+  and drop the frame round the conversation; a short column gives up panels with nothing in
+  them.
+
 - **Fewer calls lost to the harness.** `multiedit` is no longer offered (its nested arguments
   came back as broken JSON in one call in eight); several edits are several `edit` calls in one
   message, and a session that used it is still answered. A command the approval gate refuses is

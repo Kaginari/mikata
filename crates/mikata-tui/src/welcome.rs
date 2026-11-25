@@ -284,11 +284,11 @@ mod tests {
         for w in [80u16, 120, 200] {
             let mut m = model(Variant::Light);
             let (text, _) = screen(&mut m, w, 60);
-            // The card's rows joined, the sidebar beside them, its frame and bullets cut away:
-            // wrapped lines read whole.
+            // The card's rows joined, the panels' frames and the column beside them, the card's
+            // own frame and bullets cut away: wrapped lines read whole.
             let flat: String = text
                 .lines()
-                .map(|l| l.split('│').nth(1).unwrap_or(l))
+                .map(|l| l.split('│').nth(2).unwrap_or(l))
                 .map(|l| {
                     l.trim_matches(|c: char| " ▌▏▕▖▘▝▀▄│".contains(c))
                         .trim_start_matches("▸ ")
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn verify_shows_the_line_or_the_suggestion() {
         let mut m = model(Variant::Dark);
-        let (text, _) = screen(&mut m, 120, 60);
+        let (text, _) = screen(&mut m, 160, 60);
         assert!(text.contains("reading the world…"), "before the survey");
         surveyed(
             &mut m,
@@ -323,7 +323,7 @@ mod tests {
                 suggested: Some("cargo test --workspace".into()),
             },
         );
-        let (text, _) = screen(&mut m, 120, 60);
+        let (text, _) = screen(&mut m, 160, 60);
         assert!(text.contains("none — memory can't be grounded"), "{text}");
         assert!(
             text.contains("add to summoner's card  - **Verify:** `cargo test --workspace`"),
@@ -336,14 +336,19 @@ mod tests {
                 suggested: None,
             },
         );
-        let (text, _) = screen(&mut m, 120, 60);
+        let (text, _) = screen(&mut m, 160, 60);
         assert!(text.contains(&format!("{:<9}make check", caps("verify"))));
         assert!(!text.contains("can't be grounded"));
     }
 
-    /// The screen row the title is drawn on, if it is.
+    /// The screen row the welcome's title is drawn on, if it is: below the header bar, which
+    /// names Mikata too.
     fn wordmark_row(text: &str) -> Option<usize> {
-        text.lines().position(|l| l.contains(TITLE))
+        const BAR: usize = 3;
+        text.lines()
+            .skip(BAR)
+            .position(|l| l.contains(TITLE))
+            .map(|r| r + BAR)
     }
 
     /// The rows the welcome card draws above the title: its own top edge.
@@ -360,8 +365,9 @@ mod tests {
 
     #[test]
     fn on_first_run_the_welcome_opens_the_conversation_at_the_top() {
-        // The frame's top edge, then the conversation's label: the transcript's first row is 2.
-        const TOP: usize = 2;
+        // The header bar's three rows, then the Agent loop panel's top edge: the transcript's
+        // first row is 4.
+        const TOP: usize = 4;
         for open in [true, false] {
             let mut m = model(Variant::Dark);
             m.sidebar.open = open;
@@ -407,7 +413,7 @@ mod tests {
         let (text, _) = screen(&mut m, 120, 40);
         assert_eq!(
             wordmark_row(&text),
-            Some(2 + above_wordmark(&m)),
+            Some(4 + above_wordmark(&m)),
             "\n{text}"
         );
     }

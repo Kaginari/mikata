@@ -173,19 +173,22 @@ fn the_ask_is_a_raised_panel_with_room_and_a_footer() {
         .iter()
         .position(|l| l.contains("ask, or /help"))
         .expect("the prompt");
-    // A slab, as a sent line is: its spine and bevel, no frame drawn round it.
+    // A card, as a sent line is: a rounded border, no label drawn on it.
     assert!(!scr.contains("╭─ ASK"), "{scr}");
-    assert!(rows[at].contains("▌ › "), "{}", rows[at]);
-    assert!(rows[at - 1].contains("▄▄▄▄"), "its lit top edge:\n{scr}");
+    assert!(rows[at].contains("│ │ › "), "{}", rows[at]);
+    assert!(rows[at - 1].contains("│ ╭────"), "its top edge:\n{scr}");
     // Room to write: two more face rows, then the footer under a rule.
     for r in &rows[at + 1..at + 3] {
-        assert!(r.contains("▌ ") && r.contains("▕"), "a face row: {r}");
+        assert!(
+            r.starts_with("│ │ ") && r.contains(" │ "),
+            "a face row: {r}"
+        );
     }
     assert!(rows[at + 3].contains("────"), "the rule: {}", rows[at + 3]);
     let foot = rows[at + 4];
     assert!(foot.contains("◆ mikata · light-coding"), "{foot}");
     assert!(foot.contains("enter send · alt+enter line"), "{foot}");
-    assert!(rows[at + 5].contains("▀▀▀▀"), "its bottom bevel:\n{scr}");
+    assert!(rows[at + 5].contains("│ ╰────"), "its bottom edge:\n{scr}");
     // Busy, the footer says where a line goes; with an approval up, what comes first.
     send(&mut m, "fix it");
     let scr = screen(&mut m, 120, 40);
@@ -208,13 +211,17 @@ fn the_status_shows_on_send_before_any_token() {
     let scr = screen(&mut m, 100, 32);
     assert!(scr.contains("Thinking… (0s · esc to interrupt)"), "{scr}");
     assert!(scr.contains("mikata · thinking"), "{scr}");
-    // The header's chip, and the sidebar's state under the portrait, turn as the strip does.
+    // The header's chip turns as the strip does, and the Session panel's body works.
     let spin = m.spinner.view();
     let tall = screen(&mut m, 100, 44);
     assert_eq!(
         tall.matches(&format!("{spin} thinking 0s")).count(),
-        2,
-        "the header's chip and the sidebar's state:\n{tall}"
+        1,
+        "the header's chip:\n{tall}"
+    );
+    assert!(
+        tall.contains(&format!("{spin} working")),
+        "the body's state:\n{tall}"
     );
     assert!(!tall.contains("● thinking"), "{tall}");
     assert_eq!(activity::phase(&m), Some(Phase::Thinking));
@@ -356,7 +363,7 @@ fn thinking_shows_live_then_folds_to_its_duration() {
     assert!(scr.contains("thinking · 12s · click to hide"), "{scr}");
     assert!(!scr.contains("◌ thinking"), "the head turns:\n{scr}");
     assert!(
-        scr.contains("The parser walks the tree twice") && scr.contains("for collations."),
+        scr.contains("The parser walks the tree twice") && scr.contains("collations."),
         "its text, whole:\n{scr}"
     );
     assert_eq!(scr.matches("thinking · ").count(), 1, "{scr}");

@@ -314,26 +314,35 @@ fn the_header_and_the_status_bar_read_what_the_observer_gave() {
     );
     let buf = draw(&mut m, 100, 20);
     let r = rows(&buf);
-    assert!(
-        r[0].starts_with("╭─ ◈ MIKATA · mikata · deepseek-v4-flash"),
-        "{}",
-        r[0]
-    );
-    let last = &r[19];
+    // The header bar: Mikata, the world's repo, the mode and the model; the state on its right.
     for want in [
-        "╰─ $0.04",
-        "4.2k tok",
-        "ctx 41%",
-        "esc stop",
-        "world ~/sqlglot",
+        "◆ Mikata",
+        "repo sqlglot",
+        "mode  light-coding",
+        "model deepseek-v4-flash",
     ] {
-        assert!(last.contains(want), "{want} missing: {last}");
+        assert!(r[0].contains(want), "{want} missing: {}", r[0]);
     }
     assert!(
         r[0].contains(" thinking 0s") && !r[0].contains("● thinking"),
         "{}",
         r[0]
     );
+    // The footer bar: the verify line, the keys that matter now, the steps and the spend.
+    let last = &r[19];
+    for want in [
+        "no verify line pinned",
+        "esc stop",
+        "steps 1",
+        "$ cost $0.040",
+    ] {
+        assert!(last.contains(want), "{want} missing: {last}");
+    }
+    // The Budgets panel: the context against its stress line.
+    let scr = screen(&buf);
+    for want in ["context    61.5k / 150.0k", "41%"] {
+        assert!(scr.contains(want), "{want} missing:\n{scr}");
+    }
 }
 
 #[test]
@@ -353,14 +362,12 @@ fn narrow_terminals_degrade_and_never_overflow() {
         );
         let buf = draw(&mut m, w, h);
         let r = rows(&buf);
-        assert!(r[0].contains("MIKATA"), "{w}: {}", r[0]);
-        assert!(r[usize::from(h) - 1].starts_with('╰'), "{w}");
-        if w < 80 {
-            assert!(
-                !r[usize::from(h) - 1].contains("world"),
-                "the world drops first at {w}"
-            );
-        }
+        assert!(r[0].contains("Mikata"), "{w}: {}", r[0]);
+        assert!(
+            r[usize::from(h) - 1].starts_with('›'),
+            "{w}: the footer bar:\n{}",
+            r.join("\n")
+        );
     }
     let scr = screen(&draw(&mut model(Variant::Dark), 20, 6));
     assert!(scr.contains("enlarge"), "{scr}");
@@ -377,9 +384,11 @@ fn the_light_theme_paints_a_light_page() {
             stop: "end_turn".into(),
         },
     );
-    let buf = draw(&mut m, 80, 20);
-    assert_eq!(buf[(1, 1)].bg, rgb(LIGHT.bg));
-    let (x, y) = find(&buf, "hello").unwrap();
+    let buf = draw(&mut m, 80, 24);
+    // The page under the header bar, and the Agent loop panel's face.
+    assert_eq!(buf[(1, 0)].bg, rgb(LIGHT.bg));
+    assert_eq!(buf[(2, 2)].bg, rgb(LIGHT.panel));
+    let (x, y) = find(&buf, "hello").unwrap_or_else(|| panic!("{}", screen(&buf)));
     assert_eq!(buf[(x, y)].fg, rgb(LIGHT.text));
     let (x, y) = find(&buf, "def").unwrap();
     assert_eq!(buf[(x, y)].bg, rgb(LIGHT.panel_raised));
