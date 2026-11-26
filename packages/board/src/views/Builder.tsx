@@ -20,6 +20,7 @@ import {
   ListChecks,
   type LucideIcon,
   PencilRuler,
+  Play,
   Puzzle,
   RotateCcw,
   ShieldAlert,
@@ -29,8 +30,17 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { GUARDS, setComposition, setOnce, useComposition } from '../data/compose.ts';
+import { type Chats, startChat } from '../data/chats.ts';
+import {
+  GUARDS,
+  noteOpened,
+  sessionOptions,
+  setComposition,
+  setOnce,
+  useComposition,
+} from '../data/compose.ts';
 import { composed, opening, toml, useHarness } from '../data/harness.ts';
+import { format } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { Logo } from '../ui/Logo.tsx';
@@ -412,9 +422,28 @@ function Loading({ load }: { load: ReturnType<typeof useHarness> }) {
  * `[profiles.<name>]` (copy, export). What it composes is what the workspace's next sessions open
  * with — New session, or a first ask —, kept in this browser.
  */
-function Builder({ w }: { w: BoardWorld }) {
+function Builder({ w, chats }: { w: BoardWorld; chats: Chats }) {
   const h = useComposed(w);
   const [copied, setCopied] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [why, setWhy] = useState<string | undefined>();
+  // A new session is started here, where its harness is chosen: with this composition.
+  const start = async () => {
+    if (starting) return;
+    setStarting(true);
+    setWhy(undefined);
+    try {
+      const opts = sessionOptions(w.id);
+      const started = await startChat(w.id, undefined, opts);
+      noteOpened(started.session.id, opts);
+      chats.refresh();
+      window.location.hash = format({ name: 'session', world: w.id, session: started.session.id });
+    } catch (e) {
+      setWhy(e instanceof Error ? e.message : String(e));
+    } finally {
+      setStarting(false);
+    }
+  };
   const text = h.data ? toml(h.c.profile || 'mine', h.units, h.want) : '';
   const exportToml = () => {
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
@@ -434,7 +463,7 @@ function Builder({ w }: { w: BoardWorld }) {
       <Head
         icon={Layers}
         title="Harness Builder"
-        sub="Compose your agent by enabling units and plugins. New sessions here open with it."
+        sub="Choose the profile and units, then start a session with them."
       >
         <label className="bapp-profile">
           Profile{' '}
@@ -447,7 +476,20 @@ function Builder({ w }: { w: BoardWorld }) {
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          className="bapp-go"
+          disabled={!h.data || starting}
+          onClick={() => void start()}
+        >
+          <Icon icon={Play} /> {starting ? 'Starting…' : 'Start session'}
+        </button>
       </Head>
+      {why && (
+        <p className="bapp-warn" role="alert">
+          <Safe text={why} />
+        </p>
+      )}
       <Loading load={h.load} />
       {h.data && (
         <>
@@ -574,11 +616,11 @@ function Plugins({ w }: { w: BoardWorld }) {
   );
 }
 
-export function BuilderView({ w, view }: { w: BoardWorld; view: View }) {
+export function BuilderView({ w, view, chats }: { w: BoardWorld; view: View; chats: Chats }) {
   return (
     <div className="bapp">
       <div className="bapp-layout bapp-embedded">
-        {view === 'plugins' ? <Plugins w={w} /> : <Builder w={w} />}
+        {view === 'plugins' ? <Plugins w={w} /> : <Builder w={w} chats={chats} />}
       </div>
     </div>
   );

@@ -74,6 +74,9 @@ pub struct Hello {
     pub body: String,
     /// The orders held on the shared work queue as the session opens.
     pub held: u32,
+    /// The guards — `secrets`, `approval`, `gate`, `hold` — switched off for this session, as it
+    /// opened: every client says so on it.
+    pub guards_off: Vec<String>,
 }
 
 /// A session's budget under the human's caps.

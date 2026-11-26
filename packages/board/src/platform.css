@@ -14,9 +14,9 @@
 }
 
 :root {
-  --pf-top-h: 64px;
-  --pf-rail-w: 268px;
-  --pf-gap: 14px;
+  --pf-top-h: 56px;
+  --pf-rail-w: 248px;
+  --pf-gap: 12px;
   --pf-radius: 16px;
   --pf-face: color-mix(in srgb, var(--mn-hot) 4%, var(--mn-panel));
   --pf-face-raised: color-mix(in srgb, var(--mn-hot) 7%, var(--mn-panel-raised));
@@ -143,20 +143,20 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   color: inherit;
   text-decoration: none;
 }
+/* the mark at its own proportions (400 × 254), never squeezed into a square */
 .pf-logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--mn-bg) 85%, transparent);
-  padding: 3px;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mn-on-brand) 35%, transparent);
+  width: auto;
+  height: 30px;
+  aspect-ratio: 400 / 254;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 6px color-mix(in srgb, var(--mn-bg) 45%, transparent));
   transition: transform 420ms var(--pf-spring);
 }
 .pf-brand:hover .pf-logo {
   transform: rotate(-8deg) scale(1.08);
 }
 .pf-name {
-  font: 800 23px / 1 var(--mn-font-mono);
+  font: 800 20px / 1 var(--mn-font-mono);
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
@@ -184,7 +184,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border-radius: 10px;
   color: inherit;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 13px;
   text-decoration: none;
   white-space: nowrap;
   transition:
@@ -233,7 +233,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border-radius: 11px;
   background: color-mix(in srgb, var(--mn-bg) 18%, transparent);
   color: inherit;
-  font-size: 17px;
+  font-size: 15px;
   cursor: pointer;
   transition:
     background var(--mn-fast) var(--mn-ease),
@@ -262,7 +262,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border-radius: 11px;
   background: color-mix(in srgb, var(--mn-bg) 60%, transparent);
   color: var(--mn-text);
-  font: 700 15px var(--mn-font-ui);
+  font: 700 13px var(--mn-font-ui);
   white-space: nowrap;
   cursor: pointer;
   overflow: hidden;
@@ -287,7 +287,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 }
 .pf-page .pf-primary {
   border: 0;
-  background: var(--mn-brand-surface);
+  background: var(--mn-brand-surface) var(--mn-hot);
   background-size: 160% 100%;
   color: var(--mn-on-brand);
   box-shadow: 0 8px 24px -10px var(--mn-hot);
@@ -336,7 +336,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   scrollbar-width: thin;
 }
 .pf-card {
-  padding: 14px;
+  padding: 12px;
   animation: pf-rise 560ms var(--mn-ease) backwards;
 }
 .pf-card:nth-child(2) {
@@ -382,7 +382,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border-radius: 11px;
   background: var(--mn-panel-raised);
   color: var(--mn-text);
-  font: 700 15px var(--mn-font-ui);
+  font: 700 13px var(--mn-font-ui);
   cursor: pointer;
   transition: border-color var(--mn-fast) var(--mn-ease);
 }
@@ -701,8 +701,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 .ss-head {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 18px 22px 14px;
+  gap: 14px;
+  padding: 14px 18px 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--mn-hot) 22%, var(--mn-line));
   background: linear-gradient(
     180deg,
@@ -731,7 +731,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   align-items: center;
   gap: 12px;
   margin: 0;
-  font: 800 26px / 1.2 var(--mn-font-ui);
+  font: 800 22px / 1.2 var(--mn-font-ui);
   letter-spacing: -0.01em;
 }
 .ss-chips {
@@ -920,7 +920,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 }
 .ss-empty h2 {
   margin: 8px 0 0;
-  font: 800 24px var(--mn-font-ui);
+  font: 800 21px var(--mn-font-ui);
   background: var(--mn-brand-ink);
   background-clip: text;
   -webkit-background-clip: text;
@@ -929,7 +929,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 .ss-empty p {
   margin: 0;
   color: var(--mn-text-muted);
-  font-size: 15px;
+  font-size: 13px;
 }
 .ss-orb {
   position: relative;
@@ -940,7 +940,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border-radius: 50%;
   background: var(--mn-gradient-full);
   color: var(--mn-on-brand);
-  font-size: 38px;
+  font-size: 33px;
   box-shadow:
     0 0 40px -4px var(--mn-hot),
     inset 0 -10px 24px color-mix(in srgb, var(--mn-bg) 30%, transparent);
@@ -1010,7 +1010,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border: 0;
   background: transparent;
   color: var(--mn-text);
-  font: 15px / 1.5 var(--mn-font-ui);
+  font: 13px / 1.5 var(--mn-font-ui);
   resize: vertical;
 }
 .ss-composer textarea:focus {
@@ -1114,7 +1114,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   align-items: center;
   gap: 10px;
   margin: 0;
-  font: 800 21px var(--mn-font-ui);
+  font: 800 18px var(--mn-font-ui);
 }
 .ss-livehead h2 .mn-icon {
   color: var(--mn-hot);
@@ -1169,7 +1169,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   align-items: center;
   gap: 9px;
   margin: 0 0 2px;
-  font: 800 15px var(--mn-font-ui);
+  font: 800 13px var(--mn-font-ui);
 }
 .ss-card h3 .mn-icon {
   color: var(--mn-hot);
@@ -1256,7 +1256,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 }
 .ss-tiles dd {
   margin: 6px 0 0;
-  font: 800 20px var(--mn-font-mono);
+  font: 800 17px var(--mn-font-mono);
   font-variant-numeric: tabular-nums;
 }
 .ss-tiles dd small {
@@ -1323,7 +1323,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   border-radius: 15px;
   background: var(--mn-gradient-full);
   color: var(--mn-on-brand);
-  font-size: 24px;
+  font-size: 21px;
   box-shadow: 0 0 28px -6px var(--mn-hot);
   animation: pf-pop 600ms var(--pf-spring) backwards;
 }
@@ -1492,6 +1492,109 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   overflow: hidden;
 }
 
+/* the Builder's way to a new session, beside its profile */
+.bapp .bapp-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--mn-brand-surface) var(--mn-hot);
+  color: var(--mn-on-brand);
+  font: 700 14px var(--mn-font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 8px 22px -10px var(--mn-hot);
+  transition:
+    transform 260ms var(--pf-spring),
+    box-shadow var(--mn-fast) var(--mn-ease);
+}
+.bapp .bapp-go:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -8px var(--mn-hot);
+}
+.bapp .bapp-go:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* no session yet: one card pointing at the Builder */
+.ss-none {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ss-none .ss-empty {
+  margin: 10vh auto;
+}
+.ss-none .pf-primary {
+  margin-top: 8px;
+  text-decoration: none;
+}
+a.pf-primary,
+a.pf-start,
+a.pf-mini {
+  text-decoration: none;
+}
+
+/* the palettes, each a card with its gradient and four of its colours */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.palette-card {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--mn-line);
+  border-radius: 12px;
+  background: var(--mn-panel-raised);
+  cursor: pointer;
+  transition:
+    transform 260ms var(--pf-spring),
+    border-color var(--mn-fast) var(--mn-ease);
+}
+.palette-card:hover {
+  transform: translateY(-2px);
+}
+.palette-card[data-checked="true"] {
+  border-color: var(--mn-holo);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mn-holo) 45%, transparent);
+}
+.palette-card input {
+  position: absolute;
+  opacity: 0;
+}
+.palette-card:has(input:focus-visible) {
+  outline: 2px solid var(--mn-holo);
+  outline-offset: 2px;
+}
+.palette-hero {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+}
+.palette-hero b {
+  font-size: 14px;
+}
+.palette-hero small {
+  font-size: 11px;
+  font-weight: 600;
+}
+.palette-swatches {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px 10px;
+}
+.palette-swatches i {
+  flex: 1;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--mn-line);
+}
+
 /* ── narrower ────────────────────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 1360px) {
@@ -1528,7 +1631,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
     display: inline-grid;
   }
   .pf-name {
-    font-size: 19px;
+    font-size: 16px;
   }
   .pf-brand .pf-name span {
     display: none;
@@ -1743,6 +1846,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   .ss-stop,
   .pg-run,
   .pg-links a,
+  .bapp-go,
+  .palette-card,
   .pf-all .mn-icon,
   .pf-start,
   .ss-earlier {

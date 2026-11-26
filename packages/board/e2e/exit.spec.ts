@@ -128,7 +128,9 @@ for (const theme of ['dark', 'light'] as const) {
 
       // Chat, and approve under the card's protections.
       await page.goto(`${new URL(url).origin}/${at('')}`);
-      await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+      // A new session is started in the Harness Builder, where its harness is chosen.
+      await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+      await page.getByRole('button', { name: 'Start session' }).click();
       await expect(page).toHaveURL(/#\/w\/[^/]+\/s\/[^/]+$/);
       const box = page.getByRole('textbox', { name: 'Ask Mikata' });
       await expect(box).toBeEnabled({ timeout: 30_000 });

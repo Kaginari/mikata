@@ -2,22 +2,29 @@
 import type { BoardMissing } from '@mikata/protocol';
 import type { Load } from '../data/worlds.ts';
 import { Safe } from '../safe/Safe.tsx';
-import { CHOICES, type Choice, SCHEMES, type SchemeName } from '../theme.ts';
+import {
+  CHOICES,
+  type Choice,
+  nativeLook,
+  PALETTE_CHOICES,
+  type PaletteChoice,
+  palettes,
+} from '../theme.ts';
 import { shellWord, since } from '../time.ts';
 import { Empty } from '../ui/Empty.tsx';
-import { RACES, RaceChip } from '../ui/Mark.tsx';
 
 export function SettingsView({
   theme,
   onTheme,
-  scheme,
-  onScheme,
+  palette,
+  onPalette,
 }: {
   theme: Choice;
   onTheme: (c: Choice) => void;
-  scheme: SchemeName;
-  onScheme: (s: SchemeName) => void;
+  palette: PaletteChoice;
+  onPalette: (p: PaletteChoice) => void;
 }) {
+  const mode = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
   return (
     <div className="page">
       <header className="page-head">
@@ -44,26 +51,44 @@ export function SettingsView({
         </div>
       </section>
       <section className="setting">
-        <h2 className="setting-title" id="setting-scheme">
-          Colours
+        <h2 className="setting-title" id="setting-palette">
+          Palette
         </h2>
         <p className="setting-sub">
-          The terminal app's schemes, chosen here for this browser; the terminal keeps its own (
-          <code className="mono">/theme</code>). hud is Mikata's own cyan.
+          The board's colours, the top bar's gradient with them, kept for this browser. The terminal
+          app keeps its own (<code className="mono">/theme</code>).
         </p>
-        <div className="radio-row" role="radiogroup" aria-labelledby="setting-scheme">
-          {SCHEMES.map((s) => (
-            <label key={s} className="radio">
-              <input
-                type="radio"
-                name="scheme"
-                value={s}
-                checked={scheme === s}
-                onChange={() => onScheme(s)}
-              />
-              {s}
-            </label>
-          ))}
+        <div className="palette-grid" role="radiogroup" aria-labelledby="setting-palette">
+          {PALETTE_CHOICES.map((id) => {
+            const p = id === 'native' ? nativeLook[mode] : palettes[id][mode];
+            return (
+              <label key={id} className="palette-card" data-checked={palette === id}>
+                <input
+                  type="radio"
+                  name="palette"
+                  value={id}
+                  checked={palette === id}
+                  onChange={() => onPalette(id)}
+                />
+                <span
+                  className="palette-hero"
+                  style={{
+                    background: `linear-gradient(135deg, ${p.hot}, ${p.coral} 55%, ${p.amber}) ${p.hot}`,
+                    color: p.onBrand,
+                  }}
+                >
+                  <b>{id === 'native' ? 'Native' : palettes[id].name}</b>
+                  <small>{id === 'native' ? 'Bio Digital · Bio Pearl' : palettes[id].about}</small>
+                </span>
+                <span className="palette-swatches" aria-hidden="true">
+                  {[p.bg, p.panel, p.holo, p.gold].map((c, k) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: four fixed swatches
+                    <i key={k} style={{ background: c }} />
+                  ))}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </section>
       <section className="setting">
@@ -73,19 +98,6 @@ export function SettingsView({
           configuration with each key's origin are on <a href="#/integrations">Integrations</a>,
           read-only.
         </p>
-      </section>
-      <section className="setting">
-        <h2 className="setting-title">The races</h2>
-        <p className="setting-sub">
-          Each race has one colour across the board and the terminal, and is always named beside it.
-        </p>
-        <ul className="race-list">
-          {RACES.map(([race, name]) => (
-            <li key={race}>
-              <RaceChip race={race} name={name} />
-            </li>
-          ))}
-        </ul>
       </section>
     </div>
   );

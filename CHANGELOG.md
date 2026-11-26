@@ -77,6 +77,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   lists the live sessions by their ask, then the recent runs; a Runs page lists them all. `#/`
   opens the workspace worked in last. Pages rise in, lists arrive one by one, live things pulse,
   and all of it stands still under reduced motion.
+- **The board's palettes**: beside the native look (Bio Digital, Bio Pearl), seven gradient
+  systems — Solar Flare, Aurora, Ultraviolet, Cryo, Crimson Alloy, Golden Jade, Copper Iris —, in
+  Settings, dark and light, the top bar's gradient with them; every text role reads at AA on each.
+  The terminal app keeps its own schemes. The interface's face is Space Grotesk (JetBrains Mono
+  for code). A new session starts in the Harness Builder, where its profile and units are chosen;
+  Metrics, Integrations and Settings keep the workspace's frame; a session's header says the
+  guards it runs without, as the session itself reports them (`guardsOff` in the hello), in every
+  tab and in the terminal app.
 
 - The terminal app: the header bar is the brand's gradient; panel frames are heavy lines with bold
   `////`; the end gate's verdict is a banner in its colour; a picked approval answer is a gradient

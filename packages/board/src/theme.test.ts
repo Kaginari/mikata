@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it } from 'vitest';
-import { applyScheme, resolve, storedScheme } from './theme.ts';
+import { applyPalette, resolve, storedPalette } from './theme.ts';
 import { ago } from './time.ts';
 
 it('resolves a theme choice', () => {
@@ -10,16 +10,22 @@ it('resolves a theme choice', () => {
   expect(resolve('light', false)).toBe('light');
 });
 
-it('keeps the scheme per browser, neon unless another is chosen', () => {
-  window.localStorage.removeItem('mikata.scheme');
-  expect(storedScheme()).toBe('neon');
-  window.localStorage.setItem('mikata.scheme', 'lagoon');
-  expect(storedScheme()).toBe('lagoon');
-  applyScheme(storedScheme());
-  expect(document.documentElement.dataset.scheme).toBe('lagoon');
-  window.localStorage.setItem('mikata.scheme', 'pink');
-  expect(storedScheme()).toBe('neon');
-  window.localStorage.removeItem('mikata.scheme');
+it('keeps the palette per browser, over the native look; native unless another is chosen', () => {
+  const root = document.documentElement;
+  window.localStorage.removeItem('mikata.palette');
+  expect(storedPalette()).toBe('native');
+  applyPalette(storedPalette());
+  expect(root.dataset.scheme).toBe('neon');
+  expect(root.dataset.palette).toBeUndefined();
+  window.localStorage.setItem('mikata.palette', 'aurora');
+  applyPalette(storedPalette());
+  expect(root.dataset.scheme).toBe('neon');
+  expect(root.dataset.palette).toBe('aurora');
+  // An unknown one reads as native, and takes the palette away.
+  window.localStorage.setItem('mikata.palette', 'pink');
+  applyPalette(storedPalette());
+  expect(root.dataset.palette).toBeUndefined();
+  window.localStorage.removeItem('mikata.palette');
 });
 
 it('says how long ago, short', () => {

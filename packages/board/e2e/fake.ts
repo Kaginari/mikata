@@ -41,6 +41,7 @@ export const hello = {
   modeWhy: 'Mikata works alone',
   body: 'summoner',
   held: 0,
+  guardsOff: [] as string[],
 };
 
 /** An event of the session's own body, or of `body`. */
@@ -63,6 +64,8 @@ export class Bridge {
   sockets: WebSocketRoute[] = [];
   sent: Msg[] = [];
   role: 'controller' | 'observer' = 'controller';
+  /** What `initialize` answers: the session's hello. */
+  hello: typeof hello = hello;
   /** What a prompt does: by default a turn that answers in one line. */
   onPrompt: (text: string) => void = (text) => {
     this.emit('turnStarted', { text });
@@ -110,7 +113,7 @@ export class Bridge {
       }
       switch (m.method) {
         case 'initialize':
-          return answer(hello);
+          return answer(this.hello);
         case 'session/events': {
           const since = Number(m.params?.since ?? 0);
           return answer({

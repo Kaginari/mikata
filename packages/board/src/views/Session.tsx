@@ -747,6 +747,12 @@ function Screen({
   const ctx = u && u.stressLine > 0 ? u.occupancy / u.stressLine : undefined;
   const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
   const sandboxOn = hello ? !hello.sandbox.startsWith('none') : undefined;
+  // The guards switched off, as the session itself says them (every tab, wherever it was started);
+  // what this tab noted is only a fallback for a server that does not say them.
+  const said = (hello as { guardsOff?: unknown } | undefined)?.guardsOff;
+  const guardsOff = Array.isArray(said)
+    ? said.filter((g): g is string => typeof g === 'string')
+    : (opened?.guardsOff ?? []);
   const state: State = starting
     ? 'Starting'
     : verdict?.kind === 'verdict'
@@ -793,18 +799,18 @@ function Screen({
               </span>
             </h1>
             <ul className="ss-chips" aria-label="This session">
+              {guardsOff.length > 0 && (
+                <li data-status="alarm" title="Guards this session runs without">
+                  <Icon icon={ShieldAlert} /> <Safe text={`guards off: ${guardsOff.join(', ')}`} />
+                </li>
+              )}
               {opened && (
-                <li
-                  data-status={opened.guardsOff.length > 0 ? 'alarm' : undefined}
-                  title="What this session was opened with, from the Harness Builder"
-                >
-                  <Icon icon={opened.guardsOff.length > 0 ? ShieldAlert : SlidersHorizontal} />{' '}
+                <li title="What this session was opened with, from the Harness Builder">
+                  <Icon icon={SlidersHorizontal} />{' '}
                   <Safe
                     text={
-                      opened.guardsOff.length > 0
-                        ? `guards off: ${opened.guardsOff.join(', ')}`
-                        : [opened.with.profile, opened.with.units].filter(Boolean).join(' · ') ||
-                          'default harness'
+                      [opened.with.profile, opened.with.units].filter(Boolean).join(' · ') ||
+                      'default harness'
                     }
                   />
                 </li>
@@ -1036,9 +1042,6 @@ function WithLive({ session, children }: { session: string; children: (live: Liv
   return <>{children(live)}</>;
 }
 
-/** The asks that opened a session, waiting for its replay; read once by the session's page. */
-const opening = new Map<string, string>();
-
 /**
  * A workspace's session: the one `session` names, else its newest live one, else a composer
  * whose first ask opens a new session at its own address.
@@ -1061,8 +1064,6 @@ export function SessionView({
     (harness.state === 'ready'
       ? (harness.data.units.find((u) => u.id === 'plan')?.on ?? false)
       : true);
-  const [starting, setStarting] = useState(false);
-  const [why, setWhy] = useState<string | undefined>();
   const id = session ?? chats.live[0]?.id;
   const at = chats.live.findIndex((c) => c.id === id);
   // What this tab opened the session with: a guard switched off for it is said in the alarm's tone.
@@ -1077,67 +1078,51 @@ export function SessionView({
   }, [id]);
   const number = at < 0 ? chats.live.length + 1 : chats.live.length - at;
 
-  const open = async (text: string) => {
-    setStarting(true);
-    setWhy(undefined);
-    try {
-      // The workspace's composition, as the Harness Builder set it.
-      const opts = sessionOptions(w.id);
-      const started = await startChat(w.id, undefined, opts);
-      noteOpened(started.session.id, opts);
-      opening.set(started.session.id, text);
-      chats.refresh();
-      window.location.hash = format({ name: 'session', world: w.id, session: started.session.id });
-    } catch (e) {
-      setWhy(e instanceof Error ? e.message : String(e));
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  if (!id) {
-    return (
-      <Screen
-        w={w}
-        live={undefined}
-        desk={desk}
-        onAsk={(t) => void open(t)}
-        starting={starting}
-        why={why}
-        planOn={planOn}
-        number={number}
-        opened={opened}
-      />
-    );
-  }
+  if (!id) return <NoSession w={w} />;
   return (
     <WithLive key={id} session={id}>
       {(live) => (
-        <Sender live={live} id={id}>
-          <Screen
-            w={w}
-            live={live}
-            desk={desk}
-            onAsk={(t) => void live.prompt(t)}
-            starting={starting}
-            why={why ?? live.closed}
-            planOn={planOn}
-            number={number}
-            opened={opened}
-          />
-        </Sender>
+        <Screen
+          w={w}
+          live={live}
+          desk={desk}
+          onAsk={(t) => void live.prompt(t)}
+          starting={false}
+          why={live.closed}
+          planOn={planOn}
+          number={number}
+          opened={opened}
+        />
       )}
     </WithLive>
   );
 }
 
-/** Sends the ask that opened the chat, once its replay is done. */
-function Sender({ live, id, children }: { live: Live; id: string; children: ReactNode }) {
-  useEffect(() => {
-    const ask = opening.get(id);
-    if (ask === undefined || live.link !== 'open' || !live.replayed) return;
-    opening.delete(id);
-    void live.prompt(ask);
-  }, [live, id]);
-  return <>{children}</>;
+/** A workspace with no session running: a session is started in the Harness Builder, where its
+ * profile and units are chosen. */
+function NoSession({ w }: { w: BoardWorld }) {
+  return (
+    <div className="mapp ss ss-none">
+      <section className="ss-main" aria-label="Agent session">
+        <div className="ss-empty">
+          <span className="ss-orb" aria-hidden="true">
+            <Icon icon={Bot} />
+          </span>
+          <h2>
+            No session runs in <Safe text={w.name} />
+          </h2>
+          <p>
+            Choose its profile and units in the Harness Builder, then start it there. Every act
+            outside the workspace asks you first.
+          </p>
+          <a
+            className="pf-primary"
+            href={format({ name: 'section', world: w.id, section: 'builder' })}
+          >
+            <Icon icon={Layers} /> Compose and start a session
+          </a>
+        </div>
+      </section>
+    </div>
+  );
 }

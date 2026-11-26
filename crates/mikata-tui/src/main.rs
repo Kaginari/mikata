@@ -336,10 +336,7 @@ fn chat(
     // account stays where it was: `mikata status`, the journal's `law` beat, `--help`.
     model.fact(Tag::Model, &opened.model, &opened.provider);
     model.fact(Tag::Sandbox, &opened.sandbox, "");
-    // The human's approval switched off is said first and in gold: acts leave unseen.
-    if opened.approval.starts_with("OFF") {
-        model.fact(Tag::Warn, &opened.approval, "");
-    }
+    guards_said(&mut model, &opened);
     model.sandbox.clone_from(&opened.sandbox);
     model.fact(Tag::Mode, opened.mode.word(), &opened.mode_why);
     if let Some(e) = unhardened {
@@ -383,6 +380,21 @@ fn chat(
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => fail(&format!("the terminal: {e}"), 1),
+    }
+}
+
+/// The human's approval switched off is said first and in gold — acts leave unseen —, then every
+/// guard switched off for the session, as the board says it too.
+fn guards_said(model: &mut Model, opened: &mikata_loop::Opened) {
+    if opened.approval.starts_with("OFF") {
+        model.fact(Tag::Warn, &opened.approval, "");
+    }
+    if !opened.guards_off.is_empty() {
+        model.fact(
+            Tag::Warn,
+            format!("guards off: {}", opened.guards_off.join(", ")),
+            "this session runs without them",
+        );
     }
 }
 

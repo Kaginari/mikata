@@ -6,7 +6,9 @@ import {
   DEFAULT_SCHEME,
   dark,
   light,
+  PALETTES,
   type Palette,
+  palettes,
   races,
   SCHEMES,
   type SchemePalette,
@@ -83,6 +85,45 @@ describe('every text colour reads on every surface (WCAG AA, 4.5:1)', () => {
       for (const bg of ['bg', 'panel', 'panelRaised'] as const) {
         it(`${name}: ${fg} on ${bg}`, () =>
           expect(contrast(p[fg], p[bg])).toBeGreaterThanOrEqual(4.5));
+      }
+    }
+  }
+});
+
+describe('the board palettes: the css and the ts agree, and every text role reads', () => {
+  for (const name of PALETTES) {
+    for (const mode of ['dark', 'light'] as const) {
+      const p = palettes[name][mode];
+      const sel =
+        mode === 'dark'
+          ? `:root[data-palette="${name}"]:not([data-theme="light"])`
+          : `:root[data-palette="${name}"][data-theme="light"]`;
+      it(`${name} ${mode}: the css says the ts`, () => {
+        const decl = block(sel);
+        for (const [k, v] of Object.entries(p)) {
+          const key = kebab(k);
+          expect(decl[key], `${sel} --mn-${key}`).toBe(v);
+        }
+      });
+      for (const fg of [
+        'text',
+        'textMuted',
+        'holo',
+        'alarm',
+        'gold',
+        'successText',
+        'error',
+        'info',
+        'warning',
+      ] as const) {
+        for (const bg of ['bg', 'panel', 'panelRaised'] as const) {
+          it(`${name} ${mode}: ${fg} on ${bg}`, () =>
+            expect(contrast(p[fg], p[bg])).toBeGreaterThanOrEqual(4.5));
+        }
+      }
+      for (const stop of ['hot', 'coral', 'amber'] as const) {
+        it(`${name} ${mode}: the words on the gradient read on its ${stop} stop`, () =>
+          expect(contrast(p.onBrand, p[stop])).toBeGreaterThanOrEqual(4.5));
       }
     }
   }

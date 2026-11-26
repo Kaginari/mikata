@@ -266,7 +266,7 @@ test('the rail is a drawer at phone width, focus in and back', async ({ page }, 
   await expect(rail).toBeHidden();
   await expect(page.getByRole('button', { name: 'Menu' })).toBeFocused();
   await page.getByRole('button', { name: 'Menu' }).click();
-  await rail.getByRole('link', { name: 'Harness Builder' }).click();
+  await rail.getByRole('link', { name: 'Harness Builder', exact: true }).click();
   await expect(rail).toBeHidden();
   await expect(page).toHaveURL(/\/builder$/);
 });

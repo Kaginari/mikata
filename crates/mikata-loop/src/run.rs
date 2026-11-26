@@ -2331,6 +2331,17 @@ impl Run {
         self.cx.set_approval_on(asked);
     }
 
+    /// The guards ([`crate::units::GUARDS`]) not on in this run, by id: what a client says on the
+    /// session, wherever it is shown.
+    #[must_use]
+    pub fn guards_off(&self) -> Vec<String> {
+        crate::units::GUARDS
+            .iter()
+            .filter(|id| !self.unit_on(id))
+            .map(|id| (*id).to_owned())
+            .collect()
+    }
+
     /// The run's units, to read: the composition, its fingerprint, each unit's state.
     #[must_use]
     pub fn units(&self) -> &crate::units::Registry {

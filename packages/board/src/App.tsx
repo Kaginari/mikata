@@ -11,7 +11,7 @@ import { useAccess } from './data/session.ts';
 import { type Load, useWorlds } from './data/worlds.ts';
 import { format, type Route, useRoute, worldOf } from './router.ts';
 import { shown } from './safe/shown.ts';
-import { type Choice, type SchemeName, useScheme, useTheme } from './theme.ts';
+import { type Choice, type PaletteChoice, usePalette, useTheme } from './theme.ts';
 import { Announcer } from './ui/Announcer.tsx';
 import { CommandPalette } from './ui/CommandPalette.tsx';
 import { cardUp, dialogUp, typing } from './ui/modal.ts';
@@ -47,8 +47,8 @@ function Page({
   now,
   theme,
   onTheme,
-  scheme,
-  onScheme,
+  palette,
+  onPalette,
   chats,
 }: {
   route: Route;
@@ -57,8 +57,8 @@ function Page({
   now: number;
   theme: Choice;
   onTheme: (c: Choice) => void;
-  scheme: SchemeName;
-  onScheme: (s: SchemeName) => void;
+  palette: PaletteChoice;
+  onPalette: (p: PaletteChoice) => void;
   chats: Chats;
 }) {
   switch (route.name) {
@@ -69,7 +69,9 @@ function Page({
     case 'integrations':
       return <IntegrationsView theme={theme} />;
     case 'settings':
-      return <SettingsView theme={theme} onTheme={onTheme} scheme={scheme} onScheme={onScheme} />;
+      return (
+        <SettingsView theme={theme} onTheme={onTheme} palette={palette} onPalette={onPalette} />
+      );
     case 'unknown':
       return <UnknownView path={route.path} />;
   }
@@ -93,7 +95,7 @@ function Page({
   switch (route.section) {
     case 'builder':
     case 'plugins':
-      return <BuilderView key={world.id} w={world} view={route.section} />;
+      return <BuilderView key={world.id} w={world} view={route.section} chats={chats} />;
     case 'runs':
       return <RunsView w={world} chats={chats} now={now} />;
     case 'journal':
@@ -178,7 +180,7 @@ function Shell() {
   const load = useWorlds();
   const now = useNow();
   const [theme, setTheme] = useTheme();
-  const [scheme, setScheme] = useScheme();
+  const [palette, setPalette] = usePalette();
 
   // The front page opens the workspace worked in last.
   useEffect(() => {
@@ -192,8 +194,14 @@ function Shell() {
   const here = worldOf(route);
   const worlds = load.state === 'ready' ? load.data.worlds : [];
   const world = here !== undefined ? worlds.find((w) => w.id === here) : undefined;
+  // The board's own pages (Metrics, Integrations, Settings) keep the frame of the workspace open
+  // last — its tabs, its sessions —, else of the one worked in last.
+  const last = useRef<string | undefined>(undefined);
+  if (here !== undefined) last.current = here;
+  const newest = [...worlds].sort((a, b) => (b.last ?? '').localeCompare(a.last ?? ''))[0];
+  const frame = here !== undefined ? world : (worlds.find((w) => w.id === last.current) ?? newest);
   const name = title(route, world);
-  const chats = useChats(here);
+  const chats = useChats(frame?.id);
   const [open, setOpen] = useState<Open>(undefined);
   const closeDialog = useCallback(() => setOpen(undefined), []);
   useShortcuts(setOpen);
@@ -222,7 +230,7 @@ function Shell() {
       <Platform
         route={route}
         worlds={worlds}
-        world={world}
+        world={frame}
         chats={chats}
         theme={theme}
         onTheme={setTheme}
@@ -244,8 +252,8 @@ function Shell() {
             now={now}
             theme={theme}
             onTheme={setTheme}
-            scheme={scheme}
-            onScheme={setScheme}
+            palette={palette}
+            onPalette={setPalette}
             chats={chats}
           />
         </main>

@@ -144,7 +144,9 @@ test('the builder composes the harness new sessions open with, and keeps it', as
   await expect(page.locator('.bapp-units')).toContainText('-challenge');
   await page.screenshot({ path: shot(`builder-${info.project.name}`), fullPage: true });
   // A new session opens with it, and runs on the session's own page.
-  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  // A new session is started in the Harness Builder, where its harness is chosen.
+  await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+  await page.getByRole('button', { name: 'Start session' }).click();
   await expect(page).toHaveURL((u) => u.hash === `#/w/${LIVE.id}/s/${CHAT}`);
   expect(started).toEqual([{ units: '-challenge' }]);
   const box = page.getByRole('textbox', { name: 'Ask Mikata' });
@@ -181,7 +183,9 @@ test('a profile starts the switches from its own composition, and New session ta
   await expect(page.locator('.bapp-units')).toContainText('-gate');
   await page.getByRole('button', { name: 'Reset to the profile' }).click();
   await expect(page.getByRole('switch', { name: 'End gate: on' })).toBeVisible();
-  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  // A new session is started in the Harness Builder, where its harness is chosen.
+  await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+  await page.getByRole('button', { name: 'Start session' }).click();
   await expect.poll(() => started).toEqual([{ profile: 'small-fix' }]);
 });
 
@@ -198,15 +202,32 @@ test('a guard switched off holds for the next session only, said on that session
   });
   await page.getByRole('switch', { name: 'End gate: on' }).click();
   await expect(page.getByRole('status')).toContainText('next new session only');
-  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  // The session, opened with -gate, says so in its hello, as the core does.
+  bridge.hello = { ...hello, guardsOff: ['gate'] };
+  // A new session is started in the Harness Builder, where its harness is chosen.
+  await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+  await page.getByRole('button', { name: 'Start session' }).click();
   await expect.poll(() => started).toEqual([{ units: '-gate' }]);
   // That session says so, in the alarm's tone.
   const chip = page.getByRole('list', { name: 'This session' }).locator('li[data-status="alarm"]');
   await expect(chip).toContainText('guards off: gate');
+  // And it is the session that says it: another tab, which started nothing, says it too.
+  const other = await page.context().newPage();
+  await openChat(other, bridge, `#/w/${LIVE.id}/s/${CHAT}`, async (p) => {
+    await p.route(`**/api/w/${LIVE.id}/units`, (r) =>
+      r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
+    );
+  });
+  await expect(
+    other.getByRole('list', { name: 'This session' }).locator('li[data-status="alarm"]'),
+  ).toContainText('guards off: gate');
+  await other.close();
   // Back on the builder the guard is on again, and the next session opens with it.
   await page.goto(`/#/w/${LIVE.id}/builder`);
   await expect(page.getByRole('switch', { name: 'End gate: on' })).toBeVisible();
-  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  // A new session is started in the Harness Builder, where its harness is chosen.
+  await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+  await page.getByRole('button', { name: 'Start session' }).click();
   await expect.poll(() => started).toEqual([{ units: '-gate' }, {}]);
 });
 
@@ -255,7 +276,9 @@ for (const theme of ['dark', 'light'] as const) {
     await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`builder-${theme}`) });
     // A run, from a new session's first ask.
-    await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+    // A new session is started in the Harness Builder, where its harness is chosen.
+    await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+    await page.getByRole('button', { name: 'Start session' }).click();
     const box = page.getByRole('textbox', { name: 'Ask Mikata' });
     await box.fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
     await box.press('Enter');

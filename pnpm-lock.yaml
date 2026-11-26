@@ -237,7 +237,7 @@ importers:
       "@fontsource/jetbrains-mono":
         specifier: ^5.3.0
         version: 5.3.0
-      "@fontsource/manrope":
+      "@fontsource/space-grotesk":
         specifier: 5.3.0
         version: 5.3.0
       "@mikata/protocol":
@@ -1167,10 +1167,10 @@ packages:
         integrity: sha512-fqDfB5I9f1p1TV486aUgB9t8zP84P0O1FtQR5Ol9vjwPy+S+EIGlVYm1cvj2W5shcZMTg2nZFdVMoH5wFu8a1A==,
       }
 
-  "@fontsource/manrope@5.3.0":
+  "@fontsource/space-grotesk@5.3.0":
     resolution:
       {
-        integrity: sha512-obJ1Dv3+uCA6HlHgW8u4BGYxJR9In2HW7gjJhlflEvkrj1X1iSEwu0fToL+JYGC/FEKFfIz1sBuPduvcL2gIAA==,
+        integrity: sha512-ksnGizDPXIDuvqcTYTSrmZ+evx9sDlS8rp7+42BQ7wU+spt3twEoXfbJz672C+5CLg6VeUQwRy5RXshWb67LcQ==,
       }
 
   "@iconify-json/simple-icons@1.2.100":
@@ -4465,7 +4465,7 @@ snapshots:
 
   "@fontsource/jetbrains-mono@5.3.0": {}
 
-  "@fontsource/manrope@5.3.0": {}
+  "@fontsource/space-grotesk@5.3.0": {}
 
   "@iconify-json/simple-icons@1.2.100":
     dependencies:

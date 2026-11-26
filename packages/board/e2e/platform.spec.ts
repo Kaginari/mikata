@@ -80,7 +80,7 @@ for (const theme of ['dark', 'light'] as const) {
   });
 }
 
-test('a workspace with no live session opens on an empty session, the composer ready', async ({
+test('a workspace with no live session points to the Harness Builder to start one', async ({
   page,
 }, info) => {
   const b = new Bridge();
@@ -91,9 +91,12 @@ test('a workspace with no live session opens on an empty session, the composer r
       r.fulfill({ contentType: 'application/json', body: JSON.stringify({ sessions: [] }) }),
     );
   });
-  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toBeEnabled();
-  await expect(page.locator('.ss-badge').first()).toHaveText('READY');
+  await expect(page.locator('.ss-empty')).toContainText('No session runs in tempest-try');
+  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toHaveCount(0);
   await page.screenshot({ path: shot(`platform-empty-${info.project.name}`) });
+  await page.getByRole('link', { name: 'Compose and start a session' }).click();
+  await expect(page.getByRole('heading', { name: 'Harness Builder', level: 1 })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start session' })).toBeEnabled();
 });
 
 test('the front page opens the workspace worked in last', async ({ page }) => {

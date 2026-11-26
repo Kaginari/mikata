@@ -26,7 +26,7 @@
   align-items: center;
   gap: 14px;
   margin: 4px 0 8px;
-  font: 800 20px var(--mn-font-ui);
+  font: 800 17px var(--mn-font-ui);
 }
 .mapp-who .mn-icon {
   width: 30px;
@@ -34,12 +34,12 @@
   color: var(--mn-hot);
 }
 .mapp-who time {
-  font: 400 16px var(--mn-font-mono);
+  font: 400 14px var(--mn-font-mono);
   color: var(--mn-text-muted);
 }
 .mapp-who-body {
   margin-top: 18px;
-  font-size: 24px;
+  font-size: 21px;
 }
 .mapp-ask {
   margin-left: 52px;
@@ -47,7 +47,7 @@
   border: 1px solid color-mix(in srgb, var(--mn-hot) 45%, var(--mn-line));
   border-radius: 8px;
   background: color-mix(in srgb, var(--mn-hot) 10%, var(--mn-panel-raised));
-  font-size: 18px;
+  font-size: 15px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -73,12 +73,12 @@
 }
 .mapp-step h3 {
   margin: 0 0 6px;
-  font: 800 18px var(--mn-font-mono);
+  font: 800 15px var(--mn-font-mono);
   overflow-wrap: anywhere;
 }
 .mapp-step-quiet h3 {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--mn-text-muted);
 }
 .mapp .mapp-holo {
@@ -135,7 +135,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 17px;
+  font-size: 15px;
 }
 .mapp-file .mn-icon {
   color: var(--mn-hot);
@@ -182,7 +182,7 @@
   margin-left: -4px;
 }
 .mapp-answer {
-  font: 15px / 1.65 var(--mn-font-mono);
+  font: 13px / 1.65 var(--mn-font-mono);
 }
 .mapp-answer p + p {
   margin-top: 0.6em;
@@ -221,7 +221,7 @@
     right / 18% 100% no-repeat,
     color-mix(in srgb, var(--mn-success-fill) 8%, var(--mn-panel));
   box-shadow: 0 0 22px color-mix(in srgb, var(--mn-success-fill) 30%, transparent);
-  font-size: 18px;
+  font-size: 15px;
   list-style: none;
 }
 .mapp .mapp-landed-icon {
@@ -252,7 +252,7 @@
   padding: 40px 0;
   text-align: center;
   color: var(--mn-text-muted);
-  font: 17px / 1.6 var(--mn-font-ui);
+  font: 15px / 1.6 var(--mn-font-ui);
 }
 .mapp-empty .mn-icon {
   width: 48px;
@@ -266,7 +266,7 @@
   overflow-wrap: anywhere;
 }
 .mapp-big {
-  font-size: 18px;
+  font-size: 15px;
 }
 .mapp-check .mn-icon {
   color: var(--mn-success-text);

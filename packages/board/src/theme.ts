@@ -3,7 +3,7 @@
  * `data-theme="light"`; auto follows the system and moves when it does. The choice is kept per
  * browser.
  */
-import { DEFAULT_SCHEME, SCHEMES, type SchemeName } from '@mikata/theme';
+import { DEFAULT_SCHEME, nativeLook, PALETTES, type PaletteName, palettes } from '@mikata/theme';
 import { useCallback, useEffect, useState } from 'react';
 
 export type Choice = 'auto' | 'light' | 'dark';
@@ -47,42 +47,50 @@ export function apply(choice: Choice) {
 }
 
 /**
- * The colour scheme, `data-scheme` on `<html>`: the same schemes as the terminal app's, chosen on
- * their own — the board's is kept per browser, and the terminal's own choice never moves it.
+ * The palette, chosen per browser: the native look (Bio Digital, Bio Pearl — `data-scheme="neon"`)
+ * or one of the owner's gradient systems over it (`data-palette`). The terminal app keeps its own
+ * schemes: nothing here moves them.
  */
-export { DEFAULT_SCHEME, SCHEMES, type SchemeName };
+export type PaletteChoice = 'native' | PaletteName;
+export const PALETTE_CHOICES: readonly PaletteChoice[] = ['native', ...PALETTES];
+export { nativeLook, palettes };
 
-const SCHEME_KEY = 'mikata.scheme';
+const PALETTE_KEY = 'mikata.palette';
 
-/** The stored scheme; the default when none, an unknown one, or storage cannot be read. */
-export function storedScheme(): SchemeName {
+/** The stored palette; native when none, an unknown one, or storage cannot be read. */
+export function storedPalette(): PaletteChoice {
   try {
-    const v = window.localStorage.getItem(SCHEME_KEY);
-    return (SCHEMES as readonly string[]).includes(v ?? '') ? (v as SchemeName) : DEFAULT_SCHEME;
+    const v = window.localStorage.getItem(PALETTE_KEY);
+    return (PALETTE_CHOICES as readonly string[]).includes(v ?? '')
+      ? (v as PaletteChoice)
+      : 'native';
   } catch {
-    return DEFAULT_SCHEME;
+    return 'native';
   }
 }
 
-/** Sets the scheme on `<html>`; called once before the first render, then by the hook. */
-export function applyScheme(s: SchemeName) {
-  document.documentElement.dataset.scheme = s;
+/** Sets the palette on `<html>`; called once before the first render, then by the hook. */
+export function applyPalette(p: PaletteChoice) {
+  const root = document.documentElement;
+  root.dataset.scheme = DEFAULT_SCHEME;
+  if (p === 'native') delete root.dataset.palette;
+  else root.dataset.palette = p;
 }
 
-/** The scheme and its setter. */
-export function useScheme(): [SchemeName, (s: SchemeName) => void] {
-  const [scheme, setScheme] = useState<SchemeName>(storedScheme);
-  useEffect(() => applyScheme(scheme), [scheme]);
-  const set = useCallback((s: SchemeName) => {
+/** The palette and its setter. */
+export function usePalette(): [PaletteChoice, (p: PaletteChoice) => void] {
+  const [palette, setPalette] = useState<PaletteChoice>(storedPalette);
+  useEffect(() => applyPalette(palette), [palette]);
+  const set = useCallback((p: PaletteChoice) => {
     try {
-      if (s === DEFAULT_SCHEME) window.localStorage.removeItem(SCHEME_KEY);
-      else window.localStorage.setItem(SCHEME_KEY, s);
+      if (p === 'native') window.localStorage.removeItem(PALETTE_KEY);
+      else window.localStorage.setItem(PALETTE_KEY, p);
     } catch {
-      // A private window: the scheme lasts this page only.
+      // A private window: the palette lasts this page only.
     }
-    setScheme(s);
+    setPalette(p);
   }, []);
-  return [scheme, set];
+  return [palette, set];
 }
 
 /** The theme choice and its setter; auto follows the system while the page is open. */

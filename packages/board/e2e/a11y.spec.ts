@@ -79,7 +79,7 @@ async function axe(page: Page): Promise<string[]> {
 }
 
 const PAGES: [string, string, string][] = [
-  ['session', `#/w/${W.id}`, 'Ready in sqlglot'],
+  ['session', `#/w/${W.id}`, 'No session runs in sqlglot'],
   ['builder', `#/w/${W.id}/builder`, 'Harness Builder'],
   ['plugins', `#/w/${W.id}/plugins`, 'Plugin inspector'],
   ['runs', `#/w/${W.id}/runs`, 'Agent runs'],

@@ -148,12 +148,12 @@
   margin-bottom: 18px;
 }
 .bapp-top h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.8px;
 }
 .bapp-top h2 {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.2px;
   word-spacing: 2px;
@@ -256,7 +256,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
 }
 .bapp-unit h3 .bapp-switch,
@@ -354,11 +354,11 @@
   -webkit-background-clip: text;
   color: var(--mn-hot);
   letter-spacing: 0.06em;
-  font: 800 26px var(--mn-font-mono);
+  font: 800 22px var(--mn-font-mono);
 }
 .bapp-core p {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 15px;
 }
 .bapp-tabs {
   display: flex;
@@ -534,7 +534,7 @@
 
 .bapp-top .bapp-muted {
   max-width: 430px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .bapp-main {
   padding: 18px 20px;

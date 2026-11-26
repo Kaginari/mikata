@@ -217,6 +217,9 @@ pub struct Opened {
     /// Whether outward and destructive acts are put to the human (the `approval` unit), and
     /// whether that is off ([`crate::run::Run::approval_said`]).
     pub approval: String,
+    /// The guards switched off for this session ([`crate::run::Run::guards_off`]): every client
+    /// says so on it.
+    pub guards_off: Vec<String>,
     /// The MCP servers the session's body may open, one level-0 line each with the price of
     /// opening it: what `status` shows. Empty when no server may serve its race.
     pub mcp: Vec<String>,
@@ -819,6 +822,7 @@ fn build(
     };
     let secrets = run.secrets_said();
     let approval = run.approval_said();
+    let guards_off = run.guards_off();
     Ok(Opened {
         session: hold.into_iter().fold(Session::new(run), Session::holding),
         world: world.to_path_buf(),
@@ -837,6 +841,7 @@ fn build(
         sandbox: mikata_tools::Sandbox::detect().status(false),
         secrets,
         approval,
+        guards_off,
         mcp: mcp_lines,
         mcp_offered,
         law,

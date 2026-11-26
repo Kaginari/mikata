@@ -662,6 +662,7 @@ fn hello(opened: &Opened, version: &str) -> Value {
         mode_why: opened.mode_why.clone(),
         body: SESSION_BODY.into(),
         held: held(&opened.world),
+        guards_off: opened.guards_off.clone(),
     })
     .unwrap_or(Value::Null)
 }

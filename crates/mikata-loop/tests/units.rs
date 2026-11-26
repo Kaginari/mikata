@@ -172,6 +172,17 @@ async fn a_native_unit_goes_off_and_comes_back_while_the_session_runs() {
 }
 
 #[tokio::test]
+async fn a_run_says_which_guards_are_off() {
+    let w = World::new("guards");
+    let model = Arc::new(ScriptedModel::new([ScriptedModel::text("done")]));
+    let mut run = w.run(model);
+    assert!(run.guards_off().is_empty(), "every guard on by default");
+    run.change_units(Change::Unload("gate".into()));
+    run.ask("go", &mut |_| {}).await;
+    assert_eq!(run.guards_off(), ["gate"]);
+}
+
+#[tokio::test]
 async fn a_units_veto_stops_the_call_and_its_note_reaches_the_body() {
     let w = World::new("veto");
     let model = Arc::new(ScriptedModel::new([

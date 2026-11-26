@@ -20,7 +20,7 @@ The rules (the owner's, 2026-11-25):
   (`--mn-success-on`). The bio gradient is reserved for meaningful execution and verification.
 - **Icons**: Lucide line icons, one stroke width (the board's `ui/Icon.tsx`: `Icon`, and `Glyph`
   for the status glyph names). Never an emoji as an interface icon.
-- **Type**: Manrope for the interface (premium sans), JetBrains Mono for code, logs,
+- **Type**: Space Grotesk for the interface, JetBrains Mono for code, logs,
   configuration and technical metrics.
 - The Harness Builder stays visibly connected: the runtime at the centre, edges to every unit and
   plugin (native pink, plugin amber, off dashed grey, live lime).
@@ -62,7 +62,7 @@ Semantic roles, derived for every scheme in `:root` and set exactly for Bio Digi
 | interactive | `.mn-interactive` | hover: border brightens and pulses, one scan line; active: gold flash |
 | stream | `.mn-stream` | faint scrolling code behind a page — decoration, never content |
 
-Type: `--mn-font-ui` and `--mn-font-title` are Manrope, `--mn-font-mono` JetBrains Mono; the board
+Type: `--mn-font-ui` and `--mn-font-title` are Space Grotesk, `--mn-font-mono` JetBrains Mono; the board
 bundles both (`@fontsource`, imported in `main.tsx`; the CSP allows no other font source).
 
 ## The assets

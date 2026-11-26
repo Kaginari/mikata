@@ -124,6 +124,10 @@ pub const SECRETS: &str = "secrets";
 /// human may switch it off: their global file or their own command, never a world's file.
 pub const APPROVAL: &str = "approval";
 
+/// The units that protect the human — the secret files, the approval card, the end gate, the
+/// hold on outward acts —: a session says which of them are off, to every client.
+pub const GUARDS: [&str; 4] = [SECRETS, APPROVAL, GATE, HOLD];
+
 /// The Dark Elf challenge ([`crate::challenge`]): a landing in a domain the roster routes is held
 /// for review. Off, it lands at once. By the human alone.
 pub const CHALLENGE: &str = "challenge";

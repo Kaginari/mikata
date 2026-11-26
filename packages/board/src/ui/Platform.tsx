@@ -28,14 +28,13 @@ import {
   X,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { type Chats, startChat } from '../data/chats.ts';
-import { noteOpened, sessionOptions, useComposition } from '../data/compose.ts';
+import type { Chats } from '../data/chats.ts';
+import { useComposition } from '../data/compose.ts';
 import { opening, useHarness } from '../data/harness.ts';
 import { format, type Route } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { shown } from '../safe/shown.ts';
 import type { Choice } from '../theme.ts';
-import { announce } from './Announcer.tsx';
 import { Icon } from './Icon.tsx';
 import { Logo } from './Logo.tsx';
 
@@ -175,19 +174,8 @@ function Status({ world, chats }: { world: BoardWorld; chats: Chats }) {
 
 /** The workspace's sessions: the live ones, each by its ask, marked when it waits for you; then
  * the latest past runs, and the way to every run. */
-function Sessions({
-  world,
-  chats,
-  route,
-  starting,
-  onNew,
-}: {
-  world: BoardWorld;
-  chats: Chats;
-  route: Route;
-  starting: boolean;
-  onNew: () => void;
-}) {
+function Sessions({ world, chats, route }: { world: BoardWorld; chats: Chats; route: Route }) {
+  const builder = format({ name: 'section', world: world.id, section: 'builder' });
   // A live session's run is listed once, as the live session.
   const liveRuns = new Set(chats.live.map((c) => c.run));
   const past = chats.runs.filter((r) => !liveRuns.has(r.id));
@@ -198,20 +186,18 @@ function Sessions({
     <section className="pf-card pf-sessions" aria-label="Sessions">
       <p className="pf-label">
         Sessions
-        <button
-          type="button"
+        <a
           className="pf-icon pf-mini"
-          aria-label="New session"
-          disabled={starting}
-          onClick={onNew}
+          aria-label="New session, in the Harness Builder"
+          href={builder}
         >
           <Icon icon={Plus} />
-        </button>
+        </a>
       </p>
       {chats.live.length === 0 ? (
-        <button type="button" className="pf-start" disabled={starting} onClick={onNew}>
-          <Icon icon={Plus} /> {starting ? 'Starting…' : 'Start a session'}
-        </button>
+        <a className="pf-start" href={builder}>
+          <Icon icon={Plus} /> Start a session
+        </a>
       ) : (
         <ul className="pf-list" aria-label="Live sessions">
           {chats.live.map((c, i) => (
@@ -290,7 +276,6 @@ export function Platform({
 }) {
   const place = placeOf(route);
   const [drawer, setDrawer] = useState(false);
-  const [starting, setStarting] = useState(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the drawer closes when the page moves
   useEffect(() => setDrawer(false), [route]);
   const phone = usePhone();
@@ -317,27 +302,6 @@ export function Platform({
     return () => window.removeEventListener('keydown', on);
   }, [drawer]);
   const session = route.name === 'session' ? route.session : undefined;
-
-  const newSession = async () => {
-    if (!world || starting) return;
-    setStarting(true);
-    try {
-      // The workspace's composition, as the Harness Builder set it.
-      const opts = sessionOptions(world.id);
-      const started = await startChat(world.id, undefined, opts);
-      noteOpened(started.session.id, opts);
-      chats.refresh();
-      window.location.hash = format({
-        name: 'session',
-        world: world.id,
-        session: started.session.id,
-      });
-    } catch (e) {
-      announce(`The session did not start: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setStarting(false);
-    }
-  };
 
   return (
     <div className="pf" data-drawer={drawer ? 'open' : 'closed'}>
@@ -394,15 +358,14 @@ export function Platform({
             <Icon icon={THEME_ICON[theme]} />
           </button>
           {world && (
-            <button
-              type="button"
+            <a
               className="pf-primary"
-              disabled={starting}
-              onClick={() => void newSession()}
+              href={href('builder', world.id)}
+              title="Choose its profile and units, then start it"
             >
               <Icon icon={Plus} />
-              <span>{starting ? 'Starting…' : 'New session'}</span>
-            </button>
+              <span>New session</span>
+            </a>
           )}
         </div>
       </header>
@@ -459,15 +422,7 @@ export function Platform({
             </nav>
           </section>
 
-          {world && (
-            <Sessions
-              world={world}
-              chats={chats}
-              route={route}
-              starting={starting}
-              onNew={() => void newSession()}
-            />
-          )}
+          {world && <Sessions world={world} chats={chats} route={route} />}
 
           {world && (
             <section className="pf-card" aria-label="Runtime">
