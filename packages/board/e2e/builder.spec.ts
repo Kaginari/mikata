@@ -127,13 +127,8 @@ test('the builder starts a run with the composition its switches make, and follo
       });
     });
   });
-  // It opens on the session; the builder is a view away.
-  await expect(page.getByRole('heading', { name: 'Agent session', level: 1 })).toBeVisible();
-  await page
-    .getByRole('navigation', { name: "The builder's views" })
-    .getByRole('button', { name: 'Harness builder' })
-    .click();
-  await expect(page.getByRole('heading', { name: 'Harness builder', level: 1 })).toBeVisible();
+  // It opens on the builder itself.
+  await expect(page.getByRole('heading', { name: 'Harness Builder', level: 1 })).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Memory: on' })).toBeVisible();
   // A switch flipped: the composition says it.
   await page.getByRole('switch', { name: 'Challenge: on' }).click();
@@ -143,7 +138,7 @@ test('the builder starts a run with the composition its switches make, and follo
     .getByLabel('Your ask')
     .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
   await page.getByRole('button', { name: /Start run/ }).click();
-  await expect(page.getByRole('heading', { name: '✓ Verified' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Verified', exact: true })).toBeVisible();
   expect(started).toEqual([{ units: '-challenge' }]);
   const log = page.getByRole('log', { name: 'Run log' });
   await expect(log).toContainText('bash: cargo test');
@@ -226,7 +221,7 @@ for (const theme of ['dark', 'light'] as const) {
       .getByLabel('Your ask')
       .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
     await page.getByRole('button', { name: /Start run/ }).click();
-    await expect(page.getByRole('heading', { name: '✓ Verified' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Verified', exact: true })).toBeVisible();
     await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`sessions-${theme}`) });
     await views.getByRole('button', { name: 'Harness builder' }).click();

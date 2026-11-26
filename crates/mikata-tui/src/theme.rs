@@ -362,9 +362,9 @@ impl Scheme {
             // Bio Digital, neon's dark page, set whole: hot pink to amber over a near-black plum,
             // lime for what lives (the owner's design system, 2026-11-25).
             (Self::Neon, Variant::Dark) => Palette {
-                bg: Rgb::hex(0x0d_0b10),
-                panel: Rgb::hex(0x16_111b),
-                panel_raised: Rgb::hex(0x21_1824),
+                bg: Rgb::hex(0x07_050a),
+                panel: Rgb::hex(0x11_0c14),
+                panel_raised: Rgb::hex(0x1b_1420),
                 line: Rgb::hex(0x3d_2b40),
                 text: Rgb::hex(0xf5_eff7),
                 text_muted: Rgb::hex(0xb7_a9bc),

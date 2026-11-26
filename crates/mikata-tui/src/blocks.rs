@@ -65,7 +65,7 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
         Entry::Assistant { text, .. } => {
             let inner = Slab::inner(w);
             // The renderer makes each parsed text safe: entities decode before they are escaped.
-            let md = markdown::render(text, inner.saturating_sub(2), t);
+            let md = markdown::render(&spoken(text), inner.saturating_sub(2), t);
             let mut rows = if continues {
                 vec![Line::from("")]
             } else {
@@ -82,20 +82,39 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
         }
         Entry::Tool(call) => out.extend(card(call, w, ctx)),
         Entry::Group(group) => out.extend(group_card(group, w, ctx)),
+        // A finished thought folds away, as a card's spent lines do: picked (alt+↑↓) or opened
+        // (ctrl+t) it shows again.
+        Entry::Thought(th) if th.took.is_some() && !th.focused && !th.expanded => {
+            return out_none();
+        }
         Entry::Thought(thought) => out.extend(thought_lines(thought, w, ctx)),
         Entry::Verdict {
             verdict,
             changed,
             failures,
             unverified,
-        } => out.push(verdict_line(verdict, *changed, failures, unverified, w, t)),
+        } => {
+            // The gate's word is the turn's result: a banner in its colour, as wide as the
+            // answer above it.
+            let hue = match verdict.as_str() {
+                "PASS" => t.success,
+                "NOT_VERIFIED" => t.p.gold,
+                _ => t.p.alarm,
+            };
+            let line = verdict_line(verdict, *changed, failures, unverified, Slab::inner(w), t);
+            let slab = Slab::new(Surface::card(t, Some(hue), TINT * 2.5));
+            out.extend(slab.render(vec![line], w));
+        }
         Entry::Note(text) => out.extend(note(
             "· ",
             text,
             w,
             t.muted().add_modifier(Modifier::ITALIC),
         )),
-        Entry::Warning(text) => out.extend(note("! ", text, w, t.gold())),
+        Entry::Warning(text) => match kept(text) {
+            Some(said) => out.extend(note("· ", &said, w, t.muted())),
+            None => out.extend(note("! ", &counted(text), w, t.gold())),
+        },
         Entry::Changes(text) => out.extend(changes(text, w, t)),
         Entry::Ending(ending) => {
             let style = if ending == "interrupted" {
@@ -127,17 +146,33 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
     out
 }
 
-/// What changed, by the body's own checks: its first line under the gate's mark, then a
-/// check's lines as they were printed, a `- ` line (before) in the alarm colour and a `+ ` line
-/// (now) in the interface's. Each line is kept whole and wrapped, never cut: the human reads it
-/// against their ask.
+/// The changed lines [`changes`] shows before it counts the rest.
+pub const CHANGE_LINES: usize = 8;
+
+/// What changed, by the body's own checks: its first line under the gate's mark, then the first
+/// [`CHANGE_LINES`] of a check's lines as they were printed, a `- ` line (before) in the alarm
+/// colour and a `+ ` line (now) in the interface's, each kept whole and wrapped; the rest counted,
+/// with where the whole list is kept.
 fn changes(text: &str, w: usize, t: &Theme) -> Lines {
     let mut out = Lines::new();
-    for (i, line) in text.lines().enumerate() {
-        if i == 0 {
-            out.extend(note("◆ ", line, w, t.holo()));
-            continue;
-        }
+    let mut lines = text.lines();
+    if let Some(head) = lines.next() {
+        out.extend(note("◆ ", head, w, t.holo()));
+    }
+    let rest: Vec<&str> = lines.filter(|l| !l.trim().is_empty()).collect();
+    // The loop's own last line points at the file that keeps every check whole.
+    let kept_in = rest
+        .last()
+        .filter(|l| l.contains("what-changed.md"))
+        .and_then(|l| l.split_whitespace().last())
+        .map(str::to_owned);
+    let body = if kept_in.is_some() {
+        &rest[..rest.len() - 1]
+    } else {
+        &rest[..]
+    };
+    let more = body.len().saturating_sub(CHANGE_LINES);
+    for line in body.iter().take(CHANGE_LINES) {
         let style = if line.starts_with("- ") {
             t.alarm()
         } else if line.starts_with("+ ") {
@@ -147,10 +182,6 @@ fn changes(text: &str, w: usize, t: &Theme) -> Lines {
         } else {
             t.muted()
         };
-        if line.is_empty() {
-            out.push(Line::default());
-            continue;
-        }
         let lines = wrap_text(&clean(line), w.saturating_sub(6), style);
         out.extend(prefixed(
             lines,
@@ -158,7 +189,106 @@ fn changes(text: &str, w: usize, t: &Theme) -> Lines {
             &[Span::raw("      ")],
         ));
     }
+    if more > 0 || kept_in.is_some() {
+        let mut said = Vec::new();
+        if more > 0 {
+            said.push(format!("… +{more} lines"));
+        }
+        if let Some(path) = kept_in {
+            said.push(format!("all of it in {path}"));
+        }
+        out.push(Line::from(vec![
+            Span::raw("    "),
+            Span::styled(clean(&said.join(" · ")), t.muted()),
+        ]));
+    }
     out
+}
+
+/// No lines at all: an entry that folds away leaves no blank row behind it either.
+fn out_none() -> Lines {
+    Lines::new()
+}
+
+/// The body's answer as the human reads it: the `@U` lines it writes for the harness's memory
+/// are the harness's, not the human's.
+fn spoken(text: &str) -> String {
+    if !text.contains("@U ") {
+        return text.to_owned();
+    }
+    let mut kept: Vec<&str> = text
+        .lines()
+        .filter(|l| !l.trim_start().starts_with("@U "))
+        .collect();
+    // The rule the body set above its `@U` lines goes with them.
+    while kept
+        .last()
+        .is_some_and(|l| l.trim().is_empty() || l.trim() == "---")
+    {
+        kept.pop();
+    }
+    kept.join("\n")
+}
+
+/// A memory note's id: `n` then hex and digits in dashed parts, long — never a word.
+fn is_note_id(word: &str) -> bool {
+    let w = word.trim_end_matches([',', '.', ';']);
+    w.len() > 24
+        && w.starts_with('n')
+        && w.contains('-')
+        && w[1..].chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+}
+
+/// A warning that ends in a list of memory notes' ids, with the list counted: `… changed: 8
+/// notes`. The ids name nothing a human reads; `mikatad memory` lists them.
+fn counted(text: &str) -> String {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let Some(first) = words.iter().position(|w| is_note_id(w)) else {
+        return text.to_owned();
+    };
+    let n = words[first..].iter().filter(|w| is_note_id(w)).count();
+    if n < 2 || words[first..].iter().any(|w| !is_note_id(w)) {
+        return text.to_owned();
+    }
+    let head = words[..first].join(" ");
+    format!("{} {n} notes", head.trim_end_matches(':').to_owned() + ":")
+}
+
+/// The memory's account of a finished turn, `[memory: 1 claim(s) of summoner's kept, 1 grounded
+/// by checked, 0 by corroborated…]`, said plainly: `memory kept 1 note · 1 checked`.
+fn kept(text: &str) -> Option<String> {
+    use std::fmt::Write as _;
+    let rest = text.strip_prefix("[memory: ")?.strip_suffix(']')?;
+    let (kept, rest) = rest.split_once(" claim(s) of ")?;
+    let kept: usize = kept.parse().ok()?;
+    let (_, rest) = rest.split_once("'s kept, ")?;
+    let (checked, rest) = rest.split_once(" grounded by checked, ")?;
+    let (seconded, why) = rest.split_once(" by corroborated")?;
+    let mut said = format!(
+        "memory kept {kept} note{}",
+        if kept == 1 { "" } else { "s" }
+    );
+    if checked != "0" {
+        let _ = write!(said, " · {checked} checked");
+    }
+    if seconded != "0" {
+        let _ = write!(said, " · {seconded} seconded");
+    }
+    // Each `; N not checked: why`, counted: the why is the harness's own rule.
+    let unchecked: usize = why
+        .split("; ")
+        .filter_map(|part| {
+            part.split_once(" not checked")?
+                .0
+                .trim()
+                .parse::<usize>()
+                .ok()
+        })
+        .sum();
+    if unchecked > 0 {
+        let _ = write!(said, " · {unchecked} not checked");
+    }
+    Some(said)
 }
 
 fn note(mark: &str, text: &str, w: usize, style: Style) -> Lines {
@@ -227,7 +357,6 @@ fn verdict_line(
         let _ = write!(counts, ": {}", one_line(first));
     }
     let line = Line::from(vec![
-        Span::raw("  "),
         Span::styled(format!(" {mark} end gate · {word} "), chip),
         Span::styled(counts, t.muted()),
     ]);
@@ -904,6 +1033,44 @@ fn change_lines(c: &Change, input: &Value, inner: usize, t: &Theme, open: bool) 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn harness_lines_are_said_plainly() {
+        let ids = "n1a214cdac8e-06f936766279155f-0000000000000000, \
+                   n1a214d03e53-79c33cabc826b875-0000000000000001";
+        assert_eq!(
+            counted(&format!(
+                "memory: needs review, a file it rests on changed: {ids}"
+            )),
+            "memory: needs review, a file it rests on changed: 2 notes"
+        );
+        assert_eq!(
+            counted("tests failed: see above"),
+            "tests failed: see above"
+        );
+        assert_eq!(
+            kept(
+                "[memory: 1 claim(s) of summoner's kept, 1 grounded by checked, 0 by corroborated]"
+            )
+            .as_deref(),
+            Some("memory kept 1 note · 1 checked")
+        );
+        assert_eq!(
+            kept(
+                "[memory: 2 claim(s) of summoner's kept, 0 grounded by checked, 0 by corroborated; \
+                 1 not checked: it names no check (`check=<verify line or test>`); 1 not checked: \
+                 it names no path the diff changed]"
+            )
+            .as_deref(),
+            Some("memory kept 2 notes · 2 not checked")
+        );
+        assert_eq!(kept("[other]"), None);
+        assert_eq!(
+            spoken("Done.\n\n---\n\n@U law durations.py check=python3 -m unittest\n"),
+            "Done."
+        );
+        assert_eq!(spoken("Say @U only mid-line"), "Say @U only mid-line");
+    }
 
     /// A check's card says which line of the `Done when` list it is for, then its command.
     #[test]

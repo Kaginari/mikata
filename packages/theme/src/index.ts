@@ -85,9 +85,9 @@ export type SchemeName = (typeof SCHEMES)[number];
 export const DEFAULT_SCHEME: SchemeName = 'neon';
 
 export const neonDark: SchemePalette = {
-  bg: '#0d0b10',
-  panel: '#16111b',
-  panelRaised: '#211824',
+  bg: '#07050a',
+  panel: '#110c14',
+  panelRaised: '#1b1420',
   line: '#3d2b40',
   text: '#f5eff7',
   textMuted: '#b7a9bc',

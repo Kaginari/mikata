@@ -53,46 +53,45 @@ pub struct Plan {
     pub convo: Rect,
 }
 
-/// The frame laid out over `area` for `m`: the dashboard, the conversation with its bars, or
-/// the conversation alone, as the view says, and as the size allows.
+/// The widest the conversation reads in Focus: a page, not a banner.
+const FOCUS_W: u16 = 112;
+
+/// The frame laid out over `area` for `m`: Light (the conversation, its bars and one slim
+/// column), Advanced (a column each side) or Focus (the conversation alone, a page wide, under
+/// one-row bars), as the size allows.
 #[must_use]
 pub fn plan(m: &Model, area: Rect) -> Plan {
     let view = m.view;
     // Bars of three rows (a framed line) where the rows are many, of one row where the
-    // conversation needs them; none in Zen.
-    let tall = area.height >= 36;
-    let bar = match view {
-        View::Zen => 0,
-        _ if tall => 3,
-        _ => 1,
-    };
-    let bars = (bar > 0).then(|| {
-        (
-            Rect {
-                height: bar,
-                ..area
-            },
-            Rect {
-                y: area.bottom() - bar,
-                height: bar,
-                ..area
-            },
-            tall,
-        )
-    });
+    // conversation needs them, and always in Focus.
+    let tall = area.height >= 36 && view != View::Focus;
+    let bar = if tall { 3 } else { 1 };
+    let bars = Some((
+        Rect {
+            height: bar,
+            ..area
+        },
+        Rect {
+            y: area.bottom() - bar,
+            height: bar,
+            ..area
+        },
+        tall,
+    ));
     let mid = Rect {
         y: area.y + bar,
         height: area.height.saturating_sub(2 * bar),
         ..area
     };
-    // The panels' columns: the sidebar's width and its own frame each. Wide, the checks and the
-    // rails stand in a column of their own on the left; else every panel shares the right.
-    let side = if view == View::Center && m.sidebar.width(mid.width.saturating_sub(4)) > 0 {
-        (crate::sidebar::WIDTH + 4).min(mid.width / 3)
-    } else {
-        0
+    // The panels' columns: the sidebar's width and its own frame each. Advanced, on a wide
+    // screen, puts the checks and the rails in a column of their own on the left.
+    let wants = view != View::Focus && m.sidebar.width(mid.width.saturating_sub(4)) > 0;
+    let side = match view {
+        View::Light if wants => (crate::sidebar::WIDTH + 2).min(mid.width / 3),
+        View::Advanced if wants => (crate::sidebar::WIDTH + 4).min(mid.width / 3),
+        _ => 0,
     };
-    let lead = if side > 0 && mid.width >= 140 {
+    let lead = if view == View::Advanced && side > 0 && mid.width >= 140 {
         side.min(mid.width / 4)
     } else {
         0
@@ -102,13 +101,15 @@ pub fn plan(m: &Model, area: Rect) -> Plan {
         width: mid.width - side - lead,
         ..mid
     };
-    // A small terminal, or Zen, gives the conversation every cell: no frame round it (Zen keeps a
-    // column of margin each side).
-    let (frame, convo) = if view == View::Zen {
+    // Focus gives the conversation a page's width, centred, no frame round it; a small terminal
+    // gives it every cell.
+    let (frame, convo) = if view == View::Focus {
+        let w = left.width.saturating_sub(4).min(FOCUS_W);
         let r = Rect {
-            x: left.x + 1,
-            width: left.width.saturating_sub(2),
-            ..left
+            x: left.x + (left.width - w) / 2,
+            y: left.y + 1,
+            width: w,
+            height: left.height.saturating_sub(1),
         };
         (None, r)
     } else if left.width >= 60 && left.height >= 16 {
@@ -165,7 +166,13 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
             }
         };
         let inner_w = usize::from(area.width.saturating_sub(if framed { 4 } else { 0 }));
-        bar_line(buf, top, crate::chrome::header(m, inner_w, state(m)));
+        // The header is the gradient itself, as the board's strip is; the footer stays framed.
+        let head = crate::chrome::header(m, inner_w, state(m));
+        if framed {
+            crate::chrome::gradient_bar(buf, top, &head, t, area.width);
+        } else {
+            bar_line(buf, top, head);
+        }
         bar_line(
             buf,
             bottom,
@@ -181,7 +188,11 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
         lead_column(m, buf, p.lead, area.width);
     }
     if p.side.width > 0 {
-        panels(m, p.side, buf, area.width, p.lead.width > 0);
+        if m.view == View::Light {
+            light_column(m, p.side, buf, area.width);
+        } else {
+            panels(m, p.side, buf, area.width, p.lead.width > 0);
+        }
     }
     if m.gate.is_some() {
         // The approval never sits under a picture: while it is open, none is wanted.
@@ -220,8 +231,10 @@ fn toast(m: &Model, area: Rect, buf: &mut Buffer) {
 /// The left column of a wide screen in `area`: Checks, Guardrails, and Units in the rows left.
 fn lead_column(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16) {
     let w = usize::from(area.width.saturating_sub(4));
+    let files = format!("Files changed ({})", m.sidebar.files.list().len());
     let panes = [
         Pane::new("✓", "Checks", crate::chrome::checks(m, w)),
+        Pane::new("±", files, crate::chrome::files_changed(m, w)),
         Pane::new("◈", "Guardrails", crate::chrome::guardrails(m, w)),
         Pane::new("⚙", "Units", crate::chrome::units(m, w)),
     ];
@@ -274,6 +287,29 @@ fn stack(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16, panes: &[Pane],
     y
 }
 
+/// Light's one column in `area`: Done when (once the ask has its lines), Checks, Budgets, and
+/// Guardrails in the rows left — what a turn is held to and what it spends, nothing else.
+fn light_column(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16) {
+    let cols = usize::from(area.width.saturating_sub(4));
+    let mut panes = vec![Pane::new("▶", "Run", crate::chrome::stepper(m, cols))];
+    if !m.sidebar.done.is_empty() {
+        let title = format!("Done when ({})", m.sidebar.done.len());
+        panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
+    }
+    panes.push(Pane::new("✓", "Checks", crate::chrome::checks(m, cols)));
+    if !m.sidebar.files.list().is_empty() {
+        let title = format!("Files changed ({})", m.sidebar.files.list().len());
+        panes.push(Pane::new("±", title, crate::chrome::files_changed(m, cols)));
+    }
+    panes.push(Pane::new("▮", "Budgets", crate::chrome::budgets(m, cols)));
+    panes.push(Pane::new(
+        "◈",
+        "Guardrails",
+        crate::chrome::guardrails(m, cols),
+    ));
+    stack(m, buf, area, screen_w, &panes, 0);
+}
+
 /// The right-hand column in `area`: Done when and Budgets (and, when the screen is not `wide`,
 /// Checks, Guardrails and Units, as room allows) each as tall as its lines, the Session panel (memory, files,
 /// bodies) taking the rows left.
@@ -283,7 +319,7 @@ fn panels(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16, wide: bool) {
     // A short column keeps its rows for what holds something: an empty list, or units not yet
     // listed, gives its panel up.
     let short = area.height < 30;
-    let mut panes = Vec::new();
+    let mut panes = vec![Pane::new("▶", "Run", crate::chrome::stepper(m, cols))];
     if !(short && m.sidebar.done.is_empty()) {
         let title = format!("Done when ({})", m.sidebar.done.len());
         panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
@@ -486,16 +522,10 @@ fn to_u16(n: usize) -> u16 {
     u16::try_from(n).unwrap_or(u16::MAX)
 }
 
-/// The top edge's right: the session's id, and its state — `○ idle`, `⣾ running bash 3s`,
+/// The top edge's right: the session's state — `○ idle`, `⣾ running bash 3s`,
 /// `◆ waiting for you`.
 fn state(m: &Model) -> Line<'static> {
-    let t = &m.theme;
     let mut spans = vec![Span::raw(" ")];
-    if !m.session_id.is_empty() && m.size.0 >= 70 {
-        spans.push(Span::styled("session ", t.muted()));
-        spans.push(Span::styled(short_id(&m.session_id), t.text()));
-        spans.push(Span::raw("  "));
-    }
     let chip = crate::activity::chip(m);
     if m.size.0 < 60 {
         // Narrow, the state keeps its mark alone: the session's name comes first.
@@ -508,13 +538,6 @@ fn state(m: &Model) -> Line<'static> {
     }
     spans.push(Span::raw(" "));
     Line::from(spans)
-}
-
-/// A session id as the header shows it: its last part, the rest of it the date.
-fn short_id(id: &str) -> String {
-    let id = crate::safe::one_line(id);
-    let tail = id.rsplit('-').next().unwrap_or(&id);
-    clip(tail, 12)
 }
 
 /// The footer's middle: what waits (lines queued, lines held) and the keys that matter now, in

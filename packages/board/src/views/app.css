@@ -1,0 +1,679 @@
+/* Mikata as an app (`mikatad app`): the owner's app pictures in the design system. A night page
+ * lit from its corners, panels framed in the brand's gradient with a soft glow, titles in the UI
+ * face, everything the session says in the mono face, lime only for what passed. */
+
+.mapp {
+  --mapp-frame: linear-gradient(135deg, var(--mn-hot), var(--mn-coral) 55%, var(--mn-amber));
+  --mapp-glow: 0 0 22px color-mix(in srgb, var(--mn-hot) 30%, transparent);
+  --mapp-face: color-mix(in srgb, var(--mn-hot) 4%, var(--mn-panel));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 14px;
+  height: 100vh;
+  padding: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at 0 0,
+      color-mix(in srgb, var(--mn-hot) 16%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      color-mix(in srgb, var(--mn-amber) 12%, transparent),
+      transparent 45%
+    ),
+    var(--mn-bg);
+  color: var(--mn-text);
+  font: 15px / 1.5 var(--mn-font-mono);
+}
+.mapp h1,
+.mapp h2,
+.mapp h3,
+.mapp p {
+  margin: 0;
+}
+
+/* a frame of the brand's gradient, its face inside, a glow round it */
+.mapp-head,
+.mapp-panel,
+.mapp-input,
+.mapp-foot {
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(var(--mapp-face), var(--mapp-face)) padding-box,
+    var(--mapp-frame) border-box;
+  box-shadow:
+    var(--mapp-glow),
+    inset 0 0 28px color-mix(in srgb, var(--mn-hot) 7%, transparent);
+}
+
+/* ── the header bar: the gradient itself ── */
+.mapp-head {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 12px 22px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--mn-hot) 82%, var(--mn-bg)),
+      color-mix(in srgb, var(--mn-coral) 62%, var(--mn-bg)) 55%,
+      color-mix(in srgb, var(--mn-amber) 70%, var(--mn-bg))
+    )
+    padding-box,
+    var(--mapp-frame) border-box;
+  color: var(--mn-text);
+}
+.mapp-brand {
+  font: 800 25px var(--mn-font-ui);
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+.mapp-brand i {
+  margin-right: 10px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+.mapp-brand small {
+  font-size: 0.85em;
+}
+.mapp-sep {
+  align-self: stretch;
+  width: 1.5px;
+  background: color-mix(in srgb, var(--mn-text) 55%, transparent);
+}
+.mapp-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+  min-width: 0;
+  margin: 0 0 0 auto;
+  overflow: hidden;
+  font: 600 15px var(--mn-font-ui);
+  white-space: nowrap;
+}
+.mapp-chips div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.mapp-chips dt {
+  color: color-mix(in srgb, var(--mn-text) 85%, transparent);
+}
+.mapp-chips dd {
+  margin: 0;
+  font-weight: 800;
+}
+.mapp .mapp-pill {
+  padding: 1px 10px;
+  border: 1px solid color-mix(in srgb, var(--mn-amber) 70%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mn-bg) 55%, transparent);
+  color: var(--mn-amber);
+}
+.mapp .mapp-pill[data-off="true"] {
+  border-color: var(--mn-error);
+  color: var(--mn-error);
+}
+
+/* ── the body: the conversation and its column ── */
+.mapp-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(330px, 1fr);
+  gap: 18px;
+  min-height: 0;
+}
+.mapp-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.mapp-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
+  font: 800 23px var(--mn-font-ui);
+}
+.mapp .mapp-panel-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--mn-hot);
+}
+.mapp-slashes {
+  margin-left: auto;
+  background: linear-gradient(90deg, var(--mn-hot), var(--mn-amber));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font: italic 900 18px var(--mn-font-mono);
+  letter-spacing: -1px;
+}
+.mapp-panel-body {
+  display: grid;
+  gap: 10px;
+  padding: 16px 22px 18px;
+}
+
+/* the conversation: a timeline */
+.mapp-convo {
+  padding: 18px 22px;
+  overflow-y: auto;
+}
+.mapp-turn + .mapp-turn {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px dashed color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
+}
+.mapp-who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 8px;
+  font: 800 20px var(--mn-font-ui);
+}
+.mapp-who .mn-icon {
+  width: 30px;
+  height: 30px;
+  color: var(--mn-hot);
+}
+.mapp-who time {
+  font: 400 16px var(--mn-font-mono);
+  color: var(--mn-text-muted);
+}
+.mapp-who-body {
+  margin-top: 18px;
+  font-size: 24px;
+}
+.mapp-ask {
+  margin-left: 52px;
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--mn-hot) 45%, var(--mn-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mn-hot) 10%, var(--mn-panel-raised));
+  font-size: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mapp-steps {
+  position: relative;
+  margin: 6px 0 0;
+  padding: 0 0 0 48px;
+  list-style: none;
+}
+/* the rail the steps hang on: dots of the brand down the left */
+.mapp-steps::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 17px;
+  width: 2px;
+  background: linear-gradient(var(--mn-hot), color-mix(in srgb, var(--mn-hot) 30%, transparent));
+}
+.mapp-step {
+  position: relative;
+  margin: 0 0 14px;
+}
+.mapp-step h3 {
+  margin: 0 0 6px;
+  font: 800 18px var(--mn-font-mono);
+  overflow-wrap: anywhere;
+}
+.mapp-step-quiet h3 {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--mn-text-muted);
+}
+.mapp .mapp-holo {
+  color: var(--mn-holo);
+}
+.mapp-mark {
+  position: absolute;
+  top: -1px;
+  left: -45px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--mn-bg);
+}
+.mapp-mark .mn-icon {
+  width: 26px;
+  height: 26px;
+}
+.mapp-mark[data-mark="ok"] {
+  color: var(--mn-success-fill);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mn-success-fill) 55%, transparent));
+}
+.mapp-mark[data-mark="now"] {
+  color: var(--mn-hot);
+}
+.mapp-mark[data-mark="failed"] {
+  color: var(--mn-error);
+}
+.mapp-box {
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--mn-hot) 50%, var(--mn-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mn-hot) 6%, var(--mn-panel-raised));
+  overflow-wrap: anywhere;
+}
+.mapp-box p {
+  white-space: pre-wrap;
+}
+/* the hatch the pictures draw at a box's right: amber strokes, fading in */
+.mapp-hatch {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 12px,
+      color-mix(in srgb, var(--mn-amber) 26%, transparent) 12px 14px
+    )
+    right / 28% 100% no-repeat,
+    color-mix(in srgb, var(--mn-hot) 6%, var(--mn-panel-raised));
+}
+.mapp-file,
+.mapp-cmd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+}
+.mapp-file .mn-icon {
+  color: var(--mn-hot);
+}
+.mapp b[data-tone="ok"] {
+  color: var(--mn-success-text);
+}
+.mapp b[data-tone="alarm"],
+.mapp [data-tone="alarm"] {
+  color: var(--mn-error);
+}
+.mapp [data-tone="holo"] {
+  color: var(--mn-holo);
+}
+.mapp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 1px 10px;
+  border: 1px solid var(--mn-line-strong);
+  border-radius: 999px;
+  background: var(--mn-bg);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.mapp-chip[data-tone="gold"] {
+  border-color: color-mix(in srgb, var(--mn-amber) 70%, transparent);
+  color: var(--mn-amber);
+}
+.mapp-sub {
+  padding-left: 4px;
+  color: var(--mn-text-muted);
+}
+.mapp-out {
+  margin-top: 6px;
+  color: var(--mn-text-muted);
+  font-size: 14px;
+}
+.mapp-out b {
+  font-weight: 800;
+}
+.mapp-say {
+  margin-left: -4px;
+}
+.mapp-answer {
+  font: 15px / 1.65 var(--mn-font-mono);
+}
+.mapp-answer p + p {
+  margin-top: 0.6em;
+}
+.mapp-note {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--mn-text-muted);
+}
+.mapp-note[data-tone="gold"] {
+  color: var(--mn-gold);
+}
+.mapp-working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0 48px;
+  color: var(--mn-holo);
+}
+
+/* the landing: what lives, in lime */
+.mapp-landed {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 18px 0 8px -48px;
+  padding: 14px 22px;
+  border: 1.5px solid var(--mn-success-fill);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 12px,
+      color-mix(in srgb, var(--mn-success-fill) 22%, transparent) 12px 14px
+    )
+    right / 18% 100% no-repeat,
+    color-mix(in srgb, var(--mn-success-fill) 8%, var(--mn-panel));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-success-fill) 30%, transparent);
+  font-size: 18px;
+  list-style: none;
+}
+.mapp .mapp-landed-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  color: var(--mn-success-fill);
+  stroke-width: 3;
+}
+.mapp-landed b {
+  color: var(--mn-success-text);
+}
+.mapp-landed[data-ok="false"] {
+  border-color: var(--mn-error);
+  background: var(--mn-error-bg);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-error) 30%, transparent);
+}
+.mapp-landed[data-ok="false"] b,
+.mapp-landed[data-ok="false"] .mapp-landed-icon {
+  color: var(--mn-error);
+}
+.mapp-empty {
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  margin: auto;
+  max-width: 520px;
+  padding: 40px 0;
+  text-align: center;
+  color: var(--mn-text-muted);
+  font: 17px / 1.6 var(--mn-font-ui);
+}
+.mapp-empty .mn-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--mn-hot);
+}
+
+/* ── the column ── */
+.mapp-side {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+}
+.mapp-fill {
+  background:
+    radial-gradient(
+      ellipse at 100% 100%,
+      color-mix(in srgb, var(--mn-amber) 14%, transparent),
+      transparent 60%
+    )
+    padding-box,
+    linear-gradient(var(--mapp-face), var(--mapp-face)) padding-box,
+    var(--mapp-frame) border-box;
+}
+.mapp-check {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.mapp-big {
+  font-size: 18px;
+}
+.mapp-check .mn-icon {
+  color: var(--mn-success-text);
+}
+.mapp-tick {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  align-self: center;
+  border: 1.5px solid var(--mn-line-strong);
+  border-radius: 5px;
+}
+.mapp-tick[data-ok="true"] {
+  border-color: var(--mn-success-fill);
+  background: var(--mn-success-fill);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--mn-success-fill) 45%, transparent);
+}
+.mapp .mapp-tick .mn-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--mn-success-on);
+  stroke-width: 3.5;
+}
+.mapp-ring {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--mn-text-muted);
+  border-radius: 50%;
+}
+.mapp-dn {
+  font-weight: 800;
+}
+.mapp-muted {
+  color: var(--mn-text-muted);
+}
+.mapp-budgets {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.mapp-budgets div {
+  display: grid;
+  grid-template-columns: 9.5em 1fr;
+  align-items: baseline;
+  font-size: 17px;
+}
+.mapp-budgets dt {
+  font-family: var(--mn-font-ui);
+  font-weight: 600;
+}
+.mapp-budgets dd {
+  margin: 0;
+  font-weight: 800;
+}
+.mapp-budgets small {
+  font-weight: 400;
+  color: var(--mn-text-muted);
+}
+.mapp-meter {
+  position: relative;
+  display: block;
+  height: 12px;
+  margin: 8px 3.2em 0 0;
+  border-radius: 999px;
+  background: var(--mn-panel-raised);
+  box-shadow: inset 0 0 0 1px var(--mn-line);
+}
+.mapp-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--mn-hot), var(--mn-amber));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--mn-hot) 50%, transparent);
+}
+.mapp-meter em {
+  position: absolute;
+  top: -5px;
+  right: -3.2em;
+  font: 400 15px var(--mn-font-mono);
+}
+
+/* ── the input: the command line ── */
+.mapp-input {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 20px;
+}
+.mapp .mapp-prompt {
+  width: 24px;
+  height: 24px;
+  color: var(--mn-hot);
+}
+.mapp-input textarea {
+  flex: 1;
+  min-height: 30px;
+  max-height: 140px;
+  border: 0;
+  background: transparent;
+  color: var(--mn-text);
+  font: 18px / 1.5 var(--mn-font-mono);
+  resize: none;
+  outline: none;
+}
+.mapp-input textarea::placeholder {
+  color: var(--mn-text-faint);
+}
+.mapp-input:focus-within {
+  box-shadow:
+    0 0 0 3px var(--mn-glow-soft),
+    var(--mapp-glow);
+}
+.mapp-keys {
+  font-size: 13px;
+  color: var(--mn-text-muted);
+  white-space: nowrap;
+}
+.mapp kbd {
+  margin: 0 4px 0 10px;
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--mn-amber) 60%, var(--mn-line));
+  border-radius: 6px;
+  color: var(--mn-text);
+  font: inherit;
+}
+.mapp-go {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--mapp-frame);
+  color: var(--mn-on-brand);
+  cursor: pointer;
+}
+.mapp-go:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.mapp-input textarea:focus-visible {
+  outline: none;
+}
+.mapp-go:focus-visible {
+  outline: 2px solid var(--mn-holo);
+  outline-offset: 2px;
+}
+.mapp-why {
+  margin-top: -8px;
+  color: var(--mn-error);
+}
+
+/* ── the status bar ── */
+.mapp-foot {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 10px 14px;
+  font-size: 18px;
+}
+.mapp-verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px;
+  border: 1px solid color-mix(in srgb, var(--mn-hot) 45%, var(--mn-line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--mn-hot) 10%, var(--mn-panel));
+}
+.mapp-verify > .mn-icon:first-child {
+  color: var(--mn-hot);
+}
+.mapp .mapp-ok {
+  color: var(--mn-success-fill);
+  stroke-width: 3;
+}
+.mapp-foot b[data-tone="ok"] {
+  color: var(--mn-success-fill);
+}
+.mapp-foot-chips {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+.mapp-foot .mapp-chip {
+  margin: 0;
+  padding: 5px 14px;
+  border-color: color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line));
+  border-radius: 10px;
+  font-size: 16px;
+}
+.mapp-foot .mapp-chip .mn-icon {
+  color: var(--mn-amber);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapp .mn-spin {
+    animation: none;
+  }
+}
+@media (max-width: 1100px) {
+  .mapp {
+    height: auto;
+    overflow: visible;
+  }
+  .mapp-body {
+    grid-template-columns: 1fr;
+  }
+  .mapp-head {
+    flex-wrap: wrap;
+  }
+  .mapp-chips {
+    margin-left: 0;
+  }
+  .mapp-keys {
+    display: none;
+  }
+}
+
+/* the way to the builder, at the bar's right */
+.mapp-headlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--mn-text) 30%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--mn-bg) 55%, transparent);
+  color: var(--mn-text);
+  font: 700 14px var(--mn-font-ui);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mapp-headlink:hover {
+  background: color-mix(in srgb, var(--mn-bg) 75%, transparent);
+}
+.mapp-headlink:focus-visible {
+  outline: 2px solid var(--mn-holo);
+  outline-offset: 2px;
+}

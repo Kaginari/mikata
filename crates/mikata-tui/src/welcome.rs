@@ -289,9 +289,9 @@ mod tests {
             // The card's rows joined, the frames and bullets cut away: wrapped lines read whole.
             let flat: String = text
                 .lines()
-                .map(|l| l.split('│').nth(2).unwrap_or(l))
+                .map(|l| l.split(['│', '┃']).nth(2).unwrap_or(l))
                 .map(|l| {
-                    l.trim_matches(|c: char| " ▌▏▕▖▘▝▀▄│".contains(c))
+                    l.trim_matches(|c: char| " ▌▏▕▖▘▝▀▄│┃".contains(c))
                         .trim_start_matches("▸ ")
                         .trim()
                 })
@@ -428,7 +428,9 @@ mod tests {
         m.sidebar.open = false;
         let _ = screen(&mut m, 160, 56);
         assert_eq!(m.pictures.wanted(), Vec::new());
+        // Advanced draws the Session panel, the logo at its head.
         m.sidebar.open = true;
+        m.view = crate::app::View::Advanced;
         let _ = screen(&mut m, 160, 56);
         let wanted = m.pictures.wanted();
         assert_eq!(wanted.len(), 1, "the sidebar's alone");

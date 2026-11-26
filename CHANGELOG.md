@@ -11,6 +11,47 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Added
+
+- `mikatad app` (`mikatad board --app`): Mikata as an app — a window of its own, no tabs and no
+  address bar, through Chrome, Edge, Brave, Chromium or Vivaldi in app mode, on the same one-time
+  launcher file as `--open`, so no key is on the command line. With none of them, it opens in the
+  browser and says so. It opens on the app screen (`#/w/<world>/app`) of the world worked in
+  last: a glowing header bar; the conversation as a timeline of steps (the human's ask, each edit
+  with its lines, each check with its output, the body's words, the end gate's Landed banner);
+  Done when, Budgets and Guardrails beside it; a command line and a status bar under it. Every
+  number is the session's own.
+- The Harness Builder as the owner's picture draws it: the top bar's Home (the app screen),
+  Harness Builder, Plugins, Profiles and Docs beside a bright Run agent; the rail's status as dots
+  and its usage as bars; unit cards framed pink on the left and amber on the right, their
+  versions in their title rows, wired to a glowing core; the configuration as TOML with its line
+  numbers and colours beside the ask and Start run; the live run's rings (Plan · Work · Verify ·
+  Land), its log timed `[mm:ss]` from the run's start, a large VERIFIED and tiles with icons.
+- `GET /api/w/<world>/desk`: what a world's session is held to — its verify line, the plan's
+  `Done when`, its branch — read alike by the terminal app and the board.
+- The terminal app has three views, F2 or `/view light|advanced|focus`: *Light*, the new default,
+  the conversation beside one slim column; *Advanced*, every panel; *Focus*, the conversation
+  alone. `center` and `zen` still name the last two.
+- Light and Advanced show the run as Plan · Work · Verify · Land, lit as far as the turn has come,
+  and a Files changed panel: each path's A, M or D and the lines it gained and lost.
+
+### Changed
+
+- The terminal app: the header bar is the brand's gradient; panel frames are heavy lines with bold
+  `////`; the end gate's verdict is a banner in its colour; a picked approval answer is a gradient
+  button; units are tags. Bio Digital's page and panels are darker (`#07050a`, `#110c14`,
+  `#1b1420`) in the terminal, the board and the site.
+- The conversation keeps the human's words: memory note ids are counted, the memory's account is
+  one plain line, `@U` lines stay out of the answer, what changed shows eight lines and where the
+  rest is kept, and a finished thought folds away (Alt+↑↓ or Ctrl+T shows it).
+
+### Fixed
+
+- The terminal app showed the memory the harness quotes above an ask as the human's own line.
+- The clock read 0:00 once a turn ended; it keeps the turn's time.
+- The light-coding reason and the approval card said "the Summoner" and "the human gate"; they say
+  Mikata.
+
 ## [1.2.0] - 2026-11-26
 
 ### Security

@@ -173,13 +173,14 @@ runs the same binary.
 
 ### The terminal app
 
-<img src="docs/img/tui/dashboard-dark.png" width="820" alt="The terminal app: a header bar, the Checks, Guardrails and Units panels, the agent loop with two-row tool cards, Done when, Budgets and Session, a footer bar">
+<img src="docs/img/tui/dashboard-dark.png" width="820" alt="The terminal app in its Light view: a gradient header bar, the answer and the end gate's pass banner, and one slim column with Run (Plan, Work, Verify, Land), Checks, Files changed, Budgets and Guardrails">
 
-A dashboard round the conversation: what the end gate checks and holds, the budgets, the units on
-and off, the files and bodies at work. A tool card is two rows until you open it (a click or
-Ctrl+T). **F2** (or `/view center|focus|zen`) switches to the conversation with its bars, or to
-the conversation alone; Ctrl+O hides the panels
-([the terminal app](docs/03-architecture.md#the-terminal-app)).
+Three views, **F2** (or `/view light|advanced|focus`) to switch. *Light*, the default: the
+conversation beside one slim column (the run's Plan · Work · Verify · Land, Done when, the
+checks, the files changed, the budgets). *Advanced*: every panel, a column each side. *Focus*: the
+conversation alone. A tool card is two rows until you open it (a click or Ctrl+T); Ctrl+O hides
+the panels ([the terminal app](docs/03-architecture.md#the-terminal-app)). `mikatad app` opens
+the web board in a window of its own.
 
 **Say what the result must be.** An ask with examples of the expected output passed twice as often
 on our bench as the same ask in prose: Mikata checks its work against what you wrote, so one

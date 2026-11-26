@@ -424,7 +424,7 @@ impl Approval {
     ) -> Vec<(u8, Line<'static>)> {
         let hue = crate::blocks::class_hue(t, Some(&self.card.class));
         let secs = self.left(now).as_secs();
-        let title = "⚠ Approval required · the human gate";
+        let title = "⚠ Approval required";
         let mut clock = format!("denies in {}:{:02}", secs / 60, secs % 60);
         if after > 0 {
             clock = format!("{after} more waiting · {clock}");
@@ -455,7 +455,8 @@ impl Approval {
                         Span::styled(
                             format!(
                                 "{} asks to run this {} act:",
-                                self.card.body, self.card.class
+                                crate::safe::shown(&self.card.body),
+                                self.card.class
                             ),
                             t.text(),
                         ),
@@ -524,11 +525,28 @@ impl Approval {
         };
         let mark = if i == 0 { "✔" } else { "✘" };
         let label = format!(" [{n}] {mark} {words} ");
-        let style = if self.picked() == Some(i) {
-            ratatui::style::Style::new()
-                .fg(t.p.bg.color())
-                .bg(t.p.holo.color())
-        } else {
+        if self.picked() == Some(i) {
+            // Picked, the button is the brand's gradient, cell by cell, as the board's primary
+            // button is: hot pink into amber, the page's colour as its text.
+            let n = label.chars().count().max(2);
+            return label
+                .chars()
+                .enumerate()
+                .map(|(k, ch)| {
+                    // Display only.
+                    #[allow(clippy::cast_precision_loss)]
+                    let f = k as f32 / (n - 1) as f32;
+                    Span::styled(
+                        ch.to_string(),
+                        ratatui::style::Style::new()
+                            .fg(t.p.bg.color())
+                            .bg(t.p.holo.mix(t.p.gold, f).color())
+                            .add_modifier(Modifier::BOLD),
+                    )
+                })
+                .collect();
+        }
+        let style = {
             // Unpicked, a pill tinted toward its hue: yes green, the noes red.
             ratatui::style::Style::new()
                 .fg(t.p.text.color())

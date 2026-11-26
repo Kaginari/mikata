@@ -475,7 +475,7 @@ fn the_approval_card_escapes_a_hostile_act_and_takes_only_a_confirmed_choice() {
     update(&mut m, Msg::Gate(card));
     let buf = draw(&mut m, 100, 30);
     let scr = screen(&buf);
-    assert!(scr.contains("the human gate"), "{scr}");
+    assert!(scr.contains("Approval required"), "{scr}");
     for raw in ['\u{202e}', '\u{200b}', '\u{2066}', '\u{1b}'] {
         assert!(!scr.contains(raw), "{raw:?} reached the screen");
     }
@@ -1081,41 +1081,46 @@ fn the_approval_card_boxes_the_act_and_offers_its_answers_as_buttons() {
 }
 
 #[test]
-fn f2_steps_through_the_dashboard_focus_and_zen() {
+fn f2_steps_through_light_advanced_and_focus() {
+    use mikata_tui::app::View;
     let mut m = model(Variant::Dark);
     turn(&mut m, "hello there");
-    let center = screen(&draw(&mut m, 150, 44));
+    assert_eq!(m.view, View::Light, "Light is the default");
+    let light = screen(&draw(&mut m, 150, 44));
     assert!(
-        center.contains("Agent loop") && center.contains("Budgets"),
-        "{center}"
+        light.contains("Agent loop") && light.contains("Budgets") && light.contains("Checks"),
+        "{light}"
     );
-    assert!(center.contains("◆ Mikata"), "the header bar:\n{center}");
+    assert!(
+        !light.contains("Units") && !light.contains("Session"),
+        "one slim column:\n{light}"
+    );
+    assert!(light.contains("◆ Mikata"), "the header bar:\n{light}");
     key(&mut m, KeyCode::F(2));
-    assert_eq!(m.view, mikata_tui::app::View::Focus);
+    assert_eq!(m.view, View::Advanced);
+    let advanced = screen(&draw(&mut m, 150, 44));
+    assert!(
+        advanced.contains("Units") && advanced.contains("Session"),
+        "every panel:\n{advanced}"
+    );
+    key(&mut m, KeyCode::F(2));
+    assert_eq!(m.view, View::Focus);
     let focus = screen(&draw(&mut m, 150, 44));
     assert!(
-        focus.contains("Agent loop") && focus.contains("◆ Mikata"),
-        "{focus}"
+        focus.contains("hello there") && focus.contains("◆ Mikata"),
+        "the conversation and one-row bars:\n{focus}"
     );
     assert!(
-        !focus.contains("Budgets") && !focus.contains("Done when"),
-        "no panels:\n{focus}"
+        !focus.contains("Agent loop") && !focus.contains("Budgets"),
+        "no frame, no panels:\n{focus}"
     );
     key(&mut m, KeyCode::F(2));
-    assert_eq!(m.view, mikata_tui::app::View::Zen);
-    let zen = screen(&draw(&mut m, 150, 44));
-    assert!(
-        zen.contains("hello there"),
-        "the conversation stays:\n{zen}"
-    );
-    assert!(
-        !zen.contains("Agent loop") && !zen.contains("◆ Mikata  │"),
-        "no frame, no bars:\n{zen}"
-    );
-    key(&mut m, KeyCode::F(2));
-    assert_eq!(m.view, mikata_tui::app::View::Center);
-    // `/view` names one; a word it does not know lists them.
+    assert_eq!(m.view, View::Light);
+    // `/view` names one, by its word or an older one.
+    m.input.insert("/view advanced");
+    key(&mut m, KeyCode::Enter);
+    assert_eq!(m.view, View::Advanced);
     m.input.insert("/view zen");
     key(&mut m, KeyCode::Enter);
-    assert_eq!(m.view, mikata_tui::app::View::Zen);
+    assert_eq!(m.view, View::Focus);
 }

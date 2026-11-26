@@ -22,7 +22,7 @@ pub fn sweep(t: &Theme, x: u16, w: u16) -> Rgb {
     t.p.holo.mix(t.p.gold, f)
 }
 
-/// A panel: a rounded border in the gradient, its title bold on the top edge with a glyph before
+/// A panel: a heavy border in the gradient, its title bold on the top edge with a glyph before
 /// it, a few slashes at its right end, and its inside on the panel's surface. Returns the inside.
 pub fn panel(
     buf: &mut Buffer,
@@ -45,23 +45,29 @@ pub fn panel(
     }
     let (x0, x1, y0, y1) = (area.x, area.right() - 1, area.y, area.bottom() - 1);
     let edge = |buf: &mut Buffer, x: u16, y: u16, s: &str| {
-        let c = sweep(t, x, screen_w).mix(t.p.panel, 0.15);
+        let c = sweep(t, x, screen_w);
         let cell = &mut buf[(x, y)];
         cell.set_symbol(s);
-        cell.set_style(Style::new().fg(c.color()).bg(t.p.panel.color()));
+        cell.set_style(
+            Style::new()
+                .fg(c.color())
+                .bg(t.p.panel.color())
+                .add_modifier(Modifier::BOLD),
+        );
     };
+    // Heavy lines, in the gradient at full strength: the frame is the screen's light.
     for x in x0..=x1 {
         let (top, bottom) = match x {
-            _ if x == x0 => ("╭", "╰"),
-            _ if x == x1 => ("╮", "╯"),
-            _ => ("─", "─"),
+            _ if x == x0 => ("┏", "┗"),
+            _ if x == x1 => ("┓", "┛"),
+            _ => ("━", "━"),
         };
         edge(buf, x, y0, top);
         edge(buf, x, y1, bottom);
     }
     for y in (y0 + 1)..y1 {
-        edge(buf, x0, y, "│");
-        edge(buf, x1, y, "│");
+        edge(buf, x0, y, "┃");
+        edge(buf, x1, y, "┃");
     }
     let hue = sweep(t, area.x + 2, screen_w);
     let head = Line::from(vec![
@@ -85,17 +91,73 @@ pub fn panel(
         buf.set_line(area.x + 2, area.y, &truncate(head, room.into()), room);
     }
     if area.width > 24 {
-        let slashes = "╱╱╱╱";
-        let at = area.right() - 7;
+        let slashes = " //// ";
+        let at = area.right() - 8;
         let c = sweep(t, at, screen_w);
         buf.set_string(
             at,
             area.y,
             slashes,
-            Style::new().fg(c.color()).bg(t.p.panel.color()),
+            Style::new()
+                .fg(c.color())
+                .bg(t.p.panel.color())
+                .add_modifier(Modifier::BOLD),
         );
     }
     inside
+}
+
+/// A bar filled with the gradient, cell by cell across the screen, `line` on its middle row in
+/// the page's colour (dark on the bright brand, light on the deep one): the header, as the
+/// board's header strip is. A span that carries its own face (a chip's pill) is turned inside
+/// out: the page's face, the pill's colour as its text.
+pub fn gradient_bar(buf: &mut Buffer, area: Rect, line: &Line<'static>, t: &Theme, screen_w: u16) {
+    if area.width == 0 || area.height == 0 {
+        return;
+    }
+    for y in area.y..area.bottom() {
+        for x in area.x..area.right() {
+            let cell = &mut buf[(x, y)];
+            cell.reset();
+            cell.set_style(Style::new().bg(sweep(t, x, screen_w).color()));
+        }
+    }
+    let ink = t.p.bg.color();
+    let spans: Vec<Span<'static>> = line
+        .spans
+        .iter()
+        .map(|s| {
+            let style = match s.style.bg {
+                Some(pill) => Style::new().fg(pill).bg(ink),
+                None => Style::new().fg(ink),
+            };
+            Span::styled(s.content.clone(), style.add_modifier(Modifier::BOLD))
+        })
+        .collect();
+    let row = area.y + area.height / 2;
+    let x = area.x + 2;
+    let w = area.width.saturating_sub(4);
+    // Each span over the gradient: its cells keep the bar's colour under them.
+    let mut at = x;
+    for s in spans {
+        if at >= x + w {
+            break;
+        }
+        for ch in s.content.chars() {
+            let cw = u16::try_from(cells(&ch.to_string())).unwrap_or(1);
+            if cw == 0 || at + cw > x + w {
+                continue;
+            }
+            let cell = &mut buf[(at, row)];
+            cell.set_symbol(&ch.to_string());
+            let mut style = s.style;
+            if style.bg.is_none() {
+                style = style.bg(sweep(t, at, screen_w).color());
+            }
+            cell.set_style(style);
+            at += cw;
+        }
+    }
 }
 
 /// A chip: a quiet label and its value, bold.
@@ -238,12 +300,12 @@ fn cells_of(spans: &[Span<'_>]) -> usize {
     spans.iter().map(|s| cells(&s.content)).sum()
 }
 
-/// The time the turn has run (or the last one ran), as `m:ss`.
+/// The time the turn has run, or the last one ran once it ended, as `m:ss`.
 fn elapsed(m: &Model) -> String {
-    let d = m
-        .activity
-        .since
-        .map_or(Duration::ZERO, |s| m.transcript.clock.saturating_sub(s));
+    let d = match m.activity.since {
+        Some(s) => m.transcript.clock.saturating_sub(s),
+        None => m.activity.last.unwrap_or(Duration::ZERO),
+    };
     let s = d.as_secs();
     format!("{}:{:02}", s / 60, s % 60)
 }
@@ -358,34 +420,17 @@ pub fn budgets(m: &Model, w: usize) -> Lines {
     out
 }
 
-/// What each native unit does, in a few words, for the Units panel.
-fn unit_words(id: &str) -> &'static str {
-    match id {
-        "memory" => "recall and lessons",
-        "gate" => "verify at the end",
-        "hold" => "held Done when list",
-        "fold" => "fold long context",
-        "stress" => "stall warnings",
-        "what_changed" => "what changed",
-        "reader" => "a second reader",
-        "plan" => "plan before code",
-        "plan_lite" => "plan what is stated",
-        "returns" => "tree readings",
-        "challenge" => "review challenge",
-        _ => "plugin",
-    }
-}
-
-/// The Units panel's lines: each unit the run lists, what it does, and an ON or OFF pill.
+/// The Units panel's lines: each unit the run lists as a tag — lit and ticked where it is on,
+/// quiet where it is off — wrapped to `w`.
 #[must_use]
 pub fn units(m: &Model, w: usize) -> Lines {
     let t = &m.theme;
-    let listed: Vec<(String, String)> = m.units.as_ref().map_or_else(Vec::new, |d| {
+    let listed: Vec<(String, bool)> = m.units.as_ref().map_or_else(Vec::new, |d| {
         d.lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .listed
             .iter()
-            .map(|(id, _, state)| (id.clone(), state.clone()))
+            .map(|(id, _, state)| (id.clone(), state == "active"))
             .collect()
     });
     if listed.is_empty() {
@@ -394,32 +439,33 @@ pub fn units(m: &Model, w: usize) -> Lines {
             w,
         )];
     }
-    let on_pill = Style::new()
-        .fg(t.p.bg.color())
-        .bg(t.success.color())
-        .add_modifier(Modifier::BOLD);
-    let off_pill = Style::new()
-        .fg(t.p.text_muted.color())
-        .bg(t.p.panel_raised.color());
-    listed
-        .into_iter()
-        .map(|(id, state)| {
-            let on = state == "active";
-            let name = format!("{:<14}", crate::kit::text::clip(&id, 13));
-            let words = unit_words(&id);
-            let pill = if on { " ON " } else { " OFF" };
-            let room = w.saturating_sub(cells(&name) + 5);
-            let words = if id.starts_with("plugin:") { "" } else { words };
-            let words = crate::kit::text::clip(words, room);
-            let pad = room.saturating_sub(cells(&words));
-            Line::from(vec![
-                Span::styled(name, t.text()),
-                Span::styled(words, t.muted()),
-                Span::raw(" ".repeat(pad + 1)),
-                Span::styled(pill, if on { on_pill } else { off_pill }),
-            ])
-        })
-        .collect()
+    let mut out: Lines = Vec::new();
+    let mut line: Vec<Span<'static>> = Vec::new();
+    let mut used = 0;
+    for (id, on) in listed {
+        let name = crate::kit::text::clip(&crate::safe::one_line(&id), w.saturating_sub(4));
+        let tag = if on {
+            Span::styled(format!(" ✔ {name} "), t.ok().add_modifier(Modifier::BOLD))
+        } else {
+            Span::styled(format!(" ○ {name} "), t.muted())
+        };
+        let tag_w = cells(&tag.content);
+        if used > 0 && used + 1 + tag_w > w {
+            out.push(Line::from(std::mem::take(&mut line)));
+            used = 0;
+        }
+        if used > 0 {
+            line.push(Span::raw(" "));
+            used += 1;
+        }
+        let face = if on { t.p.panel_raised } else { t.p.panel };
+        line.push(tag.patch_style(Style::new().bg(face.color())));
+        used += tag_w;
+    }
+    if !line.is_empty() {
+        out.push(Line::from(line));
+    }
+    out
 }
 
 /// A check's state, as the Checks panel shows it.
@@ -648,4 +694,180 @@ pub fn guardrails(m: &Model, w: usize) -> Lines {
     }
     out.push(row(Some(true), "push and outward acts ask you"));
     out
+}
+
+/// Where a step of the turn stands, for the stepper.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Step {
+    /// Not reached.
+    Todo,
+    /// Under way.
+    Now,
+    /// Done.
+    Done,
+    /// It stopped there: the gate failed, or the turn ended unanswered.
+    Failed,
+}
+
+/// The latest turn's four steps — Plan, Work, Verify, Land — read from what it has done: a call
+/// made means the plan is behind it, a run of the pinned verify line (or the gate's verdict)
+/// means the work is, a passing verdict lands it.
+#[must_use]
+pub fn steps(m: &Model) -> [Step; 4] {
+    use crate::transcript::Entry;
+    let entries = m.transcript.entries();
+    let Some(start) = entries.iter().rposition(|e| matches!(e, Entry::User(_))) else {
+        return [Step::Todo; 4];
+    };
+    let turn = &entries[start + 1..];
+    let verify: Vec<&str> = m
+        .sidebar
+        .verify
+        .as_ref()
+        .map_or_else(Vec::new, |v| v.line.iter().map(|s| s.trim()).collect());
+    let is_verify = |call: &crate::transcript::Call| {
+        call.name == "bash"
+            && call
+                .input
+                .get("command")
+                .and_then(|v| v.as_str())
+                .is_some_and(|c| verify.contains(&c.trim()))
+    };
+    let worked = turn
+        .iter()
+        .any(|e| matches!(e, Entry::Tool(_) | Entry::Group(_)));
+    let verifying = turn
+        .iter()
+        .any(|e| matches!(e, Entry::Tool(c) if is_verify(c)));
+    let verdict = turn.iter().rev().find_map(|e| match e {
+        Entry::Verdict { verdict, .. } => Some(verdict.as_str()),
+        _ => None,
+    });
+    let ended = turn.iter().any(|e| matches!(e, Entry::Ending(_)));
+    let busy = m.busy();
+    match verdict {
+        Some("PASS") => [Step::Done; 4],
+        Some(_) if busy => [Step::Done, Step::Now, Step::Failed, Step::Todo],
+        Some(_) => [Step::Done, Step::Done, Step::Failed, Step::Todo],
+        None => {
+            let stop = |s: Step| if ended && !busy { Step::Failed } else { s };
+            if verifying {
+                [Step::Done, Step::Done, stop(Step::Now), Step::Todo]
+            } else if worked {
+                [Step::Done, stop(Step::Now), Step::Todo, Step::Todo]
+            } else if busy || ended {
+                [stop(Step::Now), Step::Todo, Step::Todo, Step::Todo]
+            } else {
+                [Step::Done, Step::Done, Step::Todo, Step::Todo]
+            }
+        }
+    }
+}
+
+/// The stepper's lines in `w` cells: the four steps' marks joined by rails, lit as far as the
+/// turn has come, then their names under them.
+#[must_use]
+pub fn stepper(m: &Model, w: usize) -> Lines {
+    let t = &m.theme;
+    let names = ["Plan", "Work", "Verify", "Land"];
+    let marks = steps(m);
+    let look = |s: Step| match s {
+        Step::Done => ("●", t.ok().add_modifier(Modifier::BOLD)),
+        Step::Now => (m.spinner.view(), t.holo().add_modifier(Modifier::BOLD)),
+        Step::Failed => ("✘", t.alarm().add_modifier(Modifier::BOLD)),
+        Step::Todo => ("○", t.muted()),
+    };
+    // Each step's column is as wide as the widest name; the rails fill what is left, from one
+    // mark to the next.
+    let col = 6;
+    let rail = (w.saturating_sub(col * 4) / 3).max(1);
+    let mut top = Vec::new();
+    let mut under = Vec::new();
+    for (i, (name, s)) in names.iter().zip(marks).enumerate() {
+        let (mark, style) = look(s);
+        top.push(Span::styled(mark.to_owned(), style));
+        let word = if s == Step::Todo { t.muted() } else { style };
+        if i < 3 {
+            let lit = s == Step::Done && marks[i + 1] != Step::Todo;
+            let hue = if lit { t.ok() } else { t.line() };
+            top.push(Span::styled("━".repeat(col - 1 + rail), hue));
+            under.push(Span::styled(format!("{name:<0$}", col + rail), word));
+        } else {
+            under.push(Span::styled((*name).to_owned(), word));
+        }
+    }
+    vec![truncate(Line::from(top), w), truncate(Line::from(under), w)]
+}
+
+/// The lines each changed path gained and lost this session, from the file tools' calls that
+/// landed: an edit's diff counts both ways, a file written whole counts its lines as gained.
+fn churn(m: &Model, path: &str) -> (usize, usize) {
+    use crate::transcript::Entry;
+    let mut sum = (0, 0);
+    for e in m.transcript.entries() {
+        let Entry::Tool(call) = e else { continue };
+        let landed = call.outcome.as_ref().is_some_and(|o| !o.is_error);
+        let named = call
+            .input
+            .get("path")
+            .and_then(|v| v.as_str())
+            .is_some_and(|p| p == path || p.ends_with(&format!("/{path}")));
+        if !(landed && named) {
+            continue;
+        }
+        match crate::diff::of(&call.name, &call.input) {
+            Some(crate::diff::Change::Diff { added, removed, .. }) => {
+                sum.0 += added;
+                sum.1 += removed;
+            }
+            Some(crate::diff::Change::NewFile { lines, .. }) => sum.0 += lines,
+            None => {}
+        }
+    }
+    sum
+}
+
+/// The Files changed panel's lines: each path the session changed, newest first, its mark as a
+/// tag (A added, M modified, D deleted) and the lines it gained and lost.
+#[must_use]
+pub fn files_changed(m: &Model, w: usize) -> Lines {
+    let t = &m.theme;
+    let list = m.sidebar.files.list();
+    if list.is_empty() {
+        return vec![truncate(
+            Line::from(Span::styled("nothing changed yet", t.muted())),
+            w,
+        )];
+    }
+    list.iter()
+        .rev()
+        .map(|(path, mark)| {
+            let hue = match mark {
+                crate::sidebar::Mark::Added => t.success,
+                crate::sidebar::Mark::Modified => t.p.gold,
+                crate::sidebar::Mark::Deleted => t.p.alarm,
+            };
+            let tag = Span::styled(
+                format!(" {} ", mark.letter()),
+                Style::new()
+                    .fg(t.p.bg.color())
+                    .bg(hue.color())
+                    .add_modifier(Modifier::BOLD),
+            );
+            let (plus, minus) = churn(m, path);
+            let right = format!("+{plus} −{minus}");
+            let room = w.saturating_sub(cells(&right) + 5);
+            let name = crate::kit::text::clip(&crate::safe::one_line(path), room);
+            let pad = room.saturating_sub(cells(&name));
+            Line::from(vec![
+                tag,
+                Span::raw(" "),
+                Span::styled(name, t.text()),
+                Span::raw(" ".repeat(pad + 1)),
+                Span::styled(format!("+{plus}"), t.ok().add_modifier(Modifier::BOLD)),
+                Span::raw(" "),
+                Span::styled(format!("−{minus}"), t.alarm().add_modifier(Modifier::BOLD)),
+            ])
+        })
+        .collect()
 }

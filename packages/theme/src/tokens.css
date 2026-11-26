@@ -131,9 +131,9 @@
 
 :root[data-scheme="neon"]:not([data-theme="light"]) {
   /* Bio Digital: biological intelligence meets digital, on a night page */
-  --mn-bg: #0d0b10;
-  --mn-panel: #16111b;
-  --mn-panel-raised: #211824;
+  --mn-bg: #07050a;
+  --mn-panel: #110c14;
+  --mn-panel-raised: #1b1420;
   --mn-line: #3d2b40;
   --mn-text: #f5eff7;
   --mn-text-muted: #b7a9bc;

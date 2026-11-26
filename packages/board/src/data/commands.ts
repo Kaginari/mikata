@@ -31,6 +31,7 @@ export const QUERY_CAP = 120;
 export const SHOWN_CAP = 50;
 
 const SECTION_NAMES: Record<WorldSection, string> = {
+  app: 'Mikata app',
   builder: 'Harness builder',
   bodies: 'Bodies & queue',
   memory: 'Memory',

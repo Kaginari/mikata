@@ -349,7 +349,7 @@ fn status_says_the_mode_and_why() {
     };
     let shown = status(&[]);
     assert!(
-        shown.contains("mode     light-coding — no Elf reports to the Summoner in this world\n"),
+        shown.contains("mode     light-coding — Mikata works alone\n"),
         "{shown}"
     );
     let shown = status(&["--mode", "light-coding"]);

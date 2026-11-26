@@ -119,7 +119,7 @@ fn the_sessions_facts_are_tagged_rows_and_the_board_stands_out() {
     let mut m = model();
     m.fact(Tag::Model, "deepseek-v4-flash", "deepseek");
     m.fact(Tag::Sandbox, "landlock ABI 1 + seccomp, network off", "");
-    m.fact(Tag::Mode, "light-coding", "no Elf reports to the Summoner");
+    m.fact(Tag::Mode, "light-coding", "Mikata works alone");
     update(
         &mut m,
         Msg::Said("board: http://127.0.0.1:7878 (opened in your browser)".into()),
@@ -142,7 +142,7 @@ fn the_sessions_facts_are_tagged_rows_and_the_board_stands_out() {
         "{scr}"
     );
     assert!(
-        row("MODE").contains("light-coding · no Elf reports"),
+        row("MODE").contains("light-coding · Mikata works alone"),
         "{scr}"
     );
     let board = row("BOARD");
@@ -175,12 +175,12 @@ fn the_ask_is_a_raised_panel_with_room_and_a_footer() {
         .expect("the prompt");
     // A card, as a sent line is: a rounded border, no label drawn on it.
     assert!(!scr.contains("╭─ ASK"), "{scr}");
-    assert!(rows[at].contains("│ │ › "), "{}", rows[at]);
-    assert!(rows[at - 1].contains("│ ╭────"), "its top edge:\n{scr}");
+    assert!(rows[at].contains("┃ │ › "), "{}", rows[at]);
+    assert!(rows[at - 1].contains("┃ ╭────"), "its top edge:\n{scr}");
     // Room to write: two more face rows, then the footer under a rule.
     for r in &rows[at + 1..at + 3] {
         assert!(
-            r.starts_with("│ │ ") && r.contains(" │ "),
+            r.starts_with("┃ │ ") && r.contains(" │ "),
             "a face row: {r}"
         );
     }
@@ -188,7 +188,7 @@ fn the_ask_is_a_raised_panel_with_room_and_a_footer() {
     let foot = rows[at + 4];
     assert!(foot.contains("◆ mikata · light-coding"), "{foot}");
     assert!(foot.contains("enter send · alt+enter line"), "{foot}");
-    assert!(rows[at + 5].contains("│ ╰────"), "its bottom edge:\n{scr}");
+    assert!(rows[at + 5].contains("┃ ╰────"), "its bottom edge:\n{scr}");
     // Busy, the footer says where a line goes; with an approval up, what comes first.
     send(&mut m, "fix it");
     let scr = screen(&mut m, 120, 40);
@@ -213,6 +213,7 @@ fn the_status_shows_on_send_before_any_token() {
     assert!(scr.contains("mikata · thinking"), "{scr}");
     // The header's chip turns as the strip does, and the Session panel's body works.
     let spin = m.spinner.view();
+    m.view = mikata_tui::app::View::Advanced;
     let tall = screen(&mut m, 100, 44);
     assert_eq!(
         tall.matches(&format!("{spin} thinking 0s")).count(),
@@ -374,7 +375,8 @@ fn thinking_shows_live_then_folds_to_its_duration() {
         },
     );
     let scr = screen(&mut m, 100, 32);
-    assert!(scr.contains("✓ thought for 12s · ctrl+t"), "{scr}");
+    // Done, it folds away whole: no line between the calls.
+    assert!(!scr.contains("thought for"), "{scr}");
     assert!(!scr.contains("once for types"), "folded:\n{scr}");
     ctrl(&mut m, 't');
     let scr = screen(&mut m, 100, 32);
@@ -480,7 +482,10 @@ fn reasoning_that_never_streamed_is_placed_where_its_step_began() {
         })
         .collect();
     assert_eq!(kinds, ["user", "thought", "text"]);
-    assert!(screen(&mut m, 100, 32).contains("✓ thought for 4s"));
+    assert!(
+        !screen(&mut m, 100, 32).contains("thought for"),
+        "folded away"
+    );
     // A redacted block is reasoning too, its text hidden; a turn with none has none.
     let hidden =
         vec![json!({"type": "opaque", "value": {"type": "redacted_thinking", "data": "x"}})];
@@ -918,9 +923,12 @@ fn a_turn_frame_by_frame() {
     assert!(frames[1].1.contains("Thinking…"));
     assert!(frames[2].1.contains("thinking · 4s"));
     assert!(frames[3].1.contains("grep  _parse_ty"));
-    assert!(frames[4].1.contains("✓ thought for 4s"));
+    assert!(
+        !frames[4].1.contains("thought for"),
+        "a finished thought folds away"
+    );
     assert!(frames[5].1.contains("✓ end gate · pass"));
-    assert!(frames[6].1.contains("⚠ Approval required · the human gate"));
+    assert!(frames[6].1.contains("⚠ Approval required"));
 }
 
 /// Past the card's arming, as a human would be.
@@ -1071,7 +1079,7 @@ fn a_toast_never_covers_the_approval() {
     update(&mut m, Msg::Gate(card("git push")));
     let scr = screen(&mut m, 100, 32);
     assert!(!scr.contains("◆ end gate pass"), "{scr}");
-    assert!(scr.contains("⚠ Approval required · the human gate"));
+    assert!(scr.contains("⚠ Approval required"));
 }
 
 #[test]
@@ -1160,7 +1168,96 @@ fn what_changed_is_drawn_line_by_line() {
         "{scr}"
     );
     assert!(
-        scr.contains("    whole: .mikata/tmp/what-changed.md"),
+        scr.contains("    all of it in .mikata/tmp/what-changed.md"),
         "{scr}"
     );
+    // A long list shows its first lines and counts the rest.
+    let many: String = (0..12)
+        .map(|i| ["\n+ value ", &i.to_string()].concat())
+        .collect();
+    ev(
+        &mut m,
+        Event::Changes {
+            text: format!(
+                "what changed: twelve lines:{many}\n\nwhole: .mikata/tmp/what-changed.md"
+            ),
+        },
+    );
+    let scr = screen(&mut m, 120, 40);
+    assert!(
+        scr.contains("+ value 7") && !scr.contains("+ value 8"),
+        "{scr}"
+    );
+    assert!(
+        scr.contains("… +4 lines · all of it in .mikata/tmp/what-changed.md"),
+        "{scr}"
+    );
+}
+
+#[test]
+fn the_stepper_and_the_files_follow_the_turn() {
+    use mikata_tui::chrome::{Step, steps};
+    let mut m = model();
+    m.sidebar.verify = Some(mikata_tui::sidebar::Verify {
+        line: vec!["pytest -q".into()],
+        suggested: None,
+    });
+    assert_eq!(steps(&m), [Step::Todo; 4], "no ask yet");
+    send(&mut m, "fix it");
+    ev(
+        &mut m,
+        Event::TurnStarted {
+            text: "fix it".into(),
+        },
+    );
+    assert_eq!(steps(&m)[0], Step::Now, "planning");
+    let call = |m: &mut Model, id: &str, name: &str, input: serde_json::Value| {
+        ev(
+            m,
+            Event::ToolCall {
+                id: id.into(),
+                name: name.into(),
+                input,
+            },
+        );
+        ev(
+            m,
+            Event::ToolResult {
+                id: id.into(),
+                content: "ok".into(),
+                is_error: false,
+                cut: 0,
+            },
+        );
+    };
+    call(
+        &mut m,
+        "e",
+        "edit",
+        json!({"path": "src/a.py", "old_string": "a\nb", "new_string": "a\nc\nd"}),
+    );
+    assert_eq!(steps(&m)[..2], [Step::Done, Step::Now], "working");
+    call(&mut m, "v", "bash", json!({"command": "pytest -q"}));
+    assert_eq!(steps(&m)[2], Step::Now, "verifying");
+    ev(
+        &mut m,
+        Event::GateVerdict {
+            passed: true,
+            verdict: "PASS".into(),
+            changed: vec!["src/a.py".into()],
+            failures: Vec::new(),
+            unverified: Vec::new(),
+            unchecked: false,
+            verified_by: Vec::new(),
+        },
+    );
+    assert_eq!(steps(&m), [Step::Done; 4], "landed");
+    let scr = screen(&mut m, 150, 44);
+    assert!(scr.contains("Plan") && scr.contains("Land"), "{scr}");
+    assert!(scr.contains("Files changed (1)"), "{scr}");
+    assert!(
+        scr.contains(" M  src/a.py") && scr.contains("+2 −1"),
+        "{scr}"
+    );
+    assert!(scr.contains("✓ end gate · pass"), "the banner:\n{scr}");
 }

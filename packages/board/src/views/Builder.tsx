@@ -10,19 +10,23 @@
 
 import type { BoardProfile, BoardUnit, BoardWorld } from '@mikata/protocol';
 import {
-  ArrowLeft,
   BookOpenText,
   Box,
   Brain,
+  Check,
+  CircleCheck,
+  CircleX,
+  Clock,
+  Code,
+  Coins,
   Copy,
   Download,
-  FolderOpen,
   Gauge,
   GitCompare,
   History,
+  House,
   Layers,
   ListChecks,
-  Lock,
   type LucideIcon,
   MessagesSquare,
   PencilRuler,
@@ -149,7 +153,14 @@ function UnitCard({
     >
       <h3>
         <Icon icon={d.icon} className="bapp-unit-icon" />
-        <Safe text={d.name} />
+        <span className="bapp-unitname">
+          <Safe text={d.name} />
+        </span>
+        {!inspect && (
+          <small className="bapp-pill">
+            <Safe text={plugin ? 'plugin' : `v${u.version}`} />
+          </small>
+        )}
         <Switch name={d.name} on={on} onFlip={onFlip} />
       </h3>
       <p>
@@ -169,12 +180,7 @@ function UnitCard({
             <Safe text={u.id} />
           </span>
         </footer>
-      ) : (
-        <small>
-          <Safe text={plugin ? 'Plugin' : `Native unit · v${u.version}`} />
-          {u.frame && ' · set as a run opens'}
-        </small>
-      )}
+      ) : null}
     </article>
   );
 }
@@ -182,6 +188,7 @@ function UnitCard({
 type Wire = {
   id: string;
   kind: string;
+  side: 'left' | 'right';
   on: boolean;
   d: string;
   a: [number, number];
@@ -221,6 +228,7 @@ function Edges({ layout }: { layout: string }) {
           out.push({
             id: c.dataset.unit ?? `${left}-${i}`,
             kind: c.dataset.kind ?? 'native',
+            side: left ? 'left' : 'right',
             on: c.dataset.on === 'true',
             d: `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,
             a: [x1, y1],
@@ -239,10 +247,17 @@ function Edges({ layout }: { layout: string }) {
     <svg ref={ref} className="bapp-edges" aria-hidden="true" focusable="false">
       {wires.map((w) => (
         <g key={w.id}>
-          <path className="bapp-edge" data-kind={w.kind} data-on={w.on} d={w.d} />
+          <path
+            className="bapp-edge"
+            data-kind={w.kind}
+            data-side={w.side}
+            data-on={w.on}
+            d={w.d}
+          />
           <circle
             className="bapp-port"
             data-kind={w.kind}
+            data-side={w.side}
             data-on={w.on}
             cx={w.a[0]}
             cy={w.a[1]}
@@ -251,6 +266,7 @@ function Edges({ layout }: { layout: string }) {
           <circle
             className="bapp-port"
             data-kind={w.kind}
+            data-side={w.side}
             data-on={w.on}
             cx={w.b[0]}
             cy={w.b[1]}
@@ -323,8 +339,10 @@ function Steps({
     <ol className={compact ? 'bapp-steps bapp-steps-compact' : 'bapp-steps'} aria-label={label}>
       {st.map(([s, at]) => (
         <li key={s} data-state={at}>
-          <Glyph glyph={at === 'done' ? '✓' : at === 'failed' ? '✕' : at === 'now' ? '⣾' : '○'} />{' '}
-          {s}
+          <span className="bapp-stepdot">
+            <Glyph glyph={at === 'done' ? '✓' : at === 'failed' ? '✕' : at === 'now' ? '⣾' : '○'} />
+          </span>
+          <span className="bapp-stepname">{s}</span>
           <span className="visually-hidden">: {at}</span>
         </li>
       ))}
@@ -332,25 +350,65 @@ function Steps({
   );
 }
 
-/** The log's lines: a mark, its tone, and what happened. */
-function logLines(view: ChatView | undefined): [string, string, string][] {
-  const out: [string, string, string][] = [];
+/** The log's lines: a mark, its tone, what happened, and when (ms), if seen live. */
+function logLines(view: ChatView | undefined): [string, string, string, number | undefined][] {
+  const out: [string, string, string, number | undefined][] = [];
+  let last: number | undefined;
   for (const e of view?.entries ?? []) {
     for (const c of e.kind === 'tool' ? [e.call] : e.kind === 'group' ? e.calls : []) {
       const tone = c.outcome === undefined ? 'now' : c.outcome.isError ? 'alarm' : 'ok';
-      const mark = c.outcome === undefined ? '›' : c.outcome.isError ? '✘' : '✔';
-      out.push([mark, tone, `${c.name}: ${summary(c.name, c.input)}`]);
+      const mark = c.outcome === undefined ? '▸' : c.outcome.isError ? '✘' : '✔';
+      last = c.began ?? last;
+      out.push([mark, tone, `${c.name}: ${summary(c.name, c.input)}`, c.began]);
     }
     if (e.kind === 'verdict') {
       const ok = e.verdict === 'PASS';
-      out.push([ok ? '✔' : '✘', ok ? 'ok' : 'alarm', `end gate: ${e.verdict.toLowerCase()}`]);
+      last = e.at ?? last;
+      out.push([ok ? '✔' : '✘', ok ? 'ok' : 'alarm', `end gate: ${e.verdict.toLowerCase()}`, last]);
     }
     if (e.kind === 'assistant' && e.head) {
-      out.push(['✦', 'holo', `answer: ${e.text.split('\n')[0] ?? ''}`]);
+      out.push(['▸', 'holo', `says: ${e.text.split('\n')[0] ?? ''}`, last]);
     }
-    if (e.kind === 'ending' && e.ending !== 'answered') out.push(['■', 'alarm', e.ending]);
+    if (e.kind === 'ending' && e.ending !== 'answered') out.push(['■', 'alarm', e.ending, last]);
   }
   return out;
+}
+
+/** `ms` since the run began, as the log's `[mm:ss]`. */
+const stamp = (ms: number) => {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+
+/** A home directory's path said as `~`. */
+const tilde = (path: string) => path.replace(/^\/(?:home|Users)\/[^/]+/, '~');
+
+/** A line of the profile's TOML, coloured as the picture's editor: tables, keys, strings, booleans. */
+function TomlLine({ line }: { line: string }) {
+  const table = /^\s*\[.*\]\s*$/.test(line);
+  if (table)
+    return (
+      <span className="tl-table">
+        <Safe text={line} />
+      </span>
+    );
+  const eq = line.indexOf('=');
+  if (eq < 0) return <Safe text={line} />;
+  const value = line.slice(eq + 1);
+  const v = value.trim();
+  const tone =
+    v === 'true' ? 'tl-true' : v === 'false' ? 'tl-false' : v.startsWith('"') ? 'tl-str' : 'tl-val';
+  return (
+    <>
+      <span className="tl-key">
+        <Safe text={line.slice(0, eq)} />
+      </span>
+      <span className="tl-eq">=</span>
+      <span className={tone}>
+        <Safe text={value} />
+      </span>
+    </>
+  );
 }
 
 const seconds = (ms: number) => `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
@@ -385,9 +443,18 @@ const VIEWS: [View, LucideIcon, string][] = [
   ['profiles', SlidersHorizontal, 'Profiles'],
 ];
 
+/** The top bar's pages: Home (the app screen), the builder's own views, the docs. */
+const TOP: View[] = ['builder', 'plugins', 'profiles'];
+
+/** The book, for the top bar's Docs. */
+const DOCS = 'https://github.com/Kaginari/mikata/tree/main/docs';
+
 const HEADS: Record<View, [string, string]> = {
   session: ['Agent session', 'Talk to Mikata and inspect the work as it happens.'],
-  builder: ['Harness builder', 'Compose the capabilities of your agent.'],
+  builder: [
+    'Harness Builder',
+    'Compose your coding agent by enabling units and plugins. Everything is swappable.',
+  ],
   plugins: ['Plugin inspector', 'Native units and the plugins your global file declares.'],
   runs: ['Agent runs', "This world's chats: the live ones, then the past."],
   profiles: ['Profiles', 'A capability mix for a kind of work, to start from.'],
@@ -557,7 +624,7 @@ export function BuilderView({
   chats: Chats;
 }) {
   const load = useHarness(w.id);
-  const [view, setView] = useState<View>('session');
+  const [view, setView] = useState<View>('builder');
   const [profile, setProfile] = useState<string>('');
   const [want, setWant] = useState<Map<string, boolean> | undefined>(undefined);
   const [ask, setAsk] = useState('');
@@ -680,16 +747,22 @@ export function BuilderView({
       <div className="bapp">
         <header className="bapp-head">
           <div className="bapp-brand">
-            <span className="bapp-logo">
-              <Logo />
+            <span className="bapp-slash" aria-hidden="true">
+              {'//'}
             </span>
             <span>
               mikata <span lang="ja">味方</span>
             </span>
             <span className="bapp-branddesc">Composable Coding Agent Harness</span>
           </div>
-          <nav className="bapp-nav" aria-label="The builder's views">
-            {VIEWS.map(([k, icon, label]) => (
+          <nav className="bapp-nav" aria-label="The builder's pages">
+            <a
+              className="bapp-navlink"
+              href={format({ name: 'section', world: w.id, section: 'app' })}
+            >
+              <Icon icon={House} /> Home
+            </a>
+            {VIEWS.filter(([k]) => TOP.includes(k)).map(([k, icon, label]) => (
               <button
                 key={k}
                 type="button"
@@ -700,21 +773,18 @@ export function BuilderView({
                 <Icon icon={icon} /> {label}
               </button>
             ))}
-            <a
-              className="bapp-navlink"
-              href={format({ name: 'section', world: w.id, section: 'journal' })}
-            >
-              <Icon icon={ScrollText} /> Journal
+            <a className="bapp-navlink" href={DOCS} target="_blank" rel="noopener noreferrer">
+              <Icon icon={BookOpenText} /> Docs
             </a>
           </nav>
-          <span className="bapp-muted">
-            <Glyph glyph="●" /> LOCAL · <Safe text={w.name} />
-          </span>
           <button
             type="button"
-            className="bapp-primary"
+            className="bapp-primary bapp-run"
             disabled={starting || busy}
-            onClick={() => void start()}
+            onClick={() => {
+              if (!ask.trim()) setView('builder');
+              void start();
+            }}
           >
             <Icon icon={Play} /> Run agent
           </button>
@@ -740,27 +810,38 @@ export function BuilderView({
               ))}
             </select>
             <p className="bapp-path">
-              <Icon icon={FolderOpen} /> <Safe text={w.path} />
+              <Safe text={tilde(w.path)} />
             </p>
-            <p className="bapp-section">Navigation</p>
-            {VIEWS.map(([k, icon, label]) => (
-              <button
-                key={k}
-                type="button"
-                className={view === k ? 'bapp-navbtn bapp-active' : 'bapp-navbtn'}
-                onClick={() => setView(k)}
+            <nav aria-label="The builder's views" className="bapp-railnav">
+              <a className="bapp-navbtn" href={format({ name: 'world', world: w.id })}>
+                <Icon icon={House} /> Overview
+              </a>
+              {VIEWS.map(([k, icon, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-current={view === k ? 'page' : undefined}
+                  className={view === k ? 'bapp-navbtn bapp-active' : 'bapp-navbtn'}
+                  onClick={() => setView(k)}
+                >
+                  <Icon icon={icon} /> {label}
+                  {k === 'runs' && chats.runs.length + chats.live.length > 0 && (
+                    <span className="bapp-badge">{chats.runs.length + chats.live.length}</span>
+                  )}
+                </button>
+              ))}
+              <a
+                className="bapp-navbtn"
+                href={format({ name: 'section', world: w.id, section: 'journal' })}
               >
-                <Icon icon={icon} /> {label}
-              </button>
-            ))}
-            <a className="bapp-navbtn" href={format({ name: 'world', world: w.id })}>
-              <Icon icon={ArrowLeft} /> The full board
-            </a>
+                <Icon icon={ScrollText} /> Journal
+              </a>
+            </nav>
             <p className="bapp-section">Status</p>
-            <ul className="bapp-tags" aria-label="Status">
+            <ul className="bapp-status" aria-label="Status">
               {data && data.holes.length === 0 ? (
                 <li data-tone="ok">
-                  <i className="bapp-dot" aria-hidden="true" /> Harness ready
+                  <i className="bapp-dot" aria-hidden="true" /> Harness: ready
                 </li>
               ) : (
                 <li data-tone="alarm">
@@ -768,17 +849,29 @@ export function BuilderView({
                   <Safe text={data?.holes.join(' · ') ?? 'reading the harness…'} />
                 </li>
               )}
-              <li data-tone={live?.hello?.sandbox ? 'holo' : undefined}>
-                <Icon icon={Lock} />
+              <li data-tone={live?.hello?.sandbox ? 'ok' : undefined}>
+                <Icon icon={ShieldCheck} />
                 <span>
-                  Sandbox: <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
+                  Sandbox:{' '}
+                  <Safe
+                    text={
+                      live?.hello?.sandbox
+                        ? live.hello.sandbox.startsWith('none')
+                          ? 'off'
+                          : 'on'
+                        : 'checked as a run opens'
+                    }
+                  />
                 </span>
               </li>
-              <li data-tone="holo">
-                <Icon icon={Box} /> {enabled} of {units.length} units enabled
+              <li data-tone="ok">
+                <Icon icon={Box} /> Units: {enabled} of {units.length} on
+              </li>
+              <li data-tone="ok">
+                <Icon icon={Layers} /> Profile: <Safe text={profile || 'default'} />
               </li>
             </ul>
-            <p className="bapp-section">Usage · this run</p>
+            <p className="bapp-section">Usage (this run)</p>
             {meter('Steps', String(steps), steps / 100)}
             {meter(
               'Context',
@@ -793,9 +886,15 @@ export function BuilderView({
 
           <main className="bapp-panel bapp-main">
             <div className="bapp-top">
-              <div>
-                <h1>{title}</h1>
-                <p className="bapp-muted">{sub}</p>
+              <div className="bapp-titled">
+                <Icon
+                  icon={VIEWS.find(([k]) => k === view)?.[1] ?? Layers}
+                  className="bapp-titleicon"
+                />
+                <div>
+                  <h1>{title}</h1>
+                  <p className="bapp-muted">{sub}</p>
+                </div>
               </div>
               <label className="bapp-profile">
                 Profile{' '}
@@ -896,37 +995,97 @@ export function BuilderView({
                   </section>
                   <div className="bapp-stack">{units.slice(half).map(card)}</div>
                 </div>
-                <div className="bapp-tabs">
-                  <button type="button" className="bapp-active">
-                    Configuration (TOML)
-                  </button>
-                  <button type="button" onClick={() => setView('plugins')}>
-                    Plugins
-                  </button>
+                <div className="bapp-config">
+                  <div className="bapp-confpanel">
+                    <div className="bapp-tabs">
+                      <button type="button" className="bapp-active">
+                        <Icon icon={Code} /> Configuration (TOML)
+                      </button>
+                      <button type="button" onClick={() => setView('plugins')}>
+                        <Icon icon={Puzzle} /> Plugins
+                      </button>
+                      <button type="button" onClick={() => setView('profiles')}>
+                        <Icon icon={SlidersHorizontal} /> Profiles
+                      </button>
+                      <span className="bapp-tabtools">
+                        <button
+                          type="button"
+                          aria-label={copied ? 'Copied' : 'Copy TOML'}
+                          title={copied ? 'Copied' : 'Copy TOML'}
+                          onClick={() => {
+                            void navigator.clipboard?.writeText(text).then(() => setCopied(true));
+                          }}
+                        >
+                          <Icon icon={Copy} />
+                        </button>
+                        <button type="button" onClick={exportToml}>
+                          <Icon icon={Download} /> Save
+                        </button>
+                      </span>
+                    </div>
+                    <ol className="bapp-editor" aria-label="The configuration, as TOML">
+                      {text.split('\n').map((line, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: the lines of one text, in order
+                        <li key={i}>
+                          <TomlLine line={line} />
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="bapp-muted bapp-units">
+                      --units <Safe text={list || '(as the profile is)'} />
+                    </p>
+                  </div>
+                  <div className="bapp-startbox">
+                    <label className="visually-hidden" htmlFor="bapp-ask">
+                      Your ask
+                    </label>
+                    <textarea
+                      id="bapp-ask"
+                      ref={askRef}
+                      className="bapp-ask"
+                      value={ask}
+                      placeholder="Support 1h30m duration parsing. Keep numeric parsing unchanged."
+                      onChange={(e) => setAsk(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="bapp-primary bapp-start"
+                      disabled={!ask.trim() || starting || busy}
+                      onClick={() => void start()}
+                    >
+                      <Icon icon={Play} /> {starting ? 'Starting…' : 'Start run'}
+                    </button>
+                    {why && (
+                      <p className="bapp-warn" role="alert">
+                        <Safe text={why} />
+                      </p>
+                    )}
+                    <dl className="bapp-facts">
+                      <div>
+                        <dt>
+                          <Icon icon={Layers} /> Profile
+                        </dt>
+                        <dd>
+                          <Safe text={profile || 'default'} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>
+                          <Icon icon={Box} /> Units on
+                        </dt>
+                        <dd>
+                          {enabled} / {units.length}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>
+                          <Icon icon={History} /> Past runs
+                        </dt>
+                        <dd>{chats.runs.length}</dd>
+                      </div>
+                    </dl>
+                  </div>
                 </div>
-                <pre className="bapp-editor">
-                  <Safe text={text} lines />
-                </pre>
-                <div className="bapp-toolbar">
-                  <span className="bapp-muted bapp-units">
-                    --units <Safe text={list || '(as the profile is)'} />
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(text).then(() => setCopied(true));
-                    }}
-                  >
-                    <Icon icon={Copy} /> {copied ? 'Copied' : 'Copy TOML'}
-                  </button>
-                  <button type="button" onClick={exportToml}>
-                    <Icon icon={Download} /> Export TOML
-                  </button>
-                </div>
-                <small className="bapp-muted">
-                  Paste it into your global config.toml;{' '}
-                  <span className="mono">mikata run --profile</span> opens the same harness.
-                </small>
               </>
             )}
             {data && want && view === 'plugins' && (
@@ -1005,54 +1164,43 @@ export function BuilderView({
 
           <section className="bapp-panel bapp-live" aria-label="Live run">
             <div className="bapp-top">
-              <h2>Live run</h2>
-              <span className="bapp-state" data-state={state}>
-                {state.toUpperCase()}
-              </span>
+              <div className="bapp-titled">
+                <Icon icon={Play} className="bapp-titleicon" />
+                <div>
+                  <h2>Live run</h2>
+                  <p className="bapp-runline">
+                    <Safe
+                      text={
+                        run
+                          ? `#${(live?.hello?.run ?? run.session).slice(-6)} · ${w.name} · ${profile || 'default'}`
+                          : `${w.name} · ${profile || 'default'}`
+                      }
+                    />
+                  </p>
+                </div>
+              </div>
+              {busy ? (
+                <button type="button" className="bapp-stop" onClick={() => void live?.interrupt()}>
+                  <Icon icon={Square} /> Stop
+                </button>
+              ) : (
+                <span className="bapp-state" data-state={state}>
+                  {state === 'Verified' && <Icon icon={Check} />}
+                  {state.toUpperCase()}
+                </span>
+              )}
             </div>
-            <label className="bapp-section" htmlFor="bapp-ask">
-              Your ask
-            </label>
-            <textarea
-              id="bapp-ask"
-              ref={askRef}
-              className="bapp-ask"
-              value={ask}
-              placeholder="Support 1h30m duration parsing. Keep numeric parsing unchanged."
-              onChange={(e) => setAsk(e.target.value)}
-            />
-            <div className="bapp-toolbar">
-              <button
-                type="button"
-                disabled={!live || !busy}
-                onClick={() => void live?.interrupt()}
-              >
-                <Icon icon={Square} /> Stop
-              </button>
-              <button
-                type="button"
-                className="bapp-primary"
-                disabled={!ask.trim() || starting || busy}
-                onClick={() => void start()}
-              >
-                <Icon icon={Play} /> {starting ? 'Starting…' : 'Start run'}
-              </button>
-            </div>
-            {why && (
-              <p className="bapp-warn" role="alert">
-                <Safe text={why} />
-              </p>
-            )}
             <Steps st={st} label="Stages" />
             <div className="bapp-log" role="log" aria-label="Run log">
               {run ? (
                 <>
                   <p className="bapp-log-ask">
-                    &gt; <Safe text={run.ask} />
+                    $ mikata run "<Safe text={run.ask} />"
                   </p>
-                  {lines.map(([mark, tone, line], i) => (
+                  {lines.map(([mark, tone, line, at], i) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: the lines only grow, in order
                     <p key={i}>
+                      <time>[{stamp((at ?? run.from) - run.from)}]</time>{' '}
                       <span data-tone={tone}>{mark}</span> <Safe text={line} />
                     </p>
                   ))}
@@ -1064,32 +1212,38 @@ export function BuilderView({
             </div>
             {verdict && (
               <section className="bapp-result" data-ok={passed} aria-label="The end gate's word">
-                <h3>{passed ? '✓ Verified' : '✘ Not landed'}</h3>
-                <p>
-                  <Safe
-                    text={
-                      passed
-                        ? "The project's verify command passed and no test was deleted or skipped."
-                        : (verdict.failures[0] ??
-                          verdict.unverified[0] ??
-                          'the end gate refused it')
-                    }
-                  />
-                </p>
+                <Icon icon={passed ? CircleCheck : CircleX} className="bapp-result-icon" />
+                <div>
+                  <h3>{passed ? 'Verified' : 'Not landed'}</h3>
+                  <p>
+                    <Safe
+                      text={
+                        passed
+                          ? "The project's verify command passed and no test was deleted or skipped."
+                          : (verdict.failures[0] ??
+                            verdict.unverified[0] ??
+                            'the end gate refused it')
+                      }
+                    />
+                  </p>
+                </div>
               </section>
             )}
             <dl className="bapp-numbers">
               <div>
                 <dt>Wall time</dt>
                 <dd>{run ? seconds(now - run.from) : '—'}</dd>
+                <Icon icon={Clock} />
               </div>
               <div>
                 <dt>Steps</dt>
                 <dd>{steps}</dd>
+                <Icon icon={Layers} />
               </div>
               <div>
                 <dt>Cost</dt>
                 <dd>{usd}</dd>
+                <Icon icon={Coins} />
               </div>
             </dl>
             <p className="bapp-notice">
