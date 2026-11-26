@@ -169,7 +169,7 @@ echo "<ask>" | mikata run --json  # every event as a JSON line, then a result li
 mikata resume last                # pick up the newest run that stopped
 mikatad runs                      # the runs that may be resumed
 mikatad board                     # the web board on 127.0.0.1:7878: open the URL it prints
-mikata --web                      # the terminal app, with the board started and opened
+mikata --web                      # the web board instead: started (or reused), opened
 ```
 
 `mikata run` goes through the same session and end gate as the app, and exits 0 only when the
@@ -186,7 +186,7 @@ conversation beside one slim column (the run's Plan · Work · Verify · Land, D
 checks, the files changed, the budgets). *Advanced*: every panel, a column each side. *Focus*: the
 conversation alone. A tool card is two rows until you open it (a click or Ctrl+T); Ctrl+O hides
 the panels ([the terminal app](docs/03-architecture.md#the-terminal-app)). `mikata --web` opens
-the web board beside it: every workspace and its sessions on one platform.
+the web board instead: every workspace and its sessions on one platform.
 
 **Say what the result must be.** An ask with examples of the expected output passed twice as often
 on our bench as the same ask in prose: Mikata checks its work against what you wrote, so one

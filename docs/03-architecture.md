@@ -251,7 +251,7 @@ flowchart TB
   ([the client protocol](04-protocol.md)). `mikatad` is that boundary: the SDK starts it as a child
   for one session, and `mikatad board` serves the board's chats for every world at once.
   `mikata --web` starts that board (or reuses the one running) from the `mikatad` installed beside
-  it, so the terminal and the browser show the same world.
+  it, instead of the terminal app: one or the other.
 - **Upkeep needs no session.** Listing runs, reading memory, pinning verify lines, walking the
   chained journals, folding the spend: these read and repair a world's records without a model or
   a key, and they are the human's tools — refused inside any body's command. They sit with
@@ -410,8 +410,9 @@ nothing else. A second
 
 `--background` prints no URL: the board started with the terminal app runs so, and its log holds no key.
 
-**Started with the terminal app.** Launched with `--web`, `mikata` makes sure a board runs as
-its session opens, off the UI thread, and opens it in the browser; without it no board starts.
+**Started by `mikata --web`.** Launched with `--web`, `mikata` opens no terminal app: it makes
+sure a board runs with the world on it, opens it in the browser, prints one line and leaves the
+board serving; without it no board starts.
 `board.autostart` and `board.open` are no longer read by the app (they still load); the port is
 still the human's:
 
@@ -2025,7 +2026,7 @@ an empty list or table never overrides a lower layer:
   the tracked file they become holes saying so. So are `providers.*`: a provider decides where
   a key is sent, and a cloned repository must not point one elsewhere.
   So is `board.*` — `board.bench_results`, the directory of bench result rows the board shows;
-  `board.port`, the port a board the terminal app starts with `--web` listens on (`board.autostart`
+  `board.port`, the port a board `mikata --web` starts listens on (`board.autostart`
   and `board.open` still load, and are no longer read); `board.prune_after_days`, how long a missing world stays
   listed (14; 0 never; at most 3650): the board serves every world on the machine, so what it
   reads, whether it starts and what it opens and forgets are the human's.
