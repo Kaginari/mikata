@@ -32,6 +32,38 @@
   --pf-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ── scrollbars: slim, the thumb in the brand's gradient, lit on hover ─────────────────────── */
+
+/* A browser that styles its bars itself (Firefox) takes the thin bar in the brand's colour; one
+ * that draws ::-webkit-scrollbar (Chromium, Safari) takes the gradient below, which the standard
+ * properties would switch off. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-color: color-mix(in srgb, var(--mn-hot) 55%, var(--mn-line-strong)) transparent;
+  }
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--mn-hot), var(--mn-coral) 55%, var(--mn-amber))
+    padding-box;
+  opacity: 0.7;
+}
+::-webkit-scrollbar-thumb:hover {
+  border-width: 2px;
+  box-shadow: 0 0 8px var(--mn-hot);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ── the frame ──────────────────────────────────────────────────────────────────────────────── */
 
 .shell {
@@ -333,7 +365,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   gap: 12px;
   min-height: 0;
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 .pf-card {
   padding: 12px;
@@ -672,7 +703,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   min-height: 0;
   overflow-y: auto;
   border-radius: var(--pf-radius);
-  scrollbar-width: thin;
 }
 .pf-main:focus-visible {
   outline-offset: -2px;
@@ -858,7 +888,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   min-height: 0;
   padding: 20px 22px;
   overflow-y: auto;
-  scrollbar-width: thin;
   font-family: var(--mn-font-mono);
   font-size: 14px;
 }
@@ -1101,7 +1130,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   min-height: 0;
   padding: 16px;
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 .ss-livehead {
   display: flex;
@@ -1137,7 +1165,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   background: color-mix(in srgb, var(--mn-bg) 75%, var(--mn-panel));
   box-shadow: inset 0 2px 14px color-mix(in srgb, var(--mn-bg) 70%, transparent);
   font: 12px / 1.65 var(--mn-font-mono);
-  scrollbar-width: thin;
 }
 .ss-log p {
   margin: 0;
@@ -1493,7 +1520,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 }
 
 /* the Builder's way to a new session, beside its profile */
-.bapp .bapp-go {
+.bapp .bapp-go,
+.su .bapp-go {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1511,11 +1539,13 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
     transform 260ms var(--pf-spring),
     box-shadow var(--mn-fast) var(--mn-ease);
 }
-.bapp .bapp-go:hover:not(:disabled) {
+.bapp .bapp-go:hover:not(:disabled),
+.su .bapp-go:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 12px 28px -8px var(--mn-hot);
 }
-.bapp .bapp-go:disabled {
+.bapp .bapp-go:disabled,
+.su .bapp-go:disabled {
   opacity: 0.55;
   cursor: default;
 }
@@ -1597,7 +1627,8 @@ a.pf-mini {
 
 /* a running session's units: Configure's dialog */
 .su {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   width: min(620px, calc(100vw - 32px));
   max-height: min(80vh, 720px);
@@ -1611,6 +1642,11 @@ a.pf-mini {
   box-shadow: var(--mn-shadow), var(--pf-glow);
   font-family: var(--mn-font-ui);
   animation: pf-pop 320ms var(--pf-spring) backwards;
+}
+.su-head,
+.su-sub,
+.su-warn {
+  flex: none;
 }
 .su-head {
   display: flex;
@@ -1651,12 +1687,15 @@ a.pf-mini {
 }
 .su-list {
   display: grid;
+  flex: 1 1 auto;
+  align-content: start;
   gap: 4px;
+  min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 6px 0 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
-  scrollbar-width: thin;
 }
 .su-list li {
   display: flex;
@@ -1709,6 +1748,88 @@ a.pf-mini {
 .su-guard {
   border: 1px solid var(--mn-line-strong);
   color: var(--mn-text-muted);
+}
+.su-list li[data-changed="true"] {
+  border-color: var(--mn-gold);
+  box-shadow: inset 3px 0 0 var(--mn-gold);
+}
+/* the switch, plain to read: off a grey track and its knob left; on lime, its knob right */
+.su .bapp-switch {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--mn-line-strong);
+  border-radius: 24px;
+  background: var(--mn-panel);
+  cursor: pointer;
+  transition:
+    background var(--mn-fast) var(--mn-ease),
+    border-color var(--mn-fast) var(--mn-ease);
+}
+.su .bapp-switch::before {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mn-text-faint);
+  transition:
+    transform 220ms var(--pf-spring),
+    background var(--mn-fast) var(--mn-ease);
+}
+.su .bapp-switch[aria-checked="true"] {
+  border-color: var(--mn-success-border);
+  background: var(--mn-success-fill);
+  box-shadow: var(--mn-glow-success);
+}
+.su .bapp-switch[aria-checked="true"]::before {
+  background: var(--mn-success-on);
+  transform: translateX(18px);
+}
+.su .bapp-switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.su .bapp-switch:focus-visible {
+  outline: 2px solid var(--mn-holo);
+  outline-offset: 2px;
+}
+.su-state {
+  flex: none;
+  width: 26px;
+  color: var(--mn-text-faint);
+  font: 700 11px var(--mn-font-mono);
+  text-transform: uppercase;
+}
+.su-state[data-on="true"] {
+  color: var(--mn-success-text);
+}
+.su-changed {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--mn-gold);
+  border-radius: 999px;
+  color: var(--mn-gold);
+  font: 600 10px var(--mn-font-mono);
+}
+.su-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--mn-line);
+}
+.su-saved {
+  flex: 1;
+  color: var(--mn-text-muted);
+  font-size: 13px;
+}
+.su .bapp-go {
+  margin-left: 0;
 }
 .su-refused {
   margin: 0;
@@ -1970,6 +2091,8 @@ a.pf-mini {
   .pg-run,
   .pg-links a,
   .su-list li,
+  .su .bapp-switch,
+  .su .bapp-switch::before,
   .bapp-go,
   .palette-card,
   .pf-all .mn-icon,
