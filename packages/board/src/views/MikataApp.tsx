@@ -34,6 +34,7 @@ import { humanWords, summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
 import { type Desk, useDesk } from '../data/desk.ts';
 import { changeOf } from '../data/diff.ts';
+import { useHarness } from '../data/harness.ts';
 import { type Live, useLive } from '../data/live.ts';
 import { format } from '../router.ts';
 import { Markdown } from '../safe/Markdown.tsx';
@@ -496,6 +497,13 @@ function Screen({
 }) {
   const v = live?.view;
   const hello = live?.hello;
+  const harness = useHarness(w.id);
+  // A unit as the world's configuration has it; before that is read, its default: on.
+  const unitOn = (id: string) =>
+    harness.state !== 'ready' || (harness.data.units.find((u) => u.id === id)?.on ?? true);
+  const gateOn = unitOn('gate');
+  const askOn = unitOn('approval');
+  const secretsOn = unitOn('secrets');
   const [draft, setDraft] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const bottom = useRef<HTMLDivElement>(null);
@@ -602,7 +610,10 @@ function Screen({
               <Icon icon={Bot} />
               <p>
                 Ready in <Safe text={w.name} />. Say what to change and how you will know it is
-                done; every act outside the world asks you first.
+                done;{' '}
+                {askOn
+                  ? 'every act outside the world asks you first.'
+                  : 'approval is off: acts outside the world run without asking.'}
               </p>
             </div>
           )}
@@ -692,14 +703,22 @@ function Screen({
             </dl>
           </Panel>
           <Panel icon={Shield} title="Guardrails" label="Guardrails" className="mapp-fill">
-            <p className="mapp-check mapp-big" data-ok={desk.verify.length > 0}>
-              <Tick ok={desk.verify.length > 0} /> Verify must pass
+            <p className="mapp-check mapp-big" data-ok={gateOn && desk.verify.length > 0}>
+              <Tick ok={gateOn && desk.verify.length > 0} />{' '}
+              {gateOn ? 'Verify must pass' : 'End gate off'}
             </p>
-            <p className="mapp-check mapp-big" data-ok="true">
-              <Tick ok /> No test deleted or skipped
+            {gateOn && (
+              <p className="mapp-check mapp-big" data-ok="true">
+                <Tick ok /> No test deleted or skipped
+              </p>
+            )}
+            <p className="mapp-check mapp-big" data-ok={askOn}>
+              <Tick ok={askOn} />{' '}
+              {askOn ? 'Approval needed for push/PR' : 'Outward acts run without asking'}
             </p>
-            <p className="mapp-check mapp-big" data-ok="true">
-              <Tick ok /> Approval needed for push/PR
+            <p className="mapp-check mapp-big" data-ok={secretsOn}>
+              <Tick ok={secretsOn} />{' '}
+              {secretsOn ? 'Secret files held from the model' : 'Secret files readable'}
             </p>
             <p className="mapp-check mapp-big" data-ok={sandboxOn === true}>
               <Tick ok={sandboxOn === true} />{' '}

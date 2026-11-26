@@ -1038,9 +1038,28 @@ fn the_guardrails_say_what_holds_and_what_does_not() {
         "✔ a /tmp of their own",
         "no verify line: a pass checks nothing",
         "✔ push and outward acts ask you",
+        "✔ secret files held from the model",
     ] {
         assert!(held.contains(want), "{want} missing:\n{held}");
     }
+    // The human switched approval and secrets off: the panel says so, never a tick.
+    let desk = mikata_loop::units::Desk {
+        listed: vec![
+            ("approval".into(), "1.2.0".into(), "off".into()),
+            ("secrets".into(), "1.2.0".into(), "off".into()),
+            ("gate".into(), "1.2.0".into(), "active".into()),
+        ],
+        ..Default::default()
+    };
+    m.units = Some(std::sync::Arc::new(std::sync::Mutex::new(desk)));
+    let off = plain(&mikata_tui::chrome::guardrails(&m, 60));
+    assert!(off.contains("✘ outward acts run without asking"), "{off}");
+    assert!(
+        off.contains("✘ secret files readable by the model"),
+        "{off}"
+    );
+    assert!(!off.contains("✔ push and outward acts ask you"), "{off}");
+    m.units = None;
     m.sandbox = "none — no sandbox for windows".into();
     let open = plain(&mikata_tui::chrome::guardrails(&m, 60));
     assert!(open.contains("✘ no sandbox"), "{open}");
