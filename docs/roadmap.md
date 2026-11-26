@@ -87,7 +87,7 @@ flowchart TD
 1.0.0 was the first release as Mikata. 1.1.0 (21 November) holds what came of the largest gap we
 had measured, asks without examples: a `## Done when` list in the ask, held by the harness; a
 reader that writes it; and the list of what changed when an answer lands
-([releasing](releasing.md)). 1.2.0 (25 November) holds what came after:
+([releasing](releasing.md)). 1.2.0 (26 November) holds what came after:
 
 - **Every part of the loop is a unit, and plugins load while a session runs** (experimental):
   units switched by configuration, by `--units` or live, profiles for a kind of work, plugins
