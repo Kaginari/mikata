@@ -166,7 +166,13 @@ pub fn draw(m: &Model, f: &mut Frame<'_>) {
             }
         };
         let inner_w = usize::from(area.width.saturating_sub(if framed { 4 } else { 0 }));
-        bar_line(buf, top, crate::chrome::header(m, inner_w, state(m)));
+        // The header is the gradient itself, as the board's strip is; the footer stays framed.
+        let head = crate::chrome::header(m, inner_w, state(m));
+        if framed {
+            crate::chrome::gradient_bar(buf, top, &head, t, area.width);
+        } else {
+            bar_line(buf, top, head);
+        }
         bar_line(
             buf,
             bottom,
@@ -225,8 +231,10 @@ fn toast(m: &Model, area: Rect, buf: &mut Buffer) {
 /// The left column of a wide screen in `area`: Checks, Guardrails, and Units in the rows left.
 fn lead_column(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16) {
     let w = usize::from(area.width.saturating_sub(4));
+    let files = format!("Files changed ({})", m.sidebar.files.list().len());
     let panes = [
         Pane::new("✓", "Checks", crate::chrome::checks(m, w)),
+        Pane::new("±", files, crate::chrome::files_changed(m, w)),
         Pane::new("◈", "Guardrails", crate::chrome::guardrails(m, w)),
         Pane::new("⚙", "Units", crate::chrome::units(m, w)),
     ];
@@ -283,12 +291,16 @@ fn stack(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16, panes: &[Pane],
 /// Guardrails in the rows left — what a turn is held to and what it spends, nothing else.
 fn light_column(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16) {
     let cols = usize::from(area.width.saturating_sub(4));
-    let mut panes = Vec::new();
+    let mut panes = vec![Pane::new("▶", "Run", crate::chrome::stepper(m, cols))];
     if !m.sidebar.done.is_empty() {
         let title = format!("Done when ({})", m.sidebar.done.len());
         panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
     }
     panes.push(Pane::new("✓", "Checks", crate::chrome::checks(m, cols)));
+    if !m.sidebar.files.list().is_empty() {
+        let title = format!("Files changed ({})", m.sidebar.files.list().len());
+        panes.push(Pane::new("±", title, crate::chrome::files_changed(m, cols)));
+    }
     panes.push(Pane::new("▮", "Budgets", crate::chrome::budgets(m, cols)));
     panes.push(Pane::new(
         "◈",
@@ -307,7 +319,7 @@ fn panels(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16, wide: bool) {
     // A short column keeps its rows for what holds something: an empty list, or units not yet
     // listed, gives its panel up.
     let short = area.height < 30;
-    let mut panes = Vec::new();
+    let mut panes = vec![Pane::new("▶", "Run", crate::chrome::stepper(m, cols))];
     if !(short && m.sidebar.done.is_empty()) {
         let title = format!("Done when ({})", m.sidebar.done.len());
         panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));

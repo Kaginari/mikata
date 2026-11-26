@@ -1193,3 +1193,71 @@ fn what_changed_is_drawn_line_by_line() {
         "{scr}"
     );
 }
+
+#[test]
+fn the_stepper_and_the_files_follow_the_turn() {
+    use mikata_tui::chrome::{Step, steps};
+    let mut m = model();
+    m.sidebar.verify = Some(mikata_tui::sidebar::Verify {
+        line: vec!["pytest -q".into()],
+        suggested: None,
+    });
+    assert_eq!(steps(&m), [Step::Todo; 4], "no ask yet");
+    send(&mut m, "fix it");
+    ev(
+        &mut m,
+        Event::TurnStarted {
+            text: "fix it".into(),
+        },
+    );
+    assert_eq!(steps(&m)[0], Step::Now, "planning");
+    let call = |m: &mut Model, id: &str, name: &str, input: serde_json::Value| {
+        ev(
+            m,
+            Event::ToolCall {
+                id: id.into(),
+                name: name.into(),
+                input,
+            },
+        );
+        ev(
+            m,
+            Event::ToolResult {
+                id: id.into(),
+                content: "ok".into(),
+                is_error: false,
+                cut: 0,
+            },
+        );
+    };
+    call(
+        &mut m,
+        "e",
+        "edit",
+        json!({"path": "src/a.py", "old_string": "a\nb", "new_string": "a\nc\nd"}),
+    );
+    assert_eq!(steps(&m)[..2], [Step::Done, Step::Now], "working");
+    call(&mut m, "v", "bash", json!({"command": "pytest -q"}));
+    assert_eq!(steps(&m)[2], Step::Now, "verifying");
+    ev(
+        &mut m,
+        Event::GateVerdict {
+            passed: true,
+            verdict: "PASS".into(),
+            changed: vec!["src/a.py".into()],
+            failures: Vec::new(),
+            unverified: Vec::new(),
+            unchecked: false,
+            verified_by: Vec::new(),
+        },
+    );
+    assert_eq!(steps(&m), [Step::Done; 4], "landed");
+    let scr = screen(&mut m, 150, 44);
+    assert!(scr.contains("Plan") && scr.contains("Land"), "{scr}");
+    assert!(scr.contains("Files changed (1)"), "{scr}");
+    assert!(
+        scr.contains(" M  src/a.py") && scr.contains("+2 −1"),
+        "{scr}"
+    );
+    assert!(scr.contains("✓ end gate · pass"), "the banner:\n{scr}");
+}

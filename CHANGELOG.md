@@ -11,6 +11,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Added
+
+- `mikatad app` (`mikatad board --app`): the board in a window of its own — no tabs, no address
+  bar — through Chrome, Edge, Brave, Chromium or Vivaldi in app mode, on the same one-time
+  launcher file as `--open`, so no key is on the command line. With none of them, it opens in the
+  browser and says so.
+- The terminal app has three views, F2 or `/view light|advanced|focus`: *Light*, the new default,
+  the conversation beside one slim column; *Advanced*, every panel; *Focus*, the conversation
+  alone. `center` and `zen` still name the last two.
+- Light and Advanced show the run as Plan · Work · Verify · Land, lit as far as the turn has come,
+  and a Files changed panel: each path's A, M or D and the lines it gained and lost.
+
+### Changed
+
+- The terminal app: the header bar is the brand's gradient; panel frames are heavy lines with bold
+  `////`; the end gate's verdict is a banner in its colour; a picked approval answer is a gradient
+  button; units are tags. Bio Digital's page and panels are darker (`#07050a`, `#110c14`,
+  `#1b1420`) in the terminal, the board and the site.
+- The conversation keeps the human's words: memory note ids are counted, the memory's account is
+  one plain line, `@U` lines stay out of the answer, what changed shows eight lines and where the
+  rest is kept, and a finished thought folds away (Alt+↑↓ or Ctrl+T shows it).
+
+### Fixed
+
+- The terminal app showed the memory the harness quotes above an ask as the human's own line.
+- The clock read 0:00 once a turn ended; it keeps the turn's time.
+- The light-coding reason and the approval card said "the Summoner" and "the human gate"; they say
+  Mikata.
+
 ## [1.2.0] - 2026-11-26
 
 ### Security

@@ -12,8 +12,9 @@
 //! Routes are added in [`Board::router`]; the guard's policy is by path, so a new route under
 //! `/api/` or `/ws/` is guarded without being named in it.
 
-mod assets;
 #[cfg(unix)]
+pub mod app;
+mod assets;
 pub mod autostart;
 pub mod bodies;
 pub mod bridge;
@@ -616,6 +617,26 @@ impl Board {
             .filter(|h| h.is_absolute());
         self.open_in(state, home.as_deref(), &browser::detect(), browse)
             .map(drop)
+    }
+
+    /// Open the board as an app window ([`app`]): a fresh one-time link in a launcher file, handed
+    /// to the first browser that opens app windows. With none here it opens as `--open` does, in
+    /// the default browser; `Ok(false)` says so.
+    ///
+    /// # Errors
+    ///
+    /// No place the browser reads is known, the launcher cannot be written, or the browser fails.
+    pub fn open_app(&self, state: &std::path::Path) -> Result<bool, String> {
+        let Some(found) = app::find() else {
+            return self.open_browser(state).map(|()| false);
+        };
+        let home = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .filter(|h| h.is_absolute());
+        self.open_in(state, home.as_deref(), &found.kind, |file| {
+            watch_opener(app::opener(&found, file))
+        })
+        .map(|_| true)
     }
 
     /// Remove the launcher file, if one waits.
@@ -1292,7 +1313,12 @@ pub(crate) const OPENER_WATCH: Duration = Duration::from_millis(1500);
 ///
 /// The opener cannot be started, or it fails at once.
 pub fn browse(file: &std::path::Path) -> Result<(), String> {
-    let mut cmd = opener(file);
+    watch_opener(opener(file))
+}
+
+/// Run an opener `cmd`: one that fails within [`OPENER_WATCH`] is an error; one still running
+/// then is waited on off the caller's thread.
+fn watch_opener(mut cmd: std::process::Command) -> Result<(), String> {
     let name = cmd.get_program().to_string_lossy().into_owned();
     let mut child = cmd.spawn().map_err(|e| format!("{name}: {e}"))?;
     let began = Instant::now();

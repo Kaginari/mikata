@@ -386,7 +386,7 @@ session's is. The session says what it opened in wherever it is shown:
 
 #### The board server
 
-`mikatad board [--port 7878] [--bind 127.0.0.1|::1] [--open] [--background]` is one daemon for
+`mikatad board [--port 7878] [--bind 127.0.0.1|::1] [--open|--app] [--background]` is one daemon for
 every world on the machine: an axum router in `mikata-server` (`src/board/`) on `127.0.0.1` and
 `[::1]`. Any other address is refused — remote use is an SSH port-forward of the same port
 (`ssh -L 7878:127.0.0.1:7878 <host>`), the explicit opt-in. One board runs per machine:
@@ -399,14 +399,22 @@ refused).
 socket made `0600` in the `0700` state directory, and writes a fresh nonce to `board.ctl` beside
 it (`0600`) at its start. Each connection asks one line and reads one, the nonce first: `ping`
 (`ok <pid> http://127.0.0.1:<port>`), `open` (the board opens the browser itself, on a launcher
-file as `--open` does) and `stop`. A body runs as the human's uid, and one with the network may
+file as `--open` does), `open-app` (the same launcher as an app window) and `stop`. A body runs as the human's uid, and one with the network may
 connect to a pathname socket, so the uid is not the guard: the board compares the nonce in
 constant time and answers `refused` to any line without it, and a body's sandbox reads no state
 directory, so it never has it. An asker speaks only to a socket and a nonce file its own uid owns;
 the board replaces only a socket left in its place, and refuses anything else there. No key
 crosses the socket. `mikatad board stop` stops this user's board under this state directory and
 nothing else. A second
-`mikatad board --open` asks the running board to open the browser this way. `--background`
+`mikatad board --open` asks the running board to open the browser this way.
+
+**The board as an app.** `mikatad app` (`mikatad board --app`) opens the board in a window of its
+own — no tabs, no address bar — through the first of Chrome, Edge, Brave, Chromium or Vivaldi it
+finds (on the `PATH`; on macOS, in `/Applications` or `~/Applications`), in the browser's app mode:
+`<browser> --app=file://<launcher>`. The launcher is the same file `--open` hands the default
+browser, so the key is never on the command line, and a snap browser gets it in its own
+directory. A browser already running takes the window into its own process. With none of them
+here it opens as `--open` does and says so. `--background`
 prints no URL: the board started with the terminal app runs so, and its log holds no key.
 
 **Started with the terminal app.** Launched with `--web`, `mikata` makes sure a board runs as
@@ -1046,9 +1054,9 @@ background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`,
 
 #### The terminal app
 
-<img src="./img/tui/dashboard-dark.png" width="760" alt="The terminal app, dark: a header bar of chips, the Checks, Guardrails and Units panels on the left, the agent loop with two-row tool cards in the middle, Done when, Budgets and Session on the right, a footer bar">
+<img src="./img/tui/dashboard-dark.png" width="760" alt="The terminal app in its Light view, dark: a gradient header bar, the answer and the end gate's pass banner, what changed, and one slim column: Run (Plan, Work, Verify, Land all lit), Checks, Files changed, Budgets, Guardrails">
 
-<img src="./img/tui/approval-dark.png" width="380" alt="An approval over the dimmed dashboard: the act boxed under a $ prompt, its reason, the answers as buttons"> <img src="./img/tui/focus-dark.png" width="380" alt="The Focus view: the bars and the conversation, no panels">
+<img src="./img/tui/approval-dark.png" width="380" alt="A real approval over the dimmed view: git push origin master boxed under a $ prompt, its reason, approve once picked as a gradient button"> <img src="./img/tui/focus-dark.png" width="380" alt="The Focus view: the conversation alone, a page wide, under one-row bars">
 
 The frames are drawn by the app itself: `cargo run -p mikata-tui --example frame -- <width> <height>
 <dark|light> [scheme] [focus|zen|gate] > frame.json`, then `node tools/tui-shot.mjs frame.json out.png`.
@@ -1076,8 +1084,13 @@ panel that cannot show four of its lines gives its place up. Below 100 columns t
 The colours are the `neon` scheme's unless `--theme` names another: hot pink `#ff168a` through coral
 to amber `#ffb020` on a near-black plum, success `#a3ff56`, error `#ff4757`.
 
-**Views.** F2, or `/view center|focus|zen`, switches while the session runs: *center* is the
-dashboard above, *focus* the bars and the conversation, *zen* the conversation and its input alone.
+**Views.** F2, or `/view light|advanced|focus`, switches while the session runs. *Light*, the
+default: a gradient header bar, the conversation, and one slim column: Run (Plan · Work · Verify ·
+Land, lit as far as the turn has come), Done when (once the ask has lines), Checks, Files changed
+(each path's A, M or D and the lines it gained and lost), Budgets, Guardrails. *Advanced*: the
+dashboard above, Checks, Files changed, Guardrails and Units (as tags) on the left, Run, Done when,
+Budgets and Session on the right. *Focus*: the conversation alone, at most 112 columns, under
+one-row bars. The older words `center` and `zen` still name Advanced and Focus.
 
 | Key | Does |
 |---|---|
@@ -1087,14 +1100,14 @@ dashboard above, *focus* the bars and the conversation, *zen* the conversation a
 | PgUp PgDn, Shift+↑ ↓, Ctrl+Home End, the wheel | scroll the transcript |
 | Alt+↑ ↓ | move the focus between cards (calls, groups, thoughts), scrolling each into view |
 | Ctrl+T, a click on a card | open the focused (or clicked) card — a call's output or diff, a group's calls, a thought's text — or fold it again; with none focused, the newest |
-| F2 | the next view: center, focus, zen |
+| F2 | the next view: light, advanced, focus |
 | Ctrl+O | show or hide the panels |
 | Esc | stop the turn; back to the end of the transcript |
 | Ctrl+C | stop the turn, or leave when none runs |
 | 1 or y, 2 or n, 3, then Enter | answer an approval — yes, no, or no with a reason typed for the model; ↑ ↓ move the pick while the whole act shows — from no pick to No, stopping at the ends, never onto Yes unasked — and read a long act otherwise; Esc denies it |
 
 Slash commands: `/send <text>` steers the running turn at its next tool step, `/theme <scheme> [dark|light]`,
-`/view center|focus|zen`, `/clear`, `/help`, `/quit`.
+`/view light|advanced|focus`, `/clear`, `/help`, `/quit`.
 
 **It shows its work as it happens.** The status appears in the frame after Enter, before any
 token: the phase is read from the model — an approval on the card, a call whose arguments still

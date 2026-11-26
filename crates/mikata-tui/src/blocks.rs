@@ -93,7 +93,18 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
             changed,
             failures,
             unverified,
-        } => out.push(verdict_line(verdict, *changed, failures, unverified, w, t)),
+        } => {
+            // The gate's word is the turn's result: a banner in its colour, as wide as the
+            // answer above it.
+            let hue = match verdict.as_str() {
+                "PASS" => t.success,
+                "NOT_VERIFIED" => t.p.gold,
+                _ => t.p.alarm,
+            };
+            let line = verdict_line(verdict, *changed, failures, unverified, Slab::inner(w), t);
+            let slab = Slab::new(Surface::card(t, Some(hue), TINT * 2.5));
+            out.extend(slab.render(vec![line], w));
+        }
         Entry::Note(text) => out.extend(note(
             "· ",
             text,
@@ -346,7 +357,6 @@ fn verdict_line(
         let _ = write!(counts, ": {}", one_line(first));
     }
     let line = Line::from(vec![
-        Span::raw("  "),
         Span::styled(format!(" {mark} end gate · {word} "), chip),
         Span::styled(counts, t.muted()),
     ]);
