@@ -7899,3 +7899,12 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Held by tests:** the human's command handed in and a body's other command refused, the answer handed back by the human's command; the question at hand-in; the command kept, said and read back; the core's `--check`. 850 tests of the four crates; lints clean.
 - **Not shown:** a screen.
 
+
+### [2026-11-26T11:05:00+00:00] aibo Summoner — Mikata 1.2.0 is published
+- **Approved by** the owner: #473 (the release) merged at 09:09 UTC, #474 (the changelog dated the tag's day) at 09:54, main `addf019`.
+- **Released:** tag `v1.2.0` at `addf019`. The first run of the release workflow lost its two macOS builds: GitHub had no macOS runner free and cancelled them after 15 minutes, no step run. The bot's token may not re-run or dispatch a workflow, so I deleted the tag, which had no release yet, and pushed it again at the same commit. The second run built the four archives and `SHA256SUMS`, smoke-tested the Linux archives and opened the draft.
+- **Checked from the outside before publishing:** all four archives against the sums; each archive's members; the Linux x86_64 archive through `tools/rc-smoke.sh` and `tools/test-install.sh`, both PASS, from the tag's own tools; the macOS and ARM binaries by `file` only (Mach-O arm64 and x86_64, ELF aarch64).
+- **Published** on the owner's word, "we create the new version 1.2.0", said again by approving #473. Then the installer from the tag, pinned and latest, into empty folders under a throwaway HOME: both install `mikata 1.2.0` and `mikatad 1.2.0 (addf019901)`.
+- **Not done by me:** a macOS archive run on a Mac; this host is Linux.
+- **What the release is:** the Bio Digital and Bio Pearl design system across the board, the site and the book; the board's fixes found by photographing it running; stage 14's plan and todo measured, OpenCode beside it.
+- **Branches:** at the owner's word, the 45 branches whose commits are all on main are deleted; the 13 with work not on main are kept. Four local copies stay where other threads have them checked out.
