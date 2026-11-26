@@ -70,8 +70,7 @@ Usage: mikatad [--world <dir>] [--resume <run|last>] [--mode auto|light-coding|s
        mikatad roster rise|fall <creature> [--world <dir>]
        mikatad roster replay [--world <dir>]
        mikatad roster retire <creature> [--yes] [--world <dir>]
-       mikatad board [--port <n>] [--bind 127.0.0.1|::1] [--open|--app] [--background]
-       mikatad app [--port <n>] [--bind 127.0.0.1|::1]
+       mikatad board [--port <n>] [--bind 127.0.0.1|::1] [--open] [--background]
        mikatad board add|forget <dir>
        mikatad board prune [--dry-run]
        mikatad board stop
@@ -291,9 +290,7 @@ board runs per machine: a second launch prints the running board's URL, with the
 and exits. `--open` also opens the board in the browser, through a launcher file in the state
 directory (`open-<random>.html`, `0600`) that holds a key of its own, valid once and for a minute,
 so no key is on the opener's command line; the file goes once the key is spent or dead. It is
-refused when no board is built in. `--app` (or `mikatad app`) opens the same launcher as an app
-window — a window of its own, no tabs, no address bar — in the first of Chrome, Edge, Brave,
-Chromium or Vivaldi found; with none, it opens in the browser as `--open` does, and says so. An untraded key is replaced after 10 minutes, and a second launch prints
+refused when no board is built in. An untraded key is replaced after 10 minutes, and a second launch prints
 the new one; a session ends after 12 idle hours, or 7 days. The worlds are those a session opened in (`$XDG_STATE_HOME/mikata/worlds.jsonl`)
 and those added by hand: `board add <dir>` lists a world, `board forget <dir>` stops listing one
 until it is added again or a session opens in it. A body never runs any of them.
@@ -345,7 +342,6 @@ fn admin(word: &str) -> Option<fn(&[String]) -> ExitCode> {
         "roster" => roster::roster,
         "guts" => guts::guts,
         "board" => board,
-        "app" => app,
         _ => return None,
     })
 }
@@ -479,13 +475,6 @@ fn board(args: &[String]) -> ExitCode {
         _ => {}
     }
     serve_board(args, registry, hand)
-}
-
-/// `app [--port <n>] [--bind <addr>]`: the board in a window of its own — `board --app`.
-fn app(args: &[String]) -> ExitCode {
-    let mut with = vec!["--app".to_owned()];
-    with.extend(args.iter().cloned());
-    board(&with)
 }
 
 /// `board add|forget <dir>`.
@@ -639,13 +628,12 @@ fn board_flags(args: &[String]) -> Result<BoardFlags, ExitCode> {
     use mikata_server::board;
     let mut port = board::DEFAULT_PORT;
     let mut bind = None;
-    let mut open = None;
+    let mut open = false;
     let mut background = false;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--open" => open = Some(Opening::Page),
-            "--app" => open = Some(Opening::App),
+            "--open" => open = true,
             "--background" => background = true,
             "--port" => match it.next().map(|p| p.parse::<u16>()) {
                 Some(Ok(p)) => port = p,
@@ -674,20 +662,12 @@ fn board_flags(args: &[String]) -> Result<BoardFlags, ExitCode> {
     })
 }
 
-/// How the board opens for the human: a page in their browser, or a window of its own.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Opening {
-    /// `--open`: the default browser.
-    Page,
-    /// `--app`: an app window ([`mikata_server::board::app`]).
-    App,
-}
-
 /// `board`'s flags.
 struct BoardFlags {
     port: u16,
     bind: Option<std::net::IpAddr>,
-    open: Option<Opening>,
+    /// `--open`: the board opens in the default browser.
+    open: bool,
     background: bool,
 }
 
@@ -705,10 +685,10 @@ fn serve_board(args: &[String], registry: PathBuf, hand: PathBuf) -> ExitCode {
         Ok(f) => f,
         Err(code) => return code,
     };
-    if open.is_some() && !board::built() {
+    if open && !board::built() {
         return refused(
-            &"--open and --app: this mikatad has no board built in, so no page would spend the key it \
-              opens; build the board (pnpm --filter @mikata/board build), then mikatad",
+            &"--open: this mikatad has no board built in, so no page would spend the key it opens; \
+              build the board (pnpm --filter @mikata/board build), then mikatad",
         );
     }
     let Some(dir) = registry.parent().map(Path::to_path_buf) else {
@@ -722,7 +702,7 @@ fn serve_board(args: &[String], registry: PathBuf, hand: PathBuf) -> ExitCode {
         }
         Ok(instance::Claim::Running(url)) => {
             #[cfg(unix)]
-            if open.is_some() {
+            if open {
                 return already_running(dir, open);
             }
             println!("{url}");
@@ -772,8 +752,8 @@ fn serve_board(args: &[String], registry: PathBuf, hand: PathBuf) -> ExitCode {
             "open the URL above — its key works once. Ctrl-C or `mikatad board stop` stops it."
         }
     );
-    if let Some(how) = open {
-        open_board(&served, dir, how);
+    if open {
+        open_board(&served, dir);
     }
     let out = board::run_at(listeners, &served, Some(dir));
     drop(instance);
@@ -787,34 +767,20 @@ fn serve_board(args: &[String], registry: PathBuf, hand: PathBuf) -> ExitCode {
 /// snap browser's own directory) that holds a key of its own, spent on arrival or dead within the
 /// minute: an opener's command line is readable by every local user while it runs, so the key is
 /// never on it. A browser that cannot be opened is said, and the board serves on.
-fn open_board(served: &mikata_server::board::Board, dir: &Path, how: Opening) {
-    let opened = match how {
-        Opening::Page => served.open_browser(dir).map(|()| true),
-        Opening::App => served.open_app(dir),
-    };
-    match opened {
-        Ok(true) => {}
-        Ok(false) => {
-            let _ = writeln!(
-                std::io::stderr(),
-                "mikatad board: {}",
-                mikata_server::board::app::NO_APP_BROWSER
-            );
-        }
-        Err(e) => {
-            let _ = writeln!(
-                std::io::stderr(),
-                "mikatad board: {} ({e})",
-                mikata_server::board::UNOPENED
-            );
-        }
+fn open_board(served: &mikata_server::board::Board, dir: &Path) {
+    if let Err(e) = served.open_browser(dir) {
+        let _ = writeln!(
+            std::io::stderr(),
+            "mikatad board: {} ({e})",
+            mikata_server::board::UNOPENED
+        );
     }
 }
 
 /// A board runs already under `dir`: with `open`, it opens the browser on a fresh one-time link
 /// itself — through its control socket, so the key never passes through this process —, else this
 /// says where it runs, keyless.
-fn already_running(dir: &Path, open: Option<Opening>) -> ExitCode {
+fn already_running(dir: &Path, open: bool) -> ExitCode {
     #[cfg(unix)]
     {
         use mikata_server::board::control;
@@ -831,17 +797,13 @@ fn already_running(dir: &Path, open: Option<Opening>) -> ExitCode {
             Ok(r) => r,
             Err(e) => return fail(&format!("a board is running, but does not answer: {e}")),
         };
-        let said = match open {
-            None => "",
-            Some(Opening::Page) => match control::open(dir) {
+        let said = if open {
+            match control::open(dir) {
                 Ok(()) => "; opened in your browser",
                 Err(e) => return fail(&format!("{} ({e})", mikata_server::board::UNOPENED)),
-            },
-            Some(Opening::App) => match control::open_app(dir) {
-                Ok(true) => "; opened in its own window",
-                Ok(false) => "; opened in your browser: no browser here opens an app window",
-                Err(e) => return fail(&format!("{} ({e})", mikata_server::board::UNOPENED)),
-            },
+            }
+        } else {
+            ""
         };
         let _ = writeln!(
             std::io::stderr(),

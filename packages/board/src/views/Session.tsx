@@ -1,46 +1,54 @@
 /**
- * Mikata as an app (`mikatad app`, `#/w/<world>/app`): one window on one world's session, drawn
- * as the owner's app pictures are — a glowing header bar, the conversation as a timeline of steps
- * on the left, what the run is held to and what it spends on the right, a status bar under it.
+ * A workspace's agent session (`#/w/<world>`, `#/w/<world>/s/<chat>`): the conversation as a
+ * timeline of steps, the composer under it, and the Live run beside it — Plan · Work · Verify ·
+ * Land, the log, what the run is held to, what it spends.
  *
  * Every line is the session's own: its events, the world's desk (verify line, `Done when`,
- * branch) and the session's hello. A number the core does not give — a step cap, a time cap — is
- * not drawn; a bar is drawn only against a line the core gives (the context's stress line, a
- * spending cap).
+ * branch) and the session's hello. A number the core does not give is not drawn; a bar is drawn
+ * only against a line the core gives (the context's stress line).
  */
 
 import type { BoardWorld } from '@mikata/protocol';
 import {
   Bot,
-  ChartColumnIncreasing,
   Check,
-  ChevronRight,
   CircleCheck,
   CircleX,
   Clock,
   Coins,
+  Cpu,
+  Eye,
+  GitBranch,
+  Hourglass,
   Layers,
   LoaderCircle,
   type LucideIcon,
   Pencil,
-  Play,
+  Power,
+  Send,
   Shield,
+  SlidersHorizontal,
+  Square,
   SquareCheck,
   User,
+  Zap,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { Call, ChatView, Entry } from '../data/chat.ts';
 import { humanWords, summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
 import { type Desk, useDesk } from '../data/desk.ts';
 import { changeOf } from '../data/diff.ts';
+import { useHarness } from '../data/harness.ts';
 import { type Live, useLive } from '../data/live.ts';
 import { format } from '../router.ts';
 import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
 import { Icon } from '../ui/Icon.tsx';
-import './app.css';
+import { useAnnouncements } from './Chat.tsx';
+import { logLines, Steps, stages, stamp } from './run.tsx';
+import './session.css';
 
 // ── the steps of a turn, read from its entries ──────────────────────────────────────────────────
 
@@ -251,34 +259,6 @@ function Tick({ ok }: { ok: boolean }) {
   );
 }
 
-/** A panel: a neon frame, its icon and title, the slashes at its right. */
-function Panel({
-  icon,
-  title,
-  children,
-  className,
-  label,
-}: {
-  icon: LucideIcon;
-  title: ReactNode;
-  children: ReactNode;
-  className?: string;
-  label?: string;
-}) {
-  return (
-    <section className={`mapp-panel ${className ?? ''}`} aria-label={label}>
-      <h2 className="mapp-panel-head">
-        <Icon icon={icon} className="mapp-panel-icon" />
-        <span>{title}</span>
-        <i className="mapp-slashes" aria-hidden="true">
-          {'////'}
-        </i>
-      </h2>
-      <div className="mapp-panel-body">{children}</div>
-    </section>
-  );
-}
-
 /** A command's last lines, `ok`, `passed` and `failed` lit. */
 function Output({ text }: { text: string }) {
   const lines = text
@@ -300,7 +280,7 @@ function Output({ text }: { text: string }) {
                   : undefined;
               return tone ? (
                 // biome-ignore lint/suspicious/noArrayIndexKey: parts of one line, in order
-                <b key={j} data-tone={tone}>
+                <b key={j} data-status={tone}>
                   <Safe text={part} />
                 </b>
               ) : (
@@ -351,9 +331,9 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
           <div className="mapp-box">
             <p className="mapp-file">
               <Icon icon={Pencil} /> <Safe text={s.path} />
-              {added !== undefined && <b data-tone="ok">+{added}</b>}
-              {removed > 0 && <b data-tone="alarm">−{removed}</b>}
-              <span className="mapp-chip" data-tone="gold">
+              {added !== undefined && <b data-status="ok">+{added}</b>}
+              {removed > 0 && <b data-status="alarm">−{removed}</b>}
+              <span className="mapp-chip" data-status="gold">
                 {isNew ? 'A added' : 'M modified'}
               </span>
             </p>
@@ -363,7 +343,7 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
               </p>
             ))}
             {s.call.outcome?.isError && (
-              <p className="mapp-sub" data-tone="alarm">
+              <p className="mapp-sub" data-status="alarm">
                 <Safe text={s.call.outcome.content.split('\n')[0] ?? ''} />
               </p>
             )}
@@ -434,7 +414,7 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
               <p
                 // biome-ignore lint/suspicious/noArrayIndexKey: a fixed slice of lines
                 key={i}
-                data-tone={l.startsWith('- ') ? 'alarm' : l.startsWith('+ ') ? 'holo' : undefined}
+                data-status={l.startsWith('- ') ? 'alarm' : l.startsWith('+ ') ? 'holo' : undefined}
               >
                 <Safe text={l} />
               </p>
@@ -446,7 +426,7 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
     }
     case 'note':
       return (
-        <li className="mapp-note" data-tone={s.alarm ? 'gold' : undefined}>
+        <li className="mapp-note" data-status={s.alarm ? 'gold' : undefined}>
           <Safe text={s.text} />
         </li>
       );
@@ -468,7 +448,7 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
       );
     case 'ending':
       return (
-        <li className="mapp-note" data-tone="alarm">
+        <li className="mapp-note" data-status="alarm">
           ■ <Safe text={s.text} />
         </li>
       );
@@ -479,6 +459,160 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
 
 // ── the screen ──────────────────────────────────────────────────────────────────────────────────
 
+/** No ask: one array, so the announcements' effect does not rerun for a new empty one. */
+const NO_ASKS: Live['asks'] = [];
+
+type State = 'Ready' | 'Starting' | 'Running' | 'Verified' | 'Not landed' | 'Waiting' | 'Ended';
+
+/** The Live run: Plan · Work · Verify · Land, the log, Done when, the guardrails, the numbers. */
+function LiveRun({
+  v,
+  desk,
+  hello,
+  planOn,
+  state,
+  wall,
+  steps,
+  cost,
+  ctx,
+  landed,
+  onStop,
+}: {
+  v: ChatView | undefined;
+  desk: Desk;
+  hello: Live['hello'];
+  planOn: boolean;
+  state: State;
+  wall: number;
+  steps: number;
+  cost: string;
+  ctx: number | undefined;
+  landed: boolean;
+  onStop: (() => void) | undefined;
+}) {
+  const st = stages(v, planOn);
+  const lines = logLines(v);
+  const from = lines.find((l) => l[3] !== undefined)?.[3];
+  const sandboxOn = hello ? !hello.sandbox.startsWith('none') : undefined;
+  const log = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: follows the log as it grows
+  useEffect(() => {
+    const el = log.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [lines.length]);
+  const done = landed ? desk.done.length : 0;
+  return (
+    <aside className="ss-live" aria-label="Live run">
+      <div className="ss-livehead">
+        <h2>
+          <Icon icon={Zap} /> Live run
+        </h2>
+        {onStop ? (
+          <button type="button" className="ss-stop" onClick={onStop}>
+            <Icon icon={Square} /> Stop
+          </button>
+        ) : (
+          <span className="ss-badge" data-state={state}>
+            {state.toUpperCase()}
+          </span>
+        )}
+      </div>
+      <Steps st={st} label="Stages" />
+      <div className="ss-log" role="log" aria-label="Run log" ref={log}>
+        {lines.length === 0 ? (
+          <p className="ss-muted">
+            {state === 'Ready' ? 'Waiting for an ask…' : 'Waiting for the first step…'}
+          </p>
+        ) : (
+          lines.map(([mark, tone, line, at], i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: the lines only grow, in order
+            <p key={i} style={{ '--i': Math.min(i, 12) } as CSSProperties}>
+              <time>[{stamp((at ?? from ?? 0) - (from ?? 0))}]</time>{' '}
+              <span data-status={tone}>{mark}</span> <Safe text={line} />
+            </p>
+          ))
+        )}
+        {v?.busy && <span className="ss-caret" aria-hidden="true" />}
+      </div>
+
+      <section className="ss-card" aria-label="Done when">
+        <h3>
+          <Icon icon={SquareCheck} /> Done when{' '}
+          <small>
+            {done}/{desk.done.length}
+          </small>
+        </h3>
+        {desk.done.length === 0 ? (
+          <p className="ss-muted">No list yet: the plan writes one, or say what done means.</p>
+        ) : (
+          desk.done.map((d) => (
+            <p key={d} className="ss-check" data-ok={landed}>
+              <Tick ok={landed} /> <Safe text={d} />
+            </p>
+          ))
+        )}
+      </section>
+
+      <section className="ss-card" aria-label="Guardrails">
+        <h3>
+          <Icon icon={Shield} /> Guardrails
+        </h3>
+        <p className="ss-check" data-ok={sandboxOn === true}>
+          <Tick ok={sandboxOn === true} />
+          <span>Sandbox</span>
+          <b>{sandboxOn === undefined ? 'at start' : sandboxOn ? 'on' : 'off'}</b>
+        </p>
+        <p className="ss-check" data-ok={desk.verify.length > 0}>
+          <Tick ok={desk.verify.length > 0} />
+          <span>Verify must pass</span>
+          <b>{desk.verify.length > 0 ? 'pinned' : 'none'}</b>
+        </p>
+        <p className="ss-check" data-ok="true">
+          <Tick ok />
+          <span>Test preservation</span>
+          <b>on</b>
+        </p>
+        <p className="ss-check" data-ok="true">
+          <Tick ok />
+          <span>External actions</span>
+          <b>ask first</b>
+        </p>
+      </section>
+
+      <dl className="ss-tiles">
+        <div>
+          <dt>
+            <Icon icon={Clock} /> Wall time
+          </dt>
+          <dd>{mmss(wall)}</dd>
+        </div>
+        <div>
+          <dt>
+            <Icon icon={Layers} /> Steps
+          </dt>
+          <dd>{steps}</dd>
+        </div>
+        <div>
+          <dt>
+            <Icon icon={Coins} /> Cost
+          </dt>
+          <dd>{cost}</dd>
+        </div>
+      </dl>
+      {ctx !== undefined && (
+        <div className="ss-meter">
+          <span>
+            Context <b>{Math.round(ctx * 100)}%</b>
+          </span>
+          <div>
+            <i style={{ width: `${Math.min(100, Math.max(2, ctx * 100))}%` }} />
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function Screen({
   w,
   live,
@@ -486,6 +620,8 @@ function Screen({
   onAsk,
   starting,
   why,
+  planOn,
+  number,
 }: {
   w: BoardWorld;
   live: Live | undefined;
@@ -493,27 +629,31 @@ function Screen({
   onAsk: (text: string) => void;
   starting: boolean;
   why: string | undefined;
+  planOn: boolean;
+  number: number;
 }) {
   const v = live?.view;
   const hello = live?.hello;
   const [draft, setDraft] = useState('');
   const [now, setNow] = useState(() => Date.now());
-  const bottom = useRef<HTMLDivElement>(null);
+  const convo = useRef<HTMLElement>(null);
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
+  useAnnouncements(v, live?.asks ?? NO_ASKS);
   const all = useMemo(() => turns(v, desk.verify), [v, desk.verify]);
   const last = all[all.length - 1];
   const verdict = [...(last?.steps ?? [])].reverse().find((s) => s.kind === 'verdict');
   const landed = verdict?.kind === 'verdict' && verdict.ok;
   // biome-ignore lint/correctness/useExhaustiveDependencies: follows the transcript as it grows
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end' });
+    const el = convo.current;
+    if (el) el.scrollTo?.({ top: el.scrollHeight, behavior: 'smooth' });
   }, [v?.entries.length, v?.streaming]);
 
   const busy = v?.busy ?? false;
-  const calls = (v?.entries ?? []).reduce(
+  const steps = (v?.entries ?? []).reduce(
     (n, e) => n + (e.kind === 'tool' ? 1 : e.kind === 'group' ? e.calls.length : 0),
     0,
   );
@@ -529,97 +669,117 @@ function Screen({
         ? lastEnd.began + (lastEnd.took ?? 0) - lastBegan
         : 0;
   const u = v?.usage;
-  const cost = u?.seen ? `$${u.usd.toFixed(3)}${u.unpriced ? '+' : ''}` : u ? 'unpriced' : '—';
+  const cost = u?.seen ? `$${u.usd.toFixed(3)}${u.unpriced ? '+' : ''}` : '$0.000';
   const ctx = u && u.stressLine > 0 ? u.occupancy / u.stressLine : undefined;
   const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
   const sandboxOn = hello ? !hello.sandbox.startsWith('none') : undefined;
+  const state: State = starting
+    ? 'Starting'
+    : verdict?.kind === 'verdict'
+      ? verdict.ok
+        ? 'Verified'
+        : 'Not landed'
+      : busy
+        ? 'Running'
+        : live?.closed
+          ? 'Ended'
+          : live && all.length > 0
+            ? 'Waiting'
+            : 'Ready';
+  const heading = all.find((t) => t.ask)?.ask.split('\n')[0] ?? 'New session';
+  const observer = live?.role === 'observer';
+  const ready = !live || (live.role === 'controller' && live.link !== 'closed');
   const send = () => {
     const text = draft.trim();
-    if (!text || starting) return;
+    if (!text || starting || !ready) return;
     setDraft('');
-    onAsk(text);
+    if (busy && live) void live.steer(text);
+    else onAsk(text);
   };
 
   return (
-    <div className="mapp">
-      <header className="mapp-head">
-        <span className="mapp-brand">
-          <i aria-hidden="true">{'//'}</i> Mikata — coding agent harness <small>(MIT)</small>
-        </span>
-        <span className="mapp-sep" aria-hidden="true" />
-        <dl className="mapp-chips">
-          <div>
-            <dt>repo:</dt>
-            <dd>
-              <Safe text={w.name} />
-            </dd>
+    <div className="mapp ss" data-state={state}>
+      <section className="ss-main" aria-label="Agent session">
+        <header className="ss-head">
+          <div className="ss-titles">
+            <p className="ss-eyebrow">
+              Agent session <span>/ {String(number).padStart(2, '0')}</span>
+            </p>
+            <h1>
+              <Safe text={heading.length > 90 ? `${heading.slice(0, 88)}…` : heading} />
+              <span className="ss-badge" data-state={state}>
+                {state === 'Running' && <i className="ss-pulse" aria-hidden="true" />}
+                {state.toUpperCase()}
+              </span>
+            </h1>
+            <ul className="ss-chips" aria-label="This session">
+              {desk.branch && (
+                <li>
+                  <Icon icon={GitBranch} /> <Safe text={desk.branch} />
+                </li>
+              )}
+              <li data-status={sandboxOn === false ? 'alarm' : sandboxOn ? 'ok' : undefined}>
+                <Icon icon={Shield} /> Sandbox{' '}
+                {sandboxOn === undefined ? '' : sandboxOn ? 'on' : 'off'}
+              </li>
+              {hello && (
+                <li>
+                  <Icon icon={Cpu} /> <Safe text={hello.model} />
+                </li>
+              )}
+              {hello && (
+                <li>
+                  <Icon icon={Layers} /> <Safe text={hello.mode} />
+                </li>
+              )}
+            </ul>
           </div>
-          {desk.branch && (
-            <div>
-              <dt>branch:</dt>
-              <dd>
-                <Safe text={desk.branch} />
-              </dd>
-            </div>
+          <a
+            className="ss-configure"
+            href={format({ name: 'section', world: w.id, section: 'builder' })}
+          >
+            <Icon icon={SlidersHorizontal} /> Configure
+          </a>
+          {live?.role === 'controller' && live.link !== 'closed' && (
+            <button type="button" className="ss-configure" onClick={() => void live.end()}>
+              <Icon icon={Power} /> End session
+            </button>
           )}
-          {hello && (
-            <div>
-              <dt>mode:</dt>
-              <dd className="mapp-pill">
-                <Safe text={hello.mode} />
-              </dd>
-            </div>
-          )}
-          {hello && (
-            <div>
-              <dt>model:</dt>
-              <dd>
-                <Safe text={hello.model} />
-              </dd>
-            </div>
-          )}
-          {sandboxOn !== undefined && (
-            <div>
-              <dt>sandbox:</dt>
-              <dd className="mapp-pill" data-off={!sandboxOn}>
-                {sandboxOn ? 'on' : 'off'}
-              </dd>
-            </div>
-          )}
-        </dl>
-        <a
-          className="mapp-headlink"
-          href={format({ name: 'section', world: w.id, section: 'builder' })}
-        >
-          <Icon icon={Layers} /> Harness Builder
-        </a>
-      </header>
+        </header>
 
-      <div className="mapp-body">
-        <main className="mapp-panel mapp-convo" aria-label="The conversation">
+        <section className="ss-convo" aria-label="The conversation" ref={convo}>
           {all.length === 0 && (
-            <div className="mapp-empty">
-              <Icon icon={Bot} />
+            <div className="ss-empty">
+              <span className="ss-orb" aria-hidden="true">
+                <Icon icon={Bot} />
+              </span>
+              <h2>
+                Ready in <Safe text={w.name} />
+              </h2>
               <p>
-                Ready in <Safe text={w.name} />. Say what to change and how you will know it is
-                done; every act outside the world asks you first.
+                Say what to change and how you will know it is done. Every act outside the workspace
+                asks you first.
               </p>
             </div>
           )}
-          {all.map((t) => (
-            <article key={t.key} className="mapp-turn">
+          {all.map((t, ti) => (
+            <article
+              key={t.key}
+              className="mapp-turn"
+              style={{ '--i': Math.min(ti, 6) } as CSSProperties}
+            >
               {t.ask && (
-                <>
+                <div className="ss-msg ss-msg-user">
                   <p className="mapp-who">
-                    <Icon icon={User} /> User <time>{clock(t.began)}</time>
+                    <Icon icon={User} /> You <time>{clock(t.began)}</time>
                   </p>
                   <div className="mapp-ask">
                     <Safe text={t.ask} />
                   </div>
-                </>
+                </div>
               )}
               {t.steps.length > 0 && (
-                <>
+                <div className="ss-msg">
                   <p className="mapp-who mapp-who-body">
                     <Icon icon={Bot} /> Mikata <time>{clock(t.began)}</time>
                   </p>
@@ -628,13 +788,14 @@ function Screen({
                       <StepView key={s.key} s={s} desk={desk} landed={t === last && landed} />
                     ))}
                   </ol>
-                </>
+                </div>
               )}
             </article>
           ))}
           {v?.streaming && (
-            <div className="mapp-box mapp-answer">
+            <div className="mapp-box mapp-answer ss-streaming">
               <Markdown text={spoken(v.streaming)} />
+              <span className="ss-caret" aria-hidden="true" />
             </div>
           )}
           {busy && (
@@ -643,151 +804,106 @@ function Screen({
               {k(v?.turnTokens ?? 0)} tokens
             </p>
           )}
-          <div ref={bottom} />
-        </main>
+        </section>
 
-        <aside className="mapp-side" aria-label="What the run is held to">
-          <Panel icon={SquareCheck} title="Done when" label="Done when">
-            {desk.done.length === 0 ? (
-              <p className="mapp-muted">
-                No list yet: the plan writes one, or say what done means.
-              </p>
-            ) : (
-              desk.done.map((d, i) => (
-                <p key={d} className="mapp-check mapp-big" data-ok={landed}>
-                  <Tick ok={landed} /> <span className="mapp-dn">D{i + 1}</span> <Safe text={d} />
-                </p>
-              ))
-            )}
-          </Panel>
-          <Panel icon={ChartColumnIncreasing} title="Budgets" label="Budgets">
-            <dl className="mapp-budgets">
-              <div>
-                <dt>steps</dt>
-                <dd>{calls}</dd>
-              </div>
-              <div>
-                <dt>wall clock</dt>
-                <dd>{mmss(wall)}</dd>
-              </div>
-              <div>
-                <dt>context</dt>
-                <dd>
-                  {u && u.stressLine > 0 ? `${k(u.occupancy)} / ${k(u.stressLine)}` : '—'}
-                  {ctx !== undefined && (
-                    <span className="mapp-meter">
-                      <i style={{ width: `${Math.min(100, Math.max(2, ctx * 100))}%` }} />
-                      <em>{Math.round(ctx * 100)}%</em>
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>cost</dt>
-                <dd>
-                  {cost}
-                  {hello?.budget && <small> · cap {hello.budget.cap}</small>}
-                </dd>
-              </div>
-            </dl>
-          </Panel>
-          <Panel icon={Shield} title="Guardrails" label="Guardrails" className="mapp-fill">
-            <p className="mapp-check mapp-big" data-ok={desk.verify.length > 0}>
-              <Tick ok={desk.verify.length > 0} /> Verify must pass
+        {v && v.queued.length > 0 && (
+          <ul className="ss-queued" aria-label="Queued">
+            {v.queued.map((q, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: the queue's lines, in order
+              <li key={i}>
+                <Icon icon={Hourglass} /> queued: <Safe text={q} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {live &&
+          live.link !== 'closed' &&
+          (observer || (live.role === undefined && live.hello)) && (
+            <p className="ss-observer">
+              <Icon icon={Eye} />
+              <span>
+                {live.controlled
+                  ? 'This tab observes: another tab of this browser controls the session.'
+                  : 'No tab controls this session.'}
+              </span>
+              <button type="button" className="ss-configure" onClick={() => void live.takeOver()}>
+                Take over
+              </button>
             </p>
-            <p className="mapp-check mapp-big" data-ok="true">
-              <Tick ok /> No test deleted or skipped
-            </p>
-            <p className="mapp-check mapp-big" data-ok="true">
-              <Tick ok /> Approval needed for push/PR
-            </p>
-            <p className="mapp-check mapp-big" data-ok={sandboxOn === true}>
-              <Tick ok={sandboxOn === true} />{' '}
-              {sandboxOn === undefined
-                ? 'Sandbox: checked as a run opens'
-                : sandboxOn
-                  ? 'Commands sandboxed'
-                  : 'No sandbox'}
-            </p>
-          </Panel>
-        </aside>
-      </div>
-
-      <form
-        className="mapp-input"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-      >
-        <Icon icon={ChevronRight} className="mapp-prompt" />
-        <textarea
-          aria-label="Ask Mikata"
-          rows={1}
-          value={draft}
-          placeholder={
-            busy ? 'a line now waits its turn' : 'ask Mikata to change, check or explain something'
-          }
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-            if (e.key === 'Escape' && busy) void live?.interrupt();
+          )}
+        <form
+          className="ss-composer"
+          data-busy={busy}
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
           }}
-        />
-        <span className="mapp-keys">
-          <kbd>Enter</kbd> {busy ? 'queue' : 'run'} <kbd>Shift+Enter</kbd> newline
-          {busy && (
-            <>
-              {' '}
-              <kbd>Esc</kbd> stop
-            </>
-          )}
-        </span>
-        <button
-          type="submit"
-          className="mapp-go"
-          disabled={!draft.trim() || starting}
-          aria-label="Run"
         >
-          <Icon icon={Play} />
-        </button>
-      </form>
-      {why && (
-        <p className="mapp-why" role="alert">
-          <Safe text={why} />
-        </p>
-      )}
+          <textarea
+            aria-label="Ask Mikata"
+            rows={2}
+            value={draft}
+            disabled={!ready}
+            placeholder={
+              live?.link === 'closed'
+                ? 'This session has ended'
+                : busy
+                  ? 'Steer the run: it reads this after its next step…'
+                  : 'Ask Mikata to change, inspect or explain something…'
+            }
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+              if (e.key === 'Escape' && busy) void live?.interrupt();
+            }}
+          />
+          <div className="ss-composerfoot">
+            <span className="ss-keys">
+              <kbd>Enter</kbd> {busy ? 'steer' : 'send'} <kbd>Shift+Enter</kbd> newline
+              {busy && (
+                <>
+                  {' '}
+                  <kbd>Esc</kbd> stop
+                </>
+              )}
+            </span>
+            {busy && (
+              <button type="button" className="ss-stop" onClick={() => void live?.interrupt()}>
+                <Icon icon={Square} /> Stop
+              </button>
+            )}
+            <button
+              type="submit"
+              className="pf-primary"
+              disabled={!draft.trim() || starting || !ready}
+            >
+              <Icon icon={Send} /> {busy ? 'Steer' : 'Send'}
+            </button>
+          </div>
+        </form>
+        {why && (
+          <p className="mapp-why" role="alert">
+            <Safe text={why} />
+          </p>
+        )}
+      </section>
 
-      <footer className="mapp-foot">
-        <span className="mapp-verify">
-          <Icon icon={ChevronRight} /> <b>verify:</b>{' '}
-          <Safe text={desk.verify.join(' && ') || desk.suggested || 'none pinned'} />
-          {landed && <Icon icon={Check} className="mapp-ok" />}
-        </span>
-        <span className="mapp-sep" aria-hidden="true" />
-        <span>
-          last answer:{' '}
-          {verdict?.kind === 'verdict' ? (
-            <b data-tone={verdict.ok ? 'ok' : 'alarm'}>{verdict.ok ? 'landed' : 'not landed'}</b>
-          ) : (
-            <b>—</b>
-          )}
-        </span>
-        <span className="mapp-foot-chips">
-          <span className="mapp-chip">
-            <Icon icon={Layers} /> steps: {calls}
-          </span>
-          <span className="mapp-chip">
-            <Icon icon={Clock} /> time: {mmss(wall)}
-          </span>
-          <span className="mapp-chip">
-            <Icon icon={Coins} /> cost: {cost}
-          </span>
-        </span>
-      </footer>
+      <LiveRun
+        v={v}
+        desk={desk}
+        hello={hello}
+        planOn={planOn}
+        state={state}
+        wall={wall}
+        steps={steps}
+        cost={cost}
+        ctx={ctx}
+        landed={landed}
+        onStop={busy && live ? () => void live.interrupt() : undefined}
+      />
       {live && <Approval live={live} />}
     </div>
   );
@@ -799,26 +915,42 @@ function WithLive({ session, children }: { session: string; children: (live: Liv
   return <>{children(live)}</>;
 }
 
-/** The app on `w`: the newest live chat of the world, or a new one at the first ask. */
-export function MikataApp({ w, chats }: { w: BoardWorld; chats: Chats }) {
+/** The asks that opened a session, waiting for its replay; read once by the session's page. */
+const opening = new Map<string, string>();
+
+/**
+ * A workspace's session: the one `session` names, else its newest live one, else a composer
+ * whose first ask opens a new session at its own address.
+ */
+export function SessionView({
+  w,
+  chats,
+  session,
+}: {
+  w: BoardWorld;
+  chats: Chats;
+  session?: string | undefined;
+}) {
   const desk = useDesk(w.id);
-  const [session, setSession] = useState<string | undefined>();
-  const [pending, setPending] = useState<string | undefined>();
+  const harness = useHarness(w.id);
+  const planOn =
+    harness.state === 'ready'
+      ? (harness.data.units.find((u) => u.id === 'plan')?.on ?? false)
+      : true;
   const [starting, setStarting] = useState(false);
   const [why, setWhy] = useState<string | undefined>();
   const id = session ?? chats.live[0]?.id;
-  useEffect(() => {
-    document.title = `mikata — ${w.name}`;
-  }, [w.name]);
+  const at = chats.live.findIndex((c) => c.id === id);
+  const number = at < 0 ? chats.live.length + 1 : chats.live.length - at;
 
   const open = async (text: string) => {
     setStarting(true);
     setWhy(undefined);
     try {
       const started = await startChat(w.id);
-      setPending(text);
-      setSession(started.session.id);
+      opening.set(started.session.id, text);
       chats.refresh();
+      window.location.hash = format({ name: 'session', world: w.id, session: started.session.id });
     } catch (e) {
       setWhy(e instanceof Error ? e.message : String(e));
     } finally {
@@ -835,13 +967,15 @@ export function MikataApp({ w, chats }: { w: BoardWorld; chats: Chats }) {
         onAsk={(t) => void open(t)}
         starting={starting}
         why={why}
+        planOn={planOn}
+        number={number}
       />
     );
   }
   return (
     <WithLive key={id} session={id}>
       {(live) => (
-        <Sender live={live} pending={pending} onSent={() => setPending(undefined)}>
+        <Sender live={live} id={id}>
           <Screen
             w={w}
             live={live}
@@ -849,6 +983,8 @@ export function MikataApp({ w, chats }: { w: BoardWorld; chats: Chats }) {
             onAsk={(t) => void live.prompt(t)}
             starting={starting}
             why={why ?? live.closed}
+            planOn={planOn}
+            number={number}
           />
         </Sender>
       )}
@@ -857,22 +993,12 @@ export function MikataApp({ w, chats }: { w: BoardWorld; chats: Chats }) {
 }
 
 /** Sends the ask that opened the chat, once its replay is done. */
-function Sender({
-  live,
-  pending,
-  onSent,
-  children,
-}: {
-  live: Live;
-  pending: string | undefined;
-  onSent: () => void;
-  children: ReactNode;
-}) {
-  const sent = useRef(false);
+function Sender({ live, id, children }: { live: Live; id: string; children: ReactNode }) {
   useEffect(() => {
-    if (sent.current || pending === undefined || live.link !== 'open' || !live.replayed) return;
-    sent.current = true;
-    void live.prompt(pending).then(onSent);
-  }, [live, pending, onSent]);
+    const ask = opening.get(id);
+    if (ask === undefined || live.link !== 'open' || !live.replayed) return;
+    opening.delete(id);
+    void live.prompt(ask);
+  }, [live, id]);
   return <>{children}</>;
 }

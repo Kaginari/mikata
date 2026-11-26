@@ -146,12 +146,12 @@ test('the builder starts a run with the composition its switches make, and follo
   await expect(page.locator('.bapp-steps li[data-state="done"]')).toHaveCount(4);
   await expect(page.locator('.bapp-state')).toHaveText('VERIFIED');
   await page.screenshot({ path: shot(`builder-run-${info.project.name}`), fullPage: true });
-  // The session view shows the run's own conversation, and a composer to go on.
-  await page
-    .getByRole('navigation', { name: "The builder's views" })
-    .getByRole('button', { name: 'Sessions' })
-    .click();
-  await expect(page.locator('.bapp-conversation')).toContainText('Parsed 1h30m as 90 minutes');
+  // The session's own page shows the run's conversation, and a composer to go on.
+  await page.goto(`/#/w/${LIVE.id}/s/${CHAT}`);
+  await expect(page.getByRole('region', { name: 'The conversation' })).toContainText(
+    'Parsed 1h30m as 90 minutes',
+  );
+  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toBeEnabled();
   await page.screenshot({ path: shot(`builder-${info.project.name}`), fullPage: true });
 });
 
@@ -162,16 +162,13 @@ test('a profile starts the switches from its own composition', async ({ page }) 
       r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
     );
   });
-  await page
-    .getByRole('navigation', { name: "The builder's views" })
-    .getByRole('button', { name: 'Harness builder' })
-    .click();
+  await expect(page.getByRole('heading', { name: 'Harness Builder', level: 1 })).toBeVisible();
   await page.getByLabel('Profile').selectOption('small-fix');
   await expect(page.getByRole('switch', { name: 'Plan: off' })).toBeVisible();
   // Nothing flipped over the profile: it goes as it is.
   await expect(page.locator('.bapp-units')).toContainText('as the profile is');
-  // The profiles view lists them, each to apply.
-  await page.getByRole('button', { name: 'Profiles' }).first().click();
+  // The profiles page lists them, each to apply.
+  await page.getByRole('link', { name: 'Profiles', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Profiles', level: 1 })).toBeVisible();
 });
 
@@ -216,25 +213,26 @@ for (const theme of ['dark', 'light'] as const) {
         }),
       );
     });
-    const views = page.getByRole('navigation', { name: "The builder's views" });
     await page
       .getByLabel('Your ask')
       .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
     await page.getByRole('button', { name: /Start run/ }).click();
     await expect(page.getByRole('heading', { name: 'Verified', exact: true })).toBeVisible();
     await page.mouse.move(0, 999);
-    await page.screenshot({ path: docs(`sessions-${theme}`) });
-    await views.getByRole('button', { name: 'Harness builder' }).click();
-    await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`builder-${theme}`) });
-    await views.getByRole('button', { name: 'Plugins' }).click();
-    await page.mouse.move(0, 999);
-    await page.screenshot({ path: docs(`plugins-${theme}`) });
-    await views.getByRole('button', { name: 'Profiles' }).click();
-    await page.mouse.move(0, 999);
-    await page.screenshot({ path: docs(`profiles-${theme}`) });
+    // Each page at its own address; the session last, where the run's card opens.
+    for (const [name, at] of [
+      ['plugins', `#/w/${LIVE.id}/plugins`],
+      ['profiles', `#/w/${LIVE.id}/profiles`],
+      ['runs', `#/w/${LIVE.id}/runs`],
+      ['sessions', `#/w/${LIVE.id}/s/${CHAT}`],
+    ] as const) {
+      await page.goto(`/${at}`);
+      await expect(page.locator('.pf-page')).toBeVisible();
+      await page.mouse.move(0, 999);
+      await page.screenshot({ path: docs(`${name}-${theme}`) });
+    }
     // An act the run asks the human for: the card over the page.
-    await views.getByRole('button', { name: 'Sessions' }).click();
     bridge.say(
       askLine('gate-1', {
         body: 'mikata',

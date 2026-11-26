@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import type { ChatView, Entry, Usage } from '../data/chat.ts';
 import { THE_ASK } from '../data/chat.ts';
 import { deskOf } from '../data/desk.ts';
-import { counted, kept, spoken, turns } from './MikataApp.tsx';
+import { counted, kept, spoken, turns } from './Session.tsx';
 
 const usage: Usage = {
   usd: 0,

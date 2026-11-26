@@ -218,6 +218,26 @@ export async function openChat(
     ),
   );
   await page.route(`**/api/w/${LIVE.id}/runs`, (r) => r.fulfill(json(runs)));
+  // The harness and the desk the session page reads; a test's own routes (`extra`) win.
+  await page.route(`**/api/w/${LIVE.id}/units`, (r) =>
+    r.fulfill(
+      json({
+        units: ['plan', 'gate'].map((id) => ({
+          id,
+          kind: 'native',
+          version: '1',
+          on: true,
+          frame: false,
+          tightens: false,
+        })),
+        profiles: [],
+        holes: [],
+      }),
+    ),
+  );
+  await page.route(`**/api/w/${LIVE.id}/desk`, (r) =>
+    r.fulfill(json({ verify: ['pytest -q'], done: [], branch: 'main' })),
+  );
   await page.route(`**/api/w/${LIVE.id}`, (r) =>
     r.fulfill(
       json({

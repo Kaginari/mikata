@@ -1,16 +1,15 @@
 /**
  * The M12 exit, on the board's real server, bridge and core, at phone and desktop in both themes:
- * the board serves every known world on loopback; the human chats; an act waits at the human gate
- * and is approved on the card under its protections — nothing answers it before it is armed —
- * and runs; memory, ontology, bodies and metrics are read, and move live as a body writes.
+ * the board serves every known world on loopback; the human starts a session and asks; an act
+ * waits at the human gate and is approved on the card under its protections — nothing answers it
+ * before it is armed — and runs; memory and metrics are read, and move live as a body writes.
  *
  * The `board_e2e` example of mikata-server serves the built page over two fresh worlds (see its
- * docs); `board_e2e note|fact`, and a creature doc written into the world, land what a body would
- * while the page watches. CI builds the board,
+ * docs); `board_e2e note` lands what a body would while the page watches. CI builds the board,
  * then the example; locally the suite is skipped without it.
  */
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,9 +29,9 @@ async function rail(page: Page) {
   const menu = page.getByRole('button', { name: 'Menu' });
   if (await menu.isVisible()) {
     if ((await menu.getAttribute('aria-expanded')) !== 'true') await menu.click();
-    await expect(page.locator('#rail')).toBeVisible();
+    await expect(page.locator('#pf-rail')).toBeVisible();
   }
-  return page.locator('#rail');
+  return page.locator('#pf-rail');
 }
 
 for (const theme of ['dark', 'light'] as const) {
@@ -66,7 +65,7 @@ for (const theme of ['dark', 'light'] as const) {
       if (root) rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     });
 
-    test('every world on loopback; chat; approve on the card; memory, ontology, bodies and metrics live', async ({
+    test('every world on loopback; a session; approve on the card; memory and metrics live', async ({
       page,
       context,
     }, info) => {
@@ -97,17 +96,17 @@ for (const theme of ['dark', 'light'] as const) {
         );
       });
 
-      // Every known world, served on loopback only.
+      // Every known world, served on loopback only; the front page opens the newest.
       expect(new URL(url).hostname).toBe('127.0.0.1');
       await page.goto(url);
-      const cards = page.locator('.world-card');
-      await expect(cards).toHaveCount(2);
-      await expect(cards.filter({ hasText: 'atelier' })).toBeVisible();
-      await expect(cards.filter({ hasText: /^\W*world\b/ })).toBeVisible();
-      expect(page.url()).not.toContain('#k='); // the key left the address bar
-      await shot('worlds');
-      await cards.filter({ hasText: 'atelier' }).click();
       await expect(page).toHaveURL(/#\/w\/[^/]+$/);
+      expect(page.url()).not.toContain('#k='); // the key left the address bar
+      const picker = (await rail(page)).getByRole('combobox', { name: 'Workspace' });
+      await expect(picker.locator('option')).toHaveCount(2);
+      await expect(picker.locator('option', { hasText: 'atelier' })).toHaveCount(1);
+      await shot('worlds');
+      await picker.selectOption({ label: 'atelier' });
+      await expect(page.locator('.ss-empty')).toContainText('atelier');
       const id = decodeURIComponent(new URL(page.url()).hash.split('/')[2] ?? '');
       const at = (path: string) => `#/w/${encodeURIComponent(id)}${path}`;
       const worldDir = join(root, 'atelier');
@@ -120,15 +119,6 @@ for (const theme of ['dark', 'light'] as const) {
         timeout: 15_000,
       });
 
-      // Ontology: the fact, then one more, live.
-      await page.goto(`${new URL(url).origin}/${at('/ontology')}`);
-      await page.getByRole('tab', { name: /single/ }).click();
-      await expect(page.locator('main')).toContainText('the notes are plain text');
-      execFileSync(BIN, ['fact', worldDir, 'notes.txt', 'the board reads it live']);
-      await expect(page.locator('main')).toContainText('the board reads it live', {
-        timeout: 15_000,
-      });
-
       // Metrics, open in a second tab of this browser before the chat: it moves when the chat spends.
       const metrics = await context.newPage();
       await metrics.emulateMedia({ colorScheme: theme });
@@ -137,9 +127,10 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(metrics.locator('main')).toContainText('no calls');
 
       // Chat, and approve under the card's protections.
-      await (await rail(page)).getByRole('button', { name: '+ New chat' }).click();
+      await page.goto(`${new URL(url).origin}/${at('')}`);
+      await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
       await expect(page).toHaveURL(/#\/w\/[^/]+\/s\/[^/]+$/);
-      const box = page.getByRole('textbox');
+      const box = page.getByRole('textbox', { name: 'Ask Mikata' });
       await expect(box).toBeEnabled({ timeout: 30_000 });
       await box.fill('change a to b in the notes');
       // The page is hidden while the ask arrives: the card waits unarmed.
@@ -172,8 +163,10 @@ for (const theme of ['dark', 'light'] as const) {
         timeout: 30_000,
       });
       expect(readFileSync(join(worldDir, 'notes.txt'), 'utf8')).toBe('b\n');
-      // Run once: one bash card, one edit.
-      await expect(page.locator('.tool-name', { hasText: 'bash' })).toHaveCount(1);
+      // Run once: one command in the timeline.
+      await expect(page.locator('.mapp-cmd', { hasText: 'sed -i s/a/b/ notes.txt' })).toHaveCount(
+        1,
+      );
       await shot('chat');
 
       // The metrics tab moved without a reload: the chat's calls, unpriced, never $0.
@@ -182,22 +175,6 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(metrics.locator('main')).not.toContainText('$0.00');
       await metrics.screenshot({ path: screen(`exit-${info.project.name}-${theme}-metrics`) });
       await metrics.close();
-
-      // Bodies: the colony from the world's docs, and the race law compiled in.
-      await page.goto(`${new URL(url).origin}/${at('/bodies')}`);
-      await expect(page.locator('.colony-node[data-name="orc-notes"]')).toBeVisible();
-      // A body writes a new creature's doc: the colony grows, live.
-      mkdirSync(join(worldDir, '.mikata/slime/slime-notes'), { recursive: true });
-      writeFileSync(
-        join(worldDir, '.mikata/slime/slime-notes/README.md'),
-        '# slime-notes\n\n- **Race:** slime\n- **Reports to:** orc-notes\n- **Territory:** docs/\n',
-      );
-      await expect(page.locator('.colony-node[data-name="slime-notes"]')).toBeVisible({
-        timeout: 15_000,
-      });
-      await shot('bodies');
-      await page.goto(`${new URL(url).origin}/${at('/bodies/races')}`);
-      await expect(page.locator('main')).toContainText('Slime');
 
       // The journal, rendered.
       await page.goto(`${new URL(url).origin}/${at('/journal')}`);

@@ -1,6 +1,6 @@
 /**
- * The board's shell: the rail on the left, the centre, the foldable pane on the right — and at
- * phone width the rail and the pane as drawers over the centre.
+ * The board: one platform for every workspace — the top bar, the rail, and the page: a session,
+ * the Harness Builder, the plugins, the runs, the journal, the memory, the board's own pages.
  */
 import type { BoardWorld } from '@mikata/protocol';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -10,77 +10,24 @@ import { commands } from './data/commands.ts';
 import { useAccess } from './data/session.ts';
 import { type Load, useWorlds } from './data/worlds.ts';
 import { format, type Route, useRoute, worldOf } from './router.ts';
-import { Safe } from './safe/Safe.tsx';
 import { shown } from './safe/shown.ts';
 import { type Choice, type SchemeName, useScheme, useTheme } from './theme.ts';
 import { Announcer } from './ui/Announcer.tsx';
 import { CommandPalette } from './ui/CommandPalette.tsx';
-import { Glyph } from './ui/Icon.tsx';
 import { cardUp, dialogUp, typing } from './ui/modal.ts';
-import { Pane } from './ui/Pane.tsx';
-import { Rail } from './ui/Rail.tsx';
+import { Platform } from './ui/Platform.tsx';
 import { ShortcutMap } from './ui/ShortcutMap.tsx';
-import { BodiesView } from './views/Bodies.tsx';
 import { BuilderView } from './views/Builder.tsx';
-import { LiveChat, PastChat, type Side } from './views/Chat.tsx';
+import { PastChat, type Side } from './views/Chat.tsx';
 import { IntegrationsView } from './views/Integrations.tsx';
 import { JournalView } from './views/Journal.tsx';
 import { MemoryView } from './views/Memory.tsx';
 import { MetricsView } from './views/Metrics.tsx';
-import { MikataApp } from './views/MikataApp.tsx';
-import { NetView } from './views/Net.tsx';
-import { OntologyView } from './views/Ontology.tsx';
-import { SettingsView, UnknownView } from './views/Pages.tsx';
+import { HomeView, MissingWorld, NoWorld, SettingsView, UnknownView } from './views/Pages.tsx';
+import { RunsView } from './views/Runs.tsx';
+import { SessionView } from './views/Session.tsx';
 import { SignedOut } from './views/SignedOut.tsx';
-import { MissingWorld, NoWorld, SectionView, WorldView } from './views/World.tsx';
-import { WorldsView } from './views/Worlds.tsx';
-
-const PANE_KEY = 'mikata.pane';
-const PHONE = '(max-width: 760px)';
-
-function initialPane(): boolean {
-  try {
-    const v = window.localStorage.getItem(PANE_KEY);
-    if (v === 'open' || v === 'closed') return v === 'open';
-  } catch {
-    // no storage: fall through to the width's default
-  }
-  return !window.matchMedia(PHONE).matches;
-}
-
-/** Whether the page is at phone width, following it. */
-function usePhone(): boolean {
-  const [phone, setPhone] = useState(() => window.matchMedia(PHONE).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(PHONE);
-    const on = () => setPhone(mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, []);
-  return phone;
-}
-
-/**
- * A drawer's focus: into the drawer when it opens, back to the button that opened it when it
- * closes. Only while it is a drawer (phone width).
- */
-function useDrawerFocus(
-  open: boolean,
-  active: boolean,
-  drawer: React.RefObject<HTMLElement | null>,
-  trigger: React.RefObject<HTMLElement | null>,
-) {
-  const was = useRef(open);
-  useEffect(() => {
-    if (active && open && !was.current) {
-      const el = drawer.current;
-      (el?.querySelector<HTMLElement>('a[href], button:not([disabled])') ?? el)?.focus();
-    } else if (active && !open && was.current) {
-      trigger.current?.focus();
-    }
-    was.current = open;
-  }, [open, active, drawer, trigger]);
-}
+import './platform.css';
 
 function useNow(): number {
   const [now, setNow] = useState(() => Date.now());
@@ -91,7 +38,9 @@ function useNow(): number {
   return now;
 }
 
-function Centre({
+const noSide = (_: Side | undefined) => {};
+
+function Page({
   route,
   load,
   world,
@@ -101,7 +50,6 @@ function Centre({
   scheme,
   onScheme,
   chats,
-  onSide,
 }: {
   route: Route;
   load: Load;
@@ -112,13 +60,10 @@ function Centre({
   scheme: SchemeName;
   onScheme: (s: SchemeName) => void;
   chats: Chats;
-  onSide: (s: Side | undefined) => void;
 }) {
   switch (route.name) {
     case 'worlds':
-      return <WorldsView load={load} now={now} />;
-    case 'net':
-      return <NetView />;
+      return <HomeView load={load} />;
     case 'metrics':
       return <MetricsView load={load} />;
     case 'integrations':
@@ -128,42 +73,59 @@ function Centre({
     case 'unknown':
       return <UnknownView path={route.path} />;
   }
-  if (load.state !== 'ready') return <WorldsView load={load} now={now} />;
+  if (load.state !== 'ready') return <HomeView load={load} />;
   if (!world) {
     const gone = load.data.missing.find((m) => m.id === route.world);
     return gone ? <MissingWorld m={gone} now={now} /> : <NoWorld id={route.world} />;
   }
-  if (route.name === 'section' && route.section === 'bodies') {
-    return <BodiesView key={world.id} w={world} tab={route.tab} />;
+  switch (route.name) {
+    case 'world':
+      return <SessionView key={world.id} w={world} chats={chats} />;
+    case 'session':
+      return <SessionView key={route.session} w={world} chats={chats} session={route.session} />;
+    case 'run':
+      return (
+        <div className="pg pg-chat">
+          <PastChat key={route.run} w={world} run={route.run} chats={chats} onSide={noSide} />
+        </div>
+      );
   }
-  if (route.name === 'section' && route.section === 'journal') {
-    return <JournalView key={world.id} w={world} />;
+  switch (route.section) {
+    case 'builder':
+    case 'plugins':
+    case 'profiles':
+      return <BuilderView key={world.id} w={world} chats={chats} view={route.section} />;
+    case 'runs':
+      return <RunsView w={world} chats={chats} now={now} />;
+    case 'journal':
+      return (
+        <div className="pg">
+          <JournalView key={world.id} w={world} />
+        </div>
+      );
+    case 'memory':
+      return (
+        <div className="pg">
+          <MemoryView key={world.id} w={world} />
+        </div>
+      );
   }
-  if (route.name === 'section' && route.section === 'memory') {
-    return <MemoryView key={world.id} w={world} />;
-  }
-  if (route.name === 'section' && route.section === 'ontology') {
-    return <OntologyView key={world.id} w={world} />;
-  }
-  if (route.name === 'section') return <SectionView w={world} section={route.section} />;
-  if (route.name === 'session') {
-    return (
-      <LiveChat key={route.session} w={world} id={route.session} chats={chats} onSide={onSide} />
-    );
-  }
-  if (route.name === 'run') {
-    return <PastChat key={route.run} w={world} run={route.run} chats={chats} onSide={onSide} />;
-  }
-  return <WorldView key={world.id} w={world} now={now} />;
 }
 
-/** The centre's title, for the top bar and the tab. */
+const SECTION_TITLE: Record<string, string> = {
+  builder: 'Harness Builder',
+  plugins: 'Plugins',
+  profiles: 'Profiles',
+  runs: 'Runs',
+  journal: 'Run journal',
+  memory: 'Memory',
+};
+
+/** The page's title, for the tab. */
 function title(route: Route, world: BoardWorld | undefined): string {
   switch (route.name) {
     case 'worlds':
-      return 'Worlds';
-    case 'net':
-      return 'Colony net';
+      return 'Board';
     case 'metrics':
       return 'Metrics';
     case 'integrations':
@@ -172,6 +134,8 @@ function title(route: Route, world: BoardWorld | undefined): string {
       return 'Settings';
     case 'unknown':
       return 'Not found';
+    case 'section':
+      return `${SECTION_TITLE[route.section] ?? route.section} · ${world?.name ?? route.world}`;
     default:
       return world?.name ?? route.world;
   }
@@ -217,106 +181,37 @@ function Shell() {
   const now = useNow();
   const [theme, setTheme] = useTheme();
   const [scheme, setScheme] = useScheme();
-  const [rail, setRail] = useState(false);
-  const [pane, setPane] = useState(initialPane);
-  const phone = usePhone();
-  const railRef = useRef<HTMLElement>(null);
-  const paneRef = useRef<HTMLElement>(null);
-  const menuRef = useRef<HTMLButtonElement>(null);
-  const paneButtonRef = useRef<HTMLButtonElement>(null);
-  useDrawerFocus(rail, phone, railRef, menuRef);
-  useDrawerFocus(pane, phone, paneRef, paneButtonRef);
 
-  // Opened as the app (`mikatad app`, `/?app`): the board's front page hands over to the app
-  // screen of the world worked in last.
+  // The front page opens the workspace worked in last.
   useEffect(() => {
     if (route.name !== 'worlds' || load.state !== 'ready') return;
-    if (!new URLSearchParams(window.location.search).has('app')) return;
     const newest = [...load.data.worlds].sort((a, b) =>
       (b.last ?? '').localeCompare(a.last ?? ''),
     )[0];
-    if (newest) {
-      window.location.hash = format({ name: 'section', world: newest.id, section: 'app' });
-    }
+    if (newest) window.location.replace(format({ name: 'world', world: newest.id }));
   }, [route, load]);
 
   const here = worldOf(route);
-  const world =
-    here !== undefined && load.state === 'ready'
-      ? load.data.worlds.find((w) => w.id === here)
-      : undefined;
+  const worlds = load.state === 'ready' ? load.data.worlds : [];
+  const world = here !== undefined ? worlds.find((w) => w.id === here) : undefined;
   const name = title(route, world);
   const chats = useChats(here);
-  const [side, setSide] = useState<Side | undefined>(undefined);
-  const onSide = useCallback((s: Side | undefined) => setSide(s), []);
   const [open, setOpen] = useState<Open>(undefined);
   const closeDialog = useCallback(() => setOpen(undefined), []);
   useShortcuts(setOpen);
   const all = useMemo(
-    () => commands(load.state === 'ready' ? load.data.worlds : [], here, chats.live, chats.runs),
-    [load, here, chats.live, chats.runs],
+    () => commands(worlds, here, chats.live, chats.runs),
+    [worlds, here, chats.live, chats.runs],
   );
   const mainRef = useRef<HTMLElement>(null);
 
-  // A drawer closes when the page moves; Esc closes either.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: closes on every route change
-  useEffect(() => setRail(false), [route]);
-  useEffect(() => {
-    const on = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
-      setRail(false);
-      if (window.matchMedia(PHONE).matches) setPane(false);
-    };
-    window.addEventListener('keydown', on);
-    return () => window.removeEventListener('keydown', on);
-  }, []);
   useEffect(() => {
     // The name is a world's own text, or a decoded address: escaped, never a live bidi mark.
     document.title = `${shown(name)} · Mikata`;
   }, [name]);
 
-  const togglePane = () =>
-    setPane((p) => {
-      try {
-        window.localStorage.setItem(PANE_KEY, p ? 'closed' : 'open');
-      } catch {
-        // kept for this page only
-      }
-      return !p;
-    });
-
-  // Mikata as an app is a window of its own: its header bar, its panels, its status bar.
-  if (route.name === 'section' && route.section === 'app' && world) {
-    return (
-      <>
-        <MikataApp key={world.id} w={world} chats={chats} />
-        {createPortal(<Announcer />, document.body)}
-      </>
-    );
-  }
-
-  // The Harness Builder is a page of its own: its header, its columns, no rail and no pane.
-  if (route.name === 'section' && route.section === 'builder' && world) {
-    return (
-      <>
-        <BuilderView
-          key={world.id}
-          w={world}
-          worlds={load.state === 'ready' ? load.data.worlds : []}
-          chats={chats}
-        />
-        {createPortal(<Announcer />, document.body)}
-      </>
-    );
-  }
-
   return (
-    <div
-      className="shell"
-      data-load={load.state}
-      data-rail={rail ? 'open' : 'closed'}
-      data-pane={pane ? 'open' : 'closed'}
-    >
+    <div className="shell" data-load={load.state}>
       <button
         type="button"
         className="skip"
@@ -326,80 +221,25 @@ function Shell() {
       >
         Skip to the content
       </button>
-      <Rail
-        ref={railRef}
-        inert={phone && !rail}
+      <Platform
         route={route}
-        load={load}
-        now={now}
+        worlds={worlds}
+        world={world}
+        chats={chats}
         theme={theme}
         onTheme={setTheme}
-        chats={chats}
         onSearch={() => {
           if (!cardUp()) setOpen('palette');
         }}
-      />
-      <button
-        type="button"
-        className="scrim"
-        aria-label="Close the menu"
-        tabIndex={-1}
-        onClick={() => {
-          setRail(false);
-          if (window.matchMedia(PHONE).matches) setPane(false);
-        }}
-      />
-      <div className="centre">
-        <header className="topbar">
-          <button
-            type="button"
-            ref={menuRef}
-            className="icon-button rail-toggle"
-            aria-label="Menu"
-            aria-controls="rail"
-            aria-expanded={rail}
-            onClick={() => setRail((r) => !r)}
-          >
-            <Glyph glyph="☰" />
-          </button>
-          <span className="topbar-title">
-            <Safe text={name} />
-          </span>
-          <button
-            type="button"
-            className="icon-button topbar-search"
-            aria-label="Search: jump to a world, a page, a chat or a run"
-            aria-keyshortcuts="Control+K Meta+K"
-            onClick={() => {
-              if (!cardUp()) setOpen('palette');
-            }}
-          >
-            ⌕
-          </button>
-          <button
-            type="button"
-            ref={paneButtonRef}
-            className="icon-button"
-            aria-label={pane ? 'Hide the side pane' : 'Show the side pane'}
-            aria-controls="pane"
-            aria-expanded={pane}
-            onClick={togglePane}
-          >
-            ◨
-          </button>
-        </header>
+      >
         <main
           ref={mainRef}
           id="main"
-          // biome-ignore lint/a11y/noNoninteractiveTabindex: the centre scrolls; the keys scroll it
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: the page scrolls; the keys scroll it
           tabIndex={0}
-          className={
-            route.name === 'session' || route.name === 'run'
-              ? 'centre-main centre-chat'
-              : 'centre-main'
-          }
+          className="pf-main"
         >
-          <Centre
+          <Page
             route={route}
             load={load}
             world={world}
@@ -409,20 +249,9 @@ function Shell() {
             scheme={scheme}
             onScheme={setScheme}
             chats={chats}
-            onSide={onSide}
           />
         </main>
-      </div>
-      <aside
-        ref={paneRef}
-        tabIndex={-1}
-        className="pane"
-        id="pane"
-        aria-label="Side pane"
-        hidden={!pane}
-      >
-        <Pane route={route} load={load} world={world} now={now} side={side} />
-      </aside>
+      </Platform>
       {open === 'palette' && <CommandPalette all={all} onClose={closeDialog} />}
       {open === 'shortcuts' && <ShortcutMap onClose={closeDialog} />}
       {createPortal(<Announcer />, document.body)}

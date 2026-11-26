@@ -61,47 +61,60 @@ test.describe('the real bridge', () => {
       );
     });
     await page.goto(url);
-    const world = page.locator('.world-card', { hasText: 'world' });
-    await world.click();
-    await page.getByRole('button', { name: '+ New chat' }).click();
+    await expect(page).toHaveURL(/#\/w\/[^/]+$/);
+    // The rail's picker, a drawer's at phone width.
+    const rail = async () => {
+      const menu = page.getByRole('button', { name: 'Menu' });
+      if (await menu.isVisible()) {
+        if ((await menu.getAttribute('aria-expanded')) !== 'true') await menu.click();
+        await expect(page.locator('#pf-rail')).toBeVisible();
+      }
+      return page.locator('#pf-rail');
+    };
+    await (await rail())
+      .getByRole('combobox', { name: 'Workspace' })
+      .selectOption({ label: 'world' });
+    await expect(page.locator('.ss-empty')).toContainText('world');
+    await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
     await expect(page).toHaveURL(/#\/w\/[^/]+\/s\/[^/]+$/);
-    await expect(page.locator('.chat-title')).toContainText('scripted-model');
-    const box = page.getByRole('textbox');
+    await expect(page.locator('.ss-chips')).toContainText('scripted-model');
+    const box = page.getByRole('textbox', { name: 'Ask Mikata' });
     await expect(box).toBeEnabled();
     await box.fill('what does notes.txt say?');
     await box.press('Enter');
 
-    await expect(page.locator('.msg-user')).toContainText('what does notes.txt say?');
-    await expect(page.locator('.tool-name', { hasText: 'edit' })).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator('.diff-add .diff-text')).toHaveText('b');
-    await expect(page.locator('.diff-del .diff-text')).toHaveText('a');
-    await expect(page.locator('main')).toContainText('they say b now');
-    await expect(page.locator('.verdict')).toBeVisible();
+    const talk = page.getByRole('region', { name: 'The conversation' });
+    await expect(talk.locator('.ss-msg-user')).toContainText('what does notes.txt say?');
+    await expect(talk.locator('.mapp-step h3', { hasText: 'edited notes.txt' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(talk).toContainText('they say b now');
+    await expect(talk.locator('.mapp-landed')).toBeVisible();
     // The model's hostile tail stays text.
-    await expect(page.locator('main')).toContainText('(link not followed)');
+    await expect(talk).toContainText('(link not followed)');
     expect(await page.locator('main img, main a[href^="javascript"]').count()).toBe(0);
-    await expect(page.locator('.activity')).toHaveCount(0);
+    await expect(talk.locator('.mapp-working')).toHaveCount(0);
+    await expect(page.getByRole('log', { name: 'Run log' })).toContainText('notes.txt');
 
     await box.fill('and again');
     await box.press('Enter');
     await expect(
-      page.locator('.msg-body', { hasText: 'The second turn, answered.' }),
+      talk.locator('.mapp-answer', { hasText: 'The second turn, answered.' }),
     ).toBeVisible();
-    await expect(page.locator('.msg-user')).toHaveCount(2);
-    await expect(page.locator('#pane .file')).toContainText('notes.txt');
+    await expect(talk.locator('.ss-msg-user')).toHaveCount(2);
 
-    // A reload replays the chat from the bridge: each message once.
+    // A reload replays the session from the bridge: each message once.
     await page.reload();
     await expect(
-      page.locator('.msg-body', { hasText: 'The second turn, answered.' }),
+      talk.locator('.mapp-answer', { hasText: 'The second turn, answered.' }),
     ).toBeVisible();
-    await expect(page.locator('.msg-user')).toHaveCount(2);
-    await expect(page.locator('.tool-name', { hasText: 'edit' })).toHaveCount(1);
+    await expect(talk.locator('.ss-msg-user')).toHaveCount(2);
+    await expect(talk.locator('.mapp-step h3', { hasText: 'edited notes.txt' })).toHaveCount(1);
 
-    // Ended, the chat is a past run, read from its journal.
-    await page.getByRole('button', { name: 'End chat' }).click();
-    await expect(page.locator('.composer-closed')).toBeVisible();
-    const past = page.locator('a.rail-chat[href*="/r/"]', { hasText: 'and again' });
+    // Ended, the session is a past run, read from its journal.
+    await page.getByRole('button', { name: 'End session' }).click();
+    await expect(box).toBeDisabled();
+    const past = (await rail()).locator('a.pf-session[href*="/r/"]').first();
     await expect(past).toBeVisible({ timeout: 20_000 });
     await past.click();
     await expect(page).toHaveURL(/#\/w\/[^/]+\/r\/r\d+-\d+$/);

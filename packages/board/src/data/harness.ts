@@ -13,13 +13,35 @@ export type HarnessLoad =
   | { state: 'ready'; data: BoardUnits }
   | { state: 'failed'; why: string };
 
+/** The server's answer as a harness, or `undefined` when it does not hold together. */
+export function harnessOf(d: unknown): BoardUnits | undefined {
+  if (typeof d !== 'object' || d === null) return undefined;
+  const { units, profiles, holes } = d as Record<string, unknown>;
+  if (!Array.isArray(units) || !Array.isArray(profiles) || !Array.isArray(holes)) return undefined;
+  const unit = (u: unknown) =>
+    typeof u === 'object' &&
+    u !== null &&
+    typeof (u as BoardUnit).id === 'string' &&
+    typeof (u as BoardUnit).on === 'boolean';
+  if (!units.every(unit)) return undefined;
+  if (!holes.every((h) => typeof h === 'string')) return undefined;
+  return { units, profiles, holes } as BoardUnits;
+}
+
 /** The world's harness, read once. */
 export function useHarness(world: string): HarnessLoad {
   const [load, setLoad] = useState<HarnessLoad>({ state: 'loading' });
   useEffect(() => {
     const ctl = new AbortController();
     getJson(`/api/w/${encodeURIComponent(world)}/units`, ctl.signal)
-      .then((d) => setLoad({ state: 'ready', data: d as BoardUnits }))
+      .then((d) => {
+        const units = harnessOf(d);
+        setLoad(
+          units
+            ? { state: 'ready', data: units }
+            : { state: 'failed', why: 'the harness answer did not hold together' },
+        );
+      })
       .catch((e: unknown) => {
         if (!ctl.signal.aborted) {
           setLoad({ state: 'failed', why: e instanceof Error ? e.message : String(e) });

@@ -1,6 +1,9 @@
 /** The board-wide pages, and the page for an address the board does not have. */
+import type { BoardMissing } from '@mikata/protocol';
+import type { Load } from '../data/worlds.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { CHOICES, type Choice, SCHEMES, type SchemeName } from '../theme.ts';
+import { shellWord, since } from '../time.ts';
 import { Empty } from '../ui/Empty.tsx';
 import { RACES, RaceChip } from '../ui/Mark.tsx';
 
@@ -100,7 +103,82 @@ export function UnknownView({ path }: { path: string }) {
           .
         </p>
         <p>
-          <a href="#/">See every world</a>
+          <a href="#/">Back to the board</a>
+        </p>
+      </Empty>
+    </div>
+  );
+}
+
+/** The front page while there is no workspace to open: reading, unread, or none yet. */
+export function HomeView({ load }: { load: Load }) {
+  if (load.state === 'loading') {
+    return (
+      <div className="page">
+        <Empty glyph="⣾" title="Reading the workspaces…">
+          Asking the board server.
+        </Empty>
+      </div>
+    );
+  }
+  if (load.state === 'failed') {
+    return (
+      <div className="page">
+        <Empty glyph="✕" title="The workspaces could not be read">
+          <p>
+            <Safe text={load.reason} />
+          </p>
+        </Empty>
+      </div>
+    );
+  }
+  return (
+    <div className="page">
+      <Empty glyph="◇" title="No workspace yet">
+        <p>
+          Run <code className="mono">mikata</code> in a repository: it becomes a workspace here,
+          with its sessions, its harness and its runs.
+        </p>
+      </Empty>
+    </div>
+  );
+}
+
+/** The workspace a route names, or why there is none. */
+export function NoWorld({ id }: { id: string }) {
+  return (
+    <div className="page">
+      <Empty glyph="✕" title="No such workspace">
+        <p>
+          No workspace with the id{' '}
+          <code className="mono">
+            <Safe text={id} />
+          </code>{' '}
+          is known to this board.
+        </p>
+      </Empty>
+    </div>
+  );
+}
+
+/** A workspace whose directory is gone: where it was, since when, how to forget it. */
+export function MissingWorld({ m, now }: { m: BoardMissing; now: number }) {
+  return (
+    <div className="page">
+      <Empty glyph="✕" title={<Safe text={`${m.name} is missing`} />}>
+        <p>
+          Its directory{' '}
+          <code className="mono">
+            <Safe text={m.path} />
+          </code>{' '}
+          is gone, or holds no <code className="mono">.mikata/</code>: missing since{' '}
+          {since(m.since, now)}. It is live again once it is back.
+        </p>
+        <p>
+          To forget it:{' '}
+          <code className="mono">
+            <Safe text={`mikatad board forget ${shellWord(m.path)}`} />
+          </code>
         </p>
       </Empty>
     </div>

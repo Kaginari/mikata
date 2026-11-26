@@ -13,7 +13,6 @@
 //! `/api/` or `/ws/` is guarded without being named in it.
 
 #[cfg(unix)]
-pub mod app;
 mod assets;
 pub mod autostart;
 pub mod bodies;
@@ -533,8 +532,7 @@ impl Board {
         self.open_url_at("/")
     }
 
-    /// [`Board::open_url`] at `path` (`/`, or `/?app` for the app window): the key rides in the
-    /// fragment as ever.
+    /// [`Board::open_url`] at `path`: the key rides in the fragment as ever.
     fn open_url_at(&self, path: &str) -> Result<String, String> {
         let key = secret()?;
         let mut keys = self.keys.lock().unwrap_or_else(PoisonError::into_inner);
@@ -555,7 +553,7 @@ impl Board {
         self.launch_at(dir, "/")
     }
 
-    /// [`Board::launch`] to `path`: `/?app` opens the board on its app screen.
+    /// [`Board::launch`] to `path`.
     fn launch_at(&self, dir: &std::path::Path, path: &str) -> Result<PathBuf, String> {
         use std::io::Write as _;
         // Only a private directory of this user's own, never a link: no one else may swap the
@@ -641,30 +639,6 @@ impl Board {
             .filter(|h| h.is_absolute());
         self.open_in(state, home.as_deref(), &browser::detect(), browse)
             .map(drop)
-    }
-
-    /// Open the board as an app window ([`app`]): a fresh one-time link in a launcher file, handed
-    /// to the first browser that opens app windows. With none here it opens as `--open` does, in
-    /// the default browser; `Ok(false)` says so.
-    ///
-    /// # Errors
-    ///
-    /// No place the browser reads is known, the launcher cannot be written, or the browser fails.
-    pub fn open_app(&self, state: &std::path::Path) -> Result<bool, String> {
-        let home = std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .filter(|h| h.is_absolute());
-        // The board opens on its app screen (`/?app`), in a window of its own or, with no browser
-        // for one, in a tab.
-        let Some(found) = app::find() else {
-            return self
-                .open_in_at(state, home.as_deref(), &browser::detect(), "/?app", browse)
-                .map(|_| false);
-        };
-        self.open_in_at(state, home.as_deref(), &found.kind, "/?app", |file| {
-            watch_opener(app::opener(&found, file))
-        })
-        .map(|_| true)
     }
 
     /// Remove the launcher file, if one waits.

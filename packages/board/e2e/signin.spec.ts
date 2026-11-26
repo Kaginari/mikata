@@ -80,7 +80,7 @@ test.describe('the page, signed out', () => {
     await page.routeWebSocket('**/ws/board', () => {});
     await page.goto(`/#k=${KEY}`);
     await expect(page.locator('.shell')).toBeAttached();
-    await expect(page.locator('.world-card').first()).toBeVisible();
+    await expect(page.locator('.ss')).toBeVisible();
   });
 });
 

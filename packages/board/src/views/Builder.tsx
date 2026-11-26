@@ -24,17 +24,14 @@ import {
   Gauge,
   GitCompare,
   History,
-  House,
   KeyRound,
   Layers,
   ListChecks,
   type LucideIcon,
-  MessagesSquare,
   PencilRuler,
   Play,
   Puzzle,
   RotateCcw,
-  ScrollText,
   Send,
   ShieldCheck,
   Shrink,
@@ -42,22 +39,18 @@ import {
   Square,
   Swords,
   UserCheck,
-  Wrench,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { Call, ChatView, Entry } from '../data/chat.ts';
-import { summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
 import { composed, opening, toml, useHarness } from '../data/harness.ts';
 import { type Live, useLive } from '../data/live.ts';
-import { shownBody } from '../data/names.ts';
 import { format } from '../router.ts';
-import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
-import { Glyph, Icon } from '../ui/Icon.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Logo } from '../ui/Logo.tsx';
 import './builder.css';
+import { calls, logLines, Steps, stages, stamp, verdictOf } from './run.tsx';
 
 /** What a native unit does, and how the card names it. */
 const NATIVE: Record<string, { name: string; about: string; icon: LucideIcon }> = {
@@ -294,109 +287,6 @@ function Edges({ layout }: { layout: string }) {
 
 // ── the run, read from its entries ──────────────────────────────────────────────────────────────
 
-type Stage = 'Plan' | 'Work' | 'Verify' | 'Land';
-type StageState = 'done' | 'now' | 'next' | 'failed' | 'skipped';
-
-const pathOf = (c: Call): string => {
-  const i = c.input as Record<string, unknown> | null;
-  return typeof i?.path === 'string' ? i.path : '';
-};
-const writes = (c: Call) => ['write', 'edit', 'patch'].includes(c.name);
-
-function calls(entries: readonly Entry[]): Call[] {
-  return entries.flatMap((e) => (e.kind === 'tool' ? [e.call] : e.kind === 'group' ? e.calls : []));
-}
-
-function verdictOf(view: ChatView | undefined) {
-  const v = [...(view?.entries ?? [])].reverse().find((e) => e.kind === 'verdict');
-  return v?.kind === 'verdict' ? v : undefined;
-}
-
-export function stages(view: ChatView | undefined, planOn: boolean): [Stage, StageState][] {
-  const entries = view?.entries ?? [];
-  const all = calls(entries);
-  const done = (c: Call) => c.outcome !== undefined && !c.outcome.isError;
-  const planned = all.some((c) => writes(c) && done(c) && pathOf(c).endsWith('plan.md'));
-  const worked = all.some((c) => writes(c) && done(c) && !pathOf(c).endsWith('plan.md'));
-  const verdict = verdictOf(view);
-  const busy = view?.busy ?? false;
-  const list: [Stage, boolean][] = [
-    ['Plan', planned || worked || verdict !== undefined],
-    ['Work', worked || verdict !== undefined],
-    ['Verify', verdict !== undefined],
-    ['Land', verdict?.verdict === 'PASS'],
-  ];
-  let now = false;
-  return list.map(([s, ok]) => {
-    if (s === 'Plan' && !planOn) return [s, 'skipped'];
-    if (s === 'Land' && verdict !== undefined && verdict.verdict !== 'PASS') return [s, 'failed'];
-    if (ok) return [s, 'done'];
-    if (!now && busy) {
-      now = true;
-      return [s, 'now'];
-    }
-    return [s, 'next'];
-  });
-}
-
-/** Plan · Work · Verify · Land, each marked by where the run is. */
-function Steps({
-  st,
-  label,
-  compact,
-}: {
-  st: [Stage, StageState][];
-  label: string;
-  compact?: boolean;
-}) {
-  return (
-    <ol className={compact ? 'bapp-steps bapp-steps-compact' : 'bapp-steps'} aria-label={label}>
-      {st.map(([s, at]) => (
-        <li key={s} data-state={at}>
-          <span className="bapp-stepdot">
-            <Glyph glyph={at === 'done' ? '✓' : at === 'failed' ? '✕' : at === 'now' ? '⣾' : '○'} />
-          </span>
-          <span className="bapp-stepname">{s}</span>
-          <span className="visually-hidden">: {at}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** The log's lines: a mark, its tone, what happened, and when (ms), if seen live. */
-function logLines(view: ChatView | undefined): [string, string, string, number | undefined][] {
-  const out: [string, string, string, number | undefined][] = [];
-  let last: number | undefined;
-  for (const e of view?.entries ?? []) {
-    for (const c of e.kind === 'tool' ? [e.call] : e.kind === 'group' ? e.calls : []) {
-      const tone = c.outcome === undefined ? 'now' : c.outcome.isError ? 'alarm' : 'ok';
-      const mark = c.outcome === undefined ? '▸' : c.outcome.isError ? '✘' : '✔';
-      last = c.began ?? last;
-      out.push([mark, tone, `${c.name}: ${summary(c.name, c.input)}`, c.began]);
-    }
-    if (e.kind === 'verdict') {
-      const ok = e.verdict === 'PASS';
-      last = e.at ?? last;
-      out.push([ok ? '✔' : '✘', ok ? 'ok' : 'alarm', `end gate: ${e.verdict.toLowerCase()}`, last]);
-    }
-    if (e.kind === 'assistant' && e.head) {
-      out.push(['▸', 'holo', `says: ${e.text.split('\n')[0] ?? ''}`, last]);
-    }
-    if (e.kind === 'ending' && e.ending !== 'answered') out.push(['■', 'alarm', e.ending, last]);
-  }
-  return out;
-}
-
-/** `ms` since the run began, as the log's `[mm:ss]`. */
-const stamp = (ms: number) => {
-  const t = Math.max(0, Math.floor(ms / 1000));
-  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
-};
-
-/** A home directory's path said as `~`. */
-const tilde = (path: string) => path.replace(/^\/(?:home|Users)\/[^/]+/, '~');
-
 /** A line of the profile's TOML, coloured as the picture's editor: tables, keys, strings, booleans. */
 function TomlLine({ line }: { line: string }) {
   const table = /^\s*\[.*\]\s*$/.test(line);
@@ -447,30 +337,21 @@ function WithLive({
   return <>{children(live)}</>;
 }
 
-type View = 'session' | 'builder' | 'plugins' | 'runs' | 'profiles';
+/** The builder's pages, each at its own address in the workspace. */
+export type View = 'builder' | 'plugins' | 'profiles';
 
-const VIEWS: [View, LucideIcon, string][] = [
-  ['session', MessagesSquare, 'Sessions'],
-  ['builder', Layers, 'Harness builder'],
-  ['plugins', Puzzle, 'Plugins'],
-  ['runs', History, 'Agent runs'],
-  ['profiles', SlidersHorizontal, 'Profiles'],
-];
-
-/** The top bar's pages: Home (the app screen), the builder's own views, the docs. */
-const TOP: View[] = ['builder', 'plugins', 'profiles'];
-
-/** The book, for the top bar's Docs. */
-const DOCS = 'https://github.com/Kaginari/mikata/tree/main/docs';
+const ICONS: Record<View, LucideIcon> = {
+  builder: Layers,
+  plugins: Puzzle,
+  profiles: SlidersHorizontal,
+};
 
 const HEADS: Record<View, [string, string]> = {
-  session: ['Agent session', 'Talk to Mikata and inspect the work as it happens.'],
   builder: [
     'Harness Builder',
     'Compose your coding agent by enabling units and plugins. Everything is swappable.',
   ],
   plugins: ['Plugin inspector', 'Native units and the plugins your global file declares.'],
-  runs: ['Agent runs', "This world's chats: the live ones, then the past."],
   profiles: ['Profiles', 'A capability mix for a kind of work, to start from.'],
 };
 
@@ -507,138 +388,9 @@ function SideChat({ live }: { live: Live | undefined }) {
   );
 }
 
-/** The session's conversation as the v5 board draws it: the human's lines and Mikata's answers as
- * message cards; each run of tool calls one quiet line (the live run's log lists every step), and
- * the end gate's word as a pill. The full chat, every card, is a link away. */
-function Conversation({ view, me, full }: { view: ChatView; me: string; full: string }) {
-  const out: ReactNode[] = [];
-  let calls: Call[] = [];
-  const flush = (key: string) => {
-    if (calls.length === 0) return;
-    const failed = calls.filter((c) => c.outcome?.isError).length;
-    const running = calls.filter((c) => c.outcome === undefined && !c.stopped).length;
-    out.push(
-      <p key={`calls-${key}`} className="bapp-calls">
-        <Icon icon={Wrench} /> {calls.length} tool call{calls.length === 1 ? '' : 's'}
-        {running > 0 ? ` · ${running} running` : failed > 0 ? ` · ${failed} failed` : ' · ok'} ·{' '}
-        <a href={full}>see each</a>
-      </p>,
-    );
-    calls = [];
-  };
-  for (const e of view.entries) {
-    if (e.kind === 'tool') {
-      calls.push(e.call);
-      continue;
-    }
-    if (e.kind === 'group') {
-      calls.push(...e.calls);
-      continue;
-    }
-    flush(e.key);
-    if (e.kind === 'user') {
-      out.push(
-        <article key={e.key} className="bapp-message bapp-message-user">
-          <b>YOU</b>
-          <Safe text={e.text} lines />
-        </article>,
-      );
-    } else if (e.kind === 'assistant') {
-      out.push(
-        <article key={e.key} className="bapp-message">
-          <b>{me.toUpperCase()}</b>
-          <Markdown text={e.text} />
-        </article>,
-      );
-    } else if (e.kind === 'verdict') {
-      const ok = e.verdict === 'PASS';
-      out.push(
-        <p key={e.key} className="bapp-verdict" data-ok={ok}>
-          {ok ? '✓ end gate · pass' : `✘ end gate · ${e.verdict.toLowerCase()}`}
-          {e.changed.length > 0 && ` · ${e.changed.length} changed`}
-        </p>,
-      );
-    } else if (e.kind === 'ending' && e.ending !== 'answered') {
-      out.push(
-        <p key={e.key} className="bapp-calls">
-          <Safe text={e.ending} />
-        </p>,
-      );
-    }
-  }
-  flush('end');
-  if (view.streaming) {
-    out.push(
-      <article key="streaming" className="bapp-message">
-        <b>{me.toUpperCase()}</b>
-        <Markdown text={view.streaming} />
-      </article>,
-    );
-  }
-  return <>{out}</>;
-}
-
-/** The v5 composer, on the live session: a line runs, or steers the turn that runs. */
-function SessionComposer({ live }: { live: Live }) {
-  const [text, setText] = useState('');
-  const busy = live.view?.busy ?? false;
-  const ready = live.role === 'controller' && live.link !== 'closed';
-  const send = () => {
-    const t = text.trim();
-    if (!t || !ready) return;
-    setText('');
-    if (busy) void live.steer(t);
-    else void live.prompt(t);
-  };
-  return (
-    <div className="bapp-composer">
-      <textarea
-        aria-label="Ask Mikata"
-        value={text}
-        disabled={!ready}
-        placeholder={
-          live.link === 'closed'
-            ? 'This chat has ended'
-            : busy
-              ? 'Steer the run: it reads this after its next step…'
-              : 'Ask Mikata to change, inspect or explain something…'
-        }
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            send();
-          }
-        }}
-      />
-      <div className="bapp-composerfoot">
-        <small>
-          {busy ? 'The run works · Enter steers it' : 'Enter to send'} · Shift+Enter for a newline
-        </small>
-        <button
-          type="button"
-          className="bapp-primary"
-          disabled={!ready || !text.trim()}
-          onClick={send}
-        >
-          <Icon icon={Send} /> {busy ? 'Steer' : 'Send'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function BuilderView({
-  w,
-  worlds,
-  chats,
-}: {
-  w: BoardWorld;
-  worlds: readonly BoardWorld[];
-  chats: Chats;
-}) {
+export function BuilderView({ w, chats, view }: { w: BoardWorld; chats: Chats; view: View }) {
   const load = useHarness(w.id);
-  const [view, setView] = useState<View>('builder');
+  const go = (to: View) => format({ name: 'section', world: w.id, section: to });
   const [profile, setProfile] = useState<string>('');
   const [want, setWant] = useState<Map<string, boolean> | undefined>(undefined);
   const [ask, setAsk] = useState('');
@@ -740,171 +492,17 @@ export function BuilderView({
             ? 'Ended'
             : 'Starting';
     const usage = v?.usage;
-    const ctx = usage && usage.stressLine > 0 ? usage.occupancy / usage.stressLine : 0;
     const usd = usage?.seen ? `$${usage.usd.toFixed(3)}${usage.unpriced ? '+' : ''}` : '$0.000';
-    const progress = st.filter(([, s]) => s === 'done').length / 4;
     const lines = logLines(v);
-    const meter = (label: string, value: string, frac: number) => (
-      <div className="bapp-metric" key={label} data-kind={label.toLowerCase()}>
-        <span>
-          {label}
-          <b>{value}</b>
-        </span>
-        <div className="bapp-bar">
-          <i style={{ width: `${Math.round(Math.min(1, Math.max(0, frac)) * 100)}%` }} />
-        </div>
-      </div>
-    );
     const [title, sub] = HEADS[view];
     const half = Math.ceil(units.length / 2);
     return (
       <div className="bapp">
-        <header className="bapp-head">
-          <div className="bapp-brand">
-            <span className="bapp-slash" aria-hidden="true">
-              {'//'}
-            </span>
-            <span>
-              mikata <span lang="ja">味方</span>
-            </span>
-            <span className="bapp-branddesc">Composable Coding Agent Harness</span>
-          </div>
-          <nav className="bapp-nav" aria-label="The builder's pages">
-            <a
-              className="bapp-navlink"
-              href={format({ name: 'section', world: w.id, section: 'app' })}
-            >
-              <Icon icon={House} /> Home
-            </a>
-            {VIEWS.filter(([k]) => TOP.includes(k)).map(([k, icon, label]) => (
-              <button
-                key={k}
-                type="button"
-                aria-current={view === k ? 'page' : undefined}
-                className={view === k ? 'bapp-active' : undefined}
-                onClick={() => setView(k)}
-              >
-                <Icon icon={icon} /> {label}
-              </button>
-            ))}
-            <a className="bapp-navlink" href={DOCS} target="_blank" rel="noopener noreferrer">
-              <Icon icon={BookOpenText} /> Docs
-            </a>
-          </nav>
-          <button
-            type="button"
-            className="bapp-primary bapp-run"
-            disabled={starting || busy}
-            onClick={() => {
-              if (!ask.trim()) setView('builder');
-              void start();
-            }}
-          >
-            <Icon icon={Play} /> Run agent
-          </button>
-        </header>
-        <div className="bapp-layout">
-          <aside className="bapp-panel bapp-side" aria-label="Workspace">
-            <p className="bapp-section">Workspace</p>
-            <select
-              aria-label="Workspace"
-              value={w.id}
-              onChange={(e) => {
-                window.location.hash = format({
-                  name: 'section',
-                  world: e.target.value,
-                  section: 'builder',
-                });
-              }}
-            >
-              {worlds.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-            </select>
-            <p className="bapp-path">
-              <Safe text={tilde(w.path)} />
-            </p>
-            <nav aria-label="The builder's views" className="bapp-railnav">
-              <a className="bapp-navbtn" href={format({ name: 'world', world: w.id })}>
-                <Icon icon={House} /> Overview
-              </a>
-              {VIEWS.map(([k, icon, label]) => (
-                <button
-                  key={k}
-                  type="button"
-                  aria-current={view === k ? 'page' : undefined}
-                  className={view === k ? 'bapp-navbtn bapp-active' : 'bapp-navbtn'}
-                  onClick={() => setView(k)}
-                >
-                  <Icon icon={icon} /> {label}
-                  {k === 'runs' && chats.runs.length + chats.live.length > 0 && (
-                    <span className="bapp-badge">{chats.runs.length + chats.live.length}</span>
-                  )}
-                </button>
-              ))}
-              <a
-                className="bapp-navbtn"
-                href={format({ name: 'section', world: w.id, section: 'journal' })}
-              >
-                <Icon icon={ScrollText} /> Journal
-              </a>
-            </nav>
-            <p className="bapp-section">Status</p>
-            <ul className="bapp-status" aria-label="Status">
-              {data && data.holes.length === 0 ? (
-                <li data-tone="ok">
-                  <i className="bapp-dot" aria-hidden="true" /> Harness: ready
-                </li>
-              ) : (
-                <li data-tone="alarm">
-                  <i className="bapp-dot" aria-hidden="true" />{' '}
-                  <Safe text={data?.holes.join(' · ') ?? 'reading the harness…'} />
-                </li>
-              )}
-              <li data-tone={live?.hello?.sandbox ? 'ok' : undefined}>
-                <Icon icon={ShieldCheck} />
-                <span>
-                  Sandbox:{' '}
-                  <Safe
-                    text={
-                      live?.hello?.sandbox
-                        ? live.hello.sandbox.startsWith('none')
-                          ? 'off'
-                          : 'on'
-                        : 'checked as a run opens'
-                    }
-                  />
-                </span>
-              </li>
-              <li data-tone="ok">
-                <Icon icon={Box} /> Units: {enabled} of {units.length} on
-              </li>
-              <li data-tone="ok">
-                <Icon icon={Layers} /> Profile: <Safe text={profile || 'default'} />
-              </li>
-            </ul>
-            <p className="bapp-section">Usage (this run)</p>
-            {meter('Steps', String(steps), steps / 100)}
-            {meter(
-              'Context',
-              usage && usage.stressLine > 0
-                ? `${Math.round(usage.occupancy / 1000)}k / ${Math.round(usage.stressLine / 1000)}k`
-                : '—',
-              ctx,
-            )}
-            {meter('Cost', usd, 0)}
-            {meter('Progress', `${Math.round(progress * 100)}%`, progress)}
-          </aside>
-
-          <main className="bapp-panel bapp-main">
+        <div className="bapp-layout bapp-embedded">
+          <section className="bapp-panel bapp-main" aria-label="The harness">
             <div className="bapp-top">
               <div className="bapp-titled">
-                <Icon
-                  icon={VIEWS.find(([k]) => k === view)?.[1] ?? Layers}
-                  className="bapp-titleicon"
-                />
+                <Icon icon={ICONS[view]} className="bapp-titleicon" />
                 <div>
                   <h1>{title}</h1>
                   <p className="bapp-muted">{sub}</p>
@@ -928,70 +526,6 @@ export function BuilderView({
               </p>
             )}
             {load.state === 'loading' && <p className="bapp-muted">Reading the harness…</p>}
-            {view === 'session' && (
-              <div className="bapp-session">
-                <div className="bapp-sessionhead">
-                  <p className="bapp-tag" data-tone={live?.link === 'open' ? 'ok' : 'holo'}>
-                    <i className="bapp-dot" aria-hidden="true" />{' '}
-                    <Safe
-                      text={run ? `${run.session} · ${live?.link ?? 'connecting'}` : 'No run yet'}
-                    />
-                  </p>
-                  {run && <Steps st={st} label="Session stages" compact />}
-                  <button type="button" onClick={() => setView('builder')}>
-                    <Icon icon={Layers} /> Harness builder
-                  </button>
-                </div>
-                <div className="bapp-conversation">
-                  {live?.view && live.view.entries.length > 0 ? (
-                    <Conversation
-                      view={live.view}
-                      me={shownBody(live.hello?.body ?? 'mikata')}
-                      full={format({ name: 'session', world: w.id, session: run?.session ?? '' })}
-                    />
-                  ) : (
-                    <article className="bapp-message">
-                      <b>MIKATA</b>
-                      <p>
-                        Ready to work in <Safe text={w.name} />. Describe the change you want; with
-                        the plan on, I write down what done means before I touch the code.
-                      </p>
-                    </article>
-                  )}
-                </div>
-                {live ? (
-                  <SessionComposer live={live} />
-                ) : (
-                  <div className="bapp-composer">
-                    <textarea
-                      aria-label="Ask Mikata"
-                      value={ask}
-                      placeholder="Ask Mikata to change, inspect or explain something…"
-                      onChange={(e) => setAsk(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          void start();
-                        }
-                      }}
-                    />
-                    <div className="bapp-composerfoot">
-                      <small>
-                        A new chat with this harness · Enter to send · Shift+Enter for a newline
-                      </small>
-                      <button
-                        type="button"
-                        className="bapp-primary"
-                        disabled={!ask.trim() || starting}
-                        onClick={() => void start()}
-                      >
-                        <Icon icon={Send} /> Send
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
             {data && want && view === 'builder' && (
               <>
                 <div className="bapp-graph" data-live={busy}>
@@ -1015,12 +549,12 @@ export function BuilderView({
                       <button type="button" className="bapp-active">
                         <Icon icon={Code} /> Configuration (TOML)
                       </button>
-                      <button type="button" onClick={() => setView('plugins')}>
+                      <a className="bapp-tablink" href={go('plugins')}>
                         <Icon icon={Puzzle} /> Plugins
-                      </button>
-                      <button type="button" onClick={() => setView('profiles')}>
+                      </a>
+                      <a className="bapp-tablink" href={go('profiles')}>
                         <Icon icon={SlidersHorizontal} /> Profiles
-                      </button>
+                      </a>
                       <span className="bapp-tabtools">
                         <button
                           type="button"
@@ -1037,7 +571,12 @@ export function BuilderView({
                         </button>
                       </span>
                     </div>
-                    <ol className="bapp-editor" aria-label="The configuration, as TOML">
+                    <ol
+                      className="bapp-editor"
+                      aria-label="The configuration, as TOML"
+                      // biome-ignore lint/a11y/noNoninteractiveTabindex: it scrolls; the keys scroll it
+                      tabIndex={0}
+                    >
                       {text.split('\n').map((line, i) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: the lines of one text, in order
                         <li key={i}>
@@ -1148,33 +687,7 @@ export function BuilderView({
                 ))}
               </div>
             )}
-            {view === 'runs' && (
-              <div className="bapp-list">
-                <p className="bapp-section">Live</p>
-                {chats.live.length === 0 && <p className="bapp-muted">No chat runs now.</p>}
-                {chats.live.map((c) => (
-                  <a
-                    key={c.id}
-                    className="bapp-unit bapp-run"
-                    href={format({ name: 'session', world: w.id, session: c.id })}
-                  >
-                    <Safe text={`● ${c.id} · ${c.run}`} />
-                  </a>
-                ))}
-                <p className="bapp-section">Past</p>
-                {chats.runs.length === 0 && <p className="bapp-muted">No past run.</p>}
-                {chats.runs.map((r) => (
-                  <a
-                    key={r.id}
-                    className="bapp-unit bapp-run"
-                    href={format({ name: 'run', world: w.id, run: r.id })}
-                  >
-                    <Safe text={`${r.state} · ${r.ask || r.id}`} />
-                  </a>
-                ))}
-              </div>
-            )}
-          </main>
+          </section>
 
           <section className="bapp-panel bapp-live" aria-label="Live run">
             <div className="bapp-top">

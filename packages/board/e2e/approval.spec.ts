@@ -52,7 +52,7 @@ const long = (n: number): AskFields => ({
 async function open(page: Page, b = new Bridge()) {
   b.emit('turnStarted', { text: 'tidy the wire' });
   await openChat(page, b, undefined, controllable);
-  await expect(page.locator('.msg-user')).toHaveCount(1);
+  await expect(page.locator('.ss-msg-user')).toHaveCount(1);
   return b;
 }
 

@@ -9,6 +9,8 @@ part names the chapter it came from.
 
 ## The board's lab pages: the roster, the bodies, the colony net, the race cards
 
+> The board no longer draws these pages: the web platform keeps the sessions, the Harness Builder, the runs, the journal and the memory ([the board](../03-architecture.md#the-board)). The server's routes and the data behind them stay, for the lab.
+
 *From [03-architecture.md](../03-architecture.md).*
 
 ### The roster's trust
@@ -104,6 +106,8 @@ of the plain form `/art/cards/<race>.webp`.
 
 ## The board's lab pages: the queue and the timeline
 
+> The board no longer draws these pages: the web platform keeps the sessions, the Harness Builder, the runs, the journal and the memory ([the board](../03-architecture.md#the-board)). The server's routes and the data behind them stay, for the lab.
+
 *From [03-architecture.md](../03-architecture.md).*
 
 **The queue** is `.mikata/shared/queue.jsonl`, copied as a regular file under the cap and folded
@@ -138,6 +142,8 @@ why when they cannot be shown. It filters by kind and body, and pages.
 | read every creature's meters, see who is due to evolve, draft its evolution, review the proposals, swap one in, judge it, keep or roll it back, run a tick of evolution on its own | `mikatad meters`, `mikatad evolution due`, `mikatad evolution draft <creature>`, `mikatad evolution list \| show <id> \| apply <id> \| reject <id>`, `mikatad evolution swap <id>`, `mikatad evolution judge <id>`, `mikatad evolution keep \| rollback <id>`, `mikatad evolution auto` |
 
 ## The board's lab routes, and the overview's lab rows
+
+> The board no longer draws these pages: the web platform keeps the sessions, the Harness Builder, the runs, the journal and the memory ([the board](../03-architecture.md#the-board)). The server's routes and the data behind them stay, for the lab.
 
 *From [03-architecture.md](../03-architecture.md).*
 
@@ -372,6 +378,8 @@ last warrant forces the report's `@S` to `ESCALATE`, the body's own status kept 
 | `kijin-<post>` | the post's witness; walked once kept, and for good once anchored | the act runner, under the witness's lock |
 
 ## The lab's board routes and lifecycles
+
+> The board no longer draws these pages: the web platform keeps the sessions, the Harness Builder, the runs, the journal and the memory ([the board](../03-architecture.md#the-board)). The server's routes and the data behind them stay, for the lab.
 
 *From [03-architecture.md](../03-architecture.md).*
 

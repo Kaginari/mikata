@@ -185,8 +185,8 @@ Three views, **F2** (or `/view light|advanced|focus`) to switch. *Light*, the de
 conversation beside one slim column (the run's Plan · Work · Verify · Land, Done when, the
 checks, the files changed, the budgets). *Advanced*: every panel, a column each side. *Focus*: the
 conversation alone. A tool card is two rows until you open it (a click or Ctrl+T); Ctrl+O hides
-the panels ([the terminal app](docs/03-architecture.md#the-terminal-app)). `mikatad app` opens
-the web board in a window of its own.
+the panels ([the terminal app](docs/03-architecture.md#the-terminal-app)). `mikata --web` opens
+the web board beside it: every workspace and its sessions on one platform.
 
 **Say what the result must be.** An ask with examples of the expected output passed twice as often
 on our bench as the same ask in prose: Mikata checks its work against what you wrote, so one

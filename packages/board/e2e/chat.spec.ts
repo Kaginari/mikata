@@ -1,13 +1,13 @@
 /**
- * The chat, on the built page under the board server's CSP, against a fake bridge: the
- * transcript in the TUI's grammar (screenshots at phone and desktop, both themes, contrast and
+ * A session, on the built page under the board server's CSP, against a fake bridge: its timeline
+ * of steps beside the Live run (screenshots at phone and desktop, both themes, contrast and
  * labels), hostile text inert, a reconnect that replays without duplicating, an observer that
- * cannot send, Esc, the queue, a past run read-only
- * and resumed, and 2,000 messages scrolled in a window.
+ * cannot send, steering and Esc, the queue; and a past run's transcript, read-only and resumed,
+ * what changed drawn under its gate, and 2,000 messages scrolled in a window.
  */
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
-import { Bridge, CHAT, hello, LIVE, openChat, PAST, RUN, richTurn, violations } from './fake.ts';
+import { Bridge, CHAT, hello, LIVE, openChat, PAST, richTurn, violations } from './fake.ts';
 
 const screen = (file: string) =>
   fileURLToPath(new URL(`../test-results/screens/${file}.png`, import.meta.url));
@@ -83,14 +83,34 @@ function unlabelled(page: Page) {
 }
 
 const transcript = (page: Page) => page.getByRole('region', { name: 'Transcript' });
+const conversation = (page: Page) => page.getByRole('region', { name: 'The conversation' });
+
+/** Opens the past run `PAST`, its journal holding `b`'s events: the transcript, read-only. */
+async function openPast(page: Page, b: Bridge) {
+  await openChat(page, b, `#/w/${LIVE.id}/r/${PAST}`, async (p) => {
+    await p.route(`**/api/w/${LIVE.id}/runs/${PAST}`, (r) =>
+      r.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          run: PAST,
+          state: 'stopped',
+          dropped: 0,
+          skipped: [],
+          events: b.events.map((e) => ({ ...e, params: { ...e.params, run: PAST, body: '' } })),
+        }),
+      }),
+    );
+  });
+}
 
 for (const theme of ['dark', 'light'] as const) {
   test.describe(`${theme} theme`, () => {
     test.use({ colorScheme: theme });
 
-    test('a chat reads in the TUI grammar: screenshot, contrast, labels', async ({
+    test('a session reads as a timeline of steps beside its Live run: screenshot, contrast, labels', async ({
       page,
     }, info) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       const b = new Bridge();
       richTurn(b);
       b.emit('turnStarted', { text: 'and the docs?' });
@@ -100,27 +120,23 @@ for (const theme of ['dark', 'light'] as const) {
         input: { command: 'pnpm --filter site build' },
       });
       await openChat(page, b);
-      await expect(page.locator('.tool-name', { hasText: 'edit' })).toBeVisible();
-      await expect(page.locator('.verdict')).toContainText('end gate · pass');
-      await expect(page.locator('.group .tool-sum')).toContainText('read 1 file · grep 1 pattern');
-      await expect(page.locator('.diff-add .diff-text')).toHaveText(
-        '    return self._parse_collate(this)',
+      const talk = conversation(page);
+      await expect(talk.locator('.mapp-ask').first()).toContainText('fix the collate parse');
+      await expect(talk).toContainText('edited sqlglot/parser.py');
+      await expect(talk.locator('.mapp-landed')).toContainText('Landed:');
+      await expect(talk.locator('.mapp-working')).toContainText('working…');
+      const run = page.getByRole('complementary', { name: 'Live run' });
+      await expect(run.getByRole('log', { name: 'Run log' })).toContainText(
+        'edit: sqlglot/parser.py',
       );
-      await expect(page.locator('.diff-add .diff-n')).toHaveText('2');
-      await expect(page.locator('.line-below').first()).toContainText(
-        'orc-sql is working on: judge',
-      );
-      await expect(page.locator('.activity')).toContainText('Running bash…');
-      await expect(page.locator('.activity')).toContainText('esc to stop');
-      // A replayed verdict is a line, never a toast.
+      await expect(run.locator('.ss-tiles')).toContainText('$0.040');
+      await expect(run).toContainText('Context');
+      // A replayed verdict is a step, never a toast.
       await expect(page.locator('.toast')).toHaveCount(0);
       if (info.project.name === 'desktop') {
-        await expect(page.locator('#pane')).toContainText('41% / 100k');
-        await expect(page.locator('#pane')).toContainText('$0.04');
-        await expect(page.locator('#pane .file')).toContainText('parser.py');
-        await expect(page.locator('#pane')).toContainText('orc-sql · done');
-        await expect(page.locator('#pane')).toContainText('grounded');
-        await expect(page.locator('.rail-chat').first()).toContainText('fix the collate parse');
+        await expect(page.locator('.pf-session[data-live="true"]')).toContainText(
+          'fix the collate parse',
+        );
       }
       await page.screenshot({ path: screen(`${info.project.name}-${theme}-chat`) });
       expect(await lowContrast(page)).toEqual([]);
@@ -144,23 +160,25 @@ test('hostile text from a model or a tool stays text', async ({ page }) => {
   b.emit('toolCall', { id: 't1', name: 'bash', input: { command: '<b onmouseover=x>ls</b>' } });
   b.emit('toolResult', {
     id: 't1',
-    content: `${evil}\nline2\nline3\nline4`,
+    content: `line1\nline2\n${evil}`,
     isError: false,
     cut: 0,
   });
   b.emit('note', { text: evil });
   b.emit('turnEnded', { ending: 'answered' });
   await openChat(page, b);
-  await expect(page.locator('.msg-body')).toContainText('<img src=x onerror=');
-  await expect(page.locator('.msg-body')).toContainText('(link not followed)');
-  await expect(page.locator('.msg-body')).toContainText('image not loaded');
-  await expect(page.locator('.msg-body .safe-esc').first()).toHaveText('\\u{202e}');
-  await expect(page.locator('.out-text .safe-esc').first()).toBeVisible();
-  const centre = page.locator('main');
-  expect(await centre.locator('img, script, iframe, b, [onerror], [onmouseover]').count()).toBe(0);
-  expect(await centre.locator('a[href^="javascript"], a[href^="data"]').count()).toBe(0);
-  await page.locator('.out .fold').click();
-  await expect(page.locator('.out-text')).toContainText('line4');
+  const talk = conversation(page);
+  await expect(talk.locator('.mapp-ask')).toContainText('<img src=x onerror=');
+  await expect(talk.locator('.mapp-ask .safe-esc').first()).toHaveText('\\u{202e}');
+  await expect(talk.locator('.mapp-answer')).toContainText('<img src=x onerror=');
+  await expect(talk.locator('.mapp-answer')).toContainText('(link not followed)');
+  await expect(talk.locator('.mapp-answer')).toContainText('image not loaded');
+  await expect(talk.locator('.mapp-out')).toContainText('<script>');
+  await expect(talk.locator('.mapp-note')).toContainText('<img src=x');
+  await expect(talk).toContainText('<b onmouseover=x>ls</b>');
+  const main = page.locator('main');
+  expect(await main.locator('img, script, iframe, [onerror], [onmouseover]').count()).toBe(0);
+  expect(await main.locator('a[href^="javascript"], a[href^="data"]').count()).toBe(0);
   expect(await page.evaluate(() => (window as { __pwned?: number }).__pwned)).toBeUndefined();
   expect(errors).toEqual([]);
   expect(await violations(page)).toEqual([]);
@@ -172,65 +190,74 @@ test('a dropped socket reconnects and replays, and nothing shows twice', async (
   b.emit('assistant', { text: 'one', stop: 'end_turn' });
   b.emit('turnEnded', { ending: 'answered' });
   await openChat(page, b);
-  await expect(page.locator('.msg-user')).toHaveCount(1);
+  const asks = page.locator('.ss-msg-user');
+  await expect(asks).toHaveCount(1);
   // The socket drops; while it is down the chat goes on.
   for (const s of b.sockets) await s.close({ code: 4000, reason: 'drop' });
   b.sockets = [];
   b.emit('turnStarted', { text: 'second' });
   b.emit('assistant', { text: 'two', stop: 'end_turn' });
   b.emit('turnEnded', { ending: 'answered' });
-  await expect(page.locator('.msg-user')).toHaveCount(2);
+  await expect(asks).toHaveCount(2);
   const since = b.sent.filter((m) => m.method === 'session/events').map((m) => m.params?.since);
   expect(since.at(-1)).toBe(3);
   // A live event the replay already carried arrives again: it is dropped by its seq.
   b.say(b.events[4]);
   b.emit('turnStarted', { text: 'third' });
-  await expect(page.locator('.msg-user')).toHaveCount(3);
-  await expect(page.locator('.msg-body', { hasText: 'two' })).toHaveCount(1);
-  await expect(page.locator('.msg-user', { hasText: 'second' })).toHaveCount(1);
+  await expect(asks).toHaveCount(3);
+  await expect(page.locator('.mapp-answer', { hasText: 'two' })).toHaveCount(1);
+  await expect(page.locator('.ss-msg-user', { hasText: 'second' })).toHaveCount(1);
   // A reload replays from the start: still once each.
   await page.reload();
-  await expect(page.locator('.msg-user')).toHaveCount(3);
-  await expect(page.locator('.msg-body', { hasText: 'two' })).toHaveCount(1);
+  await expect(asks).toHaveCount(3);
+  await expect(page.locator('.mapp-answer', { hasText: 'two' })).toHaveCount(1);
 });
 
 test('an observer cannot send; taking over lets it', async ({ page }) => {
   const b = new Bridge();
   b.role = 'observer';
   await openChat(page, b);
-  const box = page.getByRole('textbox');
-  await expect(page.locator('.observer')).toContainText('This tab observes');
+  const box = page.getByRole('textbox', { name: 'Ask Mikata' });
+  await expect(page.locator('.ss-observer')).toContainText('This tab observes');
   await expect(box).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled();
   expect(b.sent.filter((m) => m.method === 'session/prompt')).toEqual([]);
   await page.getByRole('button', { name: 'Take over' }).click();
   await expect(box).toBeEnabled();
+  await expect(page.locator('.ss-observer')).toHaveCount(0);
   await box.fill('hello');
   await box.press('Enter');
-  await expect(page.locator('.msg-body')).toContainText('Answered: hello');
+  await expect(page.locator('.mapp-answer')).toContainText('Answered: hello');
   expect(b.sent.filter((m) => m.method === 'board/takeOver')).toHaveLength(1);
 });
 
-test('while a turn runs, enter queues, Steer steers and Esc interrupts', async ({ page }) => {
+test('while a turn runs, Enter and Steer steer, Stop and Esc interrupt, queued lines show', async ({
+  page,
+}) => {
   const b = new Bridge();
-  b.onPrompt = (text) => b.emit('queued', { text });
   b.emit('turnStarted', { text: 'long job' });
   b.emit('toolCall', { id: 't1', name: 'bash', input: { command: 'sleep 60' } });
   await openChat(page, b);
-  await expect(page.locator('.activity')).toContainText('Running bash…');
-  const box = page.getByRole('textbox');
-  await box.fill('next');
-  await box.press('Enter');
-  await expect(page.locator('.queued')).toContainText('queued: next');
+  await expect(page.locator('.mapp-working')).toContainText('working…');
+  const box = page.getByRole('textbox', { name: 'Ask Mikata' });
   await box.fill('look at the lexer too');
+  await box.press('Enter');
+  await box.fill('and the parser');
   await page.getByRole('button', { name: 'Steer' }).click();
-  await page.keyboard.press('Escape');
-  await expect.poll(() => b.sent.map((m) => m.method)).toContain('session/interrupt');
-  const sends = b.sent.filter((m) => m.method === 'session/send');
-  expect(sends.map((m) => m.params?.text)).toEqual(['look at the lexer too']);
+  await expect
+    .poll(() => b.sent.filter((m) => m.method === 'session/send').map((m) => m.params?.text))
+    .toEqual(['look at the lexer too', 'and the parser']);
+  expect(b.sent.filter((m) => m.method === 'session/prompt')).toEqual([]);
+  // A line the core holds for the next turn is shown as queued.
+  b.emit('queued', { text: 'next' });
+  await expect(page.getByRole('list', { name: 'Queued' })).toContainText('queued: next');
+  await box.press('Escape');
+  await expect.poll(() => b.sent.filter((m) => m.method === 'session/interrupt').length).toBe(1);
+  await page.locator('.ss-composer').getByRole('button', { name: 'Stop' }).click();
+  await expect.poll(() => b.sent.filter((m) => m.method === 'session/interrupt').length).toBe(2);
   b.emit('turnEnded', { ending: 'interrupted' });
-  await expect(page.locator('.line-end')).toContainText('interrupted');
-  // A verdict arriving live is a toast too.
+  await expect(page.locator('.mapp-note')).toContainText('interrupted');
+  await expect(page.locator('.mapp-working')).toHaveCount(0);
   b.emit('gateVerdict', {
     passed: false,
     verdict: 'FAIL',
@@ -238,7 +265,10 @@ test('while a turn runs, enter queues, Steer steers and Esc interrupts', async (
     failures: ['cargo test'],
     unverified: [],
   });
-  await expect(page.locator('.toast')).toContainText('end gate FAIL · 1 changed · 1 failed');
+  await expect(page.locator('.mapp-landed[data-ok="false"]')).toContainText(
+    'Not landed: cargo test',
+  );
+  await expect(page.locator('.ss-head .ss-badge')).toHaveText('NOT LANDED');
 });
 
 test('a past run reads from its journal, read-only, and resumes', async ({ page }) => {
@@ -299,7 +329,7 @@ test('a past run reads from its journal, read-only, and resumes', async ({ page 
   await page.getByRole('button', { name: 'Resume' }).click();
   await expect(page).toHaveURL((u) => u.hash === `#/w/${LIVE.id}/s/${CHAT}`);
   expect(resumed).toEqual({ resume: PAST });
-  await expect(page.getByRole('textbox')).toBeEnabled();
+  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toBeEnabled();
 });
 
 test('a scroll up is kept when a redraw comes before its scroll event', async ({ page }, info) => {
@@ -310,7 +340,7 @@ test('a scroll up is kept when a redraw comes before its scroll event', async ({
     b.emit('assistant', { text: `Answer ${i}: a few words of prose`, stop: 'end_turn' });
     b.emit('turnEnded', { ending: 'answered' });
   }
-  await openChat(page, b);
+  await openPast(page, b);
   const list = transcript(page);
   await expect(list).toHaveAttribute('data-total', '400');
   await expect(page.locator('.msg-body').last()).toContainText('Answer 199');
@@ -353,7 +383,7 @@ test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
     });
     b.emit('turnEnded', { ending: 'answered' });
   }
-  await openChat(page, b);
+  await openPast(page, b);
   const list = transcript(page);
   await expect(list).toHaveAttribute('data-total', '2000');
   await expect(page.locator('.msg-body').last()).toContainText('Answer 999');
@@ -386,7 +416,6 @@ test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
   expect(Math.max(...frames)).toBeLessThan(250);
   await expect(page.locator('.msg-user', { hasText: /^youquestion 0$/ })).toBeVisible();
   expect(Number(await list.getAttribute('data-rows'))).toBeLessThan(120);
-  expect(RUN).toBeTruthy();
 });
 
 /** A turn that landed, followed by what changed: `last` is its text's last line. */
@@ -422,7 +451,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.emulateMedia({ colorScheme: theme });
     const b = new Bridge();
     landedWithChanges(b, '4 more checks: .mikata/tmp/what-changed.md');
-    await openChat(page, b);
+    await openPast(page, b);
     const block = page.locator('.line-changes');
     await expect(block).toContainText("of Mikata's last 12 checks, 5 print differently");
     await expect(block.locator('.changes-gone')).toHaveText(
@@ -439,8 +468,14 @@ for (const theme of ['dark', 'light'] as const) {
 test("a check's output is the code's own words: text, never markup", async ({ page }) => {
   const b = new Bridge();
   landedWithChanges(b, '+ <img src=x onerror=alert(1)>');
-  await openChat(page, b);
+  await openPast(page, b);
   const block = page.locator('.line-changes');
   await expect(block).toContainText('<img src=x onerror=alert(1)>');
   await expect(block.locator('img')).toHaveCount(0);
+  // The session's timeline draws the same lines, as text.
+  await page.goto(`/#/w/${LIVE.id}/s/${CHAT}`);
+  const step = conversation(page).locator('.mapp-step', { hasText: "of Mikata's last 12 checks" });
+  await expect(step).toContainText("+   Output: SELECT INTERVAL '1.5 DAY'");
+  await expect(step).toContainText('<img src=x onerror=alert(1)>');
+  await expect(step.locator('img')).toHaveCount(0);
 });
