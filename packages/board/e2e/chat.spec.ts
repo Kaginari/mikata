@@ -2,7 +2,7 @@
  * A session, on the built page under the board server's CSP, against a fake bridge: its timeline
  * of steps beside the Live run (screenshots at phone and desktop, both themes, contrast and
  * labels), hostile text inert, a reconnect that replays without duplicating, an observer that
- * cannot send, steering and Esc, the queue; and a past run's transcript, read-only and resumed,
+ * cannot send, Enter queueing and Steer steering, Esc, the queue; and a past run's transcript, read-only and resumed,
  * what changed drawn under its gate, and 2,000 messages scrolled in a window.
  */
 import { fileURLToPath } from 'node:url';
@@ -231,23 +231,32 @@ test('an observer cannot send; taking over lets it', async ({ page }) => {
   expect(b.sent.filter((m) => m.method === 'board/takeOver')).toHaveLength(1);
 });
 
-test('while a turn runs, Enter and Steer steer, Stop and Esc interrupt, queued lines show', async ({
+test('while a turn runs, Enter queues, Steer and /send steer, Stop and Esc interrupt', async ({
   page,
 }) => {
   const b = new Bridge();
+  // The core holds a prompt sent mid-turn for after it: nothing answers here.
+  b.onPrompt = () => {};
   b.emit('turnStarted', { text: 'long job' });
   b.emit('toolCall', { id: 't1', name: 'bash', input: { command: 'sleep 60' } });
   await openChat(page, b);
   await expect(page.locator('.mapp-working')).toContainText('working…');
   const box = page.getByRole('textbox', { name: 'Ask Mikata' });
-  await box.fill('look at the lexer too');
+  // Enter queues, as the terminal app's does: a separate ask is never folded into this one.
+  await box.fill('then write the changelog');
   await box.press('Enter');
-  await box.fill('and the parser');
-  await page.getByRole('button', { name: 'Steer' }).click();
+  await expect
+    .poll(() => b.sent.filter((m) => m.method === 'session/prompt').map((m) => m.params?.text))
+    .toEqual(['then write the changelog']);
+  // Steering is its own act: the Steer button, or /send.
+  await box.fill('look at the lexer too');
+  await page.locator('.ss-composer').getByRole('button', { name: 'Steer' }).click();
+  await box.fill('/send and the parser');
+  await box.press('Enter');
   await expect
     .poll(() => b.sent.filter((m) => m.method === 'session/send').map((m) => m.params?.text))
     .toEqual(['look at the lexer too', 'and the parser']);
-  expect(b.sent.filter((m) => m.method === 'session/prompt')).toEqual([]);
+  expect(b.sent.filter((m) => m.method === 'session/prompt')).toHaveLength(1);
   // A line the core holds for the next turn is shown as queued.
   b.emit('queued', { text: 'next' });
   await expect(page.getByRole('list', { name: 'Queued' })).toContainText('queued: next');
@@ -416,6 +425,74 @@ test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
   expect(Math.max(...frames)).toBeLessThan(250);
   await expect(page.locator('.msg-user', { hasText: /^youquestion 0$/ })).toBeVisible();
   expect(Number(await list.getAttribute('data-rows'))).toBeLessThan(120);
+});
+
+test('a long live session draws its newest steps, scrolls smoothly and keeps up', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'one measure is enough');
+  const b = new Bridge();
+  for (let i = 0; i < 1000; i++) {
+    b.emit('turnStarted', { text: `question ${i}` });
+    b.emit('toolCall', { id: `c${i}`, name: 'bash', input: { command: `make step-${i}` } });
+    b.emit('toolResult', { id: `c${i}`, content: `ok ${i}`, isError: false, cut: 0 });
+    b.emit('assistant', {
+      text: `Answer ${i}: ${'a few words '.repeat((i % 5) + 1)}`,
+      stop: 'end_turn',
+    });
+    b.emit('turnEnded', { ending: 'answered' });
+  }
+  await openChat(page, b);
+  // By its class, not its role: a role locator reads the accessible text of the whole region on
+  // every poll, which on a session this long is the test's cost, not the page's.
+  const convo = page.locator('.ss-convo');
+  await expect(convo).toContainText('Answer 999');
+  // Only the newest window is in the page; the rest waits behind a button.
+  const earlier = convo.locator('.ss-earlier');
+  await expect(earlier).toBeVisible();
+  const drawn = await convo.locator('.mapp-step').count();
+  expect(drawn).toBeLessThanOrEqual(200);
+  expect(drawn).toBeGreaterThan(50);
+  // Scrolled from the end to the start in steps, frame by frame: no frame stalls.
+  const frames = await convo.evaluate(async (el) => {
+    const times: number[] = [];
+    let last = performance.now();
+    const from = el.scrollTop;
+    for (let i = 1; i <= 60; i++) {
+      el.scrollTop = from * (1 - i / 60);
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const now = performance.now();
+      times.push(now - last);
+      last = now;
+    }
+    return times.sort((a, z) => a - z);
+  });
+  const p90 = frames[Math.floor(frames.length * 0.9)] ?? Infinity;
+  expect(p90, `frame times ${frames.map((t) => t.toFixed(0)).join(',')}`).toBeLessThan(50);
+  // More, on demand.
+  await earlier.click();
+  expect(await convo.locator('.mapp-step').count()).toBeGreaterThan(drawn);
+  // A new event still lands at once, the session this long: timed in the page, from before the
+  // events leave to the frame that shows them (a locator's polling reads the whole region, which
+  // is the test's cost, not the page's).
+  await convo.evaluate((el) => {
+    const w = window as { __landed?: Promise<number> };
+    const t0 = performance.now();
+    w.__landed = new Promise((done) => {
+      const seen = () => (el.textContent ?? '').includes('Answer at the end');
+      const watch = new MutationObserver(() => {
+        if (seen()) {
+          watch.disconnect();
+          done(performance.now() - t0);
+        }
+      });
+      watch.observe(el, { childList: true, subtree: true, characterData: true });
+    });
+  });
+  b.emit('turnStarted', { text: 'one more' });
+  b.emit('assistant', { text: 'Answer at the end', stop: 'end_turn' });
+  const took = await page.evaluate(() => (window as { __landed?: Promise<number> }).__landed);
+  expect(took).toBeLessThan(500);
 });
 
 /** A turn that landed, followed by what changed: `last` is its text's last line. */

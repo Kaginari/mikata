@@ -802,6 +802,27 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 .ss-convo > .mapp-turn {
   animation: pf-rise 520ms var(--mn-ease) backwards;
   animation-delay: calc(var(--i, 0) * 40ms);
+  /* A turn off screen is neither laid out nor painted: a long session scrolls as a short one. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+.ss-earlier {
+  display: block;
+  margin: 0 auto 18px;
+  padding: 7px 14px;
+  border: 1px dashed color-mix(in srgb, var(--mn-hot) 45%, var(--mn-line));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mn-holo);
+  font: 600 13px var(--mn-font-ui);
+  cursor: pointer;
+  transition: background var(--mn-fast) var(--mn-ease);
+}
+.ss-earlier:hover {
+  background: color-mix(in srgb, var(--mn-hot) 10%, transparent);
+}
+.ss-earlier small {
+  color: var(--mn-text-muted);
 }
 .ss-msg + .ss-msg {
   margin-top: 16px;
@@ -1645,7 +1666,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   .ss-meter i,
   .ss-stop,
   .pg-run,
-  .pg-links a {
+  .pg-links a,
+  .ss-earlier {
     transition: none;
   }
 }

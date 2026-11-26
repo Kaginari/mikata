@@ -16,6 +16,7 @@ import {
   CircleX,
   Clock,
   Coins,
+  Compass,
   Cpu,
   Eye,
   GitBranch,
@@ -33,7 +34,15 @@ import {
   User,
   Zap,
 } from 'lucide-react';
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  memo,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { Call, ChatView, Entry } from '../data/chat.ts';
 import { humanWords, summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
@@ -55,7 +64,7 @@ import './session.css';
 type Mark = 'ok' | 'now' | 'failed';
 
 /** One step of the body's turn, as the timeline draws it. */
-type Step =
+export type Step =
   | { kind: 'edit'; key: string; mark: Mark; call: Call; path: string }
   | { kind: 'run'; key: string; mark: Mark; call: Call; verify: boolean }
   | { kind: 'look'; key: string; mark: Mark; calls: Call[] }
@@ -75,7 +84,7 @@ type Step =
   | { kind: 'ending'; key: string; text: string };
 
 /** A turn: the human's words and the steps that answered them. */
-interface Turn {
+export interface Turn {
   key: string;
   ask: string;
   steps: Step[];
@@ -130,6 +139,51 @@ export function spoken(text: string): string {
   const lines = text.split('\n').filter((l) => !l.trimStart().startsWith('@U '));
   while (lines.length > 0 && /^\s*(---)?\s*$/.test(lines[lines.length - 1] ?? '')) lines.pop();
   return lines.join('\n');
+}
+
+/** The rows the timeline draws at first, and how many more each "Show earlier" adds. */
+export const WINDOW = 200;
+
+/**
+ * The newest `limit` rows of `all` — a turn's ask is a row, each step a row — and how many rows
+ * are left out above. A turn cut through keeps its newest steps, without its ask: a long session
+ * draws what is near the end, not every step it ever took.
+ */
+export function windowed(all: readonly Turn[], limit: number): { shown: Turn[]; hidden: number } {
+  const shown: Turn[] = [];
+  let room = Math.max(0, limit);
+  let hidden = 0;
+  for (let i = all.length - 1; i >= 0; i--) {
+    const t = all[i] as Turn;
+    const rows = t.steps.length + (t.ask ? 1 : 0);
+    if (room >= rows) {
+      shown.unshift(t);
+      room -= rows;
+    } else if (room > 0) {
+      const steps = t.steps.slice(t.steps.length - Math.min(room, t.steps.length));
+      shown.unshift({ ...t, ask: '', steps });
+      hidden += rows - steps.length;
+      room = 0;
+    } else {
+      hidden += rows;
+    }
+  }
+  return { shown, hidden };
+}
+
+/** Two steps alike for drawing: their own fields the same (lists of calls item by item). */
+function sameStep(a: Step, b: Step): boolean {
+  if (a === b) return true;
+  const ka = Object.keys(a) as (keyof Step)[];
+  if (ka.length !== Object.keys(b).length) return false;
+  return ka.every((k) => {
+    const x = a[k] as unknown;
+    const y = b[k] as unknown;
+    if (Array.isArray(x) && Array.isArray(y)) {
+      return x.length === y.length && x.every((v, i) => v === y[i]);
+    }
+    return x === y;
+  });
 }
 
 /** The view's entries as turns of steps. `verify` is the world's verify line. */
@@ -294,7 +348,7 @@ function Output({ text }: { text: string }) {
   );
 }
 
-function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean }) {
+function StepBody({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean }) {
   switch (s.kind) {
     case 'plan':
       return (
@@ -456,6 +510,12 @@ function StepView({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
       return null;
   }
 }
+
+/** A step, drawn again only when it changed: an event redraws the step it touched, not all. */
+const StepView = memo(
+  StepBody,
+  (a, b) => a.desk === b.desk && a.landed === b.landed && sameStep(a.s, b.s),
+);
 
 // ── the screen ──────────────────────────────────────────────────────────────────────────────────
 
@@ -646,6 +706,8 @@ function Screen({
   const last = all[all.length - 1];
   const verdict = [...(last?.steps ?? [])].reverse().find((s) => s.kind === 'verdict');
   const landed = verdict?.kind === 'verdict' && verdict.ok;
+  const [limit, setLimit] = useState(WINDOW);
+  const { shown, hidden } = useMemo(() => windowed(all, limit), [all, limit]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: follows the transcript as it grows
   useEffect(() => {
     const el = convo.current;
@@ -689,11 +751,17 @@ function Screen({
   const heading = all.find((t) => t.ask)?.ask.split('\n')[0] ?? 'New session';
   const observer = live?.role === 'observer';
   const ready = !live || (live.role === 'controller' && live.link !== 'closed');
-  const send = () => {
-    const text = draft.trim();
+  // As the terminal app does: a line sent while a turn runs waits behind it; steering — Steer, or
+  // `/send <text>` — is the explicit act that folds words into the running turn.
+  const send = (steer = false) => {
+    let text = draft.trim();
+    if (text.startsWith('/send ')) {
+      text = text.slice(6).trim();
+      steer = true;
+    }
     if (!text || starting || !ready) return;
     setDraft('');
-    if (busy && live) void live.steer(text);
+    if (steer && busy && live) void live.steer(text);
     else onAsk(text);
   };
 
@@ -762,7 +830,16 @@ function Screen({
               </p>
             </div>
           )}
-          {all.map((t, ti) => (
+          {hidden > 0 && (
+            <button
+              type="button"
+              className="ss-earlier"
+              onClick={() => setLimit((l) => l + WINDOW)}
+            >
+              Show earlier steps <small>({hidden} more)</small>
+            </button>
+          )}
+          {shown.map((t, ti) => (
             <article
               key={t.key}
               className="mapp-turn"
@@ -785,7 +862,12 @@ function Screen({
                   </p>
                   <ol className="mapp-steps">
                     {t.steps.map((s) => (
-                      <StepView key={s.key} s={s} desk={desk} landed={t === last && landed} />
+                      <StepView
+                        key={s.key}
+                        s={s}
+                        desk={desk}
+                        landed={t.key === last?.key && landed}
+                      />
                     ))}
                   </ol>
                 </div>
@@ -848,7 +930,7 @@ function Screen({
               live?.link === 'closed'
                 ? 'This session has ended'
                 : busy
-                  ? 'Steer the run: it reads this after its next step…'
+                  ? 'Queued for after this turn — or Steer to fold it into the run…'
                   : 'Ask Mikata to change, inspect or explain something…'
             }
             onChange={(e) => setDraft(e.target.value)}
@@ -862,7 +944,7 @@ function Screen({
           />
           <div className="ss-composerfoot">
             <span className="ss-keys">
-              <kbd>Enter</kbd> {busy ? 'steer' : 'send'} <kbd>Shift+Enter</kbd> newline
+              <kbd>Enter</kbd> {busy ? 'queue' : 'send'} <kbd>Shift+Enter</kbd> newline
               {busy && (
                 <>
                   {' '}
@@ -875,12 +957,23 @@ function Screen({
                 <Icon icon={Square} /> Stop
               </button>
             )}
+            {busy && (
+              <button
+                type="button"
+                className="ss-configure"
+                title="Fold these words into the running turn: it reads them after its next step"
+                disabled={!draft.trim() || !ready}
+                onClick={() => send(true)}
+              >
+                <Icon icon={Compass} /> Steer
+              </button>
+            )}
             <button
               type="submit"
               className="pf-primary"
               disabled={!draft.trim() || starting || !ready}
             >
-              <Icon icon={Send} /> {busy ? 'Steer' : 'Send'}
+              <Icon icon={Send} /> {busy ? 'Queue' : 'Send'}
             </button>
           </div>
         </form>

@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import type { ChatView, Entry, Usage } from '../data/chat.ts';
 import { THE_ASK } from '../data/chat.ts';
 import { deskOf } from '../data/desk.ts';
-import { counted, kept, spoken, turns } from './Session.tsx';
+import { counted, kept, spoken, type Turn, turns, WINDOW, windowed } from './Session.tsx';
 
 const usage: Usage = {
   usd: 0,
@@ -126,4 +126,27 @@ test('a desk reads what is there and nothing malformed', () => {
     branch: 'main',
   });
   expect(deskOf('nonsense')).toEqual({ verify: [], suggested: null, done: [], branch: null });
+});
+
+test('a long session draws its newest rows; a turn cut through keeps its newest steps', () => {
+  const say = (key: string) => ({ kind: 'say' as const, key, text: key });
+  const turn = (n: number, steps: number): Turn => ({
+    key: `t${n}`,
+    ask: `ask ${n}`,
+    steps: Array.from({ length: steps }, (_, i) => say(`t${n}s${i}`)),
+  });
+  // Three turns: 1 + 3, 1 + 500, 1 + 2 rows.
+  const all = [turn(0, 3), turn(1, 500), turn(2, 2)];
+  const { shown, hidden } = windowed(all, WINDOW);
+  expect(shown.map((t) => t.key)).toEqual(['t1', 't2']);
+  // The cut turn keeps its newest steps and no ask; every row is drawn or counted.
+  const cut = shown[0] as Turn;
+  expect(cut.ask).toBe('');
+  expect(cut.steps).toHaveLength(WINDOW - 3);
+  expect(cut.steps.at(-1)?.key).toBe('t1s499');
+  expect(hidden).toBe(4 + 501 - (WINDOW - 3));
+  // A short session is drawn whole.
+  expect(windowed([turn(0, 3)], WINDOW)).toEqual({ shown: [turn(0, 3)], hidden: 0 });
+  // A larger limit shows more; enough shows all.
+  expect(windowed(all, 10_000).hidden).toBe(0);
 });

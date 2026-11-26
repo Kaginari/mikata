@@ -70,7 +70,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   pages, its sessions, the runtime's state, Metrics, Integrations and Settings); and the page. A
   session is the conversation as a timeline of steps beside its **Live run** — Plan · Work ·
   Verify · Land, the log, Done when, the guardrails, wall time, steps, cost and context —, with a
-  composer that sends, steers, stops and takes over. The Harness Builder, the plugins and the
+  composer that sends — queued behind a running turn, as in the terminal app —, steers (*Steer*, `/send`), stops and takes over. The Harness Builder, the plugins and the
   profiles are pages of the frame; a Runs page lists the live sessions and the past runs. `#/`
   opens the workspace worked in last. Pages rise in, lists arrive one by one, live things pulse,
   and all of it stands still under reduced motion.
