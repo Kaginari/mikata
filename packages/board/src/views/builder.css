@@ -18,8 +18,6 @@
 }
 .bapp .mono,
 .bapp-editor,
-.bapp-log,
-.bapp-ask,
 .bapp-units {
   font-family: var(--mn-font-mono);
 }
@@ -94,23 +92,6 @@
 
 /* the selected page: a surface cut out of the brand */
 
-.bapp .bapp-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid transparent;
-  background: var(--mn-brand-surface);
-  color: var(--mn-on-brand);
-  font-weight: 800;
-  box-shadow: 0 0 18px var(--mn-glow-soft);
-}
-.bapp .bapp-primary:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--mn-brand-surface);
-  filter: saturate(1.15) brightness(1.05);
-}
-
 /* ── the three columns ── */
 .bapp-layout {
   display: grid;
@@ -150,45 +131,7 @@
 
 /* tags: a status as a pill, its colour and its words */
 
-.bapp .bapp-state {
-  --tag-fg: var(--mn-text-muted);
-  --tag-bg: var(--mn-panel-raised);
-  --tag-line: var(--mn-line-strong);
-  --tag-dot: var(--mn-text-faint);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  max-width: 100%;
-  padding: 4px 12px;
-  border: 1px solid var(--tag-line);
-  border-radius: 999px;
-  background: var(--tag-bg);
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--tag-fg);
-  overflow-wrap: anywhere;
-}
-
-.bapp .bapp-state[data-state="Not landed"] {
-  --tag-fg: var(--mn-error);
-  --tag-bg: var(--mn-error-bg);
-  --tag-line: color-mix(in srgb, var(--mn-error) 45%, var(--mn-line));
-  --tag-dot: var(--mn-error);
-}
-.bapp .bapp-state[data-state="Running"],
-.bapp .bapp-state[data-state="Starting"] {
-  --tag-fg: var(--mn-warning);
-  --tag-bg: var(--mn-warning-bg);
-  --tag-line: color-mix(in srgb, var(--mn-warning) 45%, var(--mn-line));
-  --tag-dot: var(--mn-amber);
-}
 /* verified: the bio gradient, olive words on lime */
-.bapp .bapp-state[data-state="Verified"] {
-  background: color-mix(in srgb, var(--mn-success-fill) 10%, var(--mn-panel));
-  color: var(--mn-success-fill);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--mn-success-fill) 35%, transparent);
-  border: 1.5px solid var(--mn-success-fill);
-}
 
 /* the left column */
 
@@ -424,13 +367,7 @@
   margin: 0 0 10px;
   align-items: center;
 }
-.bapp .bapp-tabs .bapp-active,
-.bapp .bapp-tabs .bapp-active:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--mn-hot) 20%, var(--mn-panel));
-  color: var(--mn-text);
-  font-weight: 800;
-  border: 1px solid var(--mn-hot);
-}
+
 .bapp-editor {
   min-height: 0;
   margin: 0;
@@ -489,23 +426,7 @@
 }
 
 /* the right */
-.bapp .bapp-state {
-  font-size: 15px;
-  letter-spacing: 0.06em;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  white-space: nowrap;
-}
-.bapp-ask {
-  width: 100%;
-  min-height: 70px;
-  padding: 10px;
-  border: 1px solid var(--mn-line);
-  border-radius: 9px;
-  background: var(--mn-bg);
-  resize: vertical;
-}
+
 .bapp-steps {
   display: flex;
   justify-content: space-between;
@@ -542,137 +463,10 @@
 .bapp-steps li[data-state="skipped"] {
   opacity: 0.5;
 }
-.bapp-log {
-  height: 380px;
-  padding: 14px;
-  overflow: auto;
-  border: 1px solid var(--mn-line);
-  border-radius: 10px;
-  background: var(--mn-bg);
-  font: 14px / 1.7 var(--mn-font-mono);
-  overflow-wrap: anywhere;
-  border-color: color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
-}
-.bapp .bapp-log-ask {
-  margin-bottom: 10px;
-  color: var(--mn-text);
-  font-weight: 700;
-}
-.bapp-log [data-tone="ok"] {
-  color: var(--mn-success-text);
-}
-.bapp-log [data-tone="alarm"] {
-  color: var(--mn-error);
-}
-.bapp-log [data-tone="now"],
-.bapp-log [data-tone="holo"] {
-  color: var(--mn-holo);
-}
+
 /* the end gate's word: verification, in the bio green */
-.bapp-result {
-  position: relative;
-  margin-top: 16px;
-  padding: 18px 20px;
-  overflow: hidden;
-  border: 1.5px solid var(--mn-success-fill);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--mn-success-fill) 7%, var(--mn-panel));
-  color: var(--mn-success-text);
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-success-fill) 28%, transparent);
-}
-.bapp-result::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: var(--mn-gradient-bio);
-  display: none;
-}
-.bapp-result h3 {
-  font: 800 26px var(--mn-font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--mn-success-fill);
-}
-.bapp-result[data-ok="false"] {
-  border-color: var(--mn-error);
-  background: var(--mn-error-bg);
-  color: var(--mn-error);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-error) 28%, transparent);
-}
-.bapp-result[data-ok="false"]::before {
-  background: var(--mn-error);
-}
-.bapp-numbers {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 15px 0 0;
-  margin-top: 16px;
-}
-.bapp-numbers div {
-  display: flex;
-  flex-direction: column-reverse;
-  padding: 16px 6px 12px;
-  border: 1px solid color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
-  border-radius: 12px;
-  background: var(--mn-panel);
-  text-align: center;
-  position: relative;
-}
-.bapp-numbers dt {
-  color: var(--mn-text-muted);
-  font: 13px var(--mn-font-mono);
-}
-.bapp-numbers dd {
-  margin: 0 0 5px;
-  font: 800 17px var(--mn-font-mono);
-  font-size: 20px;
-}
-.bapp .bapp-notice {
-  margin-top: 14px;
-  font-size: 11px;
-  color: var(--mn-warning);
-}
 
 /* the session: the conversation and its composer */
-
-.bapp-sidechat {
-  margin-top: 15px;
-  padding: 12px;
-  border: 1px solid var(--mn-line-strong);
-  border-radius: 12px;
-  background: var(--mn-panel-raised);
-}
-.bapp-sidechat:focus-within {
-  border-color: var(--mn-hot);
-  box-shadow: 0 0 0 3px var(--mn-glow-soft);
-}
-.bapp-sidechat textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 10px;
-  border: 0;
-  border-radius: 7px;
-  background: var(--mn-bg);
-  resize: vertical;
-}
-.bapp-sidechat textarea {
-  min-height: 54px;
-}
-
-.bapp-sidechat label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 800;
-}
-.bapp-sidechat button {
-  width: 100%;
-  margin-top: 8px;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .mn-spin,
@@ -690,9 +484,6 @@
 @media (max-width: 1200px) {
   .bapp-layout {
     grid-template-columns: 180px minmax(360px, 1fr);
-  }
-  .bapp-live {
-    grid-column: 2;
   }
 }
 @media (max-width: 760px) {
@@ -717,9 +508,6 @@
   }
   .bapp-top {
     flex-wrap: wrap;
-  }
-  .bapp-log {
-    height: 260px;
   }
 }
 
@@ -813,12 +601,7 @@
 }
 
 /* the configuration and the start */
-.bapp-config {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 14px;
-  margin-top: 14px;
-}
+
 .bapp-confpanel {
   min-width: 0;
   padding: 10px;
@@ -881,66 +664,8 @@
   color: var(--mn-holo);
 }
 
-.bapp-startbox {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-.bapp-startbox .bapp-ask {
-  min-height: 110px;
-  border-color: color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line));
-  font: 14px / 1.5 var(--mn-font-mono);
-}
-.bapp .bapp-start,
-.bapp .bapp-start:hover:not(:disabled) {
-  padding: 13px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral) 60%, var(--mn-amber));
-  color: var(--mn-text);
-  font-size: 18px;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-hot) 45%, transparent);
-}
-.bapp-facts {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--mn-line);
-  border-radius: 10px;
-  background: var(--mn-bg);
-  font: 13px var(--mn-font-mono);
-}
-.bapp-facts div {
-  display: flex;
-  justify-content: space-between;
-}
-.bapp-facts dt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--mn-text-muted);
-}
-.bapp-facts dd {
-  margin: 0;
-}
-
 /* the live run */
-.bapp-live {
-  padding: 18px 18px;
-}
-.bapp-runline {
-  margin-top: 4px;
-  font: 14px var(--mn-font-mono);
-  color: var(--mn-text-muted);
-}
 
-.bapp .bapp-stop {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-color: var(--mn-error);
-  color: var(--mn-error);
-}
 /* the stepper: rings joined by rails, lit as far as the run has come */
 
 .bapp-steps li:not(:last-child)::after {
@@ -989,38 +714,6 @@
   stroke-width: 3;
 }
 
-.bapp-log time {
-  color: var(--mn-text-muted);
-}
-
-.bapp .bapp-result-icon {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  color: var(--mn-success-fill);
-}
-
-.bapp-result p {
-  font: 14px / 1.5 var(--mn-font-mono);
-  color: var(--mn-text);
-}
-
-.bapp-result[data-ok="false"] h3,
-.bapp-result[data-ok="false"] .bapp-result-icon {
-  color: var(--mn-error);
-}
-
-.bapp-numbers div .mn-icon {
-  order: 3;
-  width: 26px;
-  height: 26px;
-  margin: 0 auto 8px;
-  color: var(--mn-hot);
-}
-.bapp-numbers div:last-child .mn-icon {
-  color: var(--mn-amber);
-}
-
 /* one screen, as the picture: compact cards and rail */
 
 /* the version rides in the card's title row */
@@ -1034,10 +727,6 @@
 }
 .bapp-unit h3 .bapp-pill + .bapp-switch {
   margin-left: 0;
-}
-
-.bapp-live .bapp-titled {
-  min-width: 0;
 }
 
 /* a card's name on one line, its version never broken */

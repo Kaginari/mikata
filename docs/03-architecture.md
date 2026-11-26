@@ -1284,7 +1284,7 @@ bar** is the brand's gradient, flowing, with Mikata's mark, the workspace's page
 **rail** below it is glass cards: the workspace (a picker of every world the board knows, its
 path, and its pages: Agent sessions, Harness Builder, Plugins, Run journal, Memory), its
 sessions (the live ones, then the latest runs, `+` for a new one), the runtime's state (the
-harness, the units on, the live sessions) and the board's own pages (Metrics, Integrations,
+harness, the profile and the units new sessions open with, the live sessions) and the board's own pages (Metrics, Integrations,
 Settings). The **page** fills the rest and rises in as it changes. Below 860 px the tabs fold
 into the rail and the rail is a drawer behind the menu button; a link followed or the scrim
 closes it. The motion — the bar's flowing gradient and sweep, pages and lists arriving, live dots
@@ -1299,7 +1299,7 @@ address, so a link, a reload or the back button lands where it was:
 | `#/w/<world>` | its newest live session, or a new one at the first ask |
 | `#/w/<world>/s/<session>` | a live session |
 | `#/w/<world>/r/<run>` | a past run, read-only |
-| `#/w/<world>/<builder\|plugins\|profiles>` | the Harness Builder's pages |
+| `#/w/<world>/<builder\|plugins>` | the Harness Builder and the plugin inspector |
 | `#/w/<world>/<runs\|journal\|memory>` | its runs, its journal, its memory |
 | `#/metrics`, `#/integrations`, `#/settings` | the board's pages |
 
@@ -1313,7 +1313,7 @@ state, never a blank pane.
 |---|---|---|
 | A session `#/w/<world>`, `…/s/<session>` | a header (the first ask as its title, its state — Ready, Running, Verified, Not landed —, the branch, the sandbox, the model, the mode, *Configure*, *End session*), the conversation as a timeline of steps (the human's words, each look, edit and check, the end gate's word), the composer (Enter sends; while a turn runs it queues the line for after it, as the terminal app does, and *Steer* or `/send <text>` folds words into the running turn instead; Esc or *Stop* interrupts; an observing tab may *Take over*), the queue, the approval card; beside it the **Live run**: Plan · Work · Verify · Land, the log, Done when, the guardrails, wall time, steps, cost and the context against its stress line. A first ask opens a session at its own address | *Ready in* the workspace; *Waiting for an ask…*; *This session has ended* |
 | A past run `…/r/<run>` | the transcript in the terminal's grammar, read-only, and *Resume* | *This chat is not live* |
-| Harness Builder `…/builder`, Plugins `…/plugins`, Profiles `…/profiles` | every unit a session would open with as a card round the core, with a switch, its version and an icon, a profile to start from, and the composition as a global file's `[profiles.<name>]` and as `--units` (copy, export); the run it starts on the right — its stages, its log, the end gate's word, its wall time, steps and spend, a box to message it, its approvals. Start opens a session with exactly that composition (`POST …/sessions` with `profile` and `units`). Plugins inspects the native units and the declared plugins; Profiles lists the profiles to apply | *Reading the harness…*; *Waiting for an ask…* |
+| Harness Builder `…/builder`, Plugins `…/plugins` | every unit a session opens with as a card round the core, with a switch, its version and an icon; a legend; a profile to start from; the composition as a global file's `[profiles.<name>]` (copy, export) and as the `--profile` and `--units` the workspace's new sessions open with — New session, the rail's `+`, a first ask. The composition is kept in this browser per workspace; a guard switched off (`secrets`, `approval`, `gate`, `hold`) holds for the next new session only, is never kept, and that session's header says so in the alarm's tone. Plugins inspects the native units and the declared plugins, with the same switches | *Reading the harness…* |
 | Runs `…/runs` | the live sessions, then the past runs, as cards, with their totals | *No session runs now*; *No past run yet* |
 | Memory | notes by body, scope and standing, with confirm and wake | *No note here* |
 | Journal | `log.md`'s entries and their contents | *No journal yet* |

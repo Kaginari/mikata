@@ -6,12 +6,15 @@
 import type { BoardWorld } from '@mikata/protocol';
 import {
   Activity,
+  ArrowRight,
   ChartColumnIncreasing,
   Cpu,
   Database,
+  History,
   Layers,
   type LucideIcon,
   Menu,
+  MessageSquare,
   MessagesSquare,
   Moon,
   Plug,
@@ -26,7 +29,8 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { type Chats, startChat } from '../data/chats.ts';
-import { useHarness } from '../data/harness.ts';
+import { noteOpened, sessionOptions, useComposition } from '../data/compose.ts';
+import { opening, useHarness } from '../data/harness.ts';
 import { format, type Route } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { shown } from '../safe/shown.ts';
@@ -40,7 +44,6 @@ export type Place =
   | 'sessions'
   | 'builder'
   | 'plugins'
-  | 'profiles'
   | 'runs'
   | 'journal'
   | 'memory'
@@ -125,10 +128,22 @@ const tilde = (path: string) => path.replace(/^\/(?:home|Users)\/[^/]+/, '~');
 const NEXT: Record<Choice, Choice> = { auto: 'light', light: 'dark', dark: 'auto' };
 const THEME_ICON: Record<Choice, LucideIcon> = { auto: SunMoon, light: Sun, dark: Moon };
 
+/** The runtime's state for the workspace: the harness, and what a new session opens with — the
+ * Builder's composition (its profile, the units it leaves on) — and how many sessions run. */
 function Status({ world, chats }: { world: BoardWorld; chats: Chats }) {
   const load = useHarness(world.id);
+  const c = useComposition(world.id);
   const data = load.state === 'ready' ? load.data : undefined;
-  const on = data?.units.filter((u) => u.on).length ?? 0;
+  const base = data
+    ? opening(
+        data.units,
+        data.profiles.find((p) => p.name === c.profile),
+      )
+    : null;
+  const on =
+    data && base
+      ? data.units.filter((u) => c.once?.flips[u.id] ?? c.flips[u.id] ?? base.get(u.id)).length
+      : 0;
   const ok = data !== undefined && data.holes.length === 0;
   return (
     <ul className="pf-status" aria-label="Runtime status">
@@ -136,6 +151,13 @@ function Status({ world, chats }: { world: BoardWorld; chats: Chats }) {
         <i className="pf-dot" aria-hidden="true" />
         <span>Harness</span>
         <b>{ok ? 'ready' : load.state === 'loading' ? 'reading' : 'holes'}</b>
+      </li>
+      <li>
+        <Icon icon={Layers} />
+        <span>Profile</span>
+        <b>
+          <Safe text={c.profile || 'default'} />
+        </b>
       </li>
       <li>
         <Icon icon={Cpu} />
@@ -148,6 +170,102 @@ function Status({ world, chats }: { world: BoardWorld; chats: Chats }) {
         <b>{chats.live.length}</b>
       </li>
     </ul>
+  );
+}
+
+/** The workspace's sessions: the live ones, each by its ask, marked when it waits for you; then
+ * the latest past runs, and the way to every run. */
+function Sessions({
+  world,
+  chats,
+  route,
+  starting,
+  onNew,
+}: {
+  world: BoardWorld;
+  chats: Chats;
+  route: Route;
+  starting: boolean;
+  onNew: () => void;
+}) {
+  // A live session's run is listed once, as the live session.
+  const liveRuns = new Set(chats.live.map((c) => c.run));
+  const past = chats.runs.filter((r) => !liveRuns.has(r.id));
+  const askOf = (run: string) => chats.runs.find((r) => r.id === run)?.ask;
+  const here = route.name === 'session' ? route.session : undefined;
+  const run = route.name === 'run' ? route.run : undefined;
+  return (
+    <section className="pf-card pf-sessions" aria-label="Sessions">
+      <p className="pf-label">
+        Sessions
+        <button
+          type="button"
+          className="pf-icon pf-mini"
+          aria-label="New session"
+          disabled={starting}
+          onClick={onNew}
+        >
+          <Icon icon={Plus} />
+        </button>
+      </p>
+      {chats.live.length === 0 ? (
+        <button type="button" className="pf-start" disabled={starting} onClick={onNew}>
+          <Icon icon={Plus} /> {starting ? 'Starting…' : 'Start a session'}
+        </button>
+      ) : (
+        <ul className="pf-list" aria-label="Live sessions">
+          {chats.live.map((c, i) => (
+            <li key={c.id} style={{ '--i': i } as React.CSSProperties}>
+              <a
+                className="pf-session"
+                data-live="true"
+                href={format({ name: 'session', world: world.id, session: c.id })}
+                aria-current={here === c.id ? 'page' : undefined}
+              >
+                <Icon icon={MessageSquare} />
+                <span>
+                  <Safe text={askOf(c.run) || 'New session'} />
+                </span>
+                {c.asks > 0 ? (
+                  <small className="pf-needs" title="An approval waits for you">
+                    needs you
+                  </small>
+                ) : (
+                  <i className="pf-dot" aria-hidden="true" />
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {past.length > 0 && (
+        <>
+          <p className="pf-sublabel">Recent runs</p>
+          <ul className="pf-list" aria-label="Recent runs">
+            {past.slice(0, 4).map((r, i) => (
+              <li key={r.id} style={{ '--i': chats.live.length + i } as React.CSSProperties}>
+                <a
+                  className="pf-session pf-past"
+                  href={format({ name: 'run', world: world.id, run: r.id })}
+                  aria-current={run === r.id ? 'page' : undefined}
+                >
+                  <Icon icon={History} />
+                  <span>
+                    <Safe text={r.ask || r.id} />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a
+            className="pf-all"
+            href={format({ name: 'section', world: world.id, section: 'runs' })}
+          >
+            All runs ({past.length + chats.more}) <Icon icon={ArrowRight} />
+          </a>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -199,15 +317,15 @@ export function Platform({
     return () => window.removeEventListener('keydown', on);
   }, [drawer]);
   const session = route.name === 'session' ? route.session : undefined;
-  // A live session's run is listed once, as the live session.
-  const liveRuns = new Set(chats.live.map((c) => c.run));
-  const past = chats.runs.filter((r) => !liveRuns.has(r.id));
 
   const newSession = async () => {
     if (!world || starting) return;
     setStarting(true);
     try {
-      const started = await startChat(world.id);
+      // The workspace's composition, as the Harness Builder set it.
+      const opts = sessionOptions(world.id);
+      const started = await startChat(world.id, undefined, opts);
+      noteOpened(started.session.id, opts);
       chats.refresh();
       window.location.hash = format({
         name: 'session',
@@ -342,60 +460,13 @@ export function Platform({
           </section>
 
           {world && (
-            <section className="pf-card pf-sessions" aria-label="Sessions">
-              <p className="pf-label">
-                Sessions
-                <button
-                  type="button"
-                  className="pf-icon pf-mini"
-                  aria-label="New session"
-                  disabled={starting}
-                  onClick={() => void newSession()}
-                >
-                  <Icon icon={Plus} />
-                </button>
-              </p>
-              {chats.live.length === 0 && chats.runs.length === 0 && (
-                <p className="pf-muted">No session yet: start one.</p>
-              )}
-              <ul className="pf-list">
-                {chats.live.map((c, i) => (
-                  <li key={c.id} style={{ '--i': i } as React.CSSProperties}>
-                    <a
-                      className="pf-session"
-                      data-live="true"
-                      href={format({ name: 'session', world: world.id, session: c.id })}
-                      aria-current={session === c.id ? 'page' : undefined}
-                    >
-                      <i className="pf-dot" aria-hidden="true" />
-                      <span>
-                        <Safe
-                          text={
-                            chats.runs.find((r) => r.id === c.run)?.ask ||
-                            `Session ${c.run.slice(-6)}`
-                          }
-                        />
-                      </span>
-                      <small>live</small>
-                    </a>
-                  </li>
-                ))}
-                {past.slice(0, 5).map((r, i) => (
-                  <li key={r.id} style={{ '--i': chats.live.length + i } as React.CSSProperties}>
-                    <a
-                      className="pf-session"
-                      href={format({ name: 'run', world: world.id, run: r.id })}
-                      aria-current={route.name === 'run' && route.run === r.id ? 'page' : undefined}
-                    >
-                      <i className="pf-dot" data-state={r.state} aria-hidden="true" />
-                      <span>
-                        <Safe text={r.ask || r.id} />
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Sessions
+              world={world}
+              chats={chats}
+              route={route}
+              starting={starting}
+              onNew={() => void newSession()}
+            />
           )}
 
           {world && (
@@ -432,10 +503,7 @@ export function Platform({
           tabIndex={-1}
           onClick={() => setDrawer(false)}
         />
-        <div
-          className="pf-page" // The builder's three pages are one page: it keeps its profile and its run between them.
-          key={(place === 'plugins' || place === 'profiles' ? 'builder' : place) + (session ?? '')}
-        >
+        <div className="pf-page" key={place + (session ?? '')}>
           {children}
         </div>
       </div>

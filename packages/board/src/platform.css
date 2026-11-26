@@ -509,6 +509,69 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   color: var(--mn-text);
 }
 
+.pf-session > .mn-icon {
+  flex: none;
+  color: var(--mn-text-faint);
+}
+.pf-session[data-live="true"] > .mn-icon,
+.pf-session[aria-current="page"] > .mn-icon {
+  color: var(--mn-holo);
+}
+.pf-needs {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--mn-amber);
+  border-radius: 999px;
+  color: var(--mn-gold);
+  font: 700 10px var(--mn-font-mono);
+  letter-spacing: 0.04em;
+  animation: pf-breathe 1.6s ease-in-out infinite;
+}
+.pf-past {
+  font-size: 13px;
+}
+.pf-sublabel {
+  margin: 12px 0 6px;
+  color: var(--mn-text-faint);
+  font: 700 10px var(--mn-font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.pf-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0 10px;
+  color: var(--mn-holo);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.pf-all:hover .mn-icon {
+  transform: translateX(3px);
+}
+.pf-all .mn-icon {
+  transition: transform 260ms var(--pf-spring);
+}
+.pf-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--mn-hot) 50%, var(--mn-line));
+  border-radius: 11px;
+  background: transparent;
+  color: var(--mn-holo);
+  font: 600 14px var(--mn-font-ui);
+  cursor: pointer;
+  transition: background var(--mn-fast) var(--mn-ease);
+}
+.pf-start:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mn-hot) 10%, transparent);
+}
+
 /* a dot: lime and breathing while alive */
 .pf-dot {
   position: relative;
@@ -1378,7 +1441,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   background: none;
 }
 .bapp-layout.bapp-embedded {
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--pf-gap);
   min-height: 0;
   padding: 0;
@@ -1386,32 +1449,47 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 .bapp-embedded .bapp-panel {
   animation: pf-rise 560ms var(--mn-ease) backwards;
 }
-.bapp-embedded .bapp-live {
-  grid-column: auto;
-  animation-delay: 90ms;
-}
 .bapp-embedded .bapp-graph {
   grid-template-columns: minmax(0, 1fr) minmax(150px, 0.62fr) minmax(0, 1fr);
   column-gap: 30px;
 }
+/* the legend under the graph, as the picture has it */
+.bapp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 6px 0 16px;
+  padding: 0;
+  list-style: none;
+  color: var(--mn-text-muted);
+  font-size: 13px;
+}
+.bapp-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.bapp-legend li::before {
+  content: "";
+  width: 22px;
+  height: 0;
+  border-top: 2px solid var(--mn-edge-native);
+}
+.bapp-legend li[data-kind="plugin"]::before {
+  border-top-color: var(--mn-edge-plugin);
+}
+.bapp-legend li[data-kind="off"]::before {
+  border-top: 2px dashed var(--mn-edge-disabled);
+}
+.bapp-tabs > b {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
 .bapp-embedded .bapp-stack > * {
   min-width: 0;
   overflow: hidden;
-}
-.bapp-tablink {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  color: var(--mn-text-muted);
-  font-weight: 600;
-  font-size: 13px;
-  text-decoration: none;
-}
-.bapp-tablink:hover {
-  background: var(--mn-surface-hover);
-  color: var(--mn-text);
 }
 
 /* ── narrower ────────────────────────────────────────────────────────────────────────────────── */
@@ -1456,9 +1534,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
     display: none;
   }
   /* the builder's configuration and its start box, one over the other */
-  .bapp-embedded .bapp-config {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .bapp-embedded .bapp-tabs {
     flex-wrap: wrap;
   }
@@ -1642,6 +1717,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   .ss-livehead h2 .mn-icon,
   .ss-log p,
   .ss-meter i,
+  .pf-needs,
   .pg-icon,
   .pg-grid > li,
   .bapp-embedded .bapp-panel {
@@ -1667,6 +1743,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   .ss-stop,
   .pg-run,
   .pg-links a,
+  .pf-all .mn-icon,
+  .pf-start,
   .ss-earlier {
     transition: none;
   }

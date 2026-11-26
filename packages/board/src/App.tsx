@@ -93,8 +93,7 @@ function Page({
   switch (route.section) {
     case 'builder':
     case 'plugins':
-    case 'profiles':
-      return <BuilderView key={world.id} w={world} chats={chats} view={route.section} />;
+      return <BuilderView key={world.id} w={world} view={route.section} />;
     case 'runs':
       return <RunsView w={world} chats={chats} now={now} />;
     case 'journal':
@@ -115,7 +114,6 @@ function Page({
 const SECTION_TITLE: Record<string, string> = {
   builder: 'Harness Builder',
   plugins: 'Plugins',
-  profiles: 'Profiles',
   runs: 'Runs',
   journal: 'Run journal',
   memory: 'Memory',

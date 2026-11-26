@@ -6,14 +6,7 @@
 import { useEffect, useState } from 'react';
 
 /** The pages of a workspace, beside its sessions. */
-export const WORLD_SECTIONS = [
-  'builder',
-  'plugins',
-  'profiles',
-  'runs',
-  'journal',
-  'memory',
-] as const;
+export const WORLD_SECTIONS = ['builder', 'plugins', 'runs', 'journal', 'memory'] as const;
 export type WorldSection = (typeof WORLD_SECTIONS)[number];
 
 export type Route =

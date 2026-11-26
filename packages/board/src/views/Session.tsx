@@ -28,6 +28,7 @@ import {
   Power,
   Send,
   Shield,
+  ShieldAlert,
   SlidersHorizontal,
   Square,
   SquareCheck,
@@ -46,6 +47,14 @@ import {
 import type { Call, ChatView, Entry } from '../data/chat.ts';
 import { humanWords, summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
+import {
+  GUARDS,
+  noteOpened,
+  type Opened,
+  openedWith,
+  sessionOptions,
+  useComposition,
+} from '../data/compose.ts';
 import { type Desk, useDesk } from '../data/desk.ts';
 import { changeOf } from '../data/diff.ts';
 import { useHarness } from '../data/harness.ts';
@@ -682,6 +691,7 @@ function Screen({
   why,
   planOn,
   number,
+  opened,
 }: {
   w: BoardWorld;
   live: Live | undefined;
@@ -691,6 +701,8 @@ function Screen({
   why: string | undefined;
   planOn: boolean;
   number: number;
+  /** What this tab opened the session with, and the guards that were switched off for it. */
+  opened?: { with: Opened; guardsOff: string[] } | undefined;
 }) {
   const v = live?.view;
   const hello = live?.hello;
@@ -781,6 +793,22 @@ function Screen({
               </span>
             </h1>
             <ul className="ss-chips" aria-label="This session">
+              {opened && (
+                <li
+                  data-status={opened.guardsOff.length > 0 ? 'alarm' : undefined}
+                  title="What this session was opened with, from the Harness Builder"
+                >
+                  <Icon icon={opened.guardsOff.length > 0 ? ShieldAlert : SlidersHorizontal} />{' '}
+                  <Safe
+                    text={
+                      opened.guardsOff.length > 0
+                        ? `guards off: ${opened.guardsOff.join(', ')}`
+                        : [opened.with.profile, opened.with.units].filter(Boolean).join(' · ') ||
+                          'default harness'
+                    }
+                  />
+                </li>
+              )}
               {desk.branch && (
                 <li>
                   <Icon icon={GitBranch} /> <Safe text={desk.branch} />
@@ -1026,21 +1054,37 @@ export function SessionView({
 }) {
   const desk = useDesk(w.id);
   const harness = useHarness(w.id);
+  const c = useComposition(w.id);
+  // The plan as the workspace's composition has it: a flip over the configuration, else the unit.
   const planOn =
-    harness.state === 'ready'
+    c.flips.plan ??
+    (harness.state === 'ready'
       ? (harness.data.units.find((u) => u.id === 'plan')?.on ?? false)
-      : true;
+      : true);
   const [starting, setStarting] = useState(false);
   const [why, setWhy] = useState<string | undefined>();
   const id = session ?? chats.live[0]?.id;
   const at = chats.live.findIndex((c) => c.id === id);
+  // What this tab opened the session with: a guard switched off for it is said in the alarm's tone.
+  const opened = useMemo(() => {
+    const with_ = id ? openedWith(id) : undefined;
+    if (!with_) return undefined;
+    const guardsOff = (with_.units ?? '')
+      .split(',')
+      .filter((t) => t.startsWith('-') && GUARDS.has(t.slice(1)))
+      .map((t) => t.slice(1));
+    return { with: with_, guardsOff };
+  }, [id]);
   const number = at < 0 ? chats.live.length + 1 : chats.live.length - at;
 
   const open = async (text: string) => {
     setStarting(true);
     setWhy(undefined);
     try {
-      const started = await startChat(w.id);
+      // The workspace's composition, as the Harness Builder set it.
+      const opts = sessionOptions(w.id);
+      const started = await startChat(w.id, undefined, opts);
+      noteOpened(started.session.id, opts);
       opening.set(started.session.id, text);
       chats.refresh();
       window.location.hash = format({ name: 'session', world: w.id, session: started.session.id });
@@ -1062,6 +1106,7 @@ export function SessionView({
         why={why}
         planOn={planOn}
         number={number}
+        opened={opened}
       />
     );
   }
@@ -1078,6 +1123,7 @@ export function SessionView({
             why={why ?? live.closed}
             planOn={planOn}
             number={number}
+            opened={opened}
           />
         </Sender>
       )}

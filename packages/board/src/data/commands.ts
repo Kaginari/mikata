@@ -33,7 +33,6 @@ export const SHOWN_CAP = 50;
 const SECTION_NAMES: Record<WorldSection, string> = {
   builder: 'Harness Builder',
   plugins: 'Plugins',
-  profiles: 'Profiles',
   runs: 'Runs',
   journal: 'Run journal',
   memory: 'Memory',

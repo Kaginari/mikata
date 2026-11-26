@@ -46,6 +46,6 @@ describe('the router', () => {
     { name: 'section', world: 'x/1', section: 'plugins' },
     { name: 'session', world: 'w?#', session: 's p' },
     { name: 'run', world: 'w', run: 'r1-2' },
-    { name: 'section', world: 'w', section: 'profiles' },
+    { name: 'section', world: 'w', section: 'runs' },
   ])('formats %j and reads it back', (route) => expect(parse(format(route))).toEqual(route));
 });

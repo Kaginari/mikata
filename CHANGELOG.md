@@ -70,8 +70,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   pages, its sessions, the runtime's state, Metrics, Integrations and Settings); and the page. A
   session is the conversation as a timeline of steps beside its **Live run** — Plan · Work ·
   Verify · Land, the log, Done when, the guardrails, wall time, steps, cost and context —, with a
-  composer that sends — queued behind a running turn, as in the terminal app —, steers (*Steer*, `/send`), stops and takes over. The Harness Builder, the plugins and the
-  profiles are pages of the frame; a Runs page lists the live sessions and the past runs. `#/`
+  composer that sends — queued behind a running turn, as in the terminal app —, steers (*Steer*, `/send`), stops and takes over. The Harness Builder and the plugins are pages
+  of the frame, as the picture draws them: what they compose — a profile and switches — is what
+  the workspace's new sessions open with, kept in this browser; a guard switched off (`secrets`,
+  `approval`, `gate`, `hold`) holds for the next session only and that session says so. The rail
+  lists the live sessions by their ask, then the recent runs; a Runs page lists them all. `#/`
   opens the workspace worked in last. Pages rise in, lists arrive one by one, live things pulse,
   and all of it stands still under reduced motion.
 
@@ -85,6 +88,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Removed
 
+- `mikata --web` with the terminal app: `--web` now opens the board alone, one or the other.
 - The board's old screens: the worlds list, a world's overview, the side pane, Bodies & queue,
   the colony net (`#/net`) and the Ontology page. Their addresses say *Nothing at this address*.
   The journal and the memory stay, inside the frame.

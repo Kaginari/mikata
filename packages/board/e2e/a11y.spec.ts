@@ -1,6 +1,6 @@
 /**
  * Accessibility end to end, at phone and desktop in both themes: axe (WCAG 2.2 A and AA rules) on
- * every page of the board — a workspace's session, the Harness Builder, its plugins and profiles,
+ * every page of the board — a workspace's session, the Harness Builder, its plugins,
  * the runs, the journal, memory, metrics, integrations, settings, an unknown address, a live
  * session and the approval card, the command palette and the shortcut map, and the empty and
  * loading states — with no serious or critical violation. And the keyboard: the palette is
@@ -82,7 +82,6 @@ const PAGES: [string, string, string][] = [
   ['session', `#/w/${W.id}`, 'Ready in sqlglot'],
   ['builder', `#/w/${W.id}/builder`, 'Harness Builder'],
   ['plugins', `#/w/${W.id}/plugins`, 'Plugin inspector'],
-  ['profiles', `#/w/${W.id}/profiles`, 'small-fix'],
   ['runs', `#/w/${W.id}/runs`, 'Agent runs'],
   ['journal', `#/w/${W.id}/journal`, 'Journal'],
   ['memory', `#/w/${W.id}/memory`, 'collations drop in _parse_types'],

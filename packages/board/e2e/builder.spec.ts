@@ -95,7 +95,31 @@ function run(b: Bridge, text: string) {
   b.emit('turnEnded', { ending: 'answered' });
 }
 
-test('the builder starts a run with the composition its switches make, and follows it', async ({
+/** The sessions endpoint, answering a new session and recording what it was asked. */
+async function sessions(p: import('@playwright/test').Page, started: unknown[]) {
+  await p.route(`**/api/w/${LIVE.id}/sessions`, async (r) => {
+    if (r.request().method() !== 'POST') return r.fallback();
+    started.push(r.request().postDataJSON());
+    await r.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        session: {
+          id: CHAT,
+          world: LIVE.id,
+          session: 's-1',
+          run: RUN,
+          controlled: true,
+          tabs: 1,
+          asks: 0,
+        },
+        hello,
+      }),
+    });
+  });
+}
+
+test('the builder composes the harness new sessions open with, and keeps it', async ({
   page,
 }, info) => {
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -107,69 +131,83 @@ test('the builder starts a run with the composition its switches make, and follo
     await p.route(`**/api/w/${LIVE.id}/units`, (r) =>
       r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
     );
-    await p.route(`**/api/w/${LIVE.id}/sessions`, async (r) => {
-      started.push(r.request().postDataJSON());
-      await r.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          session: {
-            id: CHAT,
-            world: LIVE.id,
-            session: 's-1',
-            run: RUN,
-            controlled: true,
-            tabs: 1,
-            asks: 0,
-          },
-          hello,
-        }),
-      });
-    });
+    await sessions(p, started);
   });
-  // It opens on the builder itself.
+  // The builder as the picture draws it: the graph, its legend, the TOML; no run of its own.
   await expect(page.getByRole('heading', { name: 'Harness Builder', level: 1 })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Legend' })).toContainText('External plugin');
+  await expect(page.getByRole('button', { name: /Start run/ })).toHaveCount(0);
   await expect(page.getByRole('switch', { name: 'Memory: on' })).toBeVisible();
-  // A switch flipped: the composition says it.
+  // A switch flipped: the composition says it, and the rail's status counts it.
   await page.getByRole('switch', { name: 'Challenge: on' }).click();
   await expect(page.getByRole('switch', { name: 'Challenge: off' })).toBeVisible();
   await expect(page.locator('.bapp-units')).toContainText('-challenge');
-  await page
-    .getByLabel('Your ask')
-    .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
-  await page.getByRole('button', { name: /Start run/ }).click();
-  await expect(page.getByRole('heading', { name: 'Verified', exact: true })).toBeVisible();
-  expect(started).toEqual([{ units: '-challenge' }]);
-  const log = page.getByRole('log', { name: 'Run log' });
-  await expect(log).toContainText('bash: cargo test');
-  await expect(log).toContainText('end gate: pass');
-  await expect(page.locator('.bapp-steps li[data-state="done"]')).toHaveCount(4);
-  await expect(page.locator('.bapp-state')).toHaveText('VERIFIED');
-  await page.screenshot({ path: shot(`builder-run-${info.project.name}`), fullPage: true });
-  // The session's own page shows the run's conversation, and a composer to go on.
-  await page.goto(`/#/w/${LIVE.id}/s/${CHAT}`);
-  await expect(page.getByRole('region', { name: 'The conversation' })).toContainText(
-    'Parsed 1h30m as 90 minutes',
-  );
-  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toBeEnabled();
   await page.screenshot({ path: shot(`builder-${info.project.name}`), fullPage: true });
+  // A new session opens with it, and runs on the session's own page.
+  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  await expect(page).toHaveURL((u) => u.hash === `#/w/${LIVE.id}/s/${CHAT}`);
+  expect(started).toEqual([{ units: '-challenge' }]);
+  const box = page.getByRole('textbox', { name: 'Ask Mikata' });
+  await box.fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
+  await box.press('Enter');
+  await expect(page.locator('.ss-head .ss-badge')).toHaveText('VERIFIED');
+  await expect(page.getByRole('log', { name: 'Run log' })).toContainText('end gate: pass');
+  // The composition is kept for the workspace: a reload finds the switch as it was left.
+  await page.goto(`/#/w/${LIVE.id}/builder`);
+  await expect(page.getByRole('switch', { name: 'Challenge: off' })).toBeVisible();
 });
 
-test('a profile starts the switches from its own composition', async ({ page }) => {
+test('a profile starts the switches from its own composition, and New session takes it', async ({
+  page,
+}, info) => {
   const bridge = new Bridge();
+  const started: unknown[] = [];
   await openChat(page, bridge, `#/w/${LIVE.id}/builder`, async (p) => {
     await p.route(`**/api/w/${LIVE.id}/units`, (r) =>
       r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
     );
+    await sessions(p, started);
   });
   await expect(page.getByRole('heading', { name: 'Harness Builder', level: 1 })).toBeVisible();
   await page.getByLabel('Profile').selectOption('small-fix');
   await expect(page.getByRole('switch', { name: 'Plan: off' })).toBeVisible();
   // Nothing flipped over the profile: it goes as it is.
   await expect(page.locator('.bapp-units')).toContainText('as the profile is');
-  // The profiles page lists them, each to apply.
-  await page.getByRole('link', { name: 'Profiles', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Profiles', level: 1 })).toBeVisible();
+  if (info.project.name === 'desktop') {
+    await expect(page.getByRole('list', { name: 'Runtime status' })).toContainText('small-fix');
+  }
+  // A flip over it, then back to the profile.
+  await page.getByRole('switch', { name: 'End gate: on' }).click();
+  await expect(page.locator('.bapp-units')).toContainText('-gate');
+  await page.getByRole('button', { name: 'Reset to the profile' }).click();
+  await expect(page.getByRole('switch', { name: 'End gate: on' })).toBeVisible();
+  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  await expect.poll(() => started).toEqual([{ profile: 'small-fix' }]);
+});
+
+test('a guard switched off holds for the next session only, said on that session', async ({
+  page,
+}) => {
+  const bridge = new Bridge();
+  const started: unknown[] = [];
+  await openChat(page, bridge, `#/w/${LIVE.id}/builder`, async (p) => {
+    await p.route(`**/api/w/${LIVE.id}/units`, (r) =>
+      r.fulfill({ contentType: 'application/json', body: JSON.stringify(units) }),
+    );
+    await sessions(p, started);
+  });
+  await page.getByRole('switch', { name: 'End gate: on' }).click();
+  await expect(page.getByRole('status')).toContainText('next new session only');
+  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  await expect.poll(() => started).toEqual([{ units: '-gate' }]);
+  // That session says so, in the alarm's tone.
+  const chip = page.getByRole('list', { name: 'This session' }).locator('li[data-status="alarm"]');
+  await expect(chip).toContainText('guards off: gate');
+  // Back on the builder the guard is on again, and the next session opens with it.
+  await page.goto(`/#/w/${LIVE.id}/builder`);
+  await expect(page.getByRole('switch', { name: 'End gate: on' })).toBeVisible();
+  await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+  await expect.poll(() => started).toEqual([{ units: '-gate' }, {}]);
 });
 
 /** Where the README's screenshots of the board go. */
@@ -213,17 +251,18 @@ for (const theme of ['dark', 'light'] as const) {
         }),
       );
     });
-    await page
-      .getByLabel('Your ask')
-      .fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
-    await page.getByRole('button', { name: /Start run/ }).click();
-    await expect(page.getByRole('heading', { name: 'Verified', exact: true })).toBeVisible();
+    await expect(page.locator('.bapp-graph')).toBeVisible();
     await page.mouse.move(0, 999);
     await page.screenshot({ path: docs(`builder-${theme}`) });
+    // A run, from a new session's first ask.
+    await page.locator('.pf-top').getByRole('button', { name: 'New session' }).click();
+    const box = page.getByRole('textbox', { name: 'Ask Mikata' });
+    await box.fill('Support 1h30m duration parsing. Keep numeric parsing unchanged.');
+    await box.press('Enter');
+    await expect(page.locator('.ss-head .ss-badge')).toHaveText('VERIFIED');
     // Each page at its own address; the session last, where the run's card opens.
     for (const [name, at] of [
       ['plugins', `#/w/${LIVE.id}/plugins`],
-      ['profiles', `#/w/${LIVE.id}/profiles`],
       ['runs', `#/w/${LIVE.id}/runs`],
       ['sessions', `#/w/${LIVE.id}/s/${CHAT}`],
     ] as const) {

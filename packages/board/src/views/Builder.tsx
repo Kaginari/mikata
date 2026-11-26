@@ -1,11 +1,8 @@
 /**
- * The Harness Builder, a page of its own: a header (the mark, the builder's views, Run agent);
- * the workspace, its status and the run's usage on the left; the units a session in this world
- * would open with as cards round the core in the middle, with the composition as a global file's
- * profile; and on the right the run itself — the ask, Start and Stop, its stages, its log, the end
- * gate's word and its numbers. An approval the run asks for is answered here, as in a chat.
- *
- * Every number on the page is the run's own or the configuration's; nothing is simulated.
+ * The Harness Builder and the plugin inspector, as the owner's picture draws them: the units a
+ * session in this workspace opens with, as cards round the core with a switch each, a profile to
+ * start from, and the composition as TOML. What they compose, the workspace's new sessions open
+ * with; nothing here is simulated.
  */
 
 import type { BoardProfile, BoardUnit, BoardWorld } from '@mikata/protocol';
@@ -13,44 +10,31 @@ import {
   BookOpenText,
   Box,
   Brain,
-  Check,
-  CircleCheck,
-  CircleX,
-  Clock,
   Code,
-  Coins,
   Copy,
   Download,
   Gauge,
   GitCompare,
-  History,
   KeyRound,
   Layers,
   ListChecks,
   type LucideIcon,
   PencilRuler,
-  Play,
   Puzzle,
   RotateCcw,
-  Send,
+  ShieldAlert,
   ShieldCheck,
   Shrink,
-  SlidersHorizontal,
-  Square,
   Swords,
   UserCheck,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { type Chats, startChat } from '../data/chats.ts';
+import { GUARDS, setComposition, setOnce, useComposition } from '../data/compose.ts';
 import { composed, opening, toml, useHarness } from '../data/harness.ts';
-import { type Live, useLive } from '../data/live.ts';
-import { format } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
-import { Approval } from '../ui/Approval.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { Logo } from '../ui/Logo.tsx';
 import './builder.css';
-import { calls, logLines, Steps, stages, stamp, verdictOf } from './run.tsx';
 
 /** What a native unit does, and how the card names it. */
 const NATIVE: Record<string, { name: string; about: string; icon: LucideIcon }> = {
@@ -285,8 +269,6 @@ function Edges({ layout }: { layout: string }) {
   );
 }
 
-// ── the run, read from its entries ──────────────────────────────────────────────────────────────
-
 /** A line of the profile's TOML, coloured as the picture's editor: tables, keys, strings, booleans. */
 function TomlLine({ line }: { line: string }) {
   const table = /^\s*\[.*\]\s*$/.test(line);
@@ -315,481 +297,289 @@ function TomlLine({ line }: { line: string }) {
   );
 }
 
-const seconds = (ms: number) => `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
-
-/** The chat `session`, live, with its ask sent once the replay is done. */
-function WithLive({
-  session,
-  ask,
-  children,
-}: {
-  session: string;
-  ask: string;
-  children: (live: Live) => ReactNode;
-}) {
-  const live = useLive(session);
-  const sent = useRef(false);
-  useEffect(() => {
-    if (sent.current || live.link !== 'open' || !live.replayed) return;
-    sent.current = true;
-    void live.prompt(ask);
-  }, [live, ask]);
-  return <>{children(live)}</>;
-}
+/** No switch flipped. */
+const NO_FLIPS: Readonly<Record<string, boolean>> = {};
 
 /** The builder's pages, each at its own address in the workspace. */
-export type View = 'builder' | 'plugins' | 'profiles';
+export type View = 'builder' | 'plugins';
 
-const ICONS: Record<View, LucideIcon> = {
-  builder: Layers,
-  plugins: Puzzle,
-  profiles: SlidersHorizontal,
-};
-
-const HEADS: Record<View, [string, string]> = {
-  builder: [
-    'Harness Builder',
-    'Compose your coding agent by enabling units and plugins. Everything is swappable.',
-  ],
-  plugins: ['Plugin inspector', 'Native units and the plugins your global file declares.'],
-  profiles: ['Profiles', 'A capability mix for a kind of work, to start from.'],
-};
-
-/** A follow-up to the run: a prompt when it waits, steering when it works. */
-function SideChat({ live }: { live: Live | undefined }) {
-  const [text, setText] = useState('');
-  const ready = live !== undefined && live.role === 'controller' && live.link !== 'closed';
-  const send = () => {
-    const t = text.trim();
-    if (!t || !live || !ready) return;
-    setText('');
-    if (live.view?.busy) void live.steer(t);
-    else void live.prompt(t);
-  };
-  return (
-    <div className="bapp-sidechat">
-      <label htmlFor="bapp-follow">Message this session</label>
-      <textarea
-        id="bapp-follow"
-        value={text}
-        disabled={!ready}
-        placeholder={ready ? 'Send a follow-up…' : 'Start a run first'}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <button
-        type="button"
-        className="bapp-primary"
-        disabled={!ready || !text.trim()}
-        onClick={send}
-      >
-        <Icon icon={Send} /> {live?.view?.busy ? 'Steer the run' : 'Send message'}
-      </button>
-    </div>
-  );
-}
-
-export function BuilderView({ w, chats, view }: { w: BoardWorld; chats: Chats; view: View }) {
+/**
+ * The workspace's harness as the Builder composes it: the units a session opens with, the stored
+ * composition over them ([`compose`](../data/compose.ts)), and the switch that changes it.
+ */
+function useComposed(w: BoardWorld) {
   const load = useHarness(w.id);
-  const go = (to: View) => format({ name: 'section', world: w.id, section: to });
-  const [profile, setProfile] = useState<string>('');
-  const [want, setWant] = useState<Map<string, boolean> | undefined>(undefined);
-  const [ask, setAsk] = useState('');
-  const [run, setRun] = useState<{ session: string; ask: string; planOn: boolean; from: number }>();
-  const [starting, setStarting] = useState(false);
-  const [why, setWhy] = useState<string | undefined>();
-  const [copied, setCopied] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-  const askRef = useRef<HTMLTextAreaElement>(null);
-
+  const c = useComposition(w.id);
   const data = load.state === 'ready' ? load.data : undefined;
-  const chosen: BoardProfile | undefined = data?.profiles.find((p) => p.name === profile);
-  const base = useMemo(
-    () => (data ? opening(data.units, chosen) : new Map<string, boolean>()),
-    [data, chosen],
-  );
-  // A new profile starts the switches again from it.
-  useEffect(() => {
-    if (data) setWant(new Map(base));
-  }, [data, base]);
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 500);
-    return () => window.clearInterval(t);
-  }, []);
-
+  const chosen: BoardProfile | undefined = data?.profiles.find((p) => p.name === c.profile);
   const units = useMemo(
     () => [...(data?.units ?? [])].sort((a, b) => rank(a.id) - rank(b.id)),
     [data],
   );
-  const on = (id: string) => want?.get(id) === true;
-  const flip = (id: string) =>
-    setWant((m) => {
-      const next = new Map(m);
-      next.set(id, !next.get(id));
-      return next;
-    });
-  const list = want ? composed(units, base, want) : '';
-  const text = want ? toml(profile || 'mine', units, want) : '';
-  const enabled = units.filter((u) => on(u.id)).length;
-
-  const start = async () => {
-    if (!ask.trim()) {
-      askRef.current?.focus();
-      return;
+  const base = useMemo(
+    () => (data ? opening(data.units, chosen) : new Map<string, boolean>()),
+    [data, chosen],
+  );
+  const over = (...layers: Readonly<Record<string, boolean>>[]) => {
+    const m = new Map(base);
+    for (const flips of layers) {
+      for (const [id, on] of Object.entries(flips)) if (m.has(id)) m.set(id, on);
     }
-    if (starting) return;
-    setStarting(true);
-    setWhy(undefined);
-    try {
-      const started = await startChat(w.id, undefined, {
-        ...(profile ? { profile } : {}),
-        ...(list ? { units: list } : {}),
-      });
-      setRun({
-        session: started.session.id,
-        ask: ask.trim(),
-        planOn: on('plan'),
-        from: Date.now(),
-      });
-      chats.refresh();
-    } catch (e) {
-      setWhy(e instanceof Error ? e.message : String(e));
-    } finally {
-      setStarting(false);
-    }
+    return m;
   };
+  const onceFlips = c.once?.flips ?? NO_FLIPS;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `over` reads `base`, listed
+  const want = useMemo(() => over(c.flips, onceFlips), [base, c.flips, onceFlips]);
+  const kept = data ? composed(units, base, over(c.flips)) : '';
+  const list = data ? composed(units, base, want) : '';
+  // The kept `--units` follows the kept switches over the profile the units have now.
+  useEffect(() => {
+    if (data && kept !== c.units) {
+      setComposition(w.id, { profile: c.profile, flips: c.flips, units: kept });
+    }
+  }, [data, kept, c, w.id]);
+  /** A guard ([`GUARDS`]): switched off, it holds for one session and is never kept. */
+  const guard = (id: string) => GUARDS.has(id);
+  const on = (id: string) => want.get(id) === true;
+  const flip = (id: string) => {
+    const to = !on(id);
+    const keep: Record<string, boolean> = { ...c.flips };
+    const one: Record<string, boolean> = { ...onceFlips };
+    delete keep[id];
+    delete one[id];
+    if (base.get(id) !== to) {
+      if (!to && guard(id)) one[id] = false;
+      else keep[id] = to;
+    }
+    setComposition(w.id, {
+      profile: c.profile,
+      flips: keep,
+      units: composed(units, base, over(keep)),
+    });
+    setOnce(w.id, { flips: one, units: composed(units, base, over(keep, one)) });
+  };
+  const setProfile = (profile: string) => {
+    setOnce(w.id, undefined);
+    setComposition(w.id, { profile, flips: {}, units: '' });
+  };
+  const reset = () => {
+    setOnce(w.id, undefined);
+    setComposition(w.id, { profile: c.profile, flips: {}, units: '' });
+  };
+  const flipped = Object.keys(c.flips).length + Object.keys(onceFlips).length;
+  return { load, data, c, units, want, list, on, flip, setProfile, reset, flipped, onceFlips };
+}
+
+function Head({
+  icon,
+  title,
+  sub,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  sub: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="bapp-top">
+      <div className="bapp-titled">
+        <Icon icon={icon} className="bapp-titleicon" />
+        <div>
+          <h1>{title}</h1>
+          <p className="bapp-muted">{sub}</p>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Loading({ load }: { load: ReturnType<typeof useHarness> }) {
+  if (load.state === 'failed') {
+    return (
+      <p className="bapp-warn">
+        <Safe text={load.why} />
+      </p>
+    );
+  }
+  return load.state === 'loading' ? <p className="bapp-muted">Reading the harness…</p> : null;
+}
+
+/**
+ * The Harness Builder (`#/w/<world>/builder`): every unit a session here opens with, as cards round
+ * the core with a switch each, the profile to start from, and the composition as a global file's
+ * `[profiles.<name>]` (copy, export). What it composes is what the workspace's next sessions open
+ * with — New session, or a first ask —, kept in this browser.
+ */
+function Builder({ w }: { w: BoardWorld }) {
+  const h = useComposed(w);
+  const [copied, setCopied] = useState(false);
+  const text = h.data ? toml(h.c.profile || 'mine', h.units, h.want) : '';
   const exportToml = () => {
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `mikata-${profile || 'mine'}.toml`;
+    a.download = `mikata-${h.c.profile || 'mine'}.toml`;
     a.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 500);
   };
-
+  const half = Math.ceil(h.units.length / 2);
   const card = (u: BoardUnit) => (
-    <UnitCard key={u.id} u={u} on={on(u.id)} onFlip={() => flip(u.id)} />
+    <UnitCard key={u.id} u={u} on={h.on(u.id)} onFlip={() => h.flip(u.id)} />
   );
-  const inspectCard = (u: BoardUnit) => (
-    <UnitCard key={u.id} u={u} on={on(u.id)} onFlip={() => flip(u.id)} inspect />
-  );
-
-  const page = (live: Live | undefined) => {
-    const v = live?.view;
-    const verdict = verdictOf(v);
-    const passed = verdict?.verdict === 'PASS';
-    const steps = calls(v?.entries ?? []).length;
-    const st = stages(v, run?.planOn ?? on('plan'));
-    const busy = v?.busy ?? false;
-    const state = !run
-      ? 'Ready'
-      : verdict
-        ? passed
-          ? 'Verified'
-          : 'Not landed'
-        : busy
-          ? 'Running'
-          : live?.closed
-            ? 'Ended'
-            : 'Starting';
-    const usage = v?.usage;
-    const usd = usage?.seen ? `$${usage.usd.toFixed(3)}${usage.unpriced ? '+' : ''}` : '$0.000';
-    const lines = logLines(v);
-    const [title, sub] = HEADS[view];
-    const half = Math.ceil(units.length / 2);
-    return (
-      <div className="bapp">
-        <div className="bapp-layout bapp-embedded">
-          <section className="bapp-panel bapp-main" aria-label="The harness">
-            <div className="bapp-top">
-              <div className="bapp-titled">
-                <Icon icon={ICONS[view]} className="bapp-titleicon" />
-                <div>
-                  <h1>{title}</h1>
-                  <p className="bapp-muted">{sub}</p>
-                </div>
-              </div>
-              <label className="bapp-profile">
-                Profile{' '}
-                <select value={profile} onChange={(e) => setProfile(e.target.value)}>
-                  <option value="">default</option>
-                  {data?.profiles.map((p) => (
-                    <option key={p.name} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+  const guardsOff = Object.keys(h.onceFlips);
+  return (
+    <section className="bapp-panel bapp-main" aria-label="The harness">
+      <Head
+        icon={Layers}
+        title="Harness Builder"
+        sub="Compose your agent by enabling units and plugins. New sessions here open with it."
+      >
+        <label className="bapp-profile">
+          Profile{' '}
+          <select value={h.c.profile} onChange={(e) => h.setProfile(e.target.value)}>
+            <option value="">default</option>
+            {h.data?.profiles.map((p) => (
+              <option key={p.name} value={p.name}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </Head>
+      <Loading load={h.load} />
+      {h.data && (
+        <>
+          <div className="bapp-graph">
+            <Edges layout={h.units.map((u) => `${u.id}:${h.on(u.id)}`).join(' ')} />
+            <div className="bapp-stack">{h.units.slice(0, half).map(card)}</div>
+            <section className="bapp-core" aria-label="The core">
+              <Logo className="bapp-core-logo" />
+              <h2>
+                MIKATA <span lang="ja">味方</span>
+              </h2>
+              <p>Rust runtime</p>
+              <small>
+                Events · Hooks · Lifecycle
+                <br />
+                Sandbox · Journal
+              </small>
+            </section>
+            <div className="bapp-stack">{h.units.slice(half).map(card)}</div>
+          </div>
+          <ul className="bapp-legend" aria-label="Legend">
+            <li data-kind="native">Native unit</li>
+            <li data-kind="plugin">External plugin</li>
+            <li data-kind="off">Disabled</li>
+          </ul>
+          <div className="bapp-confpanel">
+            <div className="bapp-tabs">
+              <b>
+                <Icon icon={Code} /> Configuration (TOML)
+              </b>
+              <span className="bapp-tabtools">
+                {h.flipped > 0 && (
+                  <button type="button" onClick={h.reset}>
+                    <Icon icon={RotateCcw} /> Reset to the profile
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(text).then(() => setCopied(true));
+                  }}
+                >
+                  <Icon icon={Copy} /> {copied ? 'Copied' : 'Copy'}
+                </button>
+                <button type="button" onClick={exportToml}>
+                  <Icon icon={Download} /> Export
+                </button>
+              </span>
             </div>
-            {load.state === 'failed' && (
-              <p className="bapp-warn">
-                <Safe text={load.why} />
+            <ol
+              className="bapp-editor"
+              aria-label="The configuration, as TOML"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: it scrolls; the keys scroll it
+              tabIndex={0}
+            >
+              {text.split('\n').map((line, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: the lines of one text, in order
+                <li key={i}>
+                  <TomlLine line={line} />
+                </li>
+              ))}
+            </ol>
+            <p className="bapp-muted bapp-units">
+              New sessions in <Safe text={w.name} /> open with{' '}
+              <span className="mono">
+                {h.c.profile ? (
+                  <>
+                    --profile <Safe text={h.c.profile} />{' '}
+                  </>
+                ) : null}
+                --units <Safe text={h.list || '(as the profile is)'} />
+              </span>
+              . Paste the TOML in your global config.toml to keep it everywhere.
+            </p>
+            {guardsOff.length > 0 && (
+              <p className="bapp-warn" role="status">
+                <Icon icon={ShieldAlert} /> Off for the next new session only, never kept:{' '}
+                <Safe text={guardsOff.join(', ')} />. A guard switched off loosens what you rely on;
+                the session after it opens with it on again.
               </p>
             )}
-            {load.state === 'loading' && <p className="bapp-muted">Reading the harness…</p>}
-            {data && want && view === 'builder' && (
-              <>
-                <div className="bapp-graph" data-live={busy}>
-                  <Edges layout={units.map((u) => `${u.id}:${on(u.id)}`).join(' ')} />
-                  <div className="bapp-stack">{units.slice(0, half).map(card)}</div>
-                  <section className="bapp-core" aria-label="The core">
-                    <Logo className="bapp-core-logo" />
-                    <h2>MIKATA</h2>
-                    <p>Rust runtime</p>
-                    <small>
-                      Events · Hooks
-                      <br />
-                      Sandbox · Journal
-                    </small>
-                  </section>
-                  <div className="bapp-stack">{units.slice(half).map(card)}</div>
-                </div>
-                <div className="bapp-config">
-                  <div className="bapp-confpanel">
-                    <div className="bapp-tabs">
-                      <button type="button" className="bapp-active">
-                        <Icon icon={Code} /> Configuration (TOML)
-                      </button>
-                      <a className="bapp-tablink" href={go('plugins')}>
-                        <Icon icon={Puzzle} /> Plugins
-                      </a>
-                      <a className="bapp-tablink" href={go('profiles')}>
-                        <Icon icon={SlidersHorizontal} /> Profiles
-                      </a>
-                      <span className="bapp-tabtools">
-                        <button
-                          type="button"
-                          aria-label={copied ? 'Copied' : 'Copy TOML'}
-                          title={copied ? 'Copied' : 'Copy TOML'}
-                          onClick={() => {
-                            void navigator.clipboard?.writeText(text).then(() => setCopied(true));
-                          }}
-                        >
-                          <Icon icon={Copy} />
-                        </button>
-                        <button type="button" onClick={exportToml}>
-                          <Icon icon={Download} /> Save
-                        </button>
-                      </span>
-                    </div>
-                    <ol
-                      className="bapp-editor"
-                      aria-label="The configuration, as TOML"
-                      // biome-ignore lint/a11y/noNoninteractiveTabindex: it scrolls; the keys scroll it
-                      tabIndex={0}
-                    >
-                      {text.split('\n').map((line, i) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: the lines of one text, in order
-                        <li key={i}>
-                          <TomlLine line={line} />
-                        </li>
-                      ))}
-                    </ol>
-                    <p className="bapp-muted bapp-units">
-                      --units <Safe text={list || '(as the profile is)'} />
-                    </p>
-                  </div>
-                  <div className="bapp-startbox">
-                    <label className="visually-hidden" htmlFor="bapp-ask">
-                      Your ask
-                    </label>
-                    <textarea
-                      id="bapp-ask"
-                      ref={askRef}
-                      className="bapp-ask"
-                      value={ask}
-                      placeholder="Support 1h30m duration parsing. Keep numeric parsing unchanged."
-                      onChange={(e) => setAsk(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="bapp-primary bapp-start"
-                      disabled={!ask.trim() || starting || busy}
-                      onClick={() => void start()}
-                    >
-                      <Icon icon={Play} /> {starting ? 'Starting…' : 'Start run'}
-                    </button>
-                    {why && (
-                      <p className="bapp-warn" role="alert">
-                        <Safe text={why} />
-                      </p>
-                    )}
-                    <dl className="bapp-facts">
-                      <div>
-                        <dt>
-                          <Icon icon={Layers} /> Profile
-                        </dt>
-                        <dd>
-                          <Safe text={profile || 'default'} />
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>
-                          <Icon icon={Box} /> Units on
-                        </dt>
-                        <dd>
-                          {enabled} / {units.length}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>
-                          <Icon icon={History} /> Past runs
-                        </dt>
-                        <dd>{chats.runs.length}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                </div>
-              </>
-            )}
-            {data && want && view === 'plugins' && (
-              <div className="bapp-list">
-                <p className="bapp-section">Native units</p>
-                <div className="bapp-inspect">
-                  {units.filter((u) => u.kind === 'native').map(inspectCard)}
-                </div>
-                <p className="bapp-section">Plugins</p>
-                {units.some((u) => u.kind === 'plugin') ? (
-                  <div className="bapp-inspect">
-                    {units.filter((u) => u.kind === 'plugin').map(inspectCard)}
-                  </div>
-                ) : (
-                  <p className="bapp-muted">
-                    No plugin declared: a <span className="mono">[plugins.&lt;id&gt;]</span> table
-                    in your global config.toml adds one.
-                  </p>
-                )}
-              </div>
-            )}
-            {data && view === 'profiles' && (
-              <div className="bapp-list">
-                <article className="bapp-unit" data-on={profile === ''}>
-                  <h3>
-                    default
-                    <button type="button" onClick={() => setProfile('')}>
-                      Apply
-                    </button>
-                  </h3>
-                  <p>Every unit as your configuration has it.</p>
-                </article>
-                {data.profiles.map((p) => (
-                  <article key={p.name} className="bapp-unit" data-on={profile === p.name}>
-                    <h3>
-                      <Safe text={p.name} />
-                      <button type="button" onClick={() => setProfile(p.name)}>
-                        Apply
-                      </button>
-                    </h3>
-                    <p className="mono">
-                      <Safe text={p.units} />
-                    </p>
-                    <small>{p.from === 'build' ? "The build's profile" : 'Your global file'}</small>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
-          <section className="bapp-panel bapp-live" aria-label="Live run">
-            <div className="bapp-top">
-              <div className="bapp-titled">
-                <Icon icon={Play} className="bapp-titleicon" />
-                <div>
-                  <h2>Live run</h2>
-                  <p className="bapp-runline">
-                    <Safe
-                      text={
-                        run
-                          ? `#${(live?.hello?.run ?? run.session).slice(-6)} · ${w.name} · ${profile || 'default'}`
-                          : `${w.name} · ${profile || 'default'}`
-                      }
-                    />
-                  </p>
-                </div>
-              </div>
-              {busy ? (
-                <button type="button" className="bapp-stop" onClick={() => void live?.interrupt()}>
-                  <Icon icon={Square} /> Stop
-                </button>
-              ) : (
-                <span className="bapp-state" data-state={state}>
-                  {state === 'Verified' && <Icon icon={Check} />}
-                  {state.toUpperCase()}
-                </span>
-              )}
+/** The plugin inspector (`#/w/<world>/plugins`): each native unit and declared plugin, its kind,
+ * whether it is on in the workspace's composition, and its id — with the same switch. */
+function Plugins({ w }: { w: BoardWorld }) {
+  const h = useComposed(w);
+  const inspect = (u: BoardUnit) => (
+    <UnitCard key={u.id} u={u} on={h.on(u.id)} onFlip={() => h.flip(u.id)} inspect />
+  );
+  return (
+    <section className="bapp-panel bapp-main" aria-label="The plugins">
+      <Head
+        icon={Puzzle}
+        title="Plugin inspector"
+        sub="Native units and the plugins your global file declares."
+      />
+      <Loading load={h.load} />
+      {h.data && (
+        <div className="bapp-list">
+          <p className="bapp-section">Native units</p>
+          <div className="bapp-inspect">
+            {h.units.filter((u) => u.kind === 'native').map(inspect)}
+          </div>
+          <p className="bapp-section">Plugins</p>
+          {h.units.some((u) => u.kind === 'plugin') ? (
+            <div className="bapp-inspect">
+              {h.units.filter((u) => u.kind === 'plugin').map(inspect)}
             </div>
-            <Steps st={st} label="Stages" />
-            <div className="bapp-log" role="log" aria-label="Run log">
-              {run ? (
-                <>
-                  <p className="bapp-log-ask">
-                    $ mikata run "<Safe text={run.ask} />"
-                  </p>
-                  {lines.map(([mark, tone, line, at], i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: the lines only grow, in order
-                    <p key={i}>
-                      <time>[{stamp((at ?? run.from) - run.from)}]</time>{' '}
-                      <span data-tone={tone}>{mark}</span> <Safe text={line} />
-                    </p>
-                  ))}
-                  {lines.length === 0 && <p className="bapp-muted">Waiting for the first step…</p>}
-                </>
-              ) : (
-                <p className="bapp-muted">Waiting for an ask…</p>
-              )}
-            </div>
-            {verdict && (
-              <section className="bapp-result" data-ok={passed} aria-label="The end gate's word">
-                <Icon icon={passed ? CircleCheck : CircleX} className="bapp-result-icon" />
-                <div>
-                  <h3>{passed ? 'Verified' : 'Not landed'}</h3>
-                  <p>
-                    <Safe
-                      text={
-                        passed
-                          ? "The project's verify command passed and no test was deleted or skipped."
-                          : (verdict.failures[0] ??
-                            verdict.unverified[0] ??
-                            'the end gate refused it')
-                      }
-                    />
-                  </p>
-                </div>
-              </section>
-            )}
-            <dl className="bapp-numbers">
-              <div>
-                <dt>Wall time</dt>
-                <dd>{run ? seconds(now - run.from) : '—'}</dd>
-                <Icon icon={Clock} />
-              </div>
-              <div>
-                <dt>Steps</dt>
-                <dd>{steps}</dd>
-                <Icon icon={Layers} />
-              </div>
-              <div>
-                <dt>Cost</dt>
-                <dd>{usd}</dd>
-                <Icon icon={Coins} />
-              </div>
-            </dl>
-            <p className="bapp-notice">
-              A real chat in <Safe text={w.name} />, sandboxed; every act outside the world asks you
-              first.
+          ) : (
+            <p className="bapp-muted">
+              No plugin declared: a <span className="mono">[plugins.&lt;id&gt;]</span> table in your
+              global config.toml adds one.
             </p>
-            <SideChat live={live} />
-            {live && <Approval live={live} />}
-          </section>
+          )}
         </div>
-      </div>
-    );
-  };
+      )}
+    </section>
+  );
+}
 
-  return run ? (
-    <WithLive key={run.session} session={run.session} ask={run.ask}>
-      {(live) => page(live)}
-    </WithLive>
-  ) : (
-    page(undefined)
+export function BuilderView({ w, view }: { w: BoardWorld; view: View }) {
+  return (
+    <div className="bapp">
+      <div className="bapp-layout bapp-embedded">
+        {view === 'plugins' ? <Plugins w={w} /> : <Builder w={w} />}
+      </div>
+    </div>
   );
 }
