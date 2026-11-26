@@ -505,6 +505,33 @@ pub fn mode(world: &std::path::Path, asked: Option<mikata_loop::Mode>) -> String
     format!("{:<9}{}", "mode", one_line(&said))
 }
 
+/// The files the configuration of `world` is read from, lowest first, each said as there or not:
+/// the global file, the project's two, and the human's own for this project, which goes over them.
+fn config_files(world: &std::path::Path) -> String {
+    let paths = mikata_loop::Paths::resolve(world);
+    let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+    let shown = |p: &std::path::Path| {
+        let there = if p.is_file() { "" } else { " (none yet)" };
+        let p = if let Ok(rel) = p.strip_prefix(world) {
+            rel.display().to_string()
+        } else if let Some(rel) = home.as_deref().and_then(|h| p.strip_prefix(h).ok()) {
+            format!("~/{}", rel.display())
+        } else {
+            p.display().to_string()
+        };
+        format!("{p}{there}")
+    };
+    let mut said = vec![
+        format!("global {}", shown(&paths.global)),
+        format!("project {}", shown(&paths.tracked)),
+        format!("local {}", shown(&paths.local)),
+    ];
+    if let Some(own) = &paths.human {
+        said.push(format!("this project's own {}", shown(own)));
+    }
+    said.join(" · ")
+}
+
 /// `mikata status`: the lines for an opened session — what it would ride and what it found.
 #[must_use]
 pub fn status(opened: &Opened) -> Vec<String> {
@@ -524,6 +551,7 @@ pub fn status(opened: &Opened) -> Vec<String> {
                 .clone()
                 .unwrap_or_else(|| "none — the provider takes no key".into()),
         ),
+        ("config", config_files(&opened.world)),
         ("sandbox", opened.sandbox.clone()),
         ("secrets", opened.secrets.clone()),
         ("approval", opened.approval.clone()),

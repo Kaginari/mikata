@@ -15,7 +15,6 @@ use std::path::{Component, Path, PathBuf};
 
 use mikata_ledger::chain;
 use mikata_ledger::{Build, Journal, Timestamp};
-use mikata_wire::fnv64a;
 use serde::{Deserialize, Serialize};
 
 use crate::findings::{Finding, Severity};
@@ -96,12 +95,7 @@ pub fn registry() -> Option<PathBuf> {
 /// for it there is named.
 #[must_use]
 pub fn world_id(world: &Path) -> String {
-    let h = fnv64a(world.as_os_str().as_encoded_bytes());
-    let name = world
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    format!("{name}-{h:016x}")
+    mikata_sandbox::dirs::world_id(world)
 }
 
 /// Record a session opening in `world` in the registry at `file`, with its remote.
@@ -1614,6 +1608,18 @@ pub fn glue(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The id moved to the sandbox's `dirs`, which the configuration reads too: it is the same
+    /// id every record kept so far is named by.
+    #[test]
+    fn a_worlds_id_is_its_name_and_the_fnv_of_its_path() {
+        let w = Path::new("/home/me/project");
+        let want = format!(
+            "project-{:016x}",
+            mikata_wire::fnv64a(w.as_os_str().as_encoded_bytes())
+        );
+        assert_eq!(world_id(w), want);
+    }
 
     #[test]
     fn remotes_normalise_every_way_of_writing_one() {

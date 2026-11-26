@@ -435,6 +435,10 @@ pub enum Layer {
     Tracked,
     /// The project's, on this machine only.
     Local,
+    /// The human's own, for this world alone: kept under the state directory, out of the world's
+    /// reach, so it may hold what the global file may (a guard switched off for this world) and
+    /// goes over every other file. The session writes there what a world's file may not hold.
+    Human,
 }
 
 impl fmt::Display for Layer {
@@ -444,6 +448,7 @@ impl fmt::Display for Layer {
             Layer::Global => "global",
             Layer::Tracked => "tracked",
             Layer::Local => "local",
+            Layer::Human => "this world's own (state directory)",
         })
     }
 }
@@ -475,6 +480,9 @@ pub struct Paths {
     pub tracked: PathBuf,
     /// The project's local file.
     pub local: PathBuf,
+    /// The human's own file for this world, under the state directory
+    /// (`mikata/worlds/<world id>/config.toml`); `None` with no state directory.
+    pub human: Option<PathBuf>,
 }
 
 impl Paths {
@@ -484,7 +492,11 @@ impl Paths {
     pub fn resolve(world: &Path) -> Self {
         let config_home =
             mikata_tools::dirs::config_home().unwrap_or_else(|| PathBuf::from("/nonexistent"));
-        Self::with_global(config_home.join("mikata/config.toml"), world)
+        let canonical = world.canonicalize().unwrap_or_else(|_| world.to_path_buf());
+        Self {
+            human: mikata_tools::dirs::world_config(&canonical),
+            ..Self::with_global(config_home.join("mikata/config.toml"), world)
+        }
     }
 
     /// The world's two files beside an explicit global one.
@@ -495,7 +507,15 @@ impl Paths {
             global,
             tracked: dir.join("config.toml"),
             local: dir.join("config.local.toml"),
+            human: None,
         }
+    }
+
+    /// The same files, and the human's own for this world at `human`.
+    #[must_use]
+    pub fn with_human(mut self, human: PathBuf) -> Self {
+        self.human = Some(human);
+        self
     }
 
     fn of(&self, layer: Layer) -> Option<&Path> {
@@ -504,8 +524,51 @@ impl Paths {
             Layer::Global => Some(&self.global),
             Layer::Tracked => Some(&self.tracked),
             Layer::Local => Some(&self.local),
+            Layer::Human => self.human.as_deref(),
         }
     }
+}
+
+/// The header a world's local file is made with.
+const LOCAL_HEADER: &str = "\
+# This machine's configuration for this project: never committed (git's local exclude).
+# Mikata writes here what a session changes that a project's file may hold (a unit switched
+# off that only tightens). What would loosen a guard is kept out of the project's reach, in
+# your own file for this project under the state directory; `mikata status` names both.
+";
+
+/// Make `paths.local`, the world's local file, when it is not there: its folder and a header that
+/// says what it is. Returns whether it was made.
+///
+/// # Errors
+///
+/// The folder or the file cannot be written.
+pub fn ensure_local(paths: &Paths) -> Result<bool, String> {
+    if fs::symlink_metadata(&paths.local).is_ok() {
+        return Ok(false);
+    }
+    if let Some(dir) = paths.local.parent() {
+        fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    }
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&paths.local)
+        .and_then(|mut f| std::io::Write::write_all(&mut f, LOCAL_HEADER.as_bytes()))
+        .map_err(|e| format!("{}: {e}", paths.local.display()))?;
+    Ok(true)
+}
+
+/// Set the dotted `key` to `on` in the file at `path`, comments and layout kept, its folders made.
+///
+/// # Errors
+///
+/// As the file cannot be read, parsed or written.
+pub fn set_switch(path: &Path, key: &str, on: bool) -> Result<(), String> {
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    }
+    write::set(path, key, on)
 }
 
 /// A value and where it came from.
@@ -728,7 +791,10 @@ impl Config {
     /// A file that does not parse, a known key with the wrong type, a floor rule asked to ask,
     /// an envelope covering a destructive act, a fallback cycle — each naming its file.
     pub fn load(paths: &Paths) -> Result<Self, String> {
-        Self::load_layers(paths, &[Layer::Global, Layer::Tracked, Layer::Local])
+        Self::load_layers(
+            paths,
+            &[Layer::Global, Layer::Tracked, Layer::Local, Layer::Human],
+        )
     }
 
     /// Read the defaults and the human's global file alone: where the gate reads Oni envelopes,

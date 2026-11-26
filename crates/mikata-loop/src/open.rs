@@ -1111,6 +1111,11 @@ fn holes(config: &Config, unread: Vec<String>, world: &Path) -> Vec<String> {
 /// a check never writes the tree — and git merging note files by union, so two machines that
 /// both appended notes never conflict.
 fn prepare(world: &Path) {
+    // The world's local file, where a session keeps what it changes for this world alone: made
+    // the first time, and kept out of git through the local exclude below.
+    if let Err(e) = mikata_config::ensure_local(&mikata_config::Paths::resolve(world)) {
+        eprintln!("mikata: the local configuration could not be made: {e}");
+    }
     if let Err(e) = mikata_world::report::prepare(world) {
         eprintln!("mikata: the report folder could not be prepared: {e}");
     }

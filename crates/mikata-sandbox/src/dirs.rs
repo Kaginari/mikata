@@ -69,6 +69,36 @@ pub fn unisolated_test(exe: Option<&Path>, manifest: bool, isolated: bool) -> bo
     harness && manifest && !isolated
 }
 
+/// A world's id across the state directory: `<name>-<FNV-1a 64 of its path>`, as every record
+/// kept for it there is named (the registry, a world's own human file).
+#[must_use]
+pub fn world_id(world: &Path) -> String {
+    let h = world
+        .as_os_str()
+        .as_encoded_bytes()
+        .iter()
+        .fold(0xcbf2_9ce4_8422_2325_u64, |h, &b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0000_0100_0000_01b3)
+        });
+    let name = world
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    format!("{name}-{h:016x}")
+}
+
+/// The human's own file for one world: `<state>/mikata/worlds/<world id>/config.toml`, out of
+/// the world's reach, where what they set for that world alone and a world's file may not hold —
+/// a guard switched off — is kept. `None` with no state directory.
+#[must_use]
+pub fn world_config(world: &Path) -> Option<PathBuf> {
+    state_home().map(|s| {
+        s.join("mikata/worlds")
+            .join(world_id(world))
+            .join("config.toml")
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

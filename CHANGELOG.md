@@ -13,6 +13,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **A session keeps its changes for its world, never in the global file.** Running Mikata in a
+  project makes `.mikata/config.local.toml` the first time (kept out of git through the local
+  exclude), and a unit you switch in a session (`/unit on|off`, or on the board) is written for
+  that project once applied: a unit switched off that only tightens in the local file; a guard
+  switched off (`secrets`, `approval`, `gate`, `memory`, …) or any unit switched on in your own
+  file for that project under the state directory (`~/.local/state/mikata/worlds/<project
+  id>/config.toml`), out of the project's reach, trusted as your global file and going over it
+  for that project alone. The next session there opens with them. `mikata status` names the
+  files in a `config` line. A `/plugin` change lasts the session.
+
 - **The human's approval is a unit: `approval`, on by default.** Every outward or destructive
   act is put to the human on the approval card, as before. The human alone may switch it off
   (`/unit off approval`, `[units] approval = false` in the global file; never a world's file):

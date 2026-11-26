@@ -1999,7 +1999,7 @@ flowchart LR
 
 ### Configuration
 
-Four layers, lowest first; a higher one wins a scalar or a list, tables merge key by key, and
+Five layers, lowest first; a higher one wins a scalar or a list, tables merge key by key, and
 an empty list or table never overrides a lower layer:
 
 | Layer | File | Who writes it |
@@ -2007,7 +2007,20 @@ an empty list or table never overrides a lower layer:
 | default | compiled in | the release |
 | global | `$XDG_CONFIG_HOME/mikata/config.toml` (else `~/.config/…`, home from the platform) | the human |
 | tracked | `<world>/.mikata/config.toml` | the project, for everyone who clones it |
-| local | `<world>/.mikata/config.local.toml` | the human, on this machine |
+| local | `<world>/.mikata/config.local.toml` | the human and the session, on this machine |
+| this world's own | `$XDG_STATE_HOME/mikata/worlds/<world id>/config.toml` (else `~/.local/state/…`) | the human and the session, for this world alone, out of its reach |
+
+- **A session keeps its changes for its world, never in the global file.** The local file is
+  made the first time a session opens in a world, with a header that says what it is, and kept
+  out of git through `.git/info/exclude` (never the project's `.gitignore`). A unit the human
+  switches in a session (`/unit on|off`, the board's `units/change`) is written, once applied,
+  where its world may hold it: a unit switched off that only tightens (`what_changed`) in the
+  local file; a guard switched off (`secrets`, `approval`, `gate`, `memory`, …) or any unit
+  switched on in this world's own file under the state directory — which a body cannot write,
+  so it is trusted as the global file is and goes over every other layer, for that world alone
+  (`mikata_loop::units::kept_in`). The TUI says where on the change; the journal notes it. A
+  `/plugin` change lasts the session: a plugin's declaration is the global file's. `mikata
+  status` names the four files, each said as there or not.
 
 - **Every leaf keeps its origin** — layer and exact file — so `config explain` is right for a
   scalar, a list and each leaf of a merged table.
