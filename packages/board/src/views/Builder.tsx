@@ -769,8 +769,10 @@ export function BuilderView({
                 </li>
               )}
               <li data-tone={live?.hello?.sandbox ? 'holo' : undefined}>
-                <Icon icon={Lock} /> Sandbox:{' '}
-                <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
+                <Icon icon={Lock} />
+                <span>
+                  Sandbox: <Safe text={live?.hello?.sandbox ?? 'checked as a run opens'} />
+                </span>
               </li>
               <li data-tone="holo">
                 <Icon icon={Box} /> {enabled} of {units.length} units enabled

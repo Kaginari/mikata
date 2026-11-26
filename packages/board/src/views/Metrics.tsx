@@ -85,11 +85,15 @@ function Charts({ m }: { m: BoardMetrics }) {
   }));
   return (
     <div className="panels metrics-charts">
-      <Panel title="Spend per day by race" s={m.usage} wide>
+      <Panel title="Spend per day" s={m.usage} wide>
         {days.length === 0 ? (
           <p className="panel-note">No call in this window.</p>
         ) : (
-          <StackedBars days={days} label="weighted tokens per day, stacked by race" value={wt} />
+          <StackedBars
+            days={days}
+            label="weighted tokens per day, stacked by who spent them"
+            value={wt}
+          />
         )}
       </Panel>
       <Panel title="Cache hit" s={m.usage}>
@@ -118,7 +122,7 @@ function Races({ m }: { m: BoardMetrics }) {
   const u = m.usage.value;
   if (!u) return null;
   return (
-    <Panel title="Per race" s={m.usage} wide>
+    <Panel title="Per body" s={m.usage} wide>
       {u.races.length === 0 ? (
         <p className="panel-note">No call in this window.</p>
       ) : (
@@ -126,7 +130,7 @@ function Races({ m }: { m: BoardMetrics }) {
           <table className="table">
             <thead>
               <tr>
-                <th scope="col">race</th>
+                <th scope="col">body</th>
                 <th scope="col">spend</th>
                 <th scope="col">weighted tokens</th>
                 <th scope="col">calls</th>

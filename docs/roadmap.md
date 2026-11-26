@@ -62,7 +62,7 @@ config:
 flowchart TD
     subgraph MIKATA_BG[" "]
       direction TB
-      R("1.1.0<br/>what done means, held") --> N(["Now · main<br/>a harness you compose"])
+      R("1.1.0<br/>what done means, held") --> N(["Now · 1.2.0<br/>a harness you compose"])
       N --> M("Next<br/>a memory that pays")
       M --> F("Then<br/>a fold for long runs")
       F --> S("Later<br/>the split, wider")
@@ -82,12 +82,12 @@ flowchart TD
     style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
 ```
 
-## Now: main after 1.1.0, a harness you compose
+## Now: 1.2.0, a harness you compose
 
 1.0.0 was the first release as Mikata. 1.1.0 (21 November) holds what came of the largest gap we
 had measured, asks without examples: a `## Done when` list in the ask, held by the harness; a
 reader that writes it; and the list of what changed when an answer lands
-([releasing](releasing.md)). Since then, on `main`, for the next release:
+([releasing](releasing.md)). 1.2.0 (25 November) holds what came after:
 
 - **Every part of the loop is a unit, and plugins load while a session runs** (experimental):
   units switched by configuration, by `--units` or live, profiles for a kind of work, plugins

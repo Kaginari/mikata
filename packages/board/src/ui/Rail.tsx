@@ -4,6 +4,7 @@
  */
 import type { BoardRun, BoardSession, BoardWorld } from '@mikata/protocol';
 import { useState } from 'react';
+import { humanWords } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
 import { mod } from '../data/shortcuts.ts';
 import type { Load } from '../data/worlds.ts';
@@ -100,7 +101,7 @@ function WorldRow({ w, current, now }: { w: BoardWorld; current: boolean; now: n
 /** A live chat's words: the ask its run journal holds, else that it is new. */
 function liveTitle(s: BoardSession, runs: readonly BoardRun[]): string {
   const r = runs.find((x) => x.id === s.run);
-  return r?.ask || 'new chat';
+  return (r?.ask && humanWords(r.ask)) || 'new chat';
 }
 
 function ChatList({
@@ -159,7 +160,7 @@ function ChatList({
             glyph={r.state === 'live' ? '●' : r.state === 'stopped' ? '◇' : '○'}
           >
             <span className="rail-chat-name">
-              <Safe text={r.ask || r.id} />
+              <Safe text={humanWords(r.ask) || r.id} />
             </span>
           </Mark>
           <span className="rail-meta">
