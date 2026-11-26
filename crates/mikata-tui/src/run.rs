@@ -240,8 +240,19 @@ impl Host {
         let said = match change {
             None => listed(&desk),
             Some((id, on)) => {
+                let paths = mikata_loop::Paths::resolve(&self.world);
+                let kept = match mikata_loop::units::kept_in(&paths, &id, on) {
+                    Some((file, _)) if file == paths.local => {
+                        "; kept for this project in .mikata/config.local.toml".to_owned()
+                    }
+                    Some((file, _)) => format!(
+                        "; kept for this project in your own file, {}",
+                        file.display()
+                    ),
+                    None => "; for this session".to_owned(),
+                };
                 let said = format!(
-                    "asked: `{id}` {} at its next safe point",
+                    "asked: `{id}` {} at its next safe point{kept}",
                     if on { "on" } else { "off" }
                 );
                 desk.asked.push_back((id, on));

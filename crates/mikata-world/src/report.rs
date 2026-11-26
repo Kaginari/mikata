@@ -24,6 +24,10 @@ pub const LEFTOVERS: &[&str] = &[
     ".ruff_cache/",
 ];
 
+/// This machine's own files in the world, kept out of git locally: the human's local
+/// configuration, which the session writes its changes to.
+pub const LOCAL_FILES: &[&str] = &["/.mikata/config.local.toml"];
+
 /// Whether `rel`, a path relative to the world, is one of [`LEFTOVERS`]: a folder of that name
 /// anywhere on the path, or for a line anchored with `/`, that file or folder at the root. What
 /// a check left behind is no change to the code.
@@ -73,6 +77,7 @@ pub fn prepare(world: &Path) -> std::io::Result<()> {
     let had = fs::read_to_string(&exclude).unwrap_or_default();
     let missing: Vec<&str> = LEFTOVERS
         .iter()
+        .chain(LOCAL_FILES)
         .copied()
         .filter(|l| !had.lines().any(|h| h.trim() == *l))
         .collect();
@@ -83,7 +88,9 @@ pub fn prepare(world: &Path) -> std::io::Result<()> {
     if !next.is_empty() && !next.ends_with('\n') {
         next.push('\n');
     }
-    next.push_str("# mikata: what checks leave behind (local, never committed)\n");
+    next.push_str(
+        "# mikata: what checks leave behind, and this machine's config (local, never committed)\n",
+    );
     for l in missing {
         next.push_str(l);
         next.push('\n');

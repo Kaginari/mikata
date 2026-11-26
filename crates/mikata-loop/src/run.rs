@@ -2088,7 +2088,21 @@ impl Run {
                     .unwrap_or_else(std::sync::PoisonError::into_inner)
                     .refused
                     .push(format!("{id}: {why}"));
+                continue;
             }
+            // The human's change is kept for this world, never in the global file: the next
+            // session here opens with it.
+            let paths = mikata_config::Paths::resolve(self.cx.world());
+            let note = match crate::units::keep(&paths, &id, on) {
+                Ok(Some(file)) => format!(
+                    "the unit `{id}` {} is kept for this world in {}",
+                    if on { "on" } else { "off" },
+                    file.display()
+                ),
+                Ok(None) => continue,
+                Err(e) => format!("the unit `{id}`'s change could not be kept: {e}"),
+            };
+            self.record(&Beat::Note { text: note });
         }
     }
 

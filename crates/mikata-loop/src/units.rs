@@ -211,6 +211,39 @@ impl Unit<Cx> for Switch {
     }
 }
 
+/// Where the human's own change to the native unit `id` is kept for this world, and under which
+/// key: the world's local file when a world's file may hold it — a unit switched off that only
+/// tightens — else the human's own file for this world, out of its reach (a guard switched off,
+/// any unit switched on). `None` for a plugin, whose declaration is the global file's: a
+/// session's `/plugin` lasts the session.
+#[must_use]
+pub fn kept_in(paths: &mikata_config::Paths, id: &str, on: bool) -> Option<(PathBuf, String)> {
+    if id.starts_with("plugin:") || native(id).is_none() {
+        return None;
+    }
+    let file = if !on && tightens_when_off(id) {
+        paths.local.clone()
+    } else {
+        paths.human.clone()?
+    };
+    Some((file, format!("units.{id}")))
+}
+
+/// Keep the human's own change to the native unit `id` for this world ([`kept_in`]): the next
+/// session in it opens with it. Returns the file written, or `None` when the change is the
+/// session's alone.
+///
+/// # Errors
+///
+/// The file cannot be read or written.
+pub fn keep(paths: &mikata_config::Paths, id: &str, on: bool) -> Result<Option<PathBuf>, String> {
+    let Some((file, key)) = kept_in(paths, id, on) else {
+        return Ok(None);
+    };
+    mikata_config::set_switch(&file, &key, on)?;
+    Ok(Some(file))
+}
+
 /// Whether a world file may switch the native unit `id` off: its manifest says switching it off
 /// loosens nothing the human relies on (it only reads, or only adds refusals of its own kind).
 /// Any other unit is switched off by the human alone: a world is not trusted to drop a guard.
