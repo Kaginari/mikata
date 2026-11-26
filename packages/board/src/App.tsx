@@ -9,7 +9,7 @@ import { type Chats, useChats } from './data/chats.ts';
 import { commands } from './data/commands.ts';
 import { useAccess } from './data/session.ts';
 import { type Load, useWorlds } from './data/worlds.ts';
-import { type Route, useRoute, worldOf } from './router.ts';
+import { format, type Route, useRoute, worldOf } from './router.ts';
 import { Safe } from './safe/Safe.tsx';
 import { shown } from './safe/shown.ts';
 import { type Choice, type SchemeName, useScheme, useTheme } from './theme.ts';
@@ -27,6 +27,7 @@ import { IntegrationsView } from './views/Integrations.tsx';
 import { JournalView } from './views/Journal.tsx';
 import { MemoryView } from './views/Memory.tsx';
 import { MetricsView } from './views/Metrics.tsx';
+import { MikataApp } from './views/MikataApp.tsx';
 import { NetView } from './views/Net.tsx';
 import { OntologyView } from './views/Ontology.tsx';
 import { SettingsView, UnknownView } from './views/Pages.tsx';
@@ -226,6 +227,19 @@ function Shell() {
   useDrawerFocus(rail, phone, railRef, menuRef);
   useDrawerFocus(pane, phone, paneRef, paneButtonRef);
 
+  // Opened as the app (`mikatad app`, `/?app`): the board's front page hands over to the app
+  // screen of the world worked in last.
+  useEffect(() => {
+    if (route.name !== 'worlds' || load.state !== 'ready') return;
+    if (!new URLSearchParams(window.location.search).has('app')) return;
+    const newest = [...load.data.worlds].sort((a, b) =>
+      (b.last ?? '').localeCompare(a.last ?? ''),
+    )[0];
+    if (newest) {
+      window.location.hash = format({ name: 'section', world: newest.id, section: 'app' });
+    }
+  }, [route, load]);
+
   const here = worldOf(route);
   const world =
     here !== undefined && load.state === 'ready'
@@ -270,6 +284,16 @@ function Shell() {
       }
       return !p;
     });
+
+  // Mikata as an app is a window of its own: its header bar, its panels, its status bar.
+  if (route.name === 'section' && route.section === 'app' && world) {
+    return (
+      <>
+        <MikataApp key={world.id} w={world} chats={chats} />
+        {createPortal(<Announcer />, document.body)}
+      </>
+    );
+  }
 
   // The Harness Builder is a page of its own: its header, its columns, no rail and no pane.
   if (route.name === 'section' && route.section === 'builder' && world) {

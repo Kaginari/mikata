@@ -6,7 +6,14 @@
 import { useEffect, useState } from 'react';
 
 /** The sections of a world, beside its chats. */
-export const WORLD_SECTIONS = ['builder', 'bodies', 'memory', 'ontology', 'journal'] as const;
+export const WORLD_SECTIONS = [
+  'app',
+  'builder',
+  'bodies',
+  'memory',
+  'ontology',
+  'journal',
+] as const;
 export type WorldSection = (typeof WORLD_SECTIONS)[number];
 
 /** The tabs of the bodies page: `#/w/<world>/bodies/<tab>`. */

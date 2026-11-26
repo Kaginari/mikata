@@ -24,6 +24,7 @@ const PAGES = [
 ] as const;
 
 export const SECTIONS: readonly [WorldSection, string, string][] = [
+  ['app', '⧉', 'Mikata app'],
   ['builder', '◈', 'Harness builder'],
   ['bodies', '⛬', 'Bodies & queue'],
   ['memory', '✧', 'Memory'],

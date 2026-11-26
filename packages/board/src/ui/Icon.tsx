@@ -7,6 +7,7 @@
  * such as `·`, stays a character.
  */
 import {
+  AppWindow,
   ArrowDown,
   ArrowUp,
   Boxes,
@@ -99,6 +100,7 @@ const GLYPHS: Record<string, [LucideIcon, boolean]> = {
   '☰': [Menu, false],
   '✦': [Sparkle, false],
   '⌬': [Network, false],
+  '⧉': [AppWindow, false],
 };
 
 /** A glyph drawn as its line icon (named by `data-glyph`), or as itself when it has none. */

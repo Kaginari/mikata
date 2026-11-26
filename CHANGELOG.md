@@ -13,10 +13,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
-- `mikatad app` (`mikatad board --app`): the board in a window of its own — no tabs, no address
-  bar — through Chrome, Edge, Brave, Chromium or Vivaldi in app mode, on the same one-time
+- `mikatad app` (`mikatad board --app`): Mikata as an app — a window of its own, no tabs and no
+  address bar, through Chrome, Edge, Brave, Chromium or Vivaldi in app mode, on the same one-time
   launcher file as `--open`, so no key is on the command line. With none of them, it opens in the
-  browser and says so.
+  browser and says so. It opens on the app screen (`#/w/<world>/app`) of the world worked in
+  last: a glowing header bar; the conversation as a timeline of steps (the human's ask, each edit
+  with its lines, each check with its output, the body's words, the end gate's Landed banner);
+  Done when, Budgets and Guardrails beside it; a command line and a status bar under it. Every
+  number is the session's own.
+- `GET /api/w/<world>/desk`: what a world's session is held to — its verify line, the plan's
+  `Done when`, its branch — read alike by the terminal app and the board.
 - The terminal app has three views, F2 or `/view light|advanced|focus`: *Light*, the new default,
   the conversation beside one slim column; *Advanced*, every panel; *Focus*, the conversation
   alone. `center` and `zen` still name the last two.

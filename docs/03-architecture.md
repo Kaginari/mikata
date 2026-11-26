@@ -414,7 +414,13 @@ finds (on the `PATH`; on macOS, in `/Applications` or `~/Applications`), in the 
 `<browser> --app=file://<launcher>`. The launcher is the same file `--open` hands the default
 browser, so the key is never on the command line, and a snap browser gets it in its own
 directory. A browser already running takes the window into its own process. With none of them
-here it opens as `--open` does and says so. `--background`
+here it opens as `--open` does and says so. Either way the launcher points at `/?app`: the page
+trades the key as ever (the fragment is cleared, the query kept) and opens on the app screen,
+`#/w/<world>/app`, of the world worked in last — one world's session as one window: a header bar,
+the conversation as a timeline of steps beside Done when, Budgets and Guardrails, a command line
+and a status bar. It reads the session's live events, its hello and the world's desk
+(`GET /api/w/<world>/desk`: the verify line, the plan's `Done when`, the branch); a number the core
+does not give, such as a step cap, is not drawn. `--background`
 prints no URL: the board started with the terminal app runs so, and its log holds no key.
 
 **Started with the terminal app.** Launched with `--web`, `mikata` makes sure a board runs as

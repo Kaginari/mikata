@@ -63,69 +63,30 @@ pub struct Verify {
     pub suggested: Option<String>,
 }
 
-/// Read `world`'s memory standing, its roster's races and the session card's verify line: file
-/// reads, for a runtime thread.
+/// Read `world`'s memory standing, its roster's races and its desk (the session card's verify
+/// line, the plan's `Done when`, the branch: [`mikata_loop::world::desk`]): file reads, for a
+/// runtime thread.
 #[must_use]
 pub fn survey(world: &Path) -> Survey {
-    let roster = Roster::load(world);
-    let line = roster
-        .creatures
-        .get("summoner")
-        .map(|c| c.verify.clone())
-        .unwrap_or_default();
-    let suggested = if line.is_empty() {
-        mikata_loop::world::verify::suggest(world)
-    } else {
-        None
-    };
-    let races = roster
+    let races = Roster::load(world)
         .creatures
         .into_iter()
         .map(|(name, c)| (name, c.race))
         .collect();
+    let desk = mikata_loop::world::desk::desk(world);
     Survey {
         memory: standing(world),
         races,
-        verify: Verify { line, suggested },
-        done: done_when(world),
-        branch: branch(world),
+        verify: Verify {
+            line: desk.verify,
+            suggested: desk.suggested,
+        },
+        done: desk.done,
+        branch: desk.branch,
     }
 }
 
-/// The lines under `## Done when` in the body's plan (`.mikata/tmp/plan.md`): each non-empty line
-/// up to the next heading, its list mark taken off; none when there is no plan.
-#[must_use]
-pub fn done_when(world: &Path) -> Vec<String> {
-    let Ok(text) = std::fs::read_to_string(world.join(".mikata/tmp/plan.md")) else {
-        return Vec::new();
-    };
-    let mut lines = Vec::new();
-    let mut inside = false;
-    for line in text.lines() {
-        let l = line.trim();
-        if l.starts_with('#') {
-            inside = l
-                .trim_start_matches('#')
-                .trim()
-                .eq_ignore_ascii_case("done when");
-            continue;
-        }
-        if inside && !l.is_empty() {
-            lines.push(l.trim_start_matches(['-', '*', ' ']).trim().to_owned());
-        }
-    }
-    lines.truncate(40);
-    lines
-}
-
-/// The branch `world`'s repository is on, read from `.git/HEAD`; none when detached or absent.
-#[must_use]
-pub fn branch(world: &Path) -> Option<String> {
-    let head = std::fs::read_to_string(world.join(".git/HEAD")).ok()?;
-    head.trim()
-        .strip_prefix("ref: refs/heads/")
-        .map(str::to_owned)
-}
+pub use mikata_loop::world::desk::{branch, done_when};
 
 /// How an act left a path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

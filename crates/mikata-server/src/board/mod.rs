@@ -478,6 +478,7 @@ impl Board {
             .route("/api/sessions", get(sessions))
             .route("/api/w/{world}/runs", get(runs_of))
             .route("/api/w/{world}/units", get(units_of))
+            .route("/api/w/{world}/desk", get(desk_of))
             .route("/api/w/{world}/runs/{run}", get(run_of))
             .route("/ws/session/{id}", get(socket))
             .fallback(asset)
@@ -529,10 +530,16 @@ impl Board {
     ///
     /// The random source fails.
     pub fn open_url(&self) -> Result<String, String> {
+        self.open_url_at("/")
+    }
+
+    /// [`Board::open_url`] at `path` (`/`, or `/?app` for the app window): the key rides in the
+    /// fragment as ever.
+    fn open_url_at(&self, path: &str) -> Result<String, String> {
         let key = secret()?;
         let mut keys = self.keys.lock().unwrap_or_else(PoisonError::into_inner);
         keys.open = Some((key.clone(), self.now()));
-        Ok(format!("http://{}/#k={key}", self.host))
+        Ok(format!("http://{}{path}#k={key}", self.host))
     }
 
     /// A launcher for the browser: a fresh open key ([`Board::open_url`]) in a page under `dir`
@@ -545,12 +552,17 @@ impl Board {
     ///
     /// The random source fails, or the file cannot be written.
     pub fn launch(&self, dir: &std::path::Path) -> Result<PathBuf, String> {
+        self.launch_at(dir, "/")
+    }
+
+    /// [`Board::launch`] to `path`: `/?app` opens the board on its app screen.
+    fn launch_at(&self, dir: &std::path::Path, path: &str) -> Result<PathBuf, String> {
         use std::io::Write as _;
         // Only a private directory of this user's own, never a link: no one else may swap the
         // page or read it.
         #[cfg(unix)]
         browser::private_dir(dir)?;
-        let url = self.open_url()?;
+        let url = self.open_url_at(path)?;
         let name = secret()?;
         let file = dir.join(format!("open-{}.html", &name[..16]));
         let mut o = std::fs::OpenOptions::new();
@@ -596,8 +608,20 @@ impl Board {
         browser: &browser::Browser,
         open: impl FnOnce(&std::path::Path) -> Result<(), String>,
     ) -> Result<PathBuf, String> {
+        self.open_in_at(state, home, browser, "/", open)
+    }
+
+    /// [`Board::open_in`] to `path` on the board.
+    fn open_in_at(
+        &self,
+        state: &std::path::Path,
+        home: Option<&std::path::Path>,
+        browser: &browser::Browser,
+        path: &str,
+        open: impl FnOnce(&std::path::Path) -> Result<(), String>,
+    ) -> Result<PathBuf, String> {
         let dir = browser::launcher_dir(state, home, browser)?;
-        let file = self.launch(&dir)?;
+        let file = self.launch_at(&dir, path)?;
         if let Err(e) = open(&file) {
             self.unlaunch();
             return Err(e);
@@ -627,13 +651,17 @@ impl Board {
     ///
     /// No place the browser reads is known, the launcher cannot be written, or the browser fails.
     pub fn open_app(&self, state: &std::path::Path) -> Result<bool, String> {
-        let Some(found) = app::find() else {
-            return self.open_browser(state).map(|()| false);
-        };
         let home = std::env::var_os("HOME")
             .map(PathBuf::from)
             .filter(|h| h.is_absolute());
-        self.open_in(state, home.as_deref(), &found.kind, |file| {
+        // The board opens on its app screen (`/?app`), in a window of its own or, with no browser
+        // for one, in a tab.
+        let Some(found) = app::find() else {
+            return self
+                .open_in_at(state, home.as_deref(), &browser::detect(), "/?app", browse)
+                .map(|_| false);
+        };
+        self.open_in_at(state, home.as_deref(), &found.kind, "/?app", |file| {
             watch_opener(app::opener(&found, file))
         })
         .map(|_| true)
@@ -1204,6 +1232,19 @@ async fn units_of(State(board): State<Arc<Board>>, Path(world): Path<String>) ->
         tokio::task::spawn_blocking(move || present(&board, &world).map(|p| harness::list(&p)));
     match read.await {
         Ok(Ok(h)) => Json(h).into_response(),
+        Ok(Err(refused)) => *refused,
+        Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
+    }
+}
+
+/// `GET /api/w/<world>/desk`: what the world's session is held to — the verify line, the
+/// plan's `Done when`, the branch ([`mikata_loop::world::desk::Desk`]).
+async fn desk_of(State(board): State<Arc<Board>>, Path(world): Path<String>) -> Response {
+    let read = tokio::task::spawn_blocking(move || {
+        present(&board, &world).map(|p| mikata_loop::world::desk::desk(&p))
+    });
+    match read.await {
+        Ok(Ok(d)) => Json(d).into_response(),
         Ok(Err(refused)) => *refused,
         Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }
