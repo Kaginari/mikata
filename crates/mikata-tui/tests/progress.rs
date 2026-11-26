@@ -482,7 +482,10 @@ fn reasoning_that_never_streamed_is_placed_where_its_step_began() {
         })
         .collect();
     assert_eq!(kinds, ["user", "thought", "text"]);
-    assert!(!screen(&mut m, 100, 32).contains("thought for"), "folded away");
+    assert!(
+        !screen(&mut m, 100, 32).contains("thought for"),
+        "folded away"
+    );
     // A redacted block is reasoning too, its text hidden; a turn with none has none.
     let hidden =
         vec![json!({"type": "opaque", "value": {"type": "redacted_thinking", "data": "x"}})];
@@ -920,7 +923,10 @@ fn a_turn_frame_by_frame() {
     assert!(frames[1].1.contains("Thinking…"));
     assert!(frames[2].1.contains("thinking · 4s"));
     assert!(frames[3].1.contains("grep  _parse_ty"));
-    assert!(!frames[4].1.contains("thought for"), "a finished thought folds away");
+    assert!(
+        !frames[4].1.contains("thought for"),
+        "a finished thought folds away"
+    );
     assert!(frames[5].1.contains("✓ end gate · pass"));
     assert!(frames[6].1.contains("⚠ Approval required"));
 }
@@ -1166,15 +1172,20 @@ fn what_changed_is_drawn_line_by_line() {
         "{scr}"
     );
     // A long list shows its first lines and counts the rest.
-    let many: String = (0..12).map(|i| format!("\n+ value {i}")).collect();
+    let many: String = (0..12).map(|i| ["\n+ value ", &i.to_string()].concat()).collect();
     ev(
         &mut m,
         Event::Changes {
-            text: format!("what changed: twelve lines:{many}\n\nwhole: .mikata/tmp/what-changed.md"),
+            text: format!(
+                "what changed: twelve lines:{many}\n\nwhole: .mikata/tmp/what-changed.md"
+            ),
         },
     );
     let scr = screen(&mut m, 120, 40);
-    assert!(scr.contains("+ value 7") && !scr.contains("+ value 8"), "{scr}");
+    assert!(
+        scr.contains("+ value 7") && !scr.contains("+ value 8"),
+        "{scr}"
+    );
     assert!(
         scr.contains("… +4 lines · all of it in .mikata/tmp/what-changed.md"),
         "{scr}"

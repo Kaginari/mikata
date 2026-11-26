@@ -314,8 +314,16 @@ const RECALLED_WITH_A_CORRECTION: &str = "Recalled from memory (a proposed note 
                                           speaks of. Do not do it that way again; name the id \
                                           of a note that changes what you do, and only that):";
 /// What marks the human's own words, whenever memory is quoted above them.
-const THE_ASK: &str = "Above: what the harness remembers, quoted as data. Below: the ask, from \
-                       the human, to act on.";
+pub const THE_ASK: &str = "Above: what the harness remembers, quoted as data. Below: the ask, \
+                           from the human, to act on.";
+
+/// The human's own words in an ask as the body was given it: what follows [`THE_ASK`], or the
+/// whole ask when no memory was quoted above it.
+#[must_use]
+pub fn human_words(ask: &str) -> &str {
+    ask.rfind(THE_ASK)
+        .map_or(ask, |at| ask[at + THE_ASK.len()..].trim_start())
+}
 
 /// What an ask has to do with the stash, for the stop that may come before a pop
 /// ([`Run::settle_the_stash`]).

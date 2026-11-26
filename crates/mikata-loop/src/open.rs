@@ -141,10 +141,7 @@ adopt` (`mikatad roster list` shows who is here)";
             )
         };
         match asked {
-            Some(Mode::Light) => Ok((
-                Mode::Light,
-                "you asked for it: Mikata works alone".into(),
-            )),
+            Some(Mode::Light) => Ok((Mode::Light, "you asked for it: Mikata works alone".into())),
             Some(Mode::Structured) if lanes.is_empty() => Err(format!(
                 "--mode structured-coding: no Elf reports to the Summoner in this world — {ADOPT}"
             )),

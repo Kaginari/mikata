@@ -84,7 +84,9 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
         Entry::Group(group) => out.extend(group_card(group, w, ctx)),
         // A finished thought folds away, as a card's spent lines do: picked (alt+↑↓) or opened
         // (ctrl+t) it shows again.
-        Entry::Thought(th) if th.took.is_some() && !th.focused && !th.expanded => return out_none(),
+        Entry::Thought(th) if th.took.is_some() && !th.focused && !th.expanded => {
+            return out_none();
+        }
         Entry::Thought(thought) => out.extend(thought_lines(thought, w, ctx)),
         Entry::Verdict {
             verdict,
@@ -203,11 +205,18 @@ fn spoken(text: &str) -> String {
     if !text.contains("@U ") {
         return text.to_owned();
     }
-    let kept: Vec<&str> = text
+    let mut kept: Vec<&str> = text
         .lines()
         .filter(|l| !l.trim_start().starts_with("@U "))
         .collect();
-    kept.join("\n").trim_end().to_owned()
+    // The rule the body set above its `@U` lines goes with them.
+    while kept
+        .last()
+        .is_some_and(|l| l.trim().is_empty() || l.trim() == "---")
+    {
+        kept.pop();
+    }
+    kept.join("\n")
 }
 
 /// A memory note's id: `n` then hex and digits in dashed parts, long — never a word.
@@ -237,6 +246,7 @@ fn counted(text: &str) -> String {
 /// The memory's account of a finished turn, `[memory: 1 claim(s) of summoner's kept, 1 grounded
 /// by checked, 0 by corroborated…]`, said plainly: `memory kept 1 note · 1 checked`.
 fn kept(text: &str) -> Option<String> {
+    use std::fmt::Write as _;
     let rest = text.strip_prefix("[memory: ")?.strip_suffix(']')?;
     let (kept, rest) = rest.split_once(" claim(s) of ")?;
     let kept: usize = kept.parse().ok()?;
@@ -248,12 +258,25 @@ fn kept(text: &str) -> Option<String> {
         if kept == 1 { "" } else { "s" }
     );
     if checked != "0" {
-        said.push_str(&format!(" · {checked} checked"));
+        let _ = write!(said, " · {checked} checked");
     }
     if seconded != "0" {
-        said.push_str(&format!(" · {seconded} seconded"));
+        let _ = write!(said, " · {seconded} seconded");
     }
-    said.push_str(why.replace("; ", " · ").as_str());
+    // Each `; N not checked: why`, counted: the why is the harness's own rule.
+    let unchecked: usize = why
+        .split("; ")
+        .filter_map(|part| {
+            part.split_once(" not checked")?
+                .0
+                .trim()
+                .parse::<usize>()
+                .ok()
+        })
+        .sum();
+    if unchecked > 0 {
+        let _ = write!(said, " · {unchecked} not checked");
+    }
     Some(said)
 }
 
@@ -1006,18 +1029,34 @@ mod tests {
         let ids = "n1a214cdac8e-06f936766279155f-0000000000000000, \
                    n1a214d03e53-79c33cabc826b875-0000000000000001";
         assert_eq!(
-            counted(&format!("memory: needs review, a file it rests on changed: {ids}")),
+            counted(&format!(
+                "memory: needs review, a file it rests on changed: {ids}"
+            )),
             "memory: needs review, a file it rests on changed: 2 notes"
         );
-        assert_eq!(counted("tests failed: see above"), "tests failed: see above");
         assert_eq!(
-            kept("[memory: 1 claim(s) of summoner's kept, 1 grounded by checked, 0 by corroborated]")
-                .as_deref(),
+            counted("tests failed: see above"),
+            "tests failed: see above"
+        );
+        assert_eq!(
+            kept(
+                "[memory: 1 claim(s) of summoner's kept, 1 grounded by checked, 0 by corroborated]"
+            )
+            .as_deref(),
             Some("memory kept 1 note · 1 checked")
+        );
+        assert_eq!(
+            kept(
+                "[memory: 2 claim(s) of summoner's kept, 0 grounded by checked, 0 by corroborated; \
+                 1 not checked: it names no check (`check=<verify line or test>`); 1 not checked: \
+                 it names no path the diff changed]"
+            )
+            .as_deref(),
+            Some("memory kept 2 notes · 2 not checked")
         );
         assert_eq!(kept("[other]"), None);
         assert_eq!(
-            spoken("Done.\n\n@U law durations.py check=python3 -m unittest\n"),
+            spoken("Done.\n\n---\n\n@U law durations.py check=python3 -m unittest\n"),
             "Done."
         );
         assert_eq!(spoken("Say @U only mid-line"), "Say @U only mid-line");

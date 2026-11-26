@@ -4278,11 +4278,7 @@ async fn a_session_says_its_mode_and_why() {
     let solo = bare("mode-solo");
     let o = opened_in(&solo, None, false, &said()).unwrap();
     assert_eq!(o.mode, Mode::Light);
-    assert!(
-        o.mode_why.contains("Mikata works alone"),
-        "{}",
-        o.mode_why
-    );
+    assert!(o.mode_why.contains("Mikata works alone"), "{}", o.mode_why);
 
     let chain = World::new("mode-chain");
     let model = said();

@@ -578,10 +578,10 @@ fn apply(m: &mut Model, msg: Msg) -> Vec<Cmd> {
         }
         Msg::Done { held } => {
             m.outstanding = m.outstanding.saturating_sub(1);
-            if !m.busy() {
-                if let Some(s) = m.activity.since.take() {
-                    m.activity.last = Some(m.transcript.clock.saturating_sub(s));
-                }
+            if !m.busy()
+                && let Some(s) = m.activity.since.take()
+            {
+                m.activity.last = Some(m.transcript.clock.saturating_sub(s));
             }
             m.transcript.held = held;
             // A finished line may have grounded notes or born creatures: read the world again.

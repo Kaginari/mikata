@@ -164,10 +164,7 @@ fn a_session_streams_its_turn_and_numbers_every_event() {
     assert_eq!(hello["result"]["model"], "scripted-model");
     // The mode the session opened in, and why: what a client shows beside the model.
     assert_eq!(hello["result"]["mode"], "light-coding", "{hello}");
-    assert_eq!(
-        hello["result"]["modeWhy"],
-        "Mikata works alone"
-    );
+    assert_eq!(hello["result"]["modeWhy"], "Mikata works alone");
     assert!(
         hello["result"]["world"]
             .as_str()

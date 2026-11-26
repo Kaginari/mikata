@@ -558,7 +558,8 @@ impl Transcript {
                 self.headed = false;
                 // A new ask: a card focused in the last one lets ctrl+t reach this one's.
                 self.focus(None);
-                self.push(Entry::User(text.clone()));
+                // The human's line as they wrote it: the memory quoted above it is the body's.
+                self.push(Entry::User(mikata_loop::run::human_words(text).to_owned()));
                 self.begin_step();
             }
             Event::Queued { text } => self.queued.push_back(text.clone()),
@@ -758,7 +759,8 @@ impl Transcript {
         };
         match event {
             Event::TurnStarted { text } => {
-                self.push(line(format!("is working on: {}", first_line(text)), false));
+                let ask = mikata_loop::run::human_words(text);
+                self.push(line(format!("is working on: {}", first_line(ask)), false));
             }
             Event::ToolCall { name, input, .. } => {
                 self.push(line(
@@ -1031,6 +1033,24 @@ mod tests {
 
     fn delta(t: &mut Transcript, s: &str) {
         t.fold(&Event::TextDelta { text: s.into() }, None);
+    }
+
+    #[test]
+    fn the_humans_line_is_their_words_not_the_memory_above_them() {
+        let mut t = Transcript::default();
+        let ask = format!(
+            "Recalled from memory:\n- n1 a note\n\n---\n\n{}\n\nfix the parser",
+            mikata_loop::run::THE_ASK
+        );
+        t.fold(&Event::TurnStarted { text: ask }, None);
+        assert!(matches!(&t.entries[0], Entry::User(s) if s == "fix the parser"));
+        t.fold(
+            &Event::TurnStarted {
+                text: "plain".into(),
+            },
+            None,
+        );
+        assert!(matches!(t.entries.last(), Some(Entry::User(s)) if s == "plain"));
     }
 
     #[test]
