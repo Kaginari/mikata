@@ -106,12 +106,13 @@ says yes, and an unanswered ask is a no.
 |---|---|---|
 | requests (client → core) | `initialize`, `session/prompt`, `session/send`, `session/interrupt`, `session/events {since}`, `units/list`, `units/change`, `shutdown` | `session/resume`, `queue/list`, `queue/move`, `world/status`, `ledger/query`, `config/explain` |
 | requests (core → client) | `gate/ask` — the human gate, the only call the core blocks on | |
-| events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `changes`, `turnEnded`, `held` | `dispatch`, `report`, `ascension`, `evolution` |
+| events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `changes`, `turnEnded`, `held`, `guards` | `dispatch`, `report`, `ascension`, `evolution` |
 
 Each message is one line of JSON. `initialize` opens the session and answers `{protocol, version,
 world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held, guardsOff}`:
 `guardsOff` names the guards (`secrets`, `approval`, `gate`, `hold`) the session runs without, so
-every client says so on it. `mode` is `light-coding` (or one of the lab's two), and `modeWhy` says why the session opened in
+every client says so on it; a `guards {off}` event says them again whenever they change after a
+turn. `mode` is `light-coding` (or one of the lab's two), and `modeWhy` says why the session opened in
 it, in words for the human. A client that speaks another `protocol` stops rather than misread. Each event is the notification `event/<type>`, its fields beside the
 envelope. `session/prompt {text}` answers `{queued}` at once: a line sent while a turn runs
 waits its turn, and the session takes lines strictly in the order they came. `gate/ask` sends

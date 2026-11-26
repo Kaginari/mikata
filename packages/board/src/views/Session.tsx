@@ -749,7 +749,8 @@ function Screen({
   const sandboxOn = hello ? !hello.sandbox.startsWith('none') : undefined;
   // The guards switched off, as the session itself says them (every tab, wherever it was started);
   // what this tab noted is only a fallback for a server that does not say them.
-  const said = (hello as { guardsOff?: unknown } | undefined)?.guardsOff;
+  // The latest word wins: a `guards` event after a turn, else the hello as the session opened.
+  const said = v?.guardsOff ?? (hello as { guardsOff?: unknown } | undefined)?.guardsOff;
   const guardsOff = Array.isArray(said)
     ? said.filter((g): g is string => typeof g === 'string')
     : (opened?.guardsOff ?? []);

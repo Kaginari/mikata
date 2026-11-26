@@ -99,6 +99,20 @@ test('a workspace with no live session points to the Harness Builder to start on
   await expect(page.getByRole('button', { name: 'Start session' })).toBeEnabled();
 });
 
+test('a guard switched off during a session is said at once, and its return too', async ({
+  page,
+}) => {
+  const b = new Bridge();
+  await openChat(page, b, `#/w/${LIVE.id}/s/${CHAT}`, routes);
+  const chips = page.getByRole('list', { name: 'This session' });
+  await expect(chips).toBeVisible();
+  await expect(chips.locator('li[data-status="alarm"]')).toHaveCount(0);
+  b.emit('guards', { off: ['approval'] });
+  await expect(chips.locator('li[data-status="alarm"]')).toContainText('guards off: approval');
+  b.emit('guards', { off: [] });
+  await expect(chips.locator('li[data-status="alarm"]')).toHaveCount(0);
+});
+
 test('the front page opens the workspace worked in last', async ({ page }) => {
   const b = new Bridge();
   await openChat(page, b, '#/', routes);

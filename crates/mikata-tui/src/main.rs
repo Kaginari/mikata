@@ -398,7 +398,7 @@ fn guards_said(model: &mut Model, opened: &mikata_loop::Opened) {
     }
 }
 
-/// `mikata --web`: make sure a board runs with this world on it and open it in the browser, then
+/// With --web: make sure a board runs with this world on it and open it in the browser, then
 /// leave — the board is the app, and its sessions are its own; no terminal app opens beside it.
 /// Its one status line never holds a key. `board.port` is read; a run to resume is taken up on the
 /// board, not here.
@@ -431,7 +431,7 @@ fn web_only(world: &std::path::Path, resume: bool) -> ExitCode {
     {
         let _ = (world, port);
         fail(
-            "--web needs a Unix socket for the board; run `mikatad board --open`",
+            "--web needs a Unix socket for the board; run mikatad board --open",
             1,
         )
     }
