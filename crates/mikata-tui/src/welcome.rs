@@ -289,7 +289,7 @@ mod tests {
             // The card's rows joined, the frames and bullets cut away: wrapped lines read whole.
             let flat: String = text
                 .lines()
-                .map(|l| l.split(['│', '┃']).nth(2).unwrap_or(l))
+                .map(|l| l.split(['│', '┃', '▌']).nth(2).unwrap_or(l))
                 .map(|l| {
                     l.trim_matches(|c: char| " ▌▏▕▖▘▝▀▄│┃".contains(c))
                         .trim_start_matches("▸ ")

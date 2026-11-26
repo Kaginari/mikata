@@ -1,13 +1,14 @@
-//! Cards for Ratatui, drawn in the cell grid: a rounded border in the hue that says what the
-//! card is (the human's gold, the answer's cyan, a tool's class), a face tinted a few percent
-//! toward that hue, and a lighter band for the head rows. No shadow: a card reads as the
-//! frame's own panels do.
+//! Cards for Ratatui, drawn in the cell grid. A card is a solid block: a thick bar down its left
+//! in the hue that says what it is (the human's gold, the answer's cyan, a tool's class), a face
+//! tinted a few percent toward that hue filling it to its right edge, a lighter band for its head
+//! rows, and a half-row lip on top that parts it from the card above — no border and no blank
+//! line: cards stack butted together. A float (a toast, a dialog) keeps a rounded border in its
+//! hue, so it reads as over the page.
 //!
 //! ```text
-//! ╭──────────────────╮
-//! │ ● bash  pytest   │
-//! │   ⎿ ok · 2.0s    │
-//! ╰──────────────────╯
+//! ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄       a float:  ╭──────────────────╮
+//! ▌ ● bash  pytest                     │ ● bash  pytest   │
+//! ▌   ⎿ ok · 2.0s                      ╰──────────────────╯
 //! ```
 //!
 //! Every tone is a step of one scale taken from the theme's own palette, so a slab re-renders in
@@ -37,6 +38,10 @@ pub struct Surface {
     pub shadow: (Rgb, Rgb),
     /// The spine down the left edge, in the surface's hue.
     pub spine: Option<Rgb>,
+    /// The page under it, for a solid card's lip.
+    pub plane: Rgb,
+    /// A solid card (bar, face, lip), else a framed float.
+    pub solid: bool,
 }
 
 /// The tonal scale of a theme: the plane under everything, a card on it, a float over it, and
@@ -118,6 +123,8 @@ impl Surface {
             shade,
             shadow: (shadow, shadow.mix(s.plane, 0.5)),
             spine: hue,
+            plane: s.plane,
+            solid: !deep,
         }
     }
 }
@@ -170,10 +177,14 @@ impl Slab {
         width.saturating_sub(FRAME)
     }
 
-    /// `rows` in the slab's card, `width` cells wide: a rounded border in its hue (the rule's
-    /// tone where it has none) and the face inside.
+    /// `rows` in the slab's card, `width` cells wide: a solid card — its lip, then each row behind
+    /// its bar on the face — or, for a float, a rounded border in its hue (the rule's tone where
+    /// it has none) and the face inside.
     #[must_use]
     pub fn render(&self, rows: Lines, width: usize) -> Lines {
+        if self.surface.solid {
+            return self.solid(rows, width);
+        }
         let s = &self.surface;
         let bw = width.max(4);
         let inner = bw - 4;
@@ -217,6 +228,51 @@ impl Slab {
         }
         out
     }
+
+    /// A solid card: a lip of half blocks when it opens (a card it continues has none), then each
+    /// row behind a thick bar in its hue, on its face to the right edge.
+    fn solid(&self, rows: Lines, width: usize) -> Lines {
+        let s = &self.surface;
+        let bw = width.max(4);
+        let inner = bw - 4;
+        let edge = s.spine.unwrap_or_else(|| s.shade.mix(s.gloss, 0.5));
+        let mut out: Lines = Vec::with_capacity(rows.len() + 1);
+        if self.top {
+            let first = if self.band > 0 { s.band } else { s.face };
+            out.push(Line::from(vec![
+                Span::styled("▄", Style::new().fg(edge.color()).bg(s.plane.color())),
+                Span::styled(
+                    "▄".repeat(bw - 1),
+                    Style::new().fg(first.color()).bg(s.plane.color()),
+                ),
+            ]));
+        }
+        for (i, row) in rows.into_iter().enumerate() {
+            let face = if i < self.band { s.band } else { s.face };
+            let bg = Style::new().bg(face.color());
+            let mut spans = vec![
+                Span::styled("▌", Style::new().fg(edge.color()).bg(face.color())),
+                Span::styled(" ", bg),
+            ];
+            let row = Line::from(
+                row.spans
+                    .into_iter()
+                    .map(|sp| {
+                        let style = if sp.style.bg.is_none() {
+                            sp.style.bg(face.color())
+                        } else {
+                            sp.style
+                        };
+                        Span::styled(sp.content, style)
+                    })
+                    .collect::<Vec<_>>(),
+            );
+            spans.extend(fit(row, inner, Align::Left, bg).spans);
+            spans.push(Span::styled("  ", bg));
+            out.push(Line::from(spans));
+        }
+        out
+    }
 }
 
 #[cfg(test)]
@@ -232,18 +288,42 @@ mod tests {
         let lines = Slab::new(s)
             .band(1)
             .render(vec![Line::from("head"), Line::from("body")], 20);
-        assert_eq!(lines.len(), 4);
+        // A solid card: its lip, then its rows behind the bar — no border, no bottom row.
+        assert_eq!(lines.len(), 3);
         for l in &lines {
             assert_eq!(line_cells(l), 20, "{:?}", plain(l));
         }
-        assert!(plain(&lines[0]).starts_with("╭──"));
-        assert!(plain(&lines[1]).starts_with("│ head"));
-        assert!(plain(&lines[1]).ends_with(" │"));
-        assert!(plain(&lines[2]).ends_with(" │"));
-        assert!(plain(&lines[3]).starts_with("╰─"));
-        // The band is a breath lighter than the face; the spine wears the hue.
+        assert_eq!(plain(&lines[0]), "▄".repeat(20));
+        assert!(plain(&lines[1]).starts_with("▌ head"));
+        assert!(plain(&lines[2]).starts_with("▌ body"));
+        // The band is a breath lighter than the face; the bar wears the hue; the lip is the
+        // band's tone over the page.
         assert_ne!(s.band, s.face);
         assert_eq!(lines[1].spans[0].style.fg, Some(t.races.summoner.color()));
+        assert_eq!(lines[0].spans[1].style.fg, Some(s.band.color()));
+        assert_eq!(lines[0].spans[1].style.bg, Some(s.plane.color()));
+        assert_eq!(lines[2].spans[1].style.bg, Some(s.face.color()));
+    }
+
+    #[test]
+    fn a_float_keeps_its_frame() {
+        let t = Theme::new(Variant::Dark);
+        let lines = Slab::new(Surface::float(&t, Some(t.p.holo), 0.1))
+            .render(vec![Line::from("toast")], 16);
+        assert_eq!(lines.len(), 3);
+        assert!(plain(&lines[0]).starts_with("╭──"));
+        assert!(plain(&lines[1]).starts_with("│ toast"));
+        assert!(plain(&lines[2]).starts_with("╰─"));
+    }
+
+    #[test]
+    fn a_solid_card_continued_has_no_lip() {
+        let t = Theme::new(Variant::Light);
+        let lines = Slab::new(Surface::card(&t, None, 0.0))
+            .edges(false, false)
+            .render(vec![Line::from("more")], 16);
+        assert_eq!(lines.len(), 1);
+        assert!(plain(&lines[0]).starts_with("▌ more"));
     }
 
     #[test]

@@ -1263,7 +1263,7 @@ ecosystem:
 | Bubbles | `kit::textarea`, `kit::viewport`, `kit::spinner`, `kit::keyhelp` | components, each with its own `update` and `view` |
 | Harmonica | `kit::spring`, `kit::toast` | a critically damped spring: the transcript scrolls smoothly, a toast fades |
 | Glamour | `kit::markdown`, `kit::highlight` | Markdown drawn from a stylesheet the theme derives; code highlighted by syntect's grammars, in colours taken from the palette |
-| Isekai's depth | `kit::slab`, `kit::shimmer` | raised panels — a spine, a lit top edge, a shaded bevel, a cast shadow, every tone stepped from the palette — and a crest of light sweeping a busy word |
+| Isekai's depth | `kit::slab`, `kit::shimmer` | solid cards — a thick bar in the hue, a face filled to the right edge, a half-row lip on top in place of a border or a blank line, so the cards stack butted together; a float (a toast, a dialog) keeps a rounded frame — every tone stepped from the palette, and a crest of light sweeping a busy word |
 | — | `kit::pixels` | Mikata's logo sent as real pixels — Kitty, iTerm2 or Sixel — where the terminal draws images |
 
 The colours are `packages/theme`'s, ported to `theme.rs`; a test reads the TypeScript file and

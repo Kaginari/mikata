@@ -214,9 +214,15 @@ fn without_images_no_logo_is_drawn() {
     let mut t = Terminal::new(TestBackend::new(160, 56)).unwrap();
     let buf = draw(&mut m, &mut t);
     assert_eq!(m.pictures.wanted(), Vec::new());
-    // The sidebar's head: no picture, and none built from characters either.
+    // The sidebar's head: no picture, and none built from characters either. The sidebar starts
+    // at the rightmost panel corner; the transcript's cards, left of it,
+    // are made of half blocks of their own.
     let head = |buf: &Buffer| -> String {
-        (85..buf.area.width)
+        let left = (0..buf.area.width)
+            .rev()
+            .find(|&x| (0..6).any(|y| buf[(x, y)].symbol() == "┏"))
+            .unwrap_or(85);
+        (left..buf.area.width)
             .flat_map(|x| (2..14).map(move |y| (x, y)))
             .map(|(x, y)| buf[(x, y)].symbol().to_owned())
             .collect()

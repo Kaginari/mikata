@@ -74,6 +74,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The terminal app's cards are solid blocks.** Each message, answer, tool call, look and the
+  gate's verdict is a block filled in its tint, a thick bar down its left in its colour, and a
+  half-row lip on top in place of a border; no blank line between them, so the conversation
+  stacks butted together. The ask is one too. Toasts and the approval card keep their frame.
 - The terminal app: the header bar is the brand's gradient; panel frames are heavy lines with bold
   `////`; the end gate's verdict is a banner in its colour; a picked approval answer is a gradient
   button; units are tags. Bio Digital's page and panels are darker (`#07050a`, `#110c14`,
