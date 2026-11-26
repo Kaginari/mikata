@@ -97,6 +97,11 @@ pub fn policy(server: &Server, cx: &Context, scratch: &Path) -> Policy {
     for folder in &server.reads {
         policy.lend(folder);
     }
+    // An MCP server reads the world, never its secret files (the secrets unit).
+    if let Some(secrets) = cx.secrets() {
+        policy.covered.extend(secrets.files().iter().cloned());
+        policy.hidden.extend(secrets.files().iter().cloned());
+    }
     policy
 }
 

@@ -25,6 +25,7 @@ import {
   GitCompare,
   History,
   House,
+  KeyRound,
   Layers,
   ListChecks,
   type LucideIcon,
@@ -77,6 +78,11 @@ const NATIVE: Record<string, { name: string; about: string; icon: LucideIcon }> 
     icon: Swords,
   },
   gate: { name: 'End gate', about: 'Verify changes before landing.', icon: ShieldCheck },
+  secrets: {
+    name: 'Secret files',
+    about: 'Keep .env, keys and state files from the model.',
+    icon: KeyRound,
+  },
   reader: {
     name: 'Reader',
     about: 'Derive "Done when" lines from a prose ask.',
@@ -96,6 +102,7 @@ const ORDER = [
   'plan_lite',
   'challenge',
   'gate',
+  'secrets',
   'reader',
   'what_changed',
   'fold',

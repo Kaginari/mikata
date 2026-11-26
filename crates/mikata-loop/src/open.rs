@@ -211,6 +211,9 @@ pub struct Opened {
     pub key: Option<String>,
     /// The sandbox actually in force for the session's commands, or `none — <reason>`.
     pub sandbox: String,
+    /// What the `secrets` unit holds: its files, the values struck, whether commands are kept
+    /// from them ([`crate::run::Run::secrets_said`]).
+    pub secrets: String,
     /// The MCP servers the session's body may open, one level-0 line each with the price of
     /// opening it: what `status` shows. Empty when no server may serve its race.
     pub mcp: Vec<String>,
@@ -806,11 +809,12 @@ fn build(
     // The units the human's configuration composes, over the build's default.
     let (run, unit_holes) = composed(run, config, &composition)?;
     // Light-coding's asks are read apart, when the human names a reader.
-    let run = if mode == Mode::Light {
+    let mut run = if mode == Mode::Light {
         run.with_reader(config.reader())
     } else {
         run
     };
+    let secrets = run.secrets_said();
     Ok(Opened {
         session: hold.into_iter().fold(Session::new(run), Session::holding),
         world: world.to_path_buf(),
@@ -827,6 +831,7 @@ fn build(
         key: None,
         // The network is opened only for an approved outward act, so the standing state is off.
         sandbox: mikata_tools::Sandbox::detect().status(false),
+        secrets,
         mcp: mcp_lines,
         mcp_offered,
         law,

@@ -45,7 +45,9 @@ pub type Registry = mikata_kernel::Registry<Cx>;
 pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
     match id {
         Returns::ID => Some(Box::new(Returns::default())),
-        MEMORY | READER | GATE | HOLD | CHALLENGE => Some(switch(id, SafePoint::Ask, false)),
+        MEMORY | READER | GATE | HOLD | CHALLENGE | SECRETS => {
+            Some(switch(id, SafePoint::Ask, false))
+        }
         FOLD | STRESS => Some(switch(id, SafePoint::Batch, false)),
         WHAT_CHANGED => Some(switch(id, SafePoint::Ask, true)),
         PLAN | PLAN_LITE => Some(Box::new(Switch::new(
@@ -106,6 +108,14 @@ pub const HOLD: &str = "hold";
 /// It switches between tool batches, by the human alone.
 pub const FOLD: &str = "fold";
 
+/// Secret files ([`mikata_tools::secrets`]): `.env`, keys, kubeconfigs, Terraform's state and
+/// variables, and what the human's `secrets.files` and a world's `secrets.also` add. On, `read`
+/// and `index` give a secret file's keys and never a value, no tool writes or searches one, a
+/// command finds it empty, and every value read from one is struck from every result before the
+/// model reads it. Off, they are files like any other. It switches between asks, and only the
+/// human may switch it off: a world is not trusted to open its own secrets to a model.
+pub const SECRETS: &str = "secrets";
+
 /// The Dark Elf challenge ([`crate::challenge`]): a landing in a domain the roster routes is held
 /// for review. Off, it lands at once. By the human alone.
 pub const CHALLENGE: &str = "challenge";
@@ -163,6 +173,7 @@ pub const NATIVE: &[&str] = &[
     HOLD,
     FOLD,
     CHALLENGE,
+    SECRETS,
 ];
 
 /// A native unit whose part of the loop is still the run's own code: the run asks whether it is

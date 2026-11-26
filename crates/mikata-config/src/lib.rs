@@ -260,6 +260,8 @@ fn refused_in_a_world(key: &str, value: &Value, layer: Layer) -> Option<&'static
 /// loosens the human gate.
 const LOOSENING: &[&str] = &[
     "gate.enabled",
+    // A `!` there un-marks a secret file: the human's alone. `secrets.also` only adds.
+    "secrets.files",
     "gate.changes",
     "gate.challenge_reviewers",
     "gate.ask_rules",
@@ -306,6 +308,8 @@ const SCHEMA: &[(&str, Kind)] = &[
     ("gate.changes", Kind::Bool),
     ("gate.challenge_reviewers", Kind::Int),
     ("gate.ask_rules", Kind::StrList),
+    ("secrets.files", Kind::StrList),
+    ("secrets.also", Kind::StrList),
     ("gate.approve", Kind::StrList),
     ("sandbox.allow_unguarded", Kind::Bool),
     ("sandbox.disposable", Kind::Bool),
@@ -1150,6 +1154,19 @@ impl Config {
             self.int("attic.keep_days").unwrap_or(14),
             self.int("attic.max_mb").unwrap_or(2048),
         )
+    }
+
+    /// The secret files' patterns beyond the build's (`mikata_tools::secrets`): the human's
+    /// global `secrets.files` (which may un-mark with `!`), then `secrets.also` from any file,
+    /// which only adds.
+    #[must_use]
+    pub fn secret_patterns(&self) -> (Vec<String>, Vec<String>) {
+        let list = |key: &str| {
+            self.get(key)
+                .map(|l| strings(&l.value).map(str::to_owned).collect())
+                .unwrap_or_default()
+        };
+        (list("secrets.files"), list("secrets.also"))
     }
 
     /// The guard rules the human turned into questions.

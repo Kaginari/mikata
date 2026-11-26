@@ -44,6 +44,11 @@ repositories in one ask: one body fixed 2.5 of 5 on average; one body a project,
 runs in a sandbox, and an act that leaves your machine (a push, a pull request, a publish) is put to
 you first, every time.
 
+**Your secret files stay yours.** `.env`, keys, kubeconfigs and Terraform's state and variables in
+your repository are found as a session opens: the body is shown their keys and never a value, no
+tool writes or searches them, a command finds them empty, and any value of theirs is struck from
+what the model reads. Name more with `secrets.also = ["bootstrap/inventory.yml"]`.
+
 **It shows you what changed, by its own checks.** When an answer lands, Mikata's last checks are
 run again on the code as you gave it and on the finished work, and you see where they print
 differently. Its checks hold its reading of your ask; you are the one who knows whether a line

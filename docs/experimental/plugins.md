@@ -347,7 +347,7 @@ A missed bar is reported as missed; a stage that misses is not built on until it
 | Plugin host, Python SDK, `no_force_push.py`, `observe.py` | built (lane B) |
 | `[units]`, `[plugins.*]`, `--units`, memory's `unit` stamp, withdraw by unit | built (lane C) |
 | Loop: every point, `units` beats, resume, `/units` `/unit` `/plugin`, `units/list` `units/change` | built |
-| Native units | `returns` (moved out of the loop); switches — their code is still the run's, which asks whether each is on: `memory`, `what_changed`, `reader`, `stress`, `gate`, `hold` (the held `Done when` list), `fold`, `challenge`; and `plan`, the prompt's two `Done when` bullets, decided as a session opens |
+| Native units | `returns` (moved out of the loop); switches — their code is still the run's, which asks whether each is on: `memory`, `what_changed`, `reader`, `stress`, `gate`, `hold` (the held `Done when` list), `fold`, `challenge`, `secrets` (the world's secret files, held from the model); and `plan`, the prompt's two `Done when` bullets, decided as a session opens |
 | Stage 1, the tracer | met, 2026-11-24 |
 | Stage 2, no regression | met, 2026-11-24: main 10 of 10 in 338 calls, the branch 10 of 10 in 337 (Haiku, sqlglot ten, $0.78) |
 | Stage 3, hosting a plugin | met, 2026-11-24: an observer hooking every point loaded in ten runs, 10 of 10, 311 calls against 337, wall time level |

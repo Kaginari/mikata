@@ -289,6 +289,11 @@ pub struct Context {
     /// What is left of the run's envelope, in weighted tokens, kept by the run as it spends;
     /// [`u64::MAX`] when it has none. A priced load past it is refused.
     budget_left: Arc<std::sync::atomic::AtomicU64>,
+    /// The world's secret files and their values ([`crate::secrets`]), held while `secrets_on`.
+    secrets: Arc<crate::secrets::Secrets>,
+    /// The `secrets` unit is on: secret files are shaped, never read, written or searched, kept
+    /// from commands, and their values struck from every result.
+    secrets_on: bool,
 }
 
 impl std::fmt::Debug for Context {
@@ -443,7 +448,27 @@ impl Context {
             skeletons: HashMap::new(),
             range_over: files::RANGE_OVER,
             budget_left: Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX)),
+            secrets: Arc::new(crate::secrets::Secrets::none()),
+            secrets_on: true,
         }
+    }
+
+    /// Hold `secrets`: the world's secret files, found and read as the session opened.
+    #[must_use]
+    pub fn with_secrets(mut self, secrets: Arc<crate::secrets::Secrets>) -> Self {
+        self.secrets = secrets;
+        self
+    }
+
+    /// Switch the holding of secrets on or off, as the `secrets` unit stands.
+    pub fn set_secrets_on(&mut self, on: bool) {
+        self.secrets_on = on;
+    }
+
+    /// The secrets held now: `None` while the unit is off.
+    #[must_use]
+    pub fn secrets(&self) -> Option<&crate::secrets::Secrets> {
+        self.secrets_on.then_some(&*self.secrets)
     }
 
     /// Keep what is left of the run's envelope in `left` ([`u64::MAX`] for none): the run that
@@ -720,6 +745,8 @@ impl Context {
         self.loosened = from.loosened;
         self.attic.clone_from(&from.attic);
         self.range_over = from.range_over;
+        self.secrets = Arc::clone(&from.secrets);
+        self.secrets_on = from.secrets_on;
         self
     }
 
@@ -1015,6 +1042,13 @@ impl Context {
     /// The soil's judgement on a resolved path: git's files and the records are never a
     /// tool's, and the rest must be admitted.
     fn in_soil(&self, path: PathBuf) -> Result<PathBuf, String> {
+        if self.secrets().is_some_and(|s| s.is_secret(&path)) {
+            return Err(format!(
+                "`{}` is a secret file (the secrets unit): no tool writes, moves or deletes it; \
+                 say in your answer what the human should change in it",
+                self.shown(&path)
+            ));
+        }
         // One record is a body's to write: the plan in its own seat, which the dispatch law reads.
         // Only `plan.md`, directly inside the seat the body was given.
         let own_plan = path.file_name().is_some_and(|f| f == "plan.md")
@@ -1100,7 +1134,14 @@ pub fn call(tools: &[Box<dyn Tool>], name: &str, raw_args: &str, cx: &mut Contex
             if !tool.foreign() {
                 fit(&mut args, &tool.schema());
             }
-            tool.run(args, cx)
+            let mut out = tool.run(args, cx);
+            // No value of a secret file reaches the model, whatever printed it.
+            if let Some(secrets) = cx.secrets()
+                && let std::borrow::Cow::Owned(struck) = secrets.strike(&out.content)
+            {
+                out.content = struck;
+            }
+            out
         }
         Err(e) => Outcome::error(format!("the arguments to {name} are not valid JSON: {e}")),
     }

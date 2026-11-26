@@ -194,6 +194,10 @@ pub struct Policy {
     /// Paths never readable even under a readable directory (applied where the platform can
     /// deny inside an allowed tree, Seatbelt; on Linux they are simply never allowed).
     pub hidden: Vec<PathBuf>,
+    /// Files inside the world a command must find empty: a secret file the `secrets` unit holds.
+    /// On Linux the guard mounts an empty file over each in the command's own mount namespace
+    /// ([`Self::covered_files`]); add each to `hidden` too, which Seatbelt denies on macOS.
+    pub covered: Vec<PathBuf>,
     /// Sockets allowed.
     pub network: bool,
     /// Rules left out because they resolve — through a link — onto, inside or above a credential
@@ -239,6 +243,7 @@ impl Policy {
             write,
             read,
             hidden,
+            covered: Vec::new(),
             network,
             refused,
             die_with_parent: false,
@@ -263,6 +268,34 @@ impl Policy {
         } else if !self.read.contains(&at) {
             self.read.push(at);
         }
+    }
+
+    /// The covered files that lie inside a path the command may read or write, resolved, each a
+    /// regular file and never a link in one's place: what landlock alone cannot keep from it,
+    /// since its rules only grant. On Linux the guard mounts an empty file over each, in the
+    /// command's own mount namespace (`--hide`).
+    #[must_use]
+    pub fn covered_files(&self) -> Vec<PathBuf> {
+        let granted: Vec<PathBuf> = Self::existing(&self.write)
+            .into_iter()
+            .chain(Self::existing(&self.read))
+            .collect();
+        let mut out: Vec<PathBuf> = self
+            .covered
+            .iter()
+            .filter_map(|h| {
+                // Never through a link: a link in a hidden one's place is not what was found.
+                let meta = std::fs::symlink_metadata(h).ok()?;
+                if !meta.is_file() {
+                    return None;
+                }
+                let at = h.canonicalize().ok()?;
+                granted.iter().any(|g| at.starts_with(g)).then_some(at)
+            })
+            .collect();
+        out.sort();
+        out.dedup();
+        out
     }
 
     /// The paths of `list` that exist, resolved; rules cannot name what is not there.
@@ -378,6 +411,11 @@ impl Sandbox {
                     && self.private_tmp()
                 {
                     cmd.arg("--tmp").arg(dir);
+                    // In the command's own mount namespace: each hidden file inside what it may
+                    // read is an empty one for it.
+                    for p in policy.covered_files() {
+                        cmd.arg("--hide").arg(p);
+                    }
                 }
                 cmd.arg("--").arg(program).args(args);
                 cmd

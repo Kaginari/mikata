@@ -888,6 +888,12 @@ fn policy_of(cx: &Context, tmp: &Path, network: bool, typed: bool, opened: &[Pat
     for lent in cx.lent() {
         policy.lend(lent);
     }
+    // The world's secret files: never read by a command (the secrets unit). Added after the
+    // loans, which a hidden path above them would refuse.
+    if let Some(secrets) = cx.secrets() {
+        policy.covered.extend(secrets.files().iter().cloned());
+        policy.hidden.extend(secrets.files().iter().cloned());
+    }
     // A typed act reaches the forge as the probe that reads it back does: its login, read-only.
     if typed {
         let logins: Vec<PathBuf> = mikata_sandbox::FORGE_LOGINS

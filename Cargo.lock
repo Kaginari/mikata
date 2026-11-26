@@ -1687,6 +1687,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "tree-sitter",
  "tree-sitter-go",
  "tree-sitter-python",

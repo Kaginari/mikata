@@ -1630,6 +1630,30 @@ flowchart LR
   system — `bash` refuses to run and says why. The human may choose otherwise with
   `sandbox.allow_unguarded = true` in their global file (never the tracked or the local one); the
   status line then reads `none — <reason>`.
+- **Secret files in the world are held (the `secrets` unit, on by default).** Landlock only
+  grants, so the world's own `.env` was as readable as its code. As a session opens the harness
+  finds the world's secret files — every file but under `.git`, `node_modules`, `target`,
+  `.venv`, `.terraform` and the like, what git ignores included, since that is where secrets
+  are kept — by name: `.env` and `.env.*` (not `.example`, `.sample`, `.template`, `.dist`),
+  `*.pem`, `*.key`, `*.p12`, `id_rsa`/`id_ed25519` (not `*.pub`), `kubeconfig`,
+  `*.kubeconfig`, `talosconfig`, `*.tfstate`, `*.tfvars` (not `*.sops.tfvars`), `.netrc`,
+  `.npmrc`, `.pypirc`, `.git-credentials`, `.vault-token`, `age.txt` and a few more
+  (`mikata_tools::secrets::DEFAULTS`). The human's `secrets.files` (global file only; a `!`
+  un-marks) and any file's `secrets.also` (adds only) name more; a pattern with a `/` is a path
+  from the world's root, one without a file's name at any depth; the last that matches decides.
+  While the unit is on, `read` and `index` give a secret file's shape — `KEY = ‹secret›` a line —
+  and never a value, so the body writes code that reads a variable it never sees; no tool
+  writes, moves or deletes one; `grep` passes over them and says how many; a command finds each
+  empty — `/dev/null` mounted over it in the command's own mount namespace on Linux (`--hide`,
+  only where the private `/tmp` probe took; a cover that fails runs nothing), denied by
+  Seatbelt on macOS; and every value read from them, eight characters or more, is struck from
+  every tool result before the model reads it (`‹secret›`), whatever printed it. `mikata status`
+  says what is held: `secrets  5 held (.env, …) — their keys only to the body, 72 values struck
+  from results; commands find them empty`, or that commands can still read them where the
+  machine gives no mount namespace. The end gate's verify lines run as the body's commands do,
+  so a check that needs a secret file's values finds it empty: give it what it needs through
+  the environment, or switch the unit off (`/unit off secrets`, `[units] secrets = false` in
+  the global file); a world's file cannot switch it off.
 - **A disposable machine is its own boundary.** `sandbox.disposable = true`, in the global file
   alone and only while the process runs inside a container (Docker's or Podman's marker, or a
   container runtime in its control groups), is for a machine made to be thrown away, such as a

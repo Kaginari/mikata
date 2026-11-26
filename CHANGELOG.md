@@ -13,6 +13,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **Secret files are held: the `secrets` unit, on by default.** A world's own `.env`, keys,
+  kubeconfigs, `talosconfig`, Terraform's state and `*.tfvars`, `.netrc`, `.npmrc` and the like
+  were as readable as its code, and whatever the body read went to the provider. They are found
+  as a session opens, what git ignores included:
+  - `read` and `index` give a secret file's keys (`VAULT_TOKEN = ‹secret›`) and never a value;
+  - no tool writes, moves or deletes one, and `grep` passes over them and says so;
+  - a command finds each empty — `/dev/null` mounted over it in the command's own mount
+    namespace on Linux (where the private `/tmp` probe takes), denied by Seatbelt on macOS;
+  - every value read from them is struck from every tool result before the model reads it.
+
+  `mikata status` says what is held. `secrets.files` in the global file names more (a `!`
+  un-marks one of the build's) and `secrets.also` in any file adds; only the human switches
+  the unit off. A verify line that needs a secret file's values finds it empty too: give it
+  what it needs through the environment, or switch the unit off. The board's Harness Builder
+  shows it as a card.
 - `mikatad app` (`mikatad board --app`): Mikata as an app — a window of its own, no tabs and no
   address bar, through Chrome, Edge, Brave, Chromium or Vivaldi in app mode, on the same one-time
   launcher file as `--open`, so no key is on the command line. With none of them, it opens in the
