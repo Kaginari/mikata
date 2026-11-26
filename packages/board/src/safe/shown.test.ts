@@ -76,7 +76,8 @@ describe('the shared rule', () => {
       const want = marks.some(([a, b]) => cp >= a && cp <= b);
       if (mark(cp) !== want) expect(`U+${cp.toString(16)}`).toBe(`mark ${want}`);
     }
-  });
+    // Every code point, 1.1 million of them: seconds on a busy machine, not the default five.
+  }, 30_000);
   it("lists every combining mark of this engine's Unicode", () => {
     const combining = /^[\p{Mn}\p{Me}]$/u;
     for (let cp = 0; cp <= 0x10ffff; cp++) {
