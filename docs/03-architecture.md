@@ -1643,17 +1643,34 @@ flowchart LR
   from the world's root, one without a file's name at any depth; the last that matches decides.
   While the unit is on, `read` and `index` give a secret file's shape — `KEY = ‹secret›` a line —
   and never a value, so the body writes code that reads a variable it never sees; no tool
-  writes, moves or deletes one; `grep` passes over them and says how many; a command finds each
-  empty — `/dev/null` mounted over it in the command's own mount namespace on Linux (`--hide`,
-  only where the private `/tmp` probe took; a cover that fails runs nothing), denied by
-  Seatbelt on macOS; and every value read from them, eight characters or more, is struck from
-  every tool result before the model reads it (`‹secret›`), whatever printed it. `mikata status`
+  writes, moves or deletes one; `grep` passes over them and says how many; a command nobody
+  approved finds each empty — `/dev/null` mounted over it in the command's own mount namespace
+  on Linux (`--hide`, only where the private `/tmp` probe took; a cover that fails runs
+  nothing), denied by Seatbelt on macOS — while an act the human approved on the card (a
+  deploy, an apply, a push: the outward and destructive acts, which run with the network)
+  reads them as they are, for it cannot do its work without them — its card says first when it
+  names one (`it names secret files (.env): approved, it reads them as they are and may send
+  them where it goes`), since striking finds only a value as stored and not one encoded or cut
+  up, so the human's reading of the card is what holds such an act; and every value read from
+  them, eight characters or more, is struck from every tool result before the model reads it
+  (`‹secret›`), whatever printed it, an approved act's output included. `mikata status`
   says what is held: `secrets  5 held (.env, …) — their keys only to the body, 72 values struck
   from results; commands find them empty`, or that commands can still read them where the
-  machine gives no mount namespace. The end gate's verify lines run as the body's commands do,
+  machine gives no mount namespace. The end gate's verify lines run as the body's unapproved
+  commands do,
   so a check that needs a secret file's values finds it empty: give it what it needs through
   the environment, or switch the unit off (`/unit off secrets`, `[units] secrets = false` in
   the global file); a world's file cannot switch it off.
+- **The human's approval is a unit too (`approval`, on by default).** On, every outward or
+  destructive act — a push, a pull request, a deploy, an apply, a publish, a delete outside the
+  world — is put to the human on the approval card. The human alone may switch it off
+  (`/unit off approval`, `[units] approval = false` in the global file; a world's file never):
+  then such acts run without asking, as approved — with the network, and with the world's
+  secret files as they are, so an act can also send them off the machine unseen. The shell
+  journals each one as `[run without asking: the approval unit is off (plan …)]`, never as
+  approved; `mikata status` says `approval  OFF — …`, and the terminal app opens on it as a
+  warning. The guard's refusals, the shelf, and the end gate's word on a landing that changed
+  tests (`Context::human_gate`) stand either way.
 - **A disposable machine is its own boundary.** `sandbox.disposable = true`, in the global file
   alone and only while the process runs inside a container (Docker's or Podman's marker, or a
   container runtime in its control groups), is for a machine made to be thrown away, such as a

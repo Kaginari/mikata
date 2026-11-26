@@ -332,6 +332,10 @@ fn chat(
     // account stays where it was: `mikata status`, the journal's `law` beat, `--help`.
     model.fact(Tag::Model, &opened.model, &opened.provider);
     model.fact(Tag::Sandbox, &opened.sandbox, "");
+    // The human's approval switched off is said first and in gold: acts leave unseen.
+    if opened.approval.starts_with("OFF") {
+        model.fact(Tag::Warn, &opened.approval, "");
+    }
     model.sandbox.clone_from(&opened.sandbox);
     model.fact(Tag::Mode, opened.mode.word(), &opened.mode_why);
     if let Some(e) = unhardened {

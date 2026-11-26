@@ -289,11 +289,21 @@ pub struct Context {
     /// What is left of the run's envelope, in weighted tokens, kept by the run as it spends;
     /// [`u64::MAX`] when it has none. A priced load past it is refused.
     budget_left: Arc<std::sync::atomic::AtomicU64>,
-    /// The world's secret files and their values ([`crate::secrets`]), held while `secrets_on`.
+    /// The world's secret files and their values ([`crate::secrets`]), held while the `secrets` unit is on.
     secrets: Arc<crate::secrets::Secrets>,
-    /// The `secrets` unit is on: secret files are shaped, never read, written or searched, kept
-    /// from commands, and their values struck from every result.
-    secrets_on: bool,
+    /// The units the tools hold to: `secrets` and `approval`.
+    switches: Switches,
+}
+
+/// The units the tools hold to, as the run arms them before each call.
+#[derive(Debug, Clone, Copy)]
+struct Switches {
+    /// `secrets`: secret files are shaped, never read, written or searched, kept from commands
+    /// nobody approved, and their values struck from every result.
+    secrets: bool,
+    /// `approval`: every outward or destructive act is put to the human. Off, by the human
+    /// alone, [`Context::gate`] runs them without asking.
+    approval: bool,
 }
 
 impl std::fmt::Debug for Context {
@@ -449,8 +459,23 @@ impl Context {
             range_over: files::RANGE_OVER,
             budget_left: Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX)),
             secrets: Arc::new(crate::secrets::Secrets::none()),
-            secrets_on: true,
+            switches: Switches {
+                secrets: true,
+                approval: true,
+            },
         }
+    }
+
+    /// Switch the human's approval of outward and destructive acts on or off, as the `approval`
+    /// unit stands.
+    pub fn set_approval_on(&mut self, on: bool) {
+        self.switches.approval = on;
+    }
+
+    /// Whether outward and destructive acts are put to the human (the `approval` unit).
+    #[must_use]
+    pub fn approval_on(&self) -> bool {
+        self.switches.approval
     }
 
     /// Hold `secrets`: the world's secret files, found and read as the session opened.
@@ -462,13 +487,13 @@ impl Context {
 
     /// Switch the holding of secrets on or off, as the `secrets` unit stands.
     pub fn set_secrets_on(&mut self, on: bool) {
-        self.secrets_on = on;
+        self.switches.secrets = on;
     }
 
     /// The secrets held now: `None` while the unit is off.
     #[must_use]
     pub fn secrets(&self) -> Option<&crate::secrets::Secrets> {
-        self.secrets_on.then_some(&*self.secrets)
+        self.switches.secrets.then_some(&*self.secrets)
     }
 
     /// Keep what is left of the run's envelope in `left` ([`u64::MAX`] for none): the run that
@@ -746,7 +771,7 @@ impl Context {
         self.attic.clone_from(&from.attic);
         self.range_over = from.range_over;
         self.secrets = Arc::clone(&from.secrets);
-        self.secrets_on = from.secrets_on;
+        self.switches = from.switches;
         self
     }
 
@@ -978,6 +1003,17 @@ impl Context {
     /// to the human.
     #[must_use]
     pub fn gate(&self) -> &dyn Gate {
+        if self.switches.approval {
+            self.gate.as_ref()
+        } else {
+            &crate::gate::Unasked
+        }
+    }
+
+    /// The human's own gate, whatever the `approval` unit says: for what is never an act's
+    /// approval — the end gate's word on a landing that changed tests.
+    #[must_use]
+    pub fn human_gate(&self) -> &dyn Gate {
         self.gate.as_ref()
     }
 

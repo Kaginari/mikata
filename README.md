@@ -46,8 +46,9 @@ you first, every time.
 
 **Your secret files stay yours.** `.env`, keys, kubeconfigs and Terraform's state and variables in
 your repository are found as a session opens: the body is shown their keys and never a value, no
-tool writes or searches them, a command finds them empty, and any value of theirs is struck from
-what the model reads. Name more with `secrets.also = ["bootstrap/inventory.yml"]`.
+tool writes or searches them, a command finds them empty — but an act you approve, such as a
+deploy, which reads them as they are — and any value of theirs is struck from what the model
+reads. Name more with `secrets.also = ["bootstrap/inventory.yml"]`.
 
 **It shows you what changed, by its own checks.** When an answer lands, Mikata's last checks are
 run again on the code as you gave it and on the finished work, and you see where they print

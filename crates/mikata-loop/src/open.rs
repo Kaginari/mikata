@@ -214,6 +214,9 @@ pub struct Opened {
     /// What the `secrets` unit holds: its files, the values struck, whether commands are kept
     /// from them ([`crate::run::Run::secrets_said`]).
     pub secrets: String,
+    /// Whether outward and destructive acts are put to the human (the `approval` unit), and
+    /// whether that is off ([`crate::run::Run::approval_said`]).
+    pub approval: String,
     /// The MCP servers the session's body may open, one level-0 line each with the price of
     /// opening it: what `status` shows. Empty when no server may serve its race.
     pub mcp: Vec<String>,
@@ -815,6 +818,7 @@ fn build(
         run
     };
     let secrets = run.secrets_said();
+    let approval = run.approval_said();
     Ok(Opened {
         session: hold.into_iter().fold(Session::new(run), Session::holding),
         world: world.to_path_buf(),
@@ -832,6 +836,7 @@ fn build(
         // The network is opened only for an approved outward act, so the standing state is off.
         sandbox: mikata_tools::Sandbox::detect().status(false),
         secrets,
+        approval,
         mcp: mcp_lines,
         mcp_offered,
         law,

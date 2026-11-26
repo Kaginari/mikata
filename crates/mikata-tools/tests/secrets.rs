@@ -137,6 +137,72 @@ fn with_the_unit_off_a_secret_file_is_a_file_like_any_other() {
     assert!(o.content.contains(TOKEN), "{}", o.content);
 }
 
+/// A deploy the human approved reads the secret files as they are — it cannot do its work
+/// without them — while a command nobody approved finds them empty; what either prints of a
+/// value is struck.
+#[cfg(target_os = "linux")]
+#[test]
+fn an_approved_act_reads_the_secret_files_and_nothing_else_does() {
+    use mikata_sandbox::Sandbox;
+    use mikata_tools::Answer;
+    use mikata_tools::gate::Scripted;
+    let exe = std::env::current_exe().unwrap();
+    let guard = exe.parent().unwrap().parent().unwrap().join("mikata-guard");
+    if !guard.is_file() {
+        eprintln!("skipped: build the workspace so target/<profile>/mikata-guard exists");
+        return;
+    }
+    let sandbox = Sandbox::Guard(guard);
+    if !sandbox.private_tmp() {
+        eprintln!("skipped: this kernel lets no unprivileged process mount in a user namespace");
+        return;
+    }
+    let root = world("deploy");
+    let outside = root.join("outside");
+    fs::create_dir_all(&outside).unwrap();
+    let gate = Arc::new(Scripted::new([Answer::Approve]));
+    // A deploy post: its acts write under the deploy root, outside the world, and are asked.
+    let w = root.join("world");
+    let secrets = Secrets::scan(&w.canonicalize().unwrap(), &[], &[]);
+    let mut cx = Context::new(Race::Kijin, &w, &["."])
+        .with_body("kijin-deploy")
+        .with_deploy_roots(std::slice::from_ref(&outside))
+        .with_gate(gate.clone())
+        .with_home(root.join("home"))
+        .with_sandbox(sandbox)
+        .with_secrets(Arc::new(secrets));
+    // Nobody approved this one: the file is empty to it.
+    let o = tool(
+        &mut cx,
+        "bash",
+        &serde_json::json!({"command": "wc -c < .env"}),
+    );
+    assert_eq!(o.content.trim(), "0", "{o:?}");
+    assert_eq!(gate.asked().len(), 0);
+    // The deploy is approved: it reads the real file, and its output is struck.
+    let sent = outside.join("sent");
+    let o = tool(
+        &mut cx,
+        "bash",
+        &serde_json::json!({"command": format!("cp .env {} && cat .env", sent.display())}),
+    );
+    assert!(!o.is_error, "{o:?}");
+    assert_eq!(gate.asked().len(), 1, "the human was asked");
+    // The card said first that the act names a secret file.
+    let why = &gate.asked()[0].why;
+    assert!(
+        why.first()
+            .is_some_and(|w| w.contains("names secret files (.env)")),
+        "{why:?}"
+    );
+    assert!(
+        fs::read_to_string(&sent).unwrap().contains(TOKEN),
+        "the approved act had the real file"
+    );
+    assert!(!o.content.contains(TOKEN), "{}", o.content);
+    assert!(o.content.contains("‹secret›"), "{}", o.content);
+}
+
 /// Under the guard, where the kernel allows a mount namespace, a command finds a secret file
 /// empty, and what it prints of a copy is struck.
 #[cfg(target_os = "linux")]

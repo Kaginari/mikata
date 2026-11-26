@@ -119,6 +119,20 @@ pub trait Gate: Send + Sync {
     }
 }
 
+/// The gate while the human has switched the `approval` unit off: every act is run without
+/// asking. The human's own choice, from their global file or their own command, never a world's.
+/// A shell act it lets run is journaled as run without asking, never as approved.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Unasked;
+
+impl Gate for Unasked {
+    fn ask(&self, _ask: &Ask) -> Answer {
+        Answer::Approve
+    }
+
+    fn admitted(&self, _ask: &Ask, _by: &str) {}
+}
+
 /// The line an act an envelope admitted is shown as: who, what, and by which envelope.
 #[must_use]
 pub fn admitted_line(ask: &Ask, by: &str) -> String {

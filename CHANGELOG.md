@@ -13,15 +13,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **The human's approval is a unit: `approval`, on by default.** Every outward or destructive
+  act is put to the human on the approval card, as before. The human alone may switch it off
+  (`/unit off approval`, `[units] approval = false` in the global file; never a world's file):
+  then such acts — a push, a deploy, an apply, a delete outside the world — run without asking,
+  with the network and the secret files as they are. Each is journaled as run without asking,
+  never as approved; `mikata status` and the terminal app's first lines warn while it is off.
+  The guard's refusals, the shelf and the end gate's word on a landing that changed tests stand.
+  The Harness Builder shows it as a card.
 - **Secret files are held: the `secrets` unit, on by default.** A world's own `.env`, keys,
   kubeconfigs, `talosconfig`, Terraform's state and `*.tfvars`, `.netrc`, `.npmrc` and the like
   were as readable as its code, and whatever the body read went to the provider. They are found
   as a session opens, what git ignores included:
   - `read` and `index` give a secret file's keys (`VAULT_TOKEN = ‹secret›`) and never a value;
   - no tool writes, moves or deletes one, and `grep` passes over them and says so;
-  - a command finds each empty — `/dev/null` mounted over it in the command's own mount
-    namespace on Linux (where the private `/tmp` probe takes), denied by Seatbelt on macOS;
-  - every value read from them is struck from every tool result before the model reads it.
+  - a command nobody approved finds each empty — `/dev/null` mounted over it in the command's
+    own mount namespace on Linux (where the private `/tmp` probe takes), denied by Seatbelt on
+    macOS — while an act the human approved on the card (a deploy, an apply, a push) reads them
+    as they are, so the agent is never kept from a deploy it was let do; its card says first
+    when it names a secret file, since an approved act can send what it reads anywhere;
+  - every value read from them is struck from every tool result before the model reads it, an
+    approved act's output included.
 
   `mikata status` says what is held. `secrets.files` in the global file names more (a `!`
   un-marks one of the build's) and `secrets.also` in any file adds; only the human switches

@@ -192,6 +192,47 @@ pub enum Spawned {
     Failed(Outcome),
 }
 
+/// The secret files `command` names, said for the approval card (the secrets unit): approved,
+/// it reads them as they are. `None` when it names none, or the unit is off.
+fn secrets_named(cx: &Context, command: &str) -> Option<String> {
+    let secrets = cx.secrets()?;
+    let named: Vec<String> = secrets
+        .files()
+        .iter()
+        .filter_map(|f| {
+            let rel = f
+                .strip_prefix(cx.world())
+                .ok()?
+                .to_string_lossy()
+                .into_owned();
+            let name = f.file_name()?.to_string_lossy().into_owned();
+            (command.contains(&rel) || command.contains(&name)).then_some(rel)
+        })
+        .collect();
+    (!named.is_empty()).then(|| {
+        format!(
+            "it names secret files ({}): approved, it reads them as they are and may send them where it goes",
+            named.join(", ")
+        )
+    })
+}
+
+/// What the journal keeps with an act run against `plan`: approved by the human, or run without
+/// asking because the human switched the approval unit off — never one for the other.
+fn plan_note(cx: &Context, plan: &Fingerprint) -> String {
+    if cx.approval_on() {
+        format!(
+            "\n[approved by the human against {}, unchanged at the spawn]",
+            plan.short()
+        )
+    } else {
+        format!(
+            "\n[run without asking: the approval unit is off (plan {})]",
+            plan.short()
+        )
+    }
+}
+
 /// The last step before an approved command is spawned, taken after the plan is rechecked:
 /// an `Err` stops the spawn, with its reason.
 pub type BeforeSpawn<'a> = &'a mut dyn FnMut() -> Result<(), String>;
@@ -328,13 +369,10 @@ fn attempt(
     out.meta.pipe = ran.pipe;
     out.meta.timed_out = ran.timed_out;
     out.meta.truncated = ran.stdout.dropped > 0 || ran.stderr.dropped > 0;
-    // The journal keeps, with the act, the plan the human approved it against.
+    // The journal keeps, with the act, the plan the human approved it against — or that nobody
+    // was asked, the human having switched the approval unit off.
     if let Some(plan) = &plan {
-        let _ = write!(
-            out.content,
-            "\n[approved by the human against {}, unchanged at the spawn]",
-            plan.short()
-        );
+        out.content.push_str(&plan_note(cx, plan));
     }
     if let Some(note) = attic_note {
         let _ = write!(out.content, "\n[{note}]");
@@ -498,6 +536,11 @@ fn admit(command: &str, cx: &Context, changed: &[String]) -> Result<Admitted, Ou
                 changed.join("; ")
             ),
         );
+    }
+    // Approved, the act reads the secret files as they are: said first, so the human reads the
+    // command for what it does with them.
+    if let Some(said) = secrets_named(cx, command) {
+        why.insert(0, said);
     }
     // The plan is taken before the human is asked: what they approve is the world they were shown.
     // A plan that cannot be read is no plan: nothing is put to the human, and nothing runs.
@@ -888,9 +931,12 @@ fn policy_of(cx: &Context, tmp: &Path, network: bool, typed: bool, opened: &[Pat
     for lent in cx.lent() {
         policy.lend(lent);
     }
-    // The world's secret files: never read by a command (the secrets unit). Added after the
+    // The world's secret files: never read by a command the human did not approve (the secrets
+    // unit). An act the human approved on the card — a deploy, a push, an apply: the outward and
+    // destructive acts, the ones that run with the network — reads them as they are, for it
+    // cannot do its work without them; what it prints is struck all the same. Added after the
     // loans, which a hidden path above them would refuse.
-    if let Some(secrets) = cx.secrets() {
+    if !network && let Some(secrets) = cx.secrets() {
         policy.covered.extend(secrets.files().iter().cloned());
         policy.hidden.extend(secrets.files().iter().cloned());
     }

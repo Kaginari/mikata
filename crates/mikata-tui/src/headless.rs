@@ -526,6 +526,7 @@ pub fn status(opened: &Opened) -> Vec<String> {
         ),
         ("sandbox", opened.sandbox.clone()),
         ("secrets", opened.secrets.clone()),
+        ("approval", opened.approval.clone()),
         (
             "budget",
             opened.budget.as_ref().map_or_else(

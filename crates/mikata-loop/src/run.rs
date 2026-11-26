@@ -2293,10 +2293,28 @@ impl Run {
         )
     }
 
-    /// The context holds secret files as the `secrets` unit stands now: asked before each call.
+    /// Whether acts are put to the human (the `approval` unit), in one line, as `mikata status`
+    /// and the app's first lines say it. Off is said as a warning: acts then leave the machine
+    /// unseen.
+    #[must_use]
+    pub fn approval_said(&mut self) -> String {
+        self.arm_secrets();
+        if self.cx.approval_on() {
+            "on — every outward or destructive act is put to you first".into()
+        } else {
+            "OFF — outward and destructive acts (push, deploy, apply, delete) run without asking, \
+             with the network and the secret files as they are; `/unit on approval` puts them to you again"
+                .into()
+        }
+    }
+
+    /// The context holds secret files, and puts acts to the human, as the `secrets` and
+    /// `approval` units stand now: asked before each call.
     fn arm_secrets(&mut self) {
         let on = self.unit_on(crate::units::SECRETS);
         self.cx.set_secrets_on(on);
+        let asked = self.unit_on(crate::units::APPROVAL);
+        self.cx.set_approval_on(asked);
     }
 
     /// The run's units, to read: the composition, its fingerprint, each unit's state.
@@ -2528,7 +2546,11 @@ impl Run {
             // Nothing is spawned on this answer: the landing it allows is the one just verified.
             fingerprint: None,
         };
-        let allowed = matches!(self.cx.gate().ask(&ask), mikata_tools::Answer::Approve);
+        // Never an act's approval: the approval unit switched off does not allow it.
+        let allowed = matches!(
+            self.cx.human_gate().ask(&ask),
+            mikata_tools::Answer::Approve
+        );
         if allowed {
             self.record(&Beat::Note {
                 text: format!(

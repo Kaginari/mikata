@@ -45,7 +45,7 @@ pub type Registry = mikata_kernel::Registry<Cx>;
 pub fn native(id: &str) -> Option<Box<dyn Unit<Cx>>> {
     match id {
         Returns::ID => Some(Box::new(Returns::default())),
-        MEMORY | READER | GATE | HOLD | CHALLENGE | SECRETS => {
+        MEMORY | READER | GATE | HOLD | CHALLENGE | SECRETS | APPROVAL => {
             Some(switch(id, SafePoint::Ask, false))
         }
         FOLD | STRESS => Some(switch(id, SafePoint::Batch, false)),
@@ -116,6 +116,14 @@ pub const FOLD: &str = "fold";
 /// human may switch it off: a world is not trusted to open its own secrets to a model.
 pub const SECRETS: &str = "secrets";
 
+/// The human's approval ([`mikata_tools::Gate`]): every outward or destructive act — a push, a
+/// pull request, a deploy, an apply, a publish, a delete outside the world — is put to the human
+/// on the approval card before it runs. Off, they run without asking, as approved: with the
+/// network, and with the secret files as they are. The guard's refusals, the shelf and the end
+/// gate's word on a landing that changed tests stand. It switches between asks, and only the
+/// human may switch it off: their global file or their own command, never a world's file.
+pub const APPROVAL: &str = "approval";
+
 /// The Dark Elf challenge ([`crate::challenge`]): a landing in a domain the roster routes is held
 /// for review. Off, it lands at once. By the human alone.
 pub const CHALLENGE: &str = "challenge";
@@ -174,6 +182,7 @@ pub const NATIVE: &[&str] = &[
     FOLD,
     CHALLENGE,
     SECRETS,
+    APPROVAL,
 ];
 
 /// A native unit whose part of the loop is still the run's own code: the run asks whether it is

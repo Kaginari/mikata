@@ -41,6 +41,7 @@ import {
   SlidersHorizontal,
   Square,
   Swords,
+  UserCheck,
   Wrench,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -78,6 +79,11 @@ const NATIVE: Record<string, { name: string; about: string; icon: LucideIcon }> 
     icon: Swords,
   },
   gate: { name: 'End gate', about: 'Verify changes before landing.', icon: ShieldCheck },
+  approval: {
+    name: 'Approval',
+    about: 'Ask you before a push, deploy or delete.',
+    icon: UserCheck,
+  },
   secrets: {
     name: 'Secret files',
     about: 'Keep .env, keys and state files from the model.',
@@ -102,6 +108,7 @@ const ORDER = [
   'plan_lite',
   'challenge',
   'gate',
+  'approval',
   'secrets',
   'reader',
   'what_changed',
