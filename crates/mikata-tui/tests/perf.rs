@@ -118,6 +118,8 @@ fn two_thousand_messages_stay_smooth() {
     mikata_tui::kit::highlight::preload();
     let load = load.elapsed();
     let mut m = session();
+    // Advanced: the Session panel, with its files and bodies, is drawn too.
+    m.view = mikata_tui::app::View::Advanced;
     assert!(m.transcript.entries().len() >= MESSAGES);
     let mut t = Terminal::new(TestBackend::new(120, 40)).unwrap();
     let cold = frame(&mut t, &m);

@@ -166,7 +166,7 @@ fn a_session_streams_its_turn_and_numbers_every_event() {
     assert_eq!(hello["result"]["mode"], "light-coding", "{hello}");
     assert_eq!(
         hello["result"]["modeWhy"],
-        "no Elf reports to the Summoner in this world"
+        "Mikata works alone"
     );
     assert!(
         hello["result"]["world"]

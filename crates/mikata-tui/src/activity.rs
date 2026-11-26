@@ -24,6 +24,8 @@ use crate::safe::one_line;
 pub struct Activity {
     /// When the turn began, on the clock; `None` while idle.
     pub since: Option<Duration>,
+    /// How long the last turn ran, once it ended: the clock the bars keep showing while idle.
+    pub last: Option<Duration>,
     /// The tokens spent before it began: the turn's own are counted from here.
     pub base_tokens: u64,
     /// The turn ended; the next one to start restarts the count.

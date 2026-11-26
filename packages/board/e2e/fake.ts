@@ -38,7 +38,7 @@ export const hello = {
   key: null,
   sandbox: 'landlock',
   mode: 'light-coding',
-  modeWhy: 'no Elf reports to the Summoner in this world',
+  modeWhy: 'Mikata works alone',
   body: 'summoner',
   held: 0,
 };

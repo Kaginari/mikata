@@ -19,8 +19,9 @@ use ratatui::crossterm::event::{
 };
 use serde_json::json;
 
+/// A model in Advanced: the Session panel these tests read is drawn there.
 fn model() -> Model {
-    Model::new(
+    let mut m = Model::new(
         Header {
             body: "summoner".into(),
             model: "deepseek-v4-flash".into(),
@@ -29,7 +30,9 @@ fn model() -> Model {
         },
         Variant::Dark,
         (120, 40),
-    )
+    );
+    m.view = mikata_tui::app::View::Advanced;
+    m
 }
 
 fn ev(m: &mut Model, event: Event) -> Vec<Cmd> {

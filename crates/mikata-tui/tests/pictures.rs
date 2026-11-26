@@ -30,6 +30,8 @@ fn model(protocol: Protocol) -> Model {
         (120, 50),
     );
     m.pictures = Pictures::new(protocol, Some(CELL));
+    // The logo heads the Session panel, which Advanced draws.
+    m.view = mikata_tui::app::View::Advanced;
     m
 }
 

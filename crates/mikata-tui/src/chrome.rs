@@ -22,7 +22,7 @@ pub fn sweep(t: &Theme, x: u16, w: u16) -> Rgb {
     t.p.holo.mix(t.p.gold, f)
 }
 
-/// A panel: a rounded border in the gradient, its title bold on the top edge with a glyph before
+/// A panel: a heavy border in the gradient, its title bold on the top edge with a glyph before
 /// it, a few slashes at its right end, and its inside on the panel's surface. Returns the inside.
 pub fn panel(
     buf: &mut Buffer,
@@ -45,23 +45,29 @@ pub fn panel(
     }
     let (x0, x1, y0, y1) = (area.x, area.right() - 1, area.y, area.bottom() - 1);
     let edge = |buf: &mut Buffer, x: u16, y: u16, s: &str| {
-        let c = sweep(t, x, screen_w).mix(t.p.panel, 0.15);
+        let c = sweep(t, x, screen_w);
         let cell = &mut buf[(x, y)];
         cell.set_symbol(s);
-        cell.set_style(Style::new().fg(c.color()).bg(t.p.panel.color()));
+        cell.set_style(
+            Style::new()
+                .fg(c.color())
+                .bg(t.p.panel.color())
+                .add_modifier(Modifier::BOLD),
+        );
     };
+    // Heavy lines, in the gradient at full strength: the frame is the screen's light.
     for x in x0..=x1 {
         let (top, bottom) = match x {
-            _ if x == x0 => ("╭", "╰"),
-            _ if x == x1 => ("╮", "╯"),
-            _ => ("─", "─"),
+            _ if x == x0 => ("┏", "┗"),
+            _ if x == x1 => ("┓", "┛"),
+            _ => ("━", "━"),
         };
         edge(buf, x, y0, top);
         edge(buf, x, y1, bottom);
     }
     for y in (y0 + 1)..y1 {
-        edge(buf, x0, y, "│");
-        edge(buf, x1, y, "│");
+        edge(buf, x0, y, "┃");
+        edge(buf, x1, y, "┃");
     }
     let hue = sweep(t, area.x + 2, screen_w);
     let head = Line::from(vec![
@@ -85,14 +91,17 @@ pub fn panel(
         buf.set_line(area.x + 2, area.y, &truncate(head, room.into()), room);
     }
     if area.width > 24 {
-        let slashes = "╱╱╱╱";
-        let at = area.right() - 7;
+        let slashes = " //// ";
+        let at = area.right() - 8;
         let c = sweep(t, at, screen_w);
         buf.set_string(
             at,
             area.y,
             slashes,
-            Style::new().fg(c.color()).bg(t.p.panel.color()),
+            Style::new()
+                .fg(c.color())
+                .bg(t.p.panel.color())
+                .add_modifier(Modifier::BOLD),
         );
     }
     inside
@@ -238,12 +247,12 @@ fn cells_of(spans: &[Span<'_>]) -> usize {
     spans.iter().map(|s| cells(&s.content)).sum()
 }
 
-/// The time the turn has run (or the last one ran), as `m:ss`.
+/// The time the turn has run, or the last one ran once it ended, as `m:ss`.
 fn elapsed(m: &Model) -> String {
-    let d = m
-        .activity
-        .since
-        .map_or(Duration::ZERO, |s| m.transcript.clock.saturating_sub(s));
+    let d = match m.activity.since {
+        Some(s) => m.transcript.clock.saturating_sub(s),
+        None => m.activity.last.unwrap_or(Duration::ZERO),
+    };
     let s = d.as_secs();
     format!("{}:{:02}", s / 60, s % 60)
 }
@@ -358,34 +367,17 @@ pub fn budgets(m: &Model, w: usize) -> Lines {
     out
 }
 
-/// What each native unit does, in a few words, for the Units panel.
-fn unit_words(id: &str) -> &'static str {
-    match id {
-        "memory" => "recall and lessons",
-        "gate" => "verify at the end",
-        "hold" => "held Done when list",
-        "fold" => "fold long context",
-        "stress" => "stall warnings",
-        "what_changed" => "what changed",
-        "reader" => "a second reader",
-        "plan" => "plan before code",
-        "plan_lite" => "plan what is stated",
-        "returns" => "tree readings",
-        "challenge" => "review challenge",
-        _ => "plugin",
-    }
-}
-
-/// The Units panel's lines: each unit the run lists, what it does, and an ON or OFF pill.
+/// The Units panel's lines: each unit the run lists as a tag — lit and ticked where it is on,
+/// quiet where it is off — wrapped to `w`.
 #[must_use]
 pub fn units(m: &Model, w: usize) -> Lines {
     let t = &m.theme;
-    let listed: Vec<(String, String)> = m.units.as_ref().map_or_else(Vec::new, |d| {
+    let listed: Vec<(String, bool)> = m.units.as_ref().map_or_else(Vec::new, |d| {
         d.lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .listed
             .iter()
-            .map(|(id, _, state)| (id.clone(), state.clone()))
+            .map(|(id, _, state)| (id.clone(), state == "active"))
             .collect()
     });
     if listed.is_empty() {
@@ -394,32 +386,33 @@ pub fn units(m: &Model, w: usize) -> Lines {
             w,
         )];
     }
-    let on_pill = Style::new()
-        .fg(t.p.bg.color())
-        .bg(t.success.color())
-        .add_modifier(Modifier::BOLD);
-    let off_pill = Style::new()
-        .fg(t.p.text_muted.color())
-        .bg(t.p.panel_raised.color());
-    listed
-        .into_iter()
-        .map(|(id, state)| {
-            let on = state == "active";
-            let name = format!("{:<14}", crate::kit::text::clip(&id, 13));
-            let words = unit_words(&id);
-            let pill = if on { " ON " } else { " OFF" };
-            let room = w.saturating_sub(cells(&name) + 5);
-            let words = if id.starts_with("plugin:") { "" } else { words };
-            let words = crate::kit::text::clip(words, room);
-            let pad = room.saturating_sub(cells(&words));
-            Line::from(vec![
-                Span::styled(name, t.text()),
-                Span::styled(words, t.muted()),
-                Span::raw(" ".repeat(pad + 1)),
-                Span::styled(pill, if on { on_pill } else { off_pill }),
-            ])
-        })
-        .collect()
+    let mut out: Lines = Vec::new();
+    let mut line: Vec<Span<'static>> = Vec::new();
+    let mut used = 0;
+    for (id, on) in listed {
+        let name = crate::kit::text::clip(&crate::safe::one_line(&id), w.saturating_sub(4));
+        let tag = if on {
+            Span::styled(format!(" ✔ {name} "), t.ok().add_modifier(Modifier::BOLD))
+        } else {
+            Span::styled(format!(" ○ {name} "), t.muted())
+        };
+        let tag_w = cells(&tag.content);
+        if used > 0 && used + 1 + tag_w > w {
+            out.push(Line::from(std::mem::take(&mut line)));
+            used = 0;
+        }
+        if used > 0 {
+            line.push(Span::raw(" "));
+            used += 1;
+        }
+        let face = if on { t.p.panel_raised } else { t.p.panel };
+        line.push(tag.patch_style(Style::new().bg(face.color())));
+        used += tag_w;
+    }
+    if !line.is_empty() {
+        out.push(Line::from(line));
+    }
+    out
 }
 
 /// A check's state, as the Checks panel shows it.

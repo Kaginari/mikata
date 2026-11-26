@@ -4279,7 +4279,7 @@ async fn a_session_says_its_mode_and_why() {
     let o = opened_in(&solo, None, false, &said()).unwrap();
     assert_eq!(o.mode, Mode::Light);
     assert!(
-        o.mode_why.contains("no Elf reports to the Summoner"),
+        o.mode_why.contains("Mikata works alone"),
         "{}",
         o.mode_why
     );
@@ -4442,7 +4442,7 @@ fn a_card_not_adopted_gives_no_mode_and_is_said() {
     assert_eq!(o.mode, Mode::Light, "a stranger's card gives no lane");
     let waits = "1 card here is not adopted yet (`mikatad roster adopt`)";
     assert!(
-        o.mode_why.contains("no Elf reports to the Summoner") && o.mode_why.ends_with(waits),
+        o.mode_why.contains("Mikata works alone") && o.mode_why.ends_with(waits),
         "{}",
         o.mode_why
     );

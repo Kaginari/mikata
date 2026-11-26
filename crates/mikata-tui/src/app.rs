@@ -273,26 +273,38 @@ pub struct Model {
 /// How much of the frame is drawn round the conversation, switched while the session runs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum View {
-    /// The bars and every panel: the dashboard.
+    /// The conversation with its bars and one slim column beside it: Done when, Checks,
+    /// Budgets, Guardrails.
     #[default]
-    Center,
-    /// The bars and the conversation: no panels.
+    Light,
+    /// Every panel, a column each side of the conversation: the cockpit.
+    Advanced,
+    /// The conversation alone, a readable width, under a one-row header and over a one-row
+    /// footer.
     Focus,
-    /// The conversation and the input alone: no bars, no frame.
-    Zen,
 }
 
 impl View {
     /// Every view, in the order F2 steps through them.
-    pub const ALL: [Self; 3] = [Self::Center, Self::Focus, Self::Zen];
+    pub const ALL: [Self; 3] = [Self::Light, Self::Advanced, Self::Focus];
 
     /// Its name, as `/view` takes it.
     #[must_use]
     pub fn word(self) -> &'static str {
         match self {
-            Self::Center => "center",
+            Self::Light => "light",
+            Self::Advanced => "advanced",
             Self::Focus => "focus",
-            Self::Zen => "zen",
+        }
+    }
+
+    /// The view a word names: its own, or an older name (`center`, `zen`).
+    #[must_use]
+    pub fn named(word: &str) -> Option<Self> {
+        match word {
+            "center" | "cockpit" => Some(Self::Advanced),
+            "zen" => Some(Self::Focus),
+            _ => Self::ALL.into_iter().find(|v| v.word() == word),
         }
     }
 
@@ -336,7 +348,7 @@ pub(crate) struct Hits {
 }
 
 /// The commands typed with a slash.
-pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /view center|focus|zen · /clear · /quit · F2 next view · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
+pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /view light|advanced|focus · /clear · /quit · F2 next view · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
 
 impl Model {
     /// A model for a session of `header`, in `variant`, at `size`.
@@ -567,7 +579,9 @@ fn apply(m: &mut Model, msg: Msg) -> Vec<Cmd> {
         Msg::Done { held } => {
             m.outstanding = m.outstanding.saturating_sub(1);
             if !m.busy() {
-                m.activity.since = None;
+                if let Some(s) = m.activity.since.take() {
+                    m.activity.last = Some(m.transcript.clock.saturating_sub(s));
+                }
             }
             m.transcript.held = held;
             // A finished line may have grounded notes or born creatures: read the world again.
@@ -1132,14 +1146,14 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
             "quit" | "exit" => return vec![Cmd::Quit],
             "help" => m.info(COMMANDS),
             "theme" => theme(m, arg),
-            "view" => match View::ALL.into_iter().find(|v| v.word() == arg) {
+            "view" => match View::named(arg) {
                 Some(v) => {
                     m.view = v;
                     refit(m);
                 }
                 None => m.info(format!(
-                    "/view center|focus|zen — the dashboard, the conversation with its bars, or \
-                     the conversation alone · F2 steps through them · now {}",
+                    "/view light|advanced|focus — the conversation with one slim column, every \
+                     panel, or the conversation alone · F2 steps through them · now {}",
                     m.view.word()
                 )),
             },

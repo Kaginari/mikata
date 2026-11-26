@@ -424,7 +424,7 @@ impl Approval {
     ) -> Vec<(u8, Line<'static>)> {
         let hue = crate::blocks::class_hue(t, Some(&self.card.class));
         let secs = self.left(now).as_secs();
-        let title = "⚠ Approval required · the human gate";
+        let title = "⚠ Approval required";
         let mut clock = format!("denies in {}:{:02}", secs / 60, secs % 60);
         if after > 0 {
             clock = format!("{after} more waiting · {clock}");
@@ -455,7 +455,8 @@ impl Approval {
                         Span::styled(
                             format!(
                                 "{} asks to run this {} act:",
-                                self.card.body, self.card.class
+                                crate::safe::shown(&self.card.body),
+                                self.card.class
                             ),
                             t.text(),
                         ),
