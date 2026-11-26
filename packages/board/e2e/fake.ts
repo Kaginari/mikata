@@ -66,6 +66,12 @@ export class Bridge {
   role: 'controller' | 'observer' = 'controller';
   /** What `initialize` answers: the session's hello. */
   hello: typeof hello = hello;
+  /** The session's units, as `units/list` names them: id → on. */
+  units = new Map<string, boolean>(
+    ['memory', 'what_changed', 'reader', 'stress', 'plan', 'gate', 'hold', 'secrets'].map(
+      (id) => [id, true] as const,
+    ),
+  );
   /** What a prompt does: by default a turn that answers in one line. */
   onPrompt: (text: string) => void = (text) => {
     this.emit('turnStarted', { text });
@@ -136,6 +142,24 @@ export class Bridge {
               params: { role: 'controller', controlled: true },
             }),
           );
+        case 'units/list':
+          return answer({
+            units: [...this.units].map(([uid, on]) => ({
+              id: uid,
+              version: '1',
+              state: on ? 'active' : 'inactive',
+            })),
+            digest: 'd',
+            pending: 0,
+            refused: [],
+          });
+        case 'units/change': {
+          if (this.role !== 'controller') return refuse('this tab observes: take over to act');
+          const uid = String(m.params?.id ?? '');
+          // Taken at once here: the fake run reaches its next safe point at once.
+          this.units.set(uid, m.params?.op === 'on');
+          return answer({ queued: true });
+        }
         case 'session/prompt':
           if (this.role !== 'controller') return refuse('this tab observes: take over to act');
           answer({ queued: false });

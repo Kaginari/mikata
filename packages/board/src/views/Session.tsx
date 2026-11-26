@@ -66,6 +66,7 @@ import { Approval } from '../ui/Approval.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { useAnnouncements } from './Chat.tsx';
 import { logLines, Steps, stages, stamp } from './run.tsx';
+import { SessionUnits } from './SessionUnits.tsx';
 import './session.css';
 
 // ── the steps of a turn, read from its entries ──────────────────────────────────────────────────
@@ -707,6 +708,7 @@ function Screen({
   const v = live?.view;
   const hello = live?.hello;
   const [draft, setDraft] = useState('');
+  const [configuring, setConfiguring] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const convo = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -767,7 +769,7 @@ function Screen({
           : live && all.length > 0
             ? 'Waiting'
             : 'Ready';
-  const heading = all.find((t) => t.ask)?.ask.split('\n')[0] ?? 'New session';
+  const heading = all.find((t) => t.ask)?.ask.split('\n')[0] ?? 'Untitled session';
   const observer = live?.role === 'observer';
   const ready = !live || (live.role === 'controller' && live.link !== 'closed');
   // As the terminal app does: a line sent while a turn runs waits behind it; steering — Steer, or
@@ -837,12 +839,16 @@ function Screen({
               )}
             </ul>
           </div>
-          <a
-            className="ss-configure"
-            href={format({ name: 'section', world: w.id, section: 'builder' })}
-          >
-            <Icon icon={SlidersHorizontal} /> Configure
-          </a>
+          {live && live.link !== 'closed' && (
+            <button
+              type="button"
+              className="ss-configure"
+              aria-haspopup="dialog"
+              onClick={() => setConfiguring(true)}
+            >
+              <Icon icon={SlidersHorizontal} /> Configure
+            </button>
+          )}
           {live?.role === 'controller' && live.link !== 'closed' && (
             <button type="button" className="ss-configure" onClick={() => void live.end()}>
               <Icon icon={Power} /> End session
@@ -1032,6 +1038,9 @@ function Screen({
         landed={landed}
         onStop={busy && live ? () => void live.interrupt() : undefined}
       />
+      {live && configuring && (
+        <SessionUnits w={w} live={live} onClose={() => setConfiguring(false)} />
+      )}
       {live && <Approval live={live} />}
     </div>
   );
@@ -1113,15 +1122,9 @@ function NoSession({ w }: { w: BoardWorld }) {
             No session runs in <Safe text={w.name} />
           </h2>
           <p>
-            Choose its profile and units in the Harness Builder, then start it there. Every act
-            outside the workspace asks you first.
+            A session starts from the Harness Builder, where its profile and units are chosen. Every
+            act outside the workspace asks you first.
           </p>
-          <a
-            className="pf-primary"
-            href={format({ name: 'section', world: w.id, section: 'builder' })}
-          >
-            <Icon icon={Layers} /> Compose and start a session
-          </a>
         </div>
       </section>
     </div>

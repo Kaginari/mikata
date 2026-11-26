@@ -22,7 +22,8 @@ pub enum Change {
 }
 
 impl Change {
-    /// Read `units/change`'s params: `{"op": "on" | "off", "id": <unit>}` or
+    /// Read `units/change`'s params (with `"keep": false` for a change the session's alone):
+    /// `{"op": "on" | "off", "id": <unit>}` or
     /// `{"op": "swap", "id": <unit>, "with": <unit>}`, where a unit is a native unit's id
     /// (`memory`) or `plugin:<id>`.
     ///
@@ -107,6 +108,18 @@ impl Units {
         let mut desk = desk
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        // `keep: false` asks the change for this session alone: the world's files are not written.
+        if params["keep"] == json!(false) {
+            match &change {
+                Change::On(id) | Change::Off(id) => {
+                    desk.unkept.insert(id.clone());
+                }
+                Change::Swap(old, new) => {
+                    desk.unkept.insert(old.clone());
+                    desk.unkept.insert(new.clone());
+                }
+            }
+        }
         match change {
             Change::On(id) => desk.asked.push_back((id, true)),
             Change::Off(id) => desk.asked.push_back((id, false)),
@@ -174,6 +187,21 @@ mod tests {
                 .0,
             NOT_WIRED
         );
+    }
+
+    #[test]
+    fn a_change_asked_unkept_is_marked_the_sessions_alone() {
+        let desk = mikata_loop::units::UnitDesk::default();
+        let mut units = Units {
+            desk: Some(desk.clone()),
+        };
+        units
+            .change(&json!({"op": "off", "id": "approval", "keep": false}))
+            .unwrap();
+        units.change(&json!({"op": "off", "id": "memory"})).unwrap();
+        let d = desk.lock().unwrap();
+        assert!(d.unkept.contains("approval"));
+        assert!(!d.unkept.contains("memory"), "kept unless asked otherwise");
     }
 
     #[test]

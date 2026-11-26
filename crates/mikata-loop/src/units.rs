@@ -333,6 +333,9 @@ pub struct Desk {
     pub digest: String,
     /// Changes the run could not take, and why, newest last.
     pub refused: Vec<String>,
+    /// Units whose next change taken is the session's alone, never kept for the world: a guard
+    /// switched off from the board's Configure lasts that session only.
+    pub unkept: std::collections::BTreeSet<String>,
 }
 
 /// The desk a run shares with its clients.

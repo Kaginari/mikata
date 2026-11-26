@@ -104,12 +104,12 @@ const ORDER = [
   'returns',
 ];
 
-const rank = (id: string) => {
+export const rank = (id: string) => {
   const i = ORDER.indexOf(id);
   return i < 0 ? ORDER.length : i;
 };
 
-function described(u: BoardUnit) {
+export function described(u: BoardUnit) {
   return (
     NATIVE[u.id] ?? {
       name: u.id.replace(/^plugin:/, ''),
@@ -420,7 +420,7 @@ function Loading({ load }: { load: ReturnType<typeof useHarness> }) {
  * The Harness Builder (`#/w/<world>/builder`): every unit a session here opens with, as cards round
  * the core with a switch each, the profile to start from, and the composition as a global file's
  * `[profiles.<name>]` (copy, export). What it composes is what the workspace's next sessions open
- * with — New session, or a first ask —, kept in this browser.
+ * with — its Start session —, kept in this browser.
  */
 function Builder({ w, chats }: { w: BoardWorld; chats: Chats }) {
   const h = useComposed(w);
@@ -553,7 +553,7 @@ function Builder({ w, chats }: { w: BoardWorld; chats: Chats }) {
               ))}
             </ol>
             <p className="bapp-muted bapp-units">
-              New sessions in <Safe text={w.name} /> open with{' '}
+              Sessions started here in <Safe text={w.name} /> open with{' '}
               <span className="mono">
                 {h.c.profile ? (
                   <>

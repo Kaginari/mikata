@@ -94,8 +94,11 @@ test('a workspace with no live session points to the Harness Builder to start on
   await expect(page.locator('.ss-empty')).toContainText('No session runs in tempest-try');
   await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toHaveCount(0);
   await page.screenshot({ path: shot(`platform-empty-${info.project.name}`) });
-  await page.getByRole('link', { name: 'Compose and start a session' }).click();
-  await expect(page.getByRole('heading', { name: 'Harness Builder', level: 1 })).toBeVisible();
+  await expect(page.locator('.ss-empty')).toContainText('starts from the Harness Builder');
+  // A session is started in one place only: the Harness Builder's Start session.
+  await expect(page.getByRole('link', { name: /new session/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /new session/i })).toHaveCount(0);
+  await page.goto(`/#/w/${LIVE.id}/builder`);
   await expect(page.getByRole('button', { name: 'Start session' })).toBeEnabled();
 });
 
@@ -111,6 +114,37 @@ test('a guard switched off during a session is said at once, and its return too'
   await expect(chips.locator('li[data-status="alarm"]')).toContainText('guards off: approval');
   b.emit('guards', { off: [] });
   await expect(chips.locator('li[data-status="alarm"]')).toHaveCount(0);
+});
+
+test("Configure lists a running session's units and switches one at its next safe point", async ({
+  page,
+}) => {
+  const b = new Bridge();
+  await openChat(page, b, `#/w/${LIVE.id}/s/${CHAT}`, routes);
+  await page.locator('.ss-head').getByRole('button', { name: 'Configure' }).click();
+  const dialog = page.getByRole('dialog', { name: "This session's units" });
+  await expect(dialog).toBeVisible();
+  // Every unit of the harness, on as the session has it now.
+  await expect(dialog.getByRole('switch', { name: 'Memory: on' })).toBeEnabled();
+  await expect(dialog.getByRole('switch', { name: 'End gate: on' })).toBeVisible();
+  // One switched: asked of the session, said waiting until the run takes it.
+  await dialog.getByRole('switch', { name: 'Memory: on' }).click();
+  await expect
+    .poll(() => b.sent.filter((m) => m.method === 'units/change').map((m) => m.params))
+    .toEqual([{ op: 'off', id: 'memory' }]);
+  await expect(dialog.getByRole('switch', { name: 'Memory: off' })).toBeVisible();
+  // A guard switched off is said in the dialog before anything runs without it.
+  await dialog.getByRole('switch', { name: 'End gate: on' }).click();
+  await expect(dialog.getByRole('status')).toContainText('runs without: gate');
+  // ...and asked for this session only: never kept for the project.
+  await expect
+    .poll(() => b.sent.filter((m) => m.method === 'units/change').map((m) => m.params))
+    .toEqual([
+      { op: 'off', id: 'memory' },
+      { op: 'off', id: 'gate', keep: false },
+    ]);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
 });
 
 test('the front page opens the workspace worked in last', async ({ page }) => {

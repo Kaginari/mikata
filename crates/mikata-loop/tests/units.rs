@@ -183,6 +183,43 @@ async fn a_run_says_which_guards_are_off() {
 }
 
 #[tokio::test]
+async fn a_change_asked_unkept_is_the_sessions_alone() {
+    let w = World::new("unkept");
+    let model = Arc::new(ScriptedModel::new([ScriptedModel::text("done")]));
+    let mut run = w.run(model);
+    {
+        let desk = run.unit_desk();
+        let mut desk = desk.lock().unwrap();
+        desk.asked.push_back(("gate".into(), false));
+        desk.unkept.insert("gate".into());
+    }
+    run.ask("go", &mut |_| {}).await;
+    assert_eq!(run.guards_off(), ["gate"], "taken");
+    let notes: Vec<String> = w
+        .beats()
+        .iter()
+        .filter_map(|b| match b {
+            Beat::Note { text } => Some(text.clone()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        notes
+            .iter()
+            .any(|n| n == "the unit `gate` off for this session only"),
+        "{notes:?}"
+    );
+    assert!(
+        !notes.iter().any(|n| n.contains("is kept for this world")),
+        "{notes:?}"
+    );
+    assert!(
+        run.unit_desk().lock().unwrap().unkept.is_empty(),
+        "spent once taken"
+    );
+}
+
+#[tokio::test]
 async fn a_units_veto_stops_the_call_and_its_note_reaches_the_body() {
     let w = World::new("veto");
     let model = Arc::new(ScriptedModel::new([

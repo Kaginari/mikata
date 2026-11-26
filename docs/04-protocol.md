@@ -132,7 +132,10 @@ says how many it cut; the journal keeps the whole.
 (`memory`) or `plugin:<id>` and `digest` fingerprints the composition. `units/change {op, id}`
 asks for one change: `op` is `on` or `off`, or `swap` with `with` naming the unit that takes
 `id`'s place. It answers `{queued, pending}` at once; the loop applies the change at the unit's
-next safe point and the journal records it ([plugins](experimental/plugins.md)). Bad params
+next safe point and the journal records it ([plugins](experimental/plugins.md)); the change is
+kept for the world as the terminal's `/unit` keeps it, unless `keep: false` asks it for this session
+alone (the board's Configure asks so for a guard switched off). Over the board, any tab may list and
+only the tab that controls may change. Bad params
 answer `-32602`; before `initialize`, both say no session is open.
 
 `mikatad` serves it: `mikatad [--world <dir>] [--mode <mode>]` speaks on stdin and stdout,

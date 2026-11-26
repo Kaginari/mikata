@@ -2072,13 +2072,19 @@ impl Run {
 
     /// The changes a client asked at the desk, asked of the units.
     fn take_desk(&mut self) {
-        let asked: Vec<(String, bool)> = {
+        let (asked, unkept): (Vec<(String, bool)>, std::collections::BTreeSet<String>) = {
             let mut desk = self
                 .units
                 .desk
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
-            desk.asked.drain(..).collect()
+            let asked: Vec<_> = desk.asked.drain(..).collect();
+            let unkept = asked
+                .iter()
+                .filter(|(id, _)| desk.unkept.remove(id))
+                .map(|(id, _)| id.clone())
+                .collect();
+            (asked, unkept)
         };
         for (id, on) in asked {
             if let Err(why) = self.switch_unit(&id, on) {
@@ -2088,6 +2094,16 @@ impl Run {
                     .unwrap_or_else(std::sync::PoisonError::into_inner)
                     .refused
                     .push(format!("{id}: {why}"));
+                continue;
+            }
+            // A change asked as the session's alone stops here: the next session opens as before.
+            if unkept.contains(&id) {
+                self.record(&Beat::Note {
+                    text: format!(
+                        "the unit `{id}` {} for this session only",
+                        if on { "on" } else { "off" }
+                    ),
+                });
                 continue;
             }
             // The human's change is kept for this world, never in the global file: the next

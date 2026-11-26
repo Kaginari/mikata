@@ -75,8 +75,8 @@ test.describe('the real bridge', () => {
       .getByRole('combobox', { name: 'Workspace' })
       .selectOption({ label: 'world' });
     await expect(page.locator('.ss-empty')).toContainText('world');
-    // A new session is started in the Harness Builder, where its harness is chosen.
-    await page.locator('.pf-top').getByRole('link', { name: 'New session' }).click();
+    // A session is started in the Harness Builder, where its harness is chosen.
+    await page.locator('.pf-top').getByRole('link', { name: 'Harness Builder' }).click();
     await page.getByRole('button', { name: 'Start session' }).click();
     await expect(page).toHaveURL(/#\/w\/[^/]+\/s\/[^/]+$/);
     await expect(page.locator('.ss-chips')).toContainText('scripted-model');

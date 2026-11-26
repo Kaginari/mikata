@@ -98,7 +98,7 @@ export function RunsView({ w, chats, now }: { w: BoardWorld; chats: Chats; now: 
 
       <h2 className="pg-section">Live</h2>
       {chats.live.length === 0 ? (
-        <p className="ss-muted">No session runs now: start one with New session.</p>
+        <p className="ss-muted">No session runs now: start one from the Harness Builder.</p>
       ) : (
         <ul className="pg-grid">
           {chats.live.map((c, i) => (

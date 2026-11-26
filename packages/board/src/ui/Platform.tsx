@@ -1,6 +1,6 @@
 /**
  * The board's frame, one for every page: the glowing top bar (Mikata's mark, the workspace's
- * pages as tabs, search, the theme, New session) over the rail (the workspace, its pages, its
+ * pages as tabs, search, the theme) over the rail (the workspace, its pages, its
  * sessions, the runtime's state) and the page itself. At phone width the rail is a drawer.
  */
 import type { BoardWorld } from '@mikata/protocol';
@@ -18,7 +18,6 @@ import {
   MessagesSquare,
   Moon,
   Plug,
-  Plus,
   Puzzle,
   ScrollText,
   Search,
@@ -175,7 +174,6 @@ function Status({ world, chats }: { world: BoardWorld; chats: Chats }) {
 /** The workspace's sessions: the live ones, each by its ask, marked when it waits for you; then
  * the latest past runs, and the way to every run. */
 function Sessions({ world, chats, route }: { world: BoardWorld; chats: Chats; route: Route }) {
-  const builder = format({ name: 'section', world: world.id, section: 'builder' });
   // A live session's run is listed once, as the live session.
   const liveRuns = new Set(chats.live.map((c) => c.run));
   const past = chats.runs.filter((r) => !liveRuns.has(r.id));
@@ -184,20 +182,9 @@ function Sessions({ world, chats, route }: { world: BoardWorld; chats: Chats; ro
   const run = route.name === 'run' ? route.run : undefined;
   return (
     <section className="pf-card pf-sessions" aria-label="Sessions">
-      <p className="pf-label">
-        Sessions
-        <a
-          className="pf-icon pf-mini"
-          aria-label="New session, in the Harness Builder"
-          href={builder}
-        >
-          <Icon icon={Plus} />
-        </a>
-      </p>
+      <p className="pf-label">Sessions</p>
       {chats.live.length === 0 ? (
-        <a className="pf-start" href={builder}>
-          <Icon icon={Plus} /> Start a session
-        </a>
+        <p className="pf-muted">No session runs.</p>
       ) : (
         <ul className="pf-list" aria-label="Live sessions">
           {chats.live.map((c, i) => (
@@ -210,7 +197,7 @@ function Sessions({ world, chats, route }: { world: BoardWorld; chats: Chats; ro
               >
                 <Icon icon={MessageSquare} />
                 <span>
-                  <Safe text={askOf(c.run) || 'New session'} />
+                  <Safe text={askOf(c.run) || 'Untitled session'} />
                 </span>
                 {c.asks > 0 ? (
                   <small className="pf-needs" title="An approval waits for you">
@@ -357,16 +344,6 @@ export function Platform({
           >
             <Icon icon={THEME_ICON[theme]} />
           </button>
-          {world && (
-            <a
-              className="pf-primary"
-              href={href('builder', world.id)}
-              title="Choose its profile and units, then start it"
-            >
-              <Icon icon={Plus} />
-              <span>New session</span>
-            </a>
-          )}
         </div>
       </header>
 

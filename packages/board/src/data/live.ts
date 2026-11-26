@@ -14,7 +14,7 @@
  * here, elsewhere, withdrawn or past its time). The gate handler itself answers nothing.
  */
 import type { GateReply, GateRequest, Hello, Role } from '@mikata/protocol';
-import { type Arrived, Client, ws } from '@mikata/sdk/browser';
+import { type Arrived, Client, type UnitsListed, ws } from '@mikata/sdk/browser';
 import { useEffect, useRef, useState } from 'react';
 import { Chat, type ChatView } from './chat.ts';
 import { csrf } from './session.ts';
@@ -64,6 +64,11 @@ export interface Live extends LiveState {
   seen(id: string, digest: string): Promise<void>;
   /** The human's answer to ask `id`, from the approval card. */
   answer(id: string, reply: GateReply): void;
+  /** The session's units as the run last listed them; throws when it cannot say. */
+  units(): Promise<UnitsListed>;
+  /** Switch unit `id` on or off at its next safe point, kept for the project unless `keep` is
+   * false; throws with the core's reason. */
+  switchUnit(id: string, on: boolean, keep?: boolean): Promise<void>;
 }
 
 /** The chat's socket, on this page's own host. */
@@ -200,6 +205,16 @@ export function useLive(id: string): Live {
       const c = client.current;
       if (!c) throw new Error('not connected');
       await c.seen(aid, digest);
+    },
+    units: async () => {
+      const c = client.current;
+      if (!c) throw new Error('not connected');
+      return c.units();
+    },
+    switchUnit: async (uid, on, keep = true) => {
+      const c = client.current;
+      if (!c) throw new Error('not connected');
+      await c.switchUnit(uid, on, keep);
     },
     answer: (aid, reply) => {
       const c = client.current;

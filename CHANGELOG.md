@@ -85,6 +85,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   Metrics, Integrations and Settings keep the workspace's frame; a session's header says the
   guards it runs without, as the session itself reports them (`guardsOff` in the hello), in every
   tab and in the terminal app.
+- **Configure on a running session** opens its units: every unit of the harness with a switch
+  showing whether it is on in that session now, switched at its next safe point (`units/list`,
+  `units/change`, now through the board) and kept for the project as `/unit` keeps it — but a guard
+  switched off holds for that session only (`units/change {keep: false}`), as the Builder's does.
+  A session is started in one place: the Harness Builder's Start session.
 
 - The terminal app: the header bar is the brand's gradient; panel frames are heavy lines with bold
   `////`; the end gate's verdict is a banner in its colour; a picked approval answer is a gradient

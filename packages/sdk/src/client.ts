@@ -51,6 +51,18 @@ export type GateHandler = (request: GateRequest) => Promise<GateReply> | GateRep
 /** A message the board's bridge adds beside the protocol: `board/<name>` and its parameters. */
 export type Notice = { method: string; params: Record<string, unknown> };
 
+/** `units/list`'s answer: the session's composition as the run last listed it. */
+export interface UnitsListed {
+  /** Each unit loaded: `active`, `inactive` or `failed`. */
+  units: { id: string; version: string; state: string }[];
+  /** The composition's fingerprint. */
+  digest: string;
+  /** Changes asked and not yet taken. */
+  pending: number;
+  /** Changes the run could not take, and why. */
+  refused: string[];
+}
+
 type Message = {
   id?: unknown;
   method?: string;
@@ -123,6 +135,23 @@ export class Client {
   /** Esc: stop the turn in flight, and any act waiting at the gate. */
   async interrupt(): Promise<void> {
     await this.request('session/interrupt', {});
+  }
+
+  /** The session's units (`units/list`): each loaded one's id, version and state, the
+   * composition's digest, the changes waiting for their safe point, and those refused. */
+  async units(): Promise<UnitsListed> {
+    return (await this.request('units/list', {})) as UnitsListed;
+  }
+
+  /** Switch unit `id` on or off (`units/change`): taken at the unit's next safe point, and kept
+   * for the world as the terminal's `/unit` keeps it — unless `keep` is false: then the change
+   * is this session's alone. */
+  async switchUnit(id: string, on: boolean, keep = true): Promise<void> {
+    await this.request('units/change', {
+      op: on ? 'on' : 'off',
+      id,
+      ...(keep ? {} : { keep: false }),
+    });
   }
 
   /** On a board chat: take control from another tab of this browser. */

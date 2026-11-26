@@ -1595,6 +1595,128 @@ a.pf-mini {
   border: 1px solid var(--mn-line);
 }
 
+/* a running session's units: Configure's dialog */
+.su {
+  display: grid;
+  gap: 10px;
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(80vh, 720px);
+  padding: 16px 18px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--pf-radius);
+  background:
+    linear-gradient(var(--pf-face), var(--pf-face)) padding-box,
+    var(--pf-frame) border-box;
+  box-shadow: var(--mn-shadow), var(--pf-glow);
+  font-family: var(--mn-font-ui);
+  animation: pf-pop 320ms var(--pf-spring) backwards;
+}
+.su-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.su-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font: 700 17px var(--mn-font-ui);
+}
+.su-head h2 .mn-icon {
+  color: var(--mn-holo);
+}
+.su-close {
+  border-color: var(--mn-line);
+  color: var(--mn-text-muted);
+}
+.su-sub {
+  margin: 0;
+  color: var(--mn-text-muted);
+  font-size: 13px;
+}
+.su-warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--mn-error);
+  border-radius: 10px;
+  background: var(--mn-error-bg);
+  color: var(--mn-error);
+  font-size: 13px;
+  font-weight: 600;
+}
+.su-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.su-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--mn-line);
+  border-radius: 10px;
+  background: var(--mn-panel-raised);
+  transition: border-color var(--mn-fast) var(--mn-ease);
+}
+.su-list li[data-on="true"] {
+  border-color: color-mix(in srgb, var(--mn-hot) 40%, var(--mn-line));
+}
+.su-list li > .mn-icon {
+  flex: none;
+  color: var(--mn-holo);
+}
+.su-list li[data-kind="plugin"] > .mn-icon {
+  color: var(--mn-gold);
+}
+.su-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.su-name small {
+  overflow: hidden;
+  color: var(--mn-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.su-pending,
+.su-failed,
+.su-guard {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font: 600 10px var(--mn-font-mono);
+}
+.su-pending {
+  border: 1px dashed var(--mn-gold);
+  color: var(--mn-gold);
+}
+.su-failed {
+  border: 1px solid var(--mn-error);
+  color: var(--mn-error);
+}
+.su-guard {
+  border: 1px solid var(--mn-line-strong);
+  color: var(--mn-text-muted);
+}
+.su-refused {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--mn-error);
+  font-size: 12px;
+}
+
 /* ── narrower ────────────────────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 1360px) {
@@ -1822,6 +1944,7 @@ a.pf-mini {
   .ss-meter i,
   .pf-needs,
   .pg-icon,
+  .su,
   .pg-grid > li,
   .bapp-embedded .bapp-panel {
     animation: none;
@@ -1846,6 +1969,7 @@ a.pf-mini {
   .ss-stop,
   .pg-run,
   .pg-links a,
+  .su-list li,
   .bapp-go,
   .palette-card,
   .pf-all .mn-icon,
