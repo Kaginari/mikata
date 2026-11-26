@@ -21,6 +21,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   with its lines, each check with its output, the body's words, the end gate's Landed banner);
   Done when, Budgets and Guardrails beside it; a command line and a status bar under it. Every
   number is the session's own.
+- The Harness Builder as the owner's picture draws it: the top bar's Home (the app screen),
+  Harness Builder, Plugins, Profiles and Docs beside a bright Run agent; the rail's status as dots
+  and its usage as bars; unit cards framed pink on the left and amber on the right, their
+  versions in their title rows, wired to a glowing core; the configuration as TOML with its line
+  numbers and colours beside the ask and Start run; the live run's rings (Plan · Work · Verify ·
+  Land), its log timed `[mm:ss]` from the run's start, a large VERIFIED and tiles with icons.
 - `GET /api/w/<world>/desk`: what a world's session is held to — its verify line, the plan's
   `Done when`, its branch — read alike by the terminal app and the board.
 - The terminal app has three views, F2 or `/view light|advanced|focus`: *Light*, the new default,

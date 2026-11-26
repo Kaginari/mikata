@@ -98,28 +98,34 @@
   display: flex;
   align-items: center;
   gap: 17px;
-  padding: 14px 22px;
-  border-radius: 0 0 16px 16px;
-  background: var(--mn-brand-surface);
-  box-shadow: var(--mn-shadow);
-  color: var(--mn-on-brand);
+  padding: 12px 22px;
+  border-radius: 0 0 18px 18px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--mn-hot) 82%, var(--mn-bg)),
+    color-mix(in srgb, var(--mn-coral) 62%, var(--mn-bg)) 60%,
+    color-mix(in srgb, var(--mn-amber) 70%, var(--mn-bg))
+  );
+  box-shadow: 0 6px 28px color-mix(in srgb, var(--mn-hot) 30%, transparent);
+  color: var(--mn-text);
 }
 .bapp-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font: 800 23px var(--mn-font-mono);
   letter-spacing: -1px;
   white-space: nowrap;
+  font-size: 30px;
 }
 .bapp-logo .mikata-mark {
   width: 64px;
   filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--mn-bg) 45%, transparent));
 }
 .bapp-branddesc {
-  display: none;
-  max-width: 150px;
-  font: 600 11px / 1.3 var(--mn-font-mono);
+  display: block;
+  max-width: none;
+  font: 500 13px var(--mn-font-mono);
   letter-spacing: 0;
   white-space: normal;
 }
@@ -144,8 +150,8 @@
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
-  color: var(--mn-on-brand);
-  font-size: 13.5px;
+  color: var(--mn-text);
+  font-size: 15px;
   font-weight: 800;
   text-decoration: none;
 }
@@ -157,8 +163,8 @@
 /* the selected page: a surface cut out of the brand */
 .bapp .bapp-nav .bapp-active,
 .bapp .bapp-nav .bapp-active:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--mn-panel);
+  border-color: color-mix(in srgb, var(--mn-hot) 40%, var(--mn-line));
+  background: color-mix(in srgb, var(--mn-bg) 78%, var(--mn-hot));
   color: var(--mn-text);
   box-shadow: var(--mn-shadow);
 }
@@ -204,31 +210,35 @@
 /* ── the three columns ── */
 .bapp-layout {
   display: grid;
-  grid-template-columns: 220px minmax(420px, 1fr) minmax(320px, 400px);
-  gap: 14px;
+  grid-template-columns: 250px minmax(520px, 1fr) minmax(360px, 430px);
+  gap: 18px;
   min-height: calc(100vh - 80px);
-  padding: 16px;
+  padding: 20px 10px;
   align-items: start;
 }
 .bapp-panel {
   min-width: 0;
   padding: 16px;
-  border: 1px solid var(--mn-line);
-  border-radius: 14px;
-  background: linear-gradient(
-    150deg,
-    color-mix(in srgb, var(--mn-hot) 5%, var(--mn-panel)),
-    var(--mn-panel) 40%
-  );
-  box-shadow: var(--mn-shadow);
+  border: 1.5px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--mn-hot) 6%, var(--mn-panel)),
+      var(--mn-panel) 45%
+    )
+    padding-box,
+    linear-gradient(140deg, var(--mn-hot), var(--mn-coral) 55%, var(--mn-amber)) border-box;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--mn-hot) 22%, transparent);
 }
 .bapp .bapp-section {
   display: block;
   margin: 20px 0 12px;
   font: 800 12px var(--mn-font-ui);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--mn-holo);
+  color: var(--mn-hot);
+  font-size: 14px;
 }
 .bapp .bapp-panel > .bapp-section:first-child {
   margin-top: 0;
@@ -297,10 +307,10 @@
 }
 /* verified: the bio gradient, olive words on lime */
 .bapp .bapp-state[data-state="Verified"] {
-  border-color: transparent;
-  background: var(--mn-gradient-bio);
-  color: var(--mn-success-on);
-  box-shadow: var(--mn-glow-success);
+  background: color-mix(in srgb, var(--mn-success-fill) 10%, var(--mn-panel));
+  color: var(--mn-success-fill);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--mn-success-fill) 35%, transparent);
+  border: 1.5px solid var(--mn-success-fill);
 }
 .bapp .bapp-dot {
   width: 8px;
@@ -314,12 +324,16 @@
 /* the left column */
 .bapp-side select {
   width: 100%;
+  padding: 11px 12px;
+  border-color: color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line));
+  font-size: 17px;
+  font-weight: 700;
 }
 .bapp .bapp-path {
-  margin-top: 9px;
-  font-size: 12px;
   color: var(--mn-text-muted);
   overflow-wrap: anywhere;
+  margin: 8px 0 16px;
+  font: 13px var(--mn-font-mono);
 }
 .bapp .bapp-navbtn {
   display: flex;
@@ -327,17 +341,20 @@
   gap: 10px;
   width: 100%;
   margin: 2px 0;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
   color: var(--mn-text);
-  font-weight: 700;
+  font-weight: 600;
   text-align: left;
   text-decoration: none;
+  font-size: 15px;
 }
 .bapp .bapp-navbtn .mn-icon {
-  color: var(--mn-text-muted);
+  color: var(--mn-hot);
+  width: 20px;
+  height: 20px;
 }
 .bapp .bapp-navbtn:hover:not(:disabled) {
   border-color: var(--mn-line);
@@ -347,27 +364,27 @@
 .bapp .bapp-navbtn.bapp-active,
 .bapp .bapp-navbtn.bapp-active:hover:not(:disabled) {
   border-color: transparent;
-  background: var(--mn-brand-surface);
-  color: var(--mn-on-brand);
+  background: color-mix(in srgb, var(--mn-hot) 16%, var(--mn-panel-raised));
+  color: var(--mn-text);
   font-weight: 800;
-  box-shadow: 0 0 16px var(--mn-glow-soft);
+  box-shadow: none;
 }
 .bapp .bapp-navbtn.bapp-active .mn-icon {
-  color: var(--mn-on-brand);
+  color: var(--mn-hot);
 }
 .bapp-side > p {
   line-height: 1.5;
 }
 .bapp-metric {
-  margin: 15px 0;
+  margin: 11px 0;
 }
 .bapp-metric span {
   display: flex;
   justify-content: space-between;
-  font: 12px var(--mn-font-mono);
+  font: 15px var(--mn-font-ui);
 }
 .bapp-bar {
-  height: 7px;
+  height: 9px;
   margin-top: 8px;
   overflow: hidden;
   border-radius: 8px;
@@ -378,7 +395,8 @@
   display: block;
   height: 100%;
   border-radius: 8px;
-  background: var(--mn-hot);
+  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--mn-hot) 55%, transparent);
 }
 /* the run's progress is execution: the bio gradient */
 .bapp-metric[data-kind="progress"] .bapp-bar i {
@@ -412,15 +430,13 @@
 .bapp-graph {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 0.82fr 1fr;
-  column-gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.8fr) minmax(0, 1fr);
+  column-gap: 40px;
   align-items: center;
-  padding: 22px 14px;
-  border: 1px solid var(--mn-line);
+  padding: 8px 14px;
+  border: 0;
   border-radius: 14px;
-  background:
-    radial-gradient(circle, var(--mn-canvas-grid) 1px, transparent 1.4px) 0 0 / 18px 18px,
-    var(--mn-bg);
+  background: transparent;
 }
 .bapp-edges {
   position: absolute;
@@ -478,29 +494,33 @@
 }
 .bapp-unit {
   position: relative;
-  min-height: 103px;
-  padding: 12px;
-  border: 1px solid var(--mn-line);
-  border-radius: 11px;
-  background: var(--mn-panel);
+  min-height: 0;
+  padding: 8px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--mn-hot) 75%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mn-hot) 5%, var(--mn-panel));
   color: var(--mn-text);
   text-decoration: none;
   transition:
     border-color var(--mn-fast) var(--mn-ease),
     box-shadow var(--mn-fast) var(--mn-ease);
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--mn-hot) 30%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--mn-hot) 8%, transparent);
 }
 .bapp-unit:hover {
   border-color: var(--mn-line-strong);
   box-shadow: var(--mn-shadow);
 }
 .bapp-unit[data-on="false"] {
-  opacity: 0.6;
+  opacity: 0.55;
+  box-shadow: none;
 }
 .bapp-unit h3 {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 16px;
   font-weight: 800;
 }
 .bapp-unit h3 .bapp-switch,
@@ -510,21 +530,25 @@
 .bapp .bapp-unit-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--mn-hot) 12%, var(--mn-panel));
-  color: var(--mn-holo);
+  background: transparent;
+  color: var(--mn-hot);
 }
 .bapp-unit[data-kind="plugin"] .bapp-unit-icon {
   background: color-mix(in srgb, var(--mn-amber) 16%, var(--mn-panel));
   color: var(--mn-warning);
 }
 .bapp .bapp-unit p {
-  margin: 8px 0;
-  font-size: 12px;
+  margin: 4px 0 0;
   color: var(--mn-text-muted);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  font: 12px / 1.4 var(--mn-font-mono);
 }
 .bapp .bapp-unit small {
   font: 11px var(--mn-font-mono);
@@ -571,15 +595,20 @@
 .bapp-core {
   position: relative;
   z-index: 1;
-  padding: 25px 8px;
-  border: 2px solid transparent;
-  border-radius: 18px;
+  padding: 26px 12px;
+  border: 2.5px solid transparent;
+  border-radius: 26px;
   background:
-    linear-gradient(var(--mn-panel), var(--mn-panel)) padding-box,
-    var(--mn-gradient-full) border-box;
+    radial-gradient(
+      circle at 50% 30%,
+      color-mix(in srgb, var(--mn-hot) 18%, var(--mn-panel)),
+      var(--mn-panel) 70%
+    )
+    padding-box,
+    linear-gradient(160deg, var(--mn-hot), var(--mn-coral) 50%, var(--mn-amber)) border-box;
   box-shadow:
-    0 0 32px var(--mn-glow-soft),
-    var(--mn-shadow);
+    0 0 38px color-mix(in srgb, var(--mn-hot) 55%, transparent),
+    0 0 80px color-mix(in srgb, var(--mn-amber) 18%, transparent);
   text-align: center;
 }
 .bapp-core .bapp-core-logo {
@@ -587,39 +616,45 @@
   margin: 0 auto;
 }
 .bapp .bapp-core h2 {
-  margin: 10px 0;
-  background: var(--mn-brand-ink);
+  margin: 10px 0 6px;
+  background: none;
   background-clip: text;
   -webkit-background-clip: text;
-  color: transparent;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  color: var(--mn-hot);
+  letter-spacing: 0.06em;
+  font: 800 26px var(--mn-font-mono);
 }
 .bapp-core p {
   font-weight: 700;
+  font-size: 18px;
 }
 .bapp-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: 14px 0 12px;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: 0 0 10px;
+  align-items: center;
 }
 .bapp .bapp-tabs .bapp-active,
 .bapp .bapp-tabs .bapp-active:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--mn-brand-surface);
-  color: var(--mn-on-brand);
+  background: color-mix(in srgb, var(--mn-hot) 20%, var(--mn-panel));
+  color: var(--mn-text);
   font-weight: 800;
+  border: 1px solid var(--mn-hot);
 }
 .bapp-editor {
-  min-height: 160px;
+  min-height: 0;
   margin: 0;
-  padding: 13px;
+  padding: 10px 0;
   border: 1px solid var(--mn-line);
   border-radius: 9px;
   background: var(--mn-bg);
-  font: 12px / 1.65 var(--mn-font-mono);
-  overflow-x: auto;
+  font: 14px / 1.55 var(--mn-font-mono);
+  max-height: 200px;
+  overflow: auto;
+  border-color: var(--mn-line);
+  counter-reset: toml;
+  list-style: none;
 }
 .bapp-toolbar button {
   display: inline-flex;
@@ -637,6 +672,8 @@
   flex: 1;
   font: 12px var(--mn-font-mono);
   overflow-wrap: anywhere;
+  margin: 8px 4px 0;
+  font-size: 12px;
 }
 
 /* the plugin inspector */
@@ -675,8 +712,12 @@
 
 /* the right */
 .bapp .bapp-state {
-  font-size: 12px;
+  font-size: 15px;
   letter-spacing: 0.06em;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 .bapp-ask {
   width: 100%;
@@ -691,16 +732,20 @@
   display: flex;
   justify-content: space-between;
   gap: 5px;
-  margin: 20px 0;
+  margin: 14px 4px 18px;
   padding: 0;
   list-style: none;
-  font: 700 12px var(--mn-font-mono);
-  color: var(--mn-text-faint);
+  font: 600 14px var(--mn-font-ui);
+  color: var(--mn-text-muted);
+  position: relative;
 }
 .bapp-steps li {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  position: relative;
+  flex: 1;
+  flex-direction: column;
 }
 .bapp-steps-compact {
   justify-content: center;
@@ -720,18 +765,20 @@
   opacity: 0.5;
 }
 .bapp-log {
-  height: 320px;
-  padding: 12px;
+  height: 380px;
+  padding: 14px;
   overflow: auto;
   border: 1px solid var(--mn-line);
   border-radius: 10px;
   background: var(--mn-bg);
-  font: 12px / 1.8 var(--mn-font-mono);
+  font: 14px / 1.7 var(--mn-font-mono);
   overflow-wrap: anywhere;
+  border-color: color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
 }
 .bapp .bapp-log-ask {
   margin-bottom: 10px;
-  color: var(--mn-text-muted);
+  color: var(--mn-text);
+  font-weight: 700;
 }
 .bapp-log [data-tone="ok"] {
   color: var(--mn-success-text);
@@ -746,13 +793,17 @@
 /* the end gate's word: verification, in the bio green */
 .bapp-result {
   position: relative;
-  margin-top: 14px;
-  padding: 14px 14px 14px 18px;
+  margin-top: 16px;
+  padding: 18px 20px;
   overflow: hidden;
-  border: 1px solid var(--mn-success-border);
-  border-radius: 10px;
-  background: var(--mn-success-bg);
+  border: 1.5px solid var(--mn-success-fill);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--mn-success-fill) 7%, var(--mn-panel));
   color: var(--mn-success-text);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-success-fill) 28%, transparent);
 }
 .bapp-result::before {
   content: "";
@@ -760,15 +811,19 @@
   inset: 0 auto 0 0;
   width: 5px;
   background: var(--mn-gradient-bio);
+  display: none;
 }
 .bapp-result h3 {
-  font-size: 15px;
-  font-weight: 800;
+  font: 800 26px var(--mn-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mn-success-fill);
 }
 .bapp-result[data-ok="false"] {
-  border-color: color-mix(in srgb, var(--mn-error) 45%, var(--mn-line));
+  border-color: var(--mn-error);
   background: var(--mn-error-bg);
   color: var(--mn-error);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-error) 28%, transparent);
 }
 .bapp-result[data-ok="false"]::before {
   background: var(--mn-error);
@@ -776,25 +831,28 @@
 .bapp-numbers {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
   margin: 15px 0 0;
+  margin-top: 16px;
 }
 .bapp-numbers div {
   display: flex;
   flex-direction: column-reverse;
-  padding: 13px 6px;
-  border: 1px solid var(--mn-line);
-  border-radius: 9px;
-  background: var(--mn-panel-raised);
+  padding: 16px 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
+  border-radius: 12px;
+  background: var(--mn-panel);
   text-align: center;
+  position: relative;
 }
 .bapp-numbers dt {
-  font-size: 12px;
   color: var(--mn-text-muted);
+  font: 13px var(--mn-font-mono);
 }
 .bapp-numbers dd {
   margin: 0 0 5px;
   font: 800 17px var(--mn-font-mono);
+  font-size: 20px;
 }
 .bapp .bapp-notice {
   margin-top: 14px;
@@ -967,4 +1025,394 @@
   .bapp-log {
     height: 260px;
   }
+}
+
+/* ── the owner's builder picture (2026-11-26): neon frames, a bright Run agent, the rail's status
+ * as dots, cards lit pink on the left and amber on the right, a TOML editor with its lines, a
+ * stepper of rings, a terminal log, a big VERIFIED ── */
+
+.bapp-slash {
+  font-style: italic;
+  font-weight: 900;
+}
+
+.bapp .bapp-head .bapp-run,
+.bapp .bapp-head .bapp-run:hover:not(:disabled) {
+  padding: 11px 20px;
+  border: 1px solid color-mix(in srgb, var(--mn-text) 25%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral));
+  color: var(--mn-text);
+  font-size: 16px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-hot) 55%, transparent);
+}
+.bapp .bapp-head .bapp-run .mn-icon {
+  color: var(--mn-text);
+}
+
+/* panels: a neon frame */
+
+/* the rail */
+
+.bapp-railnav {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--mn-line);
+}
+
+.bapp-badge {
+  margin-left: auto;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mn-hot) 45%, var(--mn-panel));
+  font: 700 13px var(--mn-font-mono);
+}
+.bapp .bapp-status {
+  display: grid;
+  gap: 9px;
+  margin: 0 0 16px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--mn-line);
+  list-style: none;
+  font-size: 14px;
+}
+.bapp-status li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.bapp-status .mn-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--mn-success-text);
+}
+.bapp-status .bapp-dot {
+  width: 12px;
+  height: 12px;
+  margin: 0 3px;
+  background: var(--mn-success-fill);
+  box-shadow: 0 0 8px var(--mn-success-fill);
+}
+.bapp-status li[data-tone="alarm"] .bapp-dot {
+  background: var(--mn-error);
+  box-shadow: 0 0 8px var(--mn-error);
+}
+
+/* the middle's head */
+.bapp-titled {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.bapp .bapp-titleicon {
+  width: 36px;
+  height: 36px;
+  margin-top: 2px;
+  color: var(--mn-hot);
+}
+
+.bapp-top .bapp-muted {
+  max-width: 430px;
+  font-size: 15px;
+}
+.bapp-main {
+  padding: 18px 20px;
+}
+.bapp-main > .bapp-top {
+  margin: -18px -20px 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mn-hot) 25%, var(--mn-line));
+  border-radius: 16px 16px 0 0;
+  background: color-mix(in srgb, var(--mn-hot) 5%, transparent);
+}
+
+/* the graph: cards lit by their side */
+
+.bapp-stack {
+  gap: 10px;
+}
+
+.bapp-graph .bapp-stack:last-of-type .bapp-unit {
+  border-color: color-mix(in srgb, var(--mn-amber) 75%, transparent);
+  background: color-mix(in srgb, var(--mn-amber) 5%, var(--mn-panel));
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--mn-amber) 28%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--mn-amber) 8%, transparent);
+}
+
+.bapp-graph .bapp-stack:last-of-type .bapp-unit-icon {
+  color: var(--mn-amber);
+}
+
+.bapp .bapp-pill {
+  display: inline-block;
+  padding: 1px 10px;
+  border: 1px solid color-mix(in srgb, var(--mn-text) 25%, var(--mn-line));
+  border-radius: 999px;
+  font: 12px var(--mn-font-mono);
+  color: var(--mn-text);
+}
+.bapp-edge[data-side="left"] {
+  stroke: var(--mn-hot);
+  filter: drop-shadow(0 0 3px var(--mn-hot));
+}
+.bapp-edge[data-side="right"] {
+  stroke: var(--mn-amber);
+  filter: drop-shadow(0 0 3px var(--mn-amber));
+}
+.bapp-port[data-side="left"] {
+  fill: var(--mn-hot);
+}
+.bapp-port[data-side="right"] {
+  fill: var(--mn-amber);
+}
+.bapp-edge[data-on="false"],
+.bapp-port[data-on="false"] {
+  stroke: var(--mn-edge-disabled);
+  fill: var(--mn-edge-disabled);
+  filter: none;
+}
+
+.bapp-core small {
+  display: block;
+  margin-top: 10px;
+  font: 13px / 1.6 var(--mn-font-mono);
+}
+
+/* the configuration and the start */
+.bapp-config {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 14px;
+  margin-top: 14px;
+}
+.bapp-confpanel {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mn-bg) 60%, var(--mn-panel));
+}
+
+.bapp-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: transparent;
+  background: transparent;
+  font-weight: 600;
+  padding: 7px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.bapp-tabtools {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.bapp .bapp-tabtools button {
+  border-color: var(--mn-line-strong);
+}
+
+.bapp-editor li {
+  counter-increment: toml;
+  white-space: pre;
+}
+.bapp-editor li::before {
+  content: counter(toml);
+  display: inline-block;
+  width: 3.2em;
+  margin-right: 14px;
+  padding-right: 10px;
+  border-right: 1px solid var(--mn-line);
+  color: var(--mn-text-faint);
+  text-align: right;
+}
+.tl-table {
+  color: var(--mn-hot);
+}
+.tl-key {
+  color: var(--mn-text);
+}
+.tl-eq {
+  color: var(--mn-text-muted);
+}
+.tl-str {
+  color: var(--mn-amber);
+}
+.tl-true {
+  color: var(--mn-success-text);
+}
+.tl-false {
+  color: var(--mn-holo);
+}
+
+.bapp-startbox {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.bapp-startbox .bapp-ask {
+  min-height: 110px;
+  border-color: color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line));
+  font: 14px / 1.5 var(--mn-font-mono);
+}
+.bapp .bapp-start,
+.bapp .bapp-start:hover:not(:disabled) {
+  padding: 13px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral) 60%, var(--mn-amber));
+  color: var(--mn-text);
+  font-size: 18px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-hot) 45%, transparent);
+}
+.bapp-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--mn-line);
+  border-radius: 10px;
+  background: var(--mn-bg);
+  font: 13px var(--mn-font-mono);
+}
+.bapp-facts div {
+  display: flex;
+  justify-content: space-between;
+}
+.bapp-facts dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mn-text-muted);
+}
+.bapp-facts dd {
+  margin: 0;
+}
+
+/* the live run */
+.bapp-live {
+  padding: 18px 18px;
+}
+.bapp-runline {
+  margin-top: 4px;
+  font: 14px var(--mn-font-mono);
+  color: var(--mn-text-muted);
+}
+
+.bapp .bapp-stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: var(--mn-error);
+  color: var(--mn-error);
+}
+/* the stepper: rings joined by rails, lit as far as the run has come */
+
+.bapp-steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: calc(50% + 18px);
+  width: calc(100% - 36px);
+  height: 2px;
+  background: var(--mn-line-strong);
+}
+.bapp-steps li[data-state="done"]:not(:last-child)::after {
+  background: var(--mn-success-fill);
+  box-shadow: 0 0 6px var(--mn-success-fill);
+}
+.bapp-stepdot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--mn-line-strong);
+  border-radius: 50%;
+  background: var(--mn-bg);
+}
+.bapp-steps li[data-state="done"] .bapp-stepdot {
+  border-color: var(--mn-success-fill);
+  background: var(--mn-success-fill);
+  color: var(--mn-success-on);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mn-success-fill) 55%, transparent);
+}
+.bapp-steps li[data-state="now"] .bapp-stepdot {
+  border-color: var(--mn-hot);
+  color: var(--mn-hot);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mn-hot) 55%, transparent);
+}
+.bapp-steps li[data-state="failed"] .bapp-stepdot {
+  border-color: var(--mn-error);
+  color: var(--mn-error);
+}
+.bapp-steps li[data-state="done"] .bapp-stepname {
+  color: var(--mn-text);
+}
+.bapp-stepdot .mn-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 3;
+}
+
+.bapp-log time {
+  color: var(--mn-text-muted);
+}
+
+.bapp .bapp-result-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  color: var(--mn-success-fill);
+}
+
+.bapp-result p {
+  font: 14px / 1.5 var(--mn-font-mono);
+  color: var(--mn-text);
+}
+
+.bapp-result[data-ok="false"] h3,
+.bapp-result[data-ok="false"] .bapp-result-icon {
+  color: var(--mn-error);
+}
+
+.bapp-numbers div .mn-icon {
+  order: 3;
+  width: 26px;
+  height: 26px;
+  margin: 0 auto 8px;
+  color: var(--mn-hot);
+}
+.bapp-numbers div:last-child .mn-icon {
+  color: var(--mn-amber);
+}
+
+/* one screen, as the picture: compact cards and rail */
+
+/* the version rides in the card's title row */
+.bapp-unit h3 .bapp-pill {
+  margin-left: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 400;
+  flex: none;
+  white-space: nowrap;
+}
+.bapp-unit h3 .bapp-pill + .bapp-switch {
+  margin-left: 0;
+}
+
+.bapp-live .bapp-titled {
+  min-width: 0;
+}
+
+/* a card's name on one line, its version never broken */
+.bapp-unitname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

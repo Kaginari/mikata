@@ -35,6 +35,7 @@ import { type Chats, startChat } from '../data/chats.ts';
 import { type Desk, useDesk } from '../data/desk.ts';
 import { changeOf } from '../data/diff.ts';
 import { type Live, useLive } from '../data/live.ts';
+import { format } from '../router.ts';
 import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
@@ -586,6 +587,12 @@ function Screen({
             </div>
           )}
         </dl>
+        <a
+          className="mapp-headlink"
+          href={format({ name: 'section', world: w.id, section: 'builder' })}
+        >
+          <Icon icon={Layers} /> Harness Builder
+        </a>
       </header>
 
       <div className="mapp-body">
