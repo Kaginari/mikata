@@ -74,6 +74,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- The terminal app's and the app's Guardrails read the `approval` and `secrets` units: off,
+  they say outward acts run without asking and that secret files are readable, never a tick.
 - The terminal app showed the memory the harness quotes above an ask as the human's own line.
 - The clock read 0:00 once a turn ended; it keeps the turn's time.
 - The light-coding reason and the approval card said "the Summoner" and "the human gate"; they say
