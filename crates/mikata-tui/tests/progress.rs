@@ -1172,7 +1172,9 @@ fn what_changed_is_drawn_line_by_line() {
         "{scr}"
     );
     // A long list shows its first lines and counts the rest.
-    let many: String = (0..12).map(|i| ["\n+ value ", &i.to_string()].concat()).collect();
+    let many: String = (0..12)
+        .map(|i| ["\n+ value ", &i.to_string()].concat())
+        .collect();
     ev(
         &mut m,
         Event::Changes {
