@@ -439,6 +439,10 @@ fn folders_as_files(cx: &Context, paths: Vec<String>, out: &mut String) -> Vec<S
 fn one(cx: &mut Context, text: &str) -> Result<String, String> {
     let path = cx.inside(text)?;
     let shown = cx.shown(&path);
+    // A secret file's skeleton is its shape: its keys, never a value (the secrets unit).
+    if let Some(secrets) = cx.secrets().filter(|s| s.is_secret(&path)) {
+        return Ok(format!("{}\n", secrets.view(&path, &shown)));
+    }
     let bytes = crate::beneath::read(cx.world(), &path)
         .map_err(|e| format!("cannot index `{shown}`: {e}"))?;
     if bytes.iter().take(8192).any(|b| *b == 0) {

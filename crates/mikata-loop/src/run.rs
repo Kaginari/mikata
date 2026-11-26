@@ -2254,6 +2254,69 @@ impl Run {
         self.units.registry.active().iter().any(|(i, _)| *i == id)
     }
 
+    /// What the `secrets` unit holds, in one line, as `mikata status` and the app's first lines
+    /// say it: the files, how many values are struck, and whether commands are kept from them.
+    #[must_use]
+    pub fn secrets_said(&mut self) -> String {
+        self.arm_secrets();
+        let world = self.cx.world().to_path_buf();
+        let kept = match self.cx.sandbox() {
+            s if s.private_tmp() => "commands find them empty",
+            #[cfg(target_os = "macos")]
+            mikata_tools::Sandbox::Seatbelt(_) => "commands cannot read them",
+            _ => "commands can still read them: this machine gives no mount namespace",
+        };
+        let Some(s) = self.cx.secrets() else {
+            return "off — the secrets unit is off: secret files are read like any other".into();
+        };
+        let files = s.files();
+        if files.is_empty() {
+            return "none found — `.env`, keys, kubeconfigs and Terraform's state would be held"
+                .into();
+        }
+        let named: Vec<String> = files
+            .iter()
+            .take(4)
+            .map(|f| f.strip_prefix(&world).unwrap_or(f).display().to_string())
+            .collect();
+        let more = files.len().saturating_sub(named.len());
+        format!(
+            "{} held ({}{}) — their keys only to the body, {} values struck from results; {kept}",
+            files.len(),
+            named.join(", "),
+            if more > 0 {
+                format!(", +{more}")
+            } else {
+                String::new()
+            },
+            s.values()
+        )
+    }
+
+    /// Whether acts are put to the human (the `approval` unit), in one line, as `mikata status`
+    /// and the app's first lines say it. Off is said as a warning: acts then leave the machine
+    /// unseen.
+    #[must_use]
+    pub fn approval_said(&mut self) -> String {
+        self.arm_secrets();
+        if self.cx.approval_on() {
+            "on — every outward or destructive act is put to you first".into()
+        } else {
+            "OFF — outward and destructive acts (push, deploy, apply, delete) run without asking, \
+             with the network and the secret files as they are; `/unit on approval` puts them to you again"
+                .into()
+        }
+    }
+
+    /// The context holds secret files, and puts acts to the human, as the `secrets` and
+    /// `approval` units stand now: asked before each call.
+    fn arm_secrets(&mut self) {
+        let on = self.unit_on(crate::units::SECRETS);
+        self.cx.set_secrets_on(on);
+        let asked = self.unit_on(crate::units::APPROVAL);
+        self.cx.set_approval_on(asked);
+    }
+
     /// The run's units, to read: the composition, its fingerprint, each unit's state.
     #[must_use]
     pub fn units(&self) -> &crate::units::Registry {
@@ -2483,7 +2546,11 @@ impl Run {
             // Nothing is spawned on this answer: the landing it allows is the one just verified.
             fingerprint: None,
         };
-        let allowed = matches!(self.cx.gate().ask(&ask), mikata_tools::Answer::Approve);
+        // Never an act's approval: the approval unit switched off does not allow it.
+        let allowed = matches!(
+            self.cx.human_gate().ask(&ask),
+            mikata_tools::Answer::Approve
+        );
         if allowed {
             self.record(&Beat::Note {
                 text: format!(
@@ -4280,6 +4347,7 @@ impl Run {
             .unwrap_or(mikata_config::VERIFY_SECS);
         let args = serde_json::json!({"command": command, "timeout_ms": secs.saturating_mul(1000)})
             .to_string();
+        self.arm_secrets();
         let ran = call(&self.tools, "bash", &args, &mut self.cx);
         let tail: String = {
             let chars: Vec<char> = ran.content.chars().collect();
@@ -4455,6 +4523,7 @@ impl Run {
             // The body's own call: a timeout it invented under the default is the default.
             _ => {
                 let input = mikata_tools::model_call(name, input);
+                self.arm_secrets();
                 call(&self.tools, name, &input, &mut self.cx)
             }
         }
@@ -5051,6 +5120,7 @@ impl Run {
                 "timeout_ms": u64::try_from(STASH_POP.as_millis()).unwrap_or(u64::MAX),
             })
             .to_string();
+            self.arm_secrets();
             let ran = call(&self.tools, "bash", &args, &mut self.cx);
             self.cx.set_deadline(clock);
             ran.meta.exit

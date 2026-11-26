@@ -241,7 +241,11 @@ pub fn configure(
     if let Some(attic) = mikata_tools::Attic::for_world(cx.world()) {
         cx = cx.with_attic(attic.with_limits(keep_days, max_mb));
     }
+    // The world's secret files, found and read once as the session opens (the secrets unit).
+    let (human, also) = config.secret_patterns();
+    let secrets = mikata_tools::Secrets::scan(cx.world(), &human, &also);
     cx = cx
+        .with_secrets(std::sync::Arc::new(secrets))
         .with_asked_rules(config.asked_rules())
         .with_unguarded(config.allow_unguarded())
         .with_disposable(config.disposable())

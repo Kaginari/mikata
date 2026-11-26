@@ -13,6 +13,7 @@ pub mod mcp;
 pub mod patch;
 mod pinned;
 pub mod plugin;
+pub mod secrets;
 pub mod shell;
 pub mod tool;
 mod tripwire;
@@ -38,6 +39,7 @@ pub use mikata_sandbox::harden_self;
 /// Whether an environment variable is a secret the harness keeps from its children.
 pub use mikata_sandbox::is_secret;
 pub use pinned::remove_created;
+pub use secrets::Secrets;
 pub use shell::{model_call, stash_depth, stdout_of};
 pub use tool::{
     Context, Grant, Meta, Outcome, OwnerOf, ReadOf, ReadSpan, SLASH_TMP, Tool, call, ignored,

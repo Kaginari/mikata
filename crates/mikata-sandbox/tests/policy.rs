@@ -147,3 +147,34 @@ fn a_toolchain_linked_to_a_credential_is_refused() {
     );
     std::fs::remove_dir_all(&home).unwrap();
 }
+
+/// The covered files a command's grants would let it read: only regular files inside a granted
+/// path, never one outside the grants (landlock already closes those) nor a link in a hidden
+/// one's place.
+#[test]
+fn the_hidden_files_inside_the_grants_are_the_ones_the_guard_covers() {
+    let root = std::path::PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("mikata-hidden-inside-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let (world, home, tmp) = (root.join("world"), root.join("home"), root.join("tmp"));
+    for d in [&world, &home, &tmp] {
+        std::fs::create_dir_all(d).unwrap();
+    }
+    std::fs::write(world.join(".env"), "X=secretvalue\n").unwrap();
+    std::fs::write(root.join("outside.env"), "Y=1\n").unwrap();
+    std::fs::create_dir_all(world.join("dir.env")).unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(world.join(".env"), world.join("link.env")).unwrap();
+    let mut policy = Policy::new(&world, &home, &tmp, false);
+    policy.covered.extend([
+        world.join(".env"),
+        root.join("outside.env"),
+        world.join("dir.env"),
+        world.join("link.env"),
+        world.join("missing.env"),
+    ]);
+    assert_eq!(
+        policy.covered_files(),
+        [world.join(".env").canonicalize().unwrap()]
+    );
+}

@@ -525,6 +525,8 @@ pub fn status(opened: &Opened) -> Vec<String> {
                 .unwrap_or_else(|| "none — the provider takes no key".into()),
         ),
         ("sandbox", opened.sandbox.clone()),
+        ("secrets", opened.secrets.clone()),
+        ("approval", opened.approval.clone()),
         (
             "budget",
             opened.budget.as_ref().map_or_else(

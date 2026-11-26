@@ -131,6 +131,19 @@ pub fn private_tmp(dir: &Path) -> Result<(), String> {
 /// What the status line says when the command has a `/tmp` of its own.
 pub const PRIVATE_TMP: &str = "private /tmp";
 
+/// Put an empty file in `path`'s place for this process and what it starts: `/dev/null` mounted
+/// over it, in the mount namespace [`private_tmp`] made (and only there: its mounts are
+/// private). Read, it is empty; written, the bytes go nowhere. The seccomp filter that follows
+/// refuses any mount, so the command cannot take it off.
+///
+/// # Errors
+///
+/// What the kernel refused; the caller runs nothing then.
+pub fn hide(path: &Path) -> Result<(), String> {
+    rustix::mount::mount_bind("/dev/null", path)
+        .map_err(|e| format!("{} kept from the command: {e}", path.display()))
+}
+
 /// Lower a limit to `cap`, never raise it.
 fn cap(resource: Resource, cap: u64) -> Result<(), String> {
     let now = getrlimit(resource);

@@ -63,6 +63,19 @@ struct ReadArgs {
     end: Option<usize>,
 }
 
+/// What `read` reads at `text`: its path and symbol; or the answer itself — why it cannot be
+/// read, or a secret file's shape, its keys and never a value (the secrets unit).
+fn read_target(cx: &Context, text: &str) -> Result<(PathBuf, Option<String>), Outcome> {
+    let (path, symbol) = target(cx, text).map_err(Outcome::error)?;
+    match cx.secrets().filter(|s| s.is_secret(&path)) {
+        Some(secrets) => Err(Outcome::ok(
+            secrets.view(&path, &cx.shown(&path)),
+            ToolClass::Read,
+        )),
+        None => Ok((path, symbol)),
+    }
+}
+
 impl Tool for Read {
     fn name(&self) -> &'static str {
         "read"
@@ -98,9 +111,9 @@ impl Tool for Read {
             Ok(a) => a,
             Err(o) => return o,
         };
-        let (path, symbol) = match target(cx, &a.path) {
+        let (path, symbol) = match read_target(cx, &a.path) {
             Ok(t) => t,
-            Err(e) => return Outcome::error(e),
+            Err(o) => return o,
         };
         if symbol.is_some() && (a.offset.is_some() || a.end.is_some() || a.limit.is_some()) {
             return Outcome::error(
@@ -1276,6 +1289,12 @@ impl Tool for Grep {
             walk(&root).collect()
         };
         files.sort();
+        // A secret file is never searched (the secrets unit): its matches would be its values.
+        let held = cx.secrets().map_or(0, |s| {
+            let before = files.len();
+            files.retain(|f| !s.is_secret(f));
+            before - files.len()
+        });
         let mut out: Vec<String> = Vec::new();
         let mut total = 0usize;
         for file in files {
@@ -1307,8 +1326,16 @@ impl Tool for Grep {
                 }
             }
         }
+        let note = match held {
+            0 => String::new(),
+            1 => "\n(1 secret file not searched: the secrets unit holds it)".to_owned(),
+            n => format!("\n({n} secret files not searched: the secrets unit holds them)"),
+        };
         if out.is_empty() {
-            return Outcome::ok(format!("no match for `{}`", a.pattern), ToolClass::Read);
+            return Outcome::ok(
+                format!("no match for `{}`{note}", a.pattern),
+                ToolClass::Read,
+            );
         }
         let mut text = out.join("\n");
         if !a.files_only && total > MAX_RESULTS {
@@ -1318,6 +1345,7 @@ impl Tool for Grep {
                 total - MAX_RESULTS
             );
         }
+        text.push_str(&note);
         let mut o = Outcome::ok(text, ToolClass::Read);
         o.meta.truncated = !a.files_only && total > MAX_RESULTS;
         o
