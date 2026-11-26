@@ -229,7 +229,7 @@ fn is_note_id(word: &str) -> bool {
 }
 
 /// A warning that ends in a list of memory notes' ids, with the list counted: `… changed: 8
-/// notes`. The ids name nothing a human reads; `mikata memory` lists them.
+/// notes`. The ids name nothing a human reads; `mikatad memory` lists them.
 fn counted(text: &str) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
     let Some(first) = words.iter().position(|w| is_note_id(w)) else {
