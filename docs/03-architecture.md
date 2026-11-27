@@ -128,14 +128,16 @@ flowchart TB
 
 ## In plain words
 
-All the decisions live in Rust, in small crates that each do one thing and can be tested alone.
-The clients only show things and ask you questions. You run `mikata`, the terminal app, which
-hosts the core in its own process; programs — the SDK, the web board, an editor — run it through
-`mikatad`, the same core as a server. Two doors onto one core
-([why two](#two-commands-one-core)). The arrows only point downward — `races` (the
-lab's law, dashed) knows nothing about networks, `wire` knows nothing about models — so each piece can be proven before the next is
-built on it. `tools/check-layers.mjs` holds the same graph and fails on any edge it does not
-draw.
+Every decision lives in Rust, in small crates that each do one thing and can be tested alone. The
+screens only show things and ask you questions.
+
+There are two ways in to the same core ([why two](#two-commands-one-core)). You run `mikata`, the
+terminal app, which runs the core inside its own process. Programs (the SDK, the web board, an
+editor) reach the core through `mikatad`, the same core as a server.
+
+The arrows in the picture only point down: `wire` knows nothing about models, and `races` (the lab's
+law, dashed) knows nothing about networks. So each piece can be proven before the next is built on
+it, and `tools/check-layers.mjs` fails on any arrow the picture does not draw.
 
 ## Technical detail
 
@@ -874,14 +876,24 @@ pinged at the chats' pace (5 s), two pings unanswered ending it. A socket that f
 told `worlds/changed`; when its session ends it is closed with 4001. The page rereads what it
 shows when its world is named, and everything when `worlds/changed` comes or its socket reopens.
 
-#### The board's chat
+#### A session on the board
 
-Inside a world, the rail lists its chats: the live ones the bridge runs (`GET /api/sessions`), then
-the past ones from its run journals (`GET /api/w/<id>/runs`), each titled by its last ask. *New
-chat* posts `/api/w/<id>/sessions`; a stopped past run offers *Resume*, which posts `{"resume":
-"<run>"}`. A live chat is `#/w/<world>/s/<chat>`, a past one `#/w/<world>/r/<run>`. The list is read
-on opening, when the push channel says the world changed (at most every 2 s), every 10 s, and when
-a chat ends.
+The rail lists a workspace's sessions: the live ones the bridge runs (`GET /api/sessions`), by
+their ask, with a dot while they run and *needs you* while an approval waits; then the latest past
+runs from the run journals (`GET /api/w/<id>/runs`), and *All runs*. A new session starts from the
+Harness Builder (*Start session*), from *New session* in the top bar or the rail's `+`, and opens
+with the composition the Builder holds for that workspace. A live session is
+`#/w/<world>/s/<session>`, a past run `#/w/<world>/r/<run>`; a stopped past run offers *Resume*,
+which posts `{"resume": "<run>"}`. The list is read on opening, when the push channel says the world
+changed (at most every 2 s), every 10 s, and when a session ends.
+
+**A live session** (`src/views/Session.tsx`) is its conversation as a timeline of steps, the
+composer under it, and the **Live run** beside it: Plan · Work · Verify · Land, the log, the
+`Done when` list, the guardrails as the session runs them (a guard switched off says so), wall
+time, steps, cost and context against its stress line. The header names the session by its first
+ask, with a state badge and its chips, and says *guards off* in the alarm's tone when it runs
+without one. A long session stays fast: the timeline draws its newest 200 rows (*Show earlier* adds
+more) and redraws only the step an event changed.
 
 **Past runs** are read through the world's shared reader (`mikata_world::regular`: a link never
 followed, a pipe never waited on, the handle checked), by a session run's id only, from a journals
@@ -894,7 +906,7 @@ alone (recall, the guts, the prefix, the model ridden, a compaction, the reasoni
 A line that does not read is counted, never guessed. Nothing read there grants anything: the text
 is shown inert, like the model's.
 
-**The transcript** follows the terminal's grammar (`crates/mikata-tui`): the human's line on a
+**A past run's transcript** follows the terminal's grammar (`crates/mikata-tui`): the human's line on a
 gold spine; the answer on a holo spine under `✦ <body>`, a paragraph at a time as it streams; each
 tool call a card coloured by its class — a look, a write and a destructive act each in their
 own colour, a command uncoloured, as the protocol carries no classifier's word —
@@ -924,11 +936,11 @@ stops at 8, a text parses into at most 2,000 blocks (the rest one paragraph), an
 the board runs on such text — the Markdown subset, the highlighter, the safe-text runs, the router —
 on adversarial 100 KB inputs, each under 50 ms.
 
-**The composer.** Enter sends; while a turn runs it queues (the line waits its turn, listed above
-the composer), *Steer* (or `/send …`) reaches the running turn after its next tool step, and Esc
-interrupts — the turn stops and what waits at the gate is denied. A tab that observes cannot send:
-its composer is disabled and offers *Take over*, which a tab of the browser that opened the chat may
-use. *End chat* ends it for every tab.
+**The composer.** Enter sends; while a turn runs the line waits its turn (listed above the
+composer), *Steer* (or `/send …`) folds words into the running turn after its next tool step, and
+Esc interrupts: the turn stops and what waits at the gate is denied. A tab that only watches cannot
+send: it offers *Take over*, which a tab of the browser that opened the session may use. *End
+session* ends it for every tab.
 
 <img src="./img/board/approval-dark.png" width="640" alt="A real approval, dark: Mikata asking to run git push, the act whole, why it asks, the plan, head, diff and target it is bound to, the answers numbered">
 
@@ -973,12 +985,7 @@ answer says so ("answered elsewhere", or why it was withdrawn).
 overtake the replay wait for it, and the SDK drops an event whose `seq` it has seen, so a reconnect
 — which replays from the last `seq` — or a reload never shows a message twice.
 
-**The side pane** beside a chat: the vitals (the context against its stress line, the tokens, the
-spend — `unpriced` never reads `$0` — and the weighted tokens), the mode the session opened in
-(why, on hover) and its sandbox, the world's memory counted (from its
-overview), and the files the session's acts changed as a tree marked added, modified or deleted.
-
-**Long chats.** The transcript is drawn in a window: only the rows near the viewport are in the DOM,
+**Long transcripts.** A past run's transcript is drawn in a window: only the rows near the viewport are in the DOM,
 between two spacers whose heights are set through the CSSOM (never a style written as markup);
 each row is measured once drawn. Scrolled to its end it follows what arrives; scrolled up it stays,
 with a *Latest* button back. A 2,000-message transcript keeps under 120 rows in the DOM and scrolls
