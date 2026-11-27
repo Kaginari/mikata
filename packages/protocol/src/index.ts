@@ -4,6 +4,7 @@
  * in; the check fails when they drift.
  */
 export type { Activity } from './generated/Activity.js';
+export type { AskTally } from './generated/AskTally.js';
 export type { Bench } from './generated/Bench.js';
 export type { BenchRow } from './generated/BenchRow.js';
 export type { BoardBodies } from './generated/BoardBodies.js';
@@ -12,6 +13,7 @@ export type { BoardDone } from './generated/BoardDone.js';
 export type { BoardFact } from './generated/BoardFact.js';
 export type { BoardFactStatus } from './generated/BoardFactStatus.js';
 export type { BoardFacts } from './generated/BoardFacts.js';
+export type { BoardInsights } from './generated/BoardInsights.js';
 export type { BoardIntegrations } from './generated/BoardIntegrations.js';
 export type { BoardJournal } from './generated/BoardJournal.js';
 export type { BoardMemory } from './generated/BoardMemory.js';
@@ -59,6 +61,8 @@ export type { Ground } from './generated/Ground.js';
 export type { GutsClass } from './generated/GutsClass.js';
 export type { Hello } from './generated/Hello.js';
 export type { HoleView } from './generated/HoleView.js';
+export type { InsightAsk } from './generated/InsightAsk.js';
+export type { InsightTool } from './generated/InsightTool.js';
 export type { JournalEntry } from './generated/JournalEntry.js';
 export type { JournalToc } from './generated/JournalToc.js';
 export type { KeyFileView } from './generated/KeyFileView.js';
@@ -85,6 +89,7 @@ export type { NoteStanding } from './generated/NoteStanding.js';
 export type { NoteVersion } from './generated/NoteVersion.js';
 export type { OrderCounts } from './generated/OrderCounts.js';
 export type { OrderState } from './generated/OrderState.js';
+export type { Outcome } from './generated/Outcome.js';
 export type { PathOwner } from './generated/PathOwner.js';
 export type { PriceView } from './generated/PriceView.js';
 export type { PromptParams } from './generated/PromptParams.js';

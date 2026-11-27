@@ -77,14 +77,14 @@ pub struct InsightAsk {
     pub listed: u32,
     /// Its numbers.
     #[serde(flatten)]
-    pub tally: Tally,
+    pub tally: AskTally,
 }
 
 /// What one ask did and cost.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
-pub struct Tally {
+pub struct AskTally {
     /// Model turns.
     #[ts(type = "number")]
     pub turns: u64,
@@ -219,21 +219,50 @@ fn composition(beats: &[Beat]) -> Vec<String> {
     last.into_values().collect()
 }
 
+/// A run's usage rows: by the provider's message id, and in order of the turns that name no
+/// `purpose`. A turn is joined to its row by id, else by place — the k-th turn of the run to its
+/// k-th such row, as `mikatad runs --session` pairs them.
+#[derive(Default)]
+struct Rows<'a> {
+    by_id: HashMap<&'a str, &'a UsageRow>,
+    in_order: Vec<&'a UsageRow>,
+}
+
+impl<'a> Rows<'a> {
+    fn of(rows: impl Iterator<Item = &'a UsageRow>) -> Self {
+        let mut r = Rows::default();
+        for row in rows.filter(|r| r.purpose.is_none()) {
+            if let Some(id) = row.message_id.as_deref() {
+                r.by_id.insert(id, row);
+            }
+            r.in_order.push(row);
+        }
+        r
+    }
+
+    /// The row of the run's `k`-th turn, whose answer `id` names.
+    fn of_turn(&self, k: usize, id: Option<&str>) -> Option<&'a UsageRow> {
+        id.and_then(|id| self.by_id.get(id).copied())
+            .or_else(|| self.in_order.get(k).copied())
+    }
+}
+
 /// What one ask's beats say: its numbers, its last verdict, its ending, its first answer's start
 /// and its `Done when` lines.
 struct Segment<'a> {
-    tally: Tally,
+    tally: AskTally,
     verdict: Option<&'a str>,
     ending: Option<&'a str>,
     began: Option<Timestamp>,
     listed: u32,
 }
 
-/// Read one ask's beats, its run's usage rows by message id beside them.
-fn segment<'a>(seg: &'a [Beat], rows: &HashMap<&str, &UsageRow>) -> Segment<'a> {
+/// Read one ask's beats, its run's usage rows beside them; `turn` counts the run's turns before
+/// it, and is moved past its own.
+fn segment<'a>(seg: &'a [Beat], rows: &Rows<'_>, turn: &mut usize) -> Segment<'a> {
     let m = mikata_loop::metrics::metrics(seg);
     let mut s = Segment {
-        tally: Tally {
+        tally: AskTally {
             turns: m.turns,
             model_ms: m.model_ms,
             calls: m.calls,
@@ -245,7 +274,7 @@ fn segment<'a>(seg: &'a [Beat], rows: &HashMap<&str, &UsageRow>) -> Segment<'a> 
             tested: m.tested_after_last_write,
             reads: m.reads,
             rereads: m.rereads,
-            ..Tally::default()
+            ..AskTally::default()
         },
         verdict: None,
         ending: None,
@@ -264,7 +293,9 @@ fn segment<'a>(seg: &'a [Beat], rows: &HashMap<&str, &UsageRow>) -> Segment<'a> 
                     let back = i64::try_from(ms.unwrap_or(0) / 1000).unwrap_or(0);
                     s.began = Some(Timestamp(at.0.saturating_sub(back)));
                 }
-                if let Some(row) = id.as_deref().and_then(|id| rows.get(id)) {
+                let row = rows.of_turn(*turn, id.as_deref());
+                *turn += 1;
+                if let Some(row) = row {
                     let t = &mut s.tally;
                     t.input += row.usage.input;
                     t.output += row.usage.output;
@@ -312,8 +343,9 @@ fn asks_of(
     run: &str,
     started: Timestamp,
     beats: &[Beat],
-    rows: &HashMap<&str, &UsageRow>,
+    rows: &Rows<'_>,
 ) -> Vec<InsightAsk> {
+    let mut turn = 0usize;
     let units = composition(beats);
     let starts: Vec<usize> = beats
         .iter()
@@ -333,7 +365,7 @@ fn asks_of(
             }
         }
         let to = starts.get(k + 1).copied().unwrap_or(beats.len());
-        let s = segment(&beats[to_ask..to], rows);
+        let s = segment(&beats[to_ask..to], rows, &mut turn);
         for b in &beats[to_ask..to] {
             if let Beat::Rides { model: m, .. } = b {
                 model = Some(m.clone());
@@ -457,13 +489,13 @@ pub fn insights(
         };
         budget = budget.saturating_sub(bytes.len() as u64);
         let (beats, _) = beats(&bytes);
-        let rows: HashMap<&str, &UsageRow> = ledgers
-            .get(&world)
-            .into_iter()
-            .flatten()
-            .filter(|r| r.run == run)
-            .filter_map(|r| r.message_id.as_deref().map(|id| (id, r)))
-            .collect();
+        let rows = Rows::of(
+            ledgers
+                .get(&world)
+                .into_iter()
+                .flatten()
+                .filter(|r| r.run == run),
+        );
         for (name, t) in &mikata_loop::metrics::metrics(&beats).tools {
             let e = tools.entry(name.clone()).or_insert_with(|| InsightTool {
                 name: name.clone(),
@@ -532,6 +564,92 @@ mod tests {
         );
         assert_eq!(outcome(None, None, true).0, Outcome::Open);
         assert_eq!(outcome(None, None, false), (Outcome::Stopped, Some("cut")));
+    }
+
+    /// A journal as the core writes one: two asks of one run, the first landed with its list,
+    /// the second stopped by its steps; usage rows joined by message id.
+    #[test]
+    fn a_journal_reads_as_its_asks() {
+        let journal = [
+            r#"{"beat":"law","on":true,"mode":"light-coding"}"#,
+            r#"{"beat":"rides","model":"deepseek/deepseek-v4-flash"}"#,
+            r#"{"beat":"units","op":"unload","id":"reader","version":"1.3.0","digest":"x"}"#,
+            r#"{"beat":"ask","text":"fix it\n\n## Done when\n- D1: f(1) gives 2\n- D2: f(2) still gives 4"}"#,
+            r#"{"beat":"model","content":[],"stop":"ToolUse","at":"2026-11-27T18:16:27Z","ms":2000,"id":"m1"}"#,
+            r#"{"beat":"result","tool_use_id":"t1","content":"ok","is_error":false,"ms":30}"#,
+            r#"{"beat":"model","content":[],"stop":"EndTurn","at":"2026-11-27T18:16:40Z","ms":1000,"id":"m2"}"#,
+            r#"{"beat":"gate","changed":["a.py"],"failures":[],"unverified":[],"verdict":"PASS"}"#,
+            r#"{"beat":"end","ending":"answered"}"#,
+            r#"{"beat":"ask","text":"and the docs"}"#,
+            r#"{"beat":"model","content":[],"stop":"ToolUse","at":"2026-11-27T18:20:00Z","ms":500,"id":"m3"}"#,
+            r#"{"beat":"end","ending":"checkpoint: steps: 30 taken"}"#,
+        ]
+        .join("\n");
+        let (beats, skipped) = beats(journal.as_bytes());
+        assert_eq!(skipped, Vec::<u32>::new(), "every line reads");
+        let row = |id: &str, usd: Option<f64>, reported: Option<f64>| UsageRow {
+            message_id: Some(id.to_owned()),
+            usd,
+            reported_cost: reported,
+            ..serde_json::from_value(serde_json::json!({
+                "ts": "2026-11-27T18:16:27Z", "session": "s", "run": "r1", "body": "summoner",
+                "race": "summoner", "model": "m", "provider": "p",
+                "input": 100, "output": 10, "cacheRead": 50, "cacheWrite": 0,
+                "prefix": 0, "wt": 1, "usd": null
+            }))
+            .unwrap()
+        };
+        let rows = [
+            row("m1", Some(0.01), None),
+            row("m2", None, Some(0.02)),
+            row("m3", None, None),
+        ];
+        let asks = asks_of("w", "r1", Timestamp(0), &beats, &Rows::of(rows.iter()));
+        assert_eq!(asks.len(), 2);
+        let (a, b) = (&asks[0], &asks[1]);
+        assert_eq!(a.model.as_deref(), Some("deepseek/deepseek-v4-flash"));
+        assert_eq!(a.mode.as_deref(), Some("light-coding"));
+        assert_eq!(a.units, ["-reader"]);
+        assert_eq!((a.outcome, a.cause.as_deref()), (Outcome::Landed, None));
+        assert_eq!(a.listed, 2);
+        assert_eq!((a.tally.turns, a.tally.calls, a.tally.verdicts), (2, 1, 1));
+        assert_eq!(a.tally.model_ms, 3000);
+        assert_eq!((a.tally.input, a.tally.cache_read), (200, 100));
+        assert!(
+            (a.tally.usd.unwrap() - 0.03).abs() < 1e-9,
+            "ours, else the provider's"
+        );
+        assert_eq!(
+            a.at, "2026-11-27T18:16:25Z",
+            "the first answer less its time"
+        );
+        assert_eq!(
+            (b.n, b.outcome, b.cause.as_deref()),
+            (2, Outcome::Stopped, Some("steps"))
+        );
+        assert_eq!((b.tally.usd, b.tally.unpriced, b.listed), (None, 1, 0));
+    }
+
+    /// A turn whose answer names no id is joined by place: the k-th turn to the k-th row.
+    #[test]
+    fn a_turn_without_an_id_is_joined_by_place() {
+        let row = |cost: f64| -> UsageRow {
+            serde_json::from_value(serde_json::json!({
+                "ts": "2026-11-27T18:16:27Z", "session": "s", "run": "r1", "body": "summoner",
+                "race": "summoner", "model": "m", "provider": "p",
+                "input": 10, "output": 1, "cacheRead": 0, "cacheWrite": 0,
+                "prefix": 0, "wt": 1, "usd": cost
+            }))
+            .unwrap()
+        };
+        let rows = [row(0.5), row(0.25)];
+        let r = Rows::of(rows.iter());
+        assert_eq!(r.of_turn(0, None).and_then(|r| r.usd), Some(0.5));
+        assert_eq!(
+            r.of_turn(1, Some("unknown")).and_then(|r| r.usd),
+            Some(0.25)
+        );
+        assert!(r.of_turn(2, None).is_none());
     }
 
     #[test]
