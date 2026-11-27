@@ -20,8 +20,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - **ctrl+l shows the conversation alone**, and ctrl+l again goes back to the view you were in.
   **ctrl+o shows every thought whole**, in plain text on a rail in the brand's colour; again,
   they fold. The sidebar moves to **ctrl+b**.
-- **The terminal app's panels carry a longer hatch**: three groups of bold slashes on each
-  panel's top edge, each sweeping from one of the brand's colours to the next.
+- **The terminal app's panels carry three large strokes** on each panel's top edge, thick
+  slants each running from one of the brand's colours to the next: hot, coral, amber.
 
 - **Studio, a third look for the board** beside Light and Dark (Settings, or the top bar's theme
   switch: auto → light → dark → studio). It is the dark page made softer for long hours:

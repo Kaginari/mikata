@@ -104,49 +104,42 @@ pub fn panel(
     inside
 }
 
-/// The hatch on a panel's top edge, at its right end: three groups of bold slashes, each
-/// sweeping from one of the brand's colours to the next — hot to coral, coral to amber, amber to
-/// gold. Six cells a group where the edge has room after the title, two where it has less, none
-/// on a narrow panel.
+/// The hatch on a panel's top edge, at its right end: three large strokes, each a thick slant drawn
+/// as a pair of triangles (`◢◤`), each running from one of the brand's colours to the next — hot to
+/// coral, coral to amber, amber to gold. None on a panel too narrow for them beside its title.
 fn hatch(buf: &mut Buffer, area: Rect, title_cells: usize, t: &Theme) {
-    // A slash, never a block: no picture is built from characters (the pictures test holds it).
-    const GLYPH: &str = "/";
-    let room = usize::from(area.width).saturating_sub(title_cells + 6);
-    let per: usize = if room >= 3 * 6 + 4 {
-        6
-    } else if room >= 3 * 2 + 4 {
-        2
-    } else {
+    // Triangles, never blocks: no picture is built from block characters (the pictures test).
+    const STROKE: [&str; 2] = ["\u{25e2}", "\u{25e4}"];
+    const WIDTH: u16 = 3 * 2 + 2 * 2;
+    if usize::from(area.width) < title_cells + 6 + usize::from(WIDTH) + 2 {
         return;
-    };
+    }
     let stops = [
         t.p.holo,
         t.p.holo.mix(t.p.gold, 0.35),
         t.p.holo.mix(t.p.gold, 0.7),
         t.p.gold,
     ];
-    let width = u16::try_from(3 * per + 2).unwrap_or(u16::MAX);
-    let mut x = area.right().saturating_sub(width + 3);
+    let mut x = area.right().saturating_sub(WIDTH + 3);
     for g in 0..3 {
-        for i in 0..per {
-            #[allow(clippy::cast_precision_loss)]
-            let f = i as f32 / (per.saturating_sub(1).max(1)) as f32;
-            let c = stops[g].mix(stops[g + 1], f);
+        for (i, glyph) in STROKE.iter().enumerate() {
+            let c = if i == 0 {
+                stops[g]
+            } else {
+                stops[g].mix(stops[g + 1], 0.6)
+            };
             let cell = &mut buf[(x, area.y)];
-            cell.set_symbol(GLYPH);
-            cell.set_style(
-                Style::new()
-                    .fg(c.color())
-                    .bg(t.p.panel.color())
-                    .add_modifier(Modifier::BOLD),
-            );
+            cell.set_symbol(glyph);
+            cell.set_style(Style::new().fg(c.color()).bg(t.p.panel.color()));
             x += 1;
         }
         if g < 2 {
-            let gap = &mut buf[(x, area.y)];
-            gap.set_symbol(" ");
-            gap.set_style(Style::new().bg(t.p.panel.color()));
-            x += 1;
+            for _ in 0..2 {
+                let gap = &mut buf[(x, area.y)];
+                gap.set_symbol(" ");
+                gap.set_style(Style::new().bg(t.p.panel.color()));
+                x += 1;
+            }
         }
     }
 }
