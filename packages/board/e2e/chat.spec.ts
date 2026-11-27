@@ -126,9 +126,10 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(talk.locator('.mapp-landed')).toContainText('Landed:');
       await expect(talk.locator('.mapp-working')).toContainText('working…');
       const run = page.getByRole('complementary', { name: 'Live run' });
-      await expect(run.getByRole('log', { name: 'Run log' })).toContainText(
-        'edit: sqlglot/parser.py',
-      );
+      // The Live run follows the ask now running: the earlier ask's edit is in the timeline only.
+      const log = run.getByRole('log', { name: 'Run log' });
+      await expect(log).toContainText('bash: pnpm --filter site build');
+      await expect(log).not.toContainText('edit: sqlglot/parser.py');
       await expect(run.locator('.ss-tiles')).toContainText('$0.040');
       await expect(run).toContainText('Context');
       // A replayed verdict is a step, never a toast.

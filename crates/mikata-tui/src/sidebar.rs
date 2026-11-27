@@ -440,8 +440,14 @@ pub struct Sidebar {
     pub folded: [bool; 4],
     /// Where the last frame drew each section's title: its row among the sidebar's lines.
     pub(crate) titles: RefCell<Vec<(usize, Section)>>,
-    /// The body's `Done when` lines, once read.
+    /// The `Done when` lines of the body's plan (`.mikata/tmp/plan.md`), once read: the list of
+    /// whichever ask wrote the plan last.
     pub done: Vec<String>,
+    /// The list the current ask is held to, from the text it started with
+    /// ([`mikata_loop::lines::of_ask`]), as `D1 text`.
+    pub asked: Vec<String>,
+    /// Whether the current ask wrote the plan.
+    pub planned: bool,
     /// The world's branch, once read.
     pub branch: Option<String>,
 }
@@ -479,6 +485,8 @@ impl Default for Sidebar {
             folded: [false; 4],
             titles: RefCell::new(Vec::new()),
             done: Vec::new(),
+            asked: Vec::new(),
+            planned: false,
             branch: None,
         }
     }
@@ -489,8 +497,24 @@ impl Sidebar {
     /// session's own.
     pub fn fold(&mut self, event: &Event, chain: &[String]) {
         match event {
-            Event::TurnStarted { .. } if chain.is_empty() => self.recalled = Some(0),
+            Event::TurnStarted { text } if chain.is_empty() => {
+                self.recalled = Some(0);
+                self.asked = mikata_loop::lines::of_ask(text)
+                    .into_iter()
+                    .map(|(name, text)| format!("{name} {text}"))
+                    .collect();
+                self.planned = false;
+            }
             Event::ToolCall { id, name, input } => {
+                if chain.is_empty()
+                    && matches!(name.as_str(), "edit" | "multiedit" | "write" | "patch")
+                    && input
+                        .get("path")
+                        .and_then(Value::as_str)
+                        .is_some_and(|p| p.ends_with("plan.md"))
+                {
+                    self.planned = true;
+                }
                 self.files.call(id, name, input, self.root.as_deref());
             }
             Event::ToolResult { id, is_error, .. } => self.files.result(id, *is_error),
@@ -498,6 +522,20 @@ impl Sidebar {
         }
         if !chain.is_empty() {
             self.bodies.fold(chain, event);
+        }
+    }
+
+    /// The `Done when` list the current ask is held to: the one its own text carries; else the
+    /// plan's, only when this ask wrote the plan. A list an earlier ask left in the plan is that
+    /// ask's, never this one's.
+    #[must_use]
+    pub fn done_now(&self) -> &[String] {
+        if !self.asked.is_empty() {
+            &self.asked
+        } else if self.planned {
+            &self.done
+        } else {
+            &[]
         }
     }
 

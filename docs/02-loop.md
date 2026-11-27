@@ -209,9 +209,9 @@ Before every model call the loop reads four meters from the core, never from the
 
 | Meter | Default | Past it |
 |---|---|---|
-| steps | 200 for the session's one body, or `steps.solo` (the lab's bodies have theirs by race, `steps.<race>`) | checkpoint, one salvage turn of ≤ 4096 tokens to write down what it learned |
-| wall clock | 60 minutes a session, or `limits.session_minutes` | checkpoint, one salvage resume of ≤ 4096 tokens to land `@U`/`@F` |
-| context | an absolute line, `stress.context_tokens` (150k), never past 90% of the model's window (below) | at 60%: old tool outputs fold; at 75%: the body is told to write down what is not durable; at the line: a structured compaction, twice an ask, and the run goes on; after that a drain turn, then checkpoint, telling the human to break |
+| steps | 200 an ask for the session's one body, or `steps.solo` (the lab's bodies have theirs by race, `steps.<race>`); one session may ask its own (`MIKATA_STEPS`, the board's *Steps*) | checkpoint, one salvage turn of ≤ 4096 tokens to write down what it learned |
+| wall clock | 60 minutes an ask, or `limits.session_minutes`; the clock starts with each ask, so a session left open between asks spends none of it; one session may ask its own (`MIKATA_MINUTES`, the board's *Clock*) | checkpoint, one salvage resume of ≤ 4096 tokens to land `@U`/`@F` |
+| context | an absolute line, `stress.context_tokens` (150k), never past 90% of the model's window (below); one session may ask its own (`MIKATA_CONTEXT`, the board's *Context line*), refused past 90% of the window | at 60%: old tool outputs fold; at 75%: the body is told to write down what is not durable; at the line: a structured compaction, twice an ask, and the run goes on; after that a drain turn, then checkpoint, telling the human to break |
 | cost | your caps, in cache-weighted cost and in dollars ([Consumption](05-consumption.md)); in the lab a commission's `@BUDGET` is carved from them | what [Consumption](05-consumption.md) says each cap does |
 
 One model reply may take `limits.reply_tokens` tokens, 16,384 by default. A model that thinks before it answers spends its thinking from the same room, so a cap too

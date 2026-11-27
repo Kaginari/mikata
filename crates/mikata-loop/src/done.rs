@@ -1538,6 +1538,37 @@ its output on the code you gave it)"
         assert_eq!(kind(&line), Kind::Gives);
     }
 
+    /// A client reads an ask's list from the text the turn started with: the ask's own lines and
+    /// the human's, once each, never the harness's sentences about them.
+    #[test]
+    fn the_list_an_ask_is_held_to_reads_from_its_text() {
+        let mut list = List::of(ASK).holding(&["`f(1)` must give `2`".to_owned()]);
+        list.pin("D4", "./f 1");
+        let after = list.after_the_ask().unwrap();
+        assert!(after.contains(crate::lines::HOLDS), "{after}");
+        let text = format!(
+            "remembered: D9 is old\n\n{}\n\n{ASK}\n\n{after}",
+            crate::run::THE_ASK
+        );
+        let names: Vec<String> = crate::lines::of_ask(&text)
+            .into_iter()
+            .map(|(name, text)| format!("{name} {text}"))
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "D1 `total(['1', '', '2'])` must give `3`",
+                "D2 `total(['4'])` must stay as it is today",
+                "D3 the help text is clear",
+                "D4 `f(1)` must give `2`",
+            ]
+        );
+        assert_eq!(
+            crate::lines::of_ask("just do it"),
+            Vec::<crate::lines::Line>::new()
+        );
+    }
+
     /// What the human's corrections say must come out joins the list after its own lines, is
     /// said after the ask as the human's, and is held like any line. The same case twice is one
     /// line, and only the newest are kept.

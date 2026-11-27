@@ -12,6 +12,7 @@ import type { BoardWorld } from '@mikata/protocol';
 import {
   Bot,
   Check,
+  ChevronDown,
   CircleCheck,
   CircleX,
   Clock,
@@ -45,7 +46,7 @@ import {
   useState,
 } from 'react';
 import type { Call, ChatView, Entry } from '../data/chat.ts';
-import { humanWords, summary } from '../data/chat.ts';
+import { type DoneLine, humanWords, running, summary } from '../data/chat.ts';
 import { type Chats, startChat } from '../data/chats.ts';
 import {
   GUARDS,
@@ -65,7 +66,7 @@ import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { useAnnouncements } from './Chat.tsx';
-import { logLines, Steps, stages, stamp } from './run.tsx';
+import { logLines, Steps, stages, stamp, verdictOf } from './run.tsx';
 import { SessionUnits } from './SessionUnits.tsx';
 import './session.css';
 
@@ -97,6 +98,8 @@ export type Step =
 export interface Turn {
   key: string;
   ask: string;
+  /** The `Done when` list the ask holds: the human's, a reader's, or a correction kept. */
+  list: readonly DoneLine[];
   steps: Step[];
   /** When its first step began (ms), if seen live. */
   began?: number | undefined;
@@ -202,7 +205,7 @@ export function turns(view: ChatView | undefined, verify: readonly string[]): Tu
   let turn: Turn | undefined;
   const push = (s: Step) => {
     if (!turn) {
-      turn = { key: `t-${s.key}`, ask: '', steps: [] };
+      turn = { key: `t-${s.key}`, ask: '', list: [], steps: [] };
       out.push(turn);
     }
     turn.steps.push(s);
@@ -224,7 +227,7 @@ export function turns(view: ChatView | undefined, verify: readonly string[]): Tu
   for (const e of view?.entries ?? []) {
     switch (e.kind) {
       case 'user':
-        turn = { key: e.key, ask: humanWords(e.text), steps: [] };
+        turn = { key: e.key, ask: humanWords(e.text), list: e.list ?? [], steps: [] };
         out.push(turn);
         break;
       case 'tool':
@@ -546,6 +549,7 @@ function LiveRun({
   cost,
   ctx,
   landed,
+  doneList,
   guardsOff,
   onStop,
 }: {
@@ -559,15 +563,19 @@ function LiveRun({
   cost: string;
   ctx: number | undefined;
   landed: boolean;
+  /** The `Done when` list the current ask is held to ([`currentList`]). */
+  doneList: readonly string[];
   /** The guards the session runs without, as it says them. */
   guardsOff: readonly string[];
   onStop: (() => void) | undefined;
 }) {
-  const st = stages(v, planOn);
+  // The Live run follows the ask now running: what an earlier ask did is in the timeline.
+  const now = useMemo(() => latestTurn(v), [v]);
+  const st = stages(now, planOn);
   const gateOn = !guardsOff.includes('gate');
   const askOn = !guardsOff.includes('approval');
   const secretsOn = !guardsOff.includes('secrets');
-  const lines = logLines(v);
+  const lines = logLines(now);
   const from = lines.find((l) => l[3] !== undefined)?.[3];
   const sandboxOn = hello ? !hello.sandbox.startsWith('none') : undefined;
   const log = useRef<HTMLDivElement>(null);
@@ -576,7 +584,7 @@ function LiveRun({
     const el = log.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [lines.length]);
-  const done = landed ? desk.done.length : 0;
+  const done = landed ? doneList.length : 0;
   return (
     <aside className="ss-live" aria-label="Live run">
       <div className="ss-livehead">
@@ -594,6 +602,15 @@ function LiveRun({
         )}
       </div>
       <Steps st={st} label="Stages" />
+      {hello && (
+        <p className="ss-model" data-busy={v?.busy ? 'true' : 'false'} aria-live="polite">
+          <Icon icon={Cpu} />
+          <b className="ss-modelname">
+            <Safe text={hello.model} />
+          </b>
+          <span>{doing(now)}</span>
+        </p>
+      )}
       <div className="ss-log" role="log" aria-label="Run log" ref={log}>
         {lines.length === 0 ? (
           <p className="ss-muted">
@@ -611,28 +628,40 @@ function LiveRun({
         {v?.busy && <span className="ss-caret" aria-hidden="true" />}
       </div>
 
-      <section className="ss-card" aria-label="Done when">
-        <h3>
-          <Icon icon={SquareCheck} /> Done when{' '}
-          <small>
-            {done}/{desk.done.length}
-          </small>
-        </h3>
-        {desk.done.length === 0 ? (
-          <p className="ss-muted">No list yet: the plan writes one, or say what done means.</p>
+      <Fold
+        id="done"
+        label="Done when"
+        head={
+          <>
+            <Icon icon={SquareCheck} /> Done when{' '}
+            <small>
+              {done}/{doneList.length}
+            </small>
+          </>
+        }
+      >
+        {doneList.length === 0 ? (
+          <p className="ss-muted">
+            No list for this ask: write one under <code>## Done when</code>, or name a reader.
+          </p>
         ) : (
-          desk.done.map((d) => (
+          doneList.map((d) => (
             <p key={d} className="ss-check" data-ok={landed}>
               <Tick ok={landed} /> <Safe text={d} />
             </p>
           ))
         )}
-      </section>
+      </Fold>
 
-      <section className="ss-card" aria-label="Guardrails">
-        <h3>
-          <Icon icon={Shield} /> Guardrails
-        </h3>
+      <Fold
+        id="guardrails"
+        label="Guardrails"
+        head={
+          <>
+            <Icon icon={Shield} /> Guardrails
+          </>
+        }
+      >
         <p className="ss-check" data-ok={sandboxOn === true}>
           <Tick ok={sandboxOn === true} />
           <span>Sandbox</span>
@@ -658,7 +687,7 @@ function LiveRun({
           <span>Secret files</span>
           <b>{secretsOn ? 'held' : 'readable'}</b>
         </p>
-      </section>
+      </Fold>
 
       <dl className="ss-tiles">
         <div>
@@ -731,6 +760,7 @@ function Screen({
   const last = all[all.length - 1];
   const verdict = [...(last?.steps ?? [])].reverse().find((s) => s.kind === 'verdict');
   const landed = verdict?.kind === 'verdict' && verdict.ok;
+  const doneNow = useMemo(() => currentList(last, desk), [last, desk]);
   const [limit, setLimit] = useState(WINDOW);
   const { shown, hidden } = useMemo(() => windowed(all, limit), [all, limit]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: follows the transcript as it grows
@@ -823,8 +853,15 @@ function Screen({
                   <Icon icon={SlidersHorizontal} />{' '}
                   <Safe
                     text={
-                      [opened.with.profile, opened.with.units].filter(Boolean).join(' · ') ||
-                      'default harness'
+                      [
+                        opened.with.profile,
+                        opened.with.units,
+                        opened.with.steps && `${opened.with.steps} steps`,
+                        opened.with.minutes && `${opened.with.minutes} min`,
+                        opened.with.context && `${Math.round(opened.with.context / 1000)}k context`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || 'default harness'
                     }
                   />
                 </li>
@@ -905,7 +942,7 @@ function Screen({
                     <Icon icon={User} /> You <time>{clock(t.began)}</time>
                   </p>
                   <div className="mapp-ask">
-                    <Safe text={t.ask} />
+                    <Safe text={t.ask} lines />
                   </div>
                 </div>
               )}
@@ -1049,6 +1086,7 @@ function Screen({
         cost={cost}
         ctx={ctx}
         landed={landed}
+        doneList={doneNow}
         guardsOff={guardsOff}
         onStop={busy && live ? () => void live.interrupt() : undefined}
       />
@@ -1142,5 +1180,96 @@ function NoSession({ w }: { w: BoardWorld }) {
         </div>
       </section>
     </div>
+  );
+}
+
+/** What the model does now, in a few words: what the Live run says beside its name. */
+export function doing(v: ChatView | undefined): string {
+  if (!v?.busy) return 'idle';
+  if (verdictOf(v) === undefined && v.answered) return 'answered · the end gate checks';
+  const calls = v.entries.flatMap((e) =>
+    e.kind === 'tool' ? [e.call] : e.kind === 'group' ? e.calls : [],
+  );
+  const live = calls.findLast(running);
+  if (live) return `running ${live.name}`;
+  if (v.streaming !== '') return 'writing';
+  return 'thinking';
+}
+
+/** A session's view from its latest ask on: the whole view when it holds no ask yet. */
+export function latestTurn(v: ChatView | undefined): ChatView | undefined {
+  const at = v?.entries.findLastIndex((e) => e.kind === 'user') ?? -1;
+  return v && at > 0 ? { ...v, entries: v.entries.slice(at) } : v;
+}
+
+/**
+ * The `Done when` list the current ask is held to: the list its own text carries (the human's, a
+ * reader's, or a correction kept); else the plan's, only when this ask wrote the plan. A list left
+ * in the plan by an earlier ask is that ask's, never this one's.
+ */
+export function currentList(turn: Turn | undefined, desk: Desk): string[] {
+  if (!turn) return [];
+  if (turn.list.length > 0) return turn.list.map(([name, text]) => `${name} ${text}`);
+  return turn.steps.some((s) => s.kind === 'plan') ? desk.done : [];
+}
+
+/** The folds a reader closed, kept in this browser. */
+const FOLDS = 'mikata.live.folds';
+
+function foldsShut(): Set<string> {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(FOLDS) ?? '[]') as unknown;
+    return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * A section of the Live run the reader may fold and unfold (its head a button), open unless they
+ * closed it; kept closed in this browser until they open it again.
+ */
+function Fold({
+  id,
+  label,
+  head,
+  children,
+}: {
+  id: string;
+  label: string;
+  head: ReactNode;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(() => !foldsShut().has(id));
+  const toggle = () =>
+    setOpen((was) => {
+      const shut = foldsShut();
+      if (was) shut.add(id);
+      else shut.delete(id);
+      try {
+        window.localStorage.setItem(FOLDS, JSON.stringify([...shut]));
+      } catch {
+        // kept for this page only
+      }
+      return !was;
+    });
+  return (
+    <section className="ss-card ss-fold" aria-label={label} data-open={open}>
+      <h3>
+        <button
+          type="button"
+          className="ss-foldhead"
+          aria-expanded={open}
+          aria-controls={`ss-fold-${id}`}
+          onClick={toggle}
+        >
+          <Icon icon={ChevronDown} className="ss-chevron" />
+          {head}
+        </button>
+      </h3>
+      <div id={`ss-fold-${id}`} className="ss-foldbody" hidden={!open}>
+        {children}
+      </div>
+    </section>
   );
 }

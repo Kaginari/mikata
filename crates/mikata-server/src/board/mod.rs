@@ -1085,12 +1085,45 @@ struct Start {
     /// Changes to the composition (`--units`): `-plan,+plan_lite`.
     #[serde(default)]
     units: Option<String>,
+    /// The model the session's body rides, as the configuration names models
+    /// (`anthropic/claude-sonnet-5.5`, `vllm:qwen3-coder`); none, `models.default`.
+    #[serde(default)]
+    model: Option<String>,
+    /// The steps an ask may take (10 to 5,000); none, the configuration's.
+    #[serde(default)]
+    steps: Option<u64>,
+    /// An ask's clock in minutes (5 to 1,440); none, the configuration's.
+    #[serde(default)]
+    minutes: Option<u64>,
+    /// The context stress line in tokens (8,000 and up; the session refuses one above 90% of its
+    /// model's window); none, the configuration's.
+    #[serde(default)]
+    context: Option<u64>,
+}
+
+/// The session limits a start may ask, with their bounds: `(field, value, lowest, highest)`.
+fn limits_asked(body: &Start) -> [(&'static str, Option<u64>, u64, u64); 3] {
+    [
+        ("steps", body.steps, 10, 5_000),
+        ("minutes", body.minutes, 5, 24 * 60),
+        ("context", body.context, 8_000, 10_000_000),
+    ]
 }
 
 /// Whether `run` may name a run to resume: `last`, or a session's run id (`r<ms>-<pid>`) — never
 /// a path, `.` or `..`.
 fn run_name(run: &str) -> bool {
     run == "last" || mikata_loop::resume::is_session_run(run)
+}
+
+/// Whether `model` may name a model: a provider's id as the configuration writes one — letters,
+/// digits and `-_.:/@+` — never a space, a quote or a control.
+fn model_name(model: &str) -> bool {
+    !model.is_empty()
+        && model.len() <= 200
+        && model
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-_.:/@+".contains(c))
 }
 
 /// Whether `name` may name a profile: a short word of letters, digits, `-` and `_`.
@@ -1138,6 +1171,22 @@ async fn start(
     {
         return refuse(StatusCode::BAD_REQUEST, &format!("`units`: {e}"));
     }
+    if let Some(m) = &body.model
+        && !model_name(m)
+    {
+        return refuse(
+            StatusCode::BAD_REQUEST,
+            "`model` names a model as the configuration does: letters, digits and `-_.:/@+`",
+        );
+    }
+    for (field, value, lo, hi) in limits_asked(&body) {
+        if value.is_some_and(|n| !(lo..=hi).contains(&n)) {
+            return refuse(
+                StatusCode::BAD_REQUEST,
+                &format!("`{field}` is a whole number from {lo} to {hi}"),
+            );
+        }
+    }
     let Some(owner) = live_cookie(&board, &headers) else {
         return refuse(StatusCode::UNAUTHORIZED, "no session");
     };
@@ -1161,6 +1210,10 @@ async fn start(
             bridge::Asked {
                 profile: body.profile.clone(),
                 units: body.units.clone(),
+                model: body.model.clone(),
+                steps: body.steps,
+                minutes: body.minutes,
+                context: body.context,
             },
         )
         .await

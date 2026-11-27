@@ -1438,6 +1438,30 @@ async fn the_clock_reaches_a_running_command() {
     );
 }
 
+/// The clock is each ask's: a session left open between asks spends none of it, so the next ask
+/// runs its whole time.
+#[tokio::test]
+async fn a_session_left_open_starts_each_ask_with_its_whole_clock() {
+    let w = World::new("clock-per-ask");
+    let model = Arc::new(ScriptedModel::new([answer("first."), answer("second.")]));
+    let mut run = w.run(
+        model,
+        Limits {
+            deadline: Duration::from_millis(400),
+            ..limits()
+        },
+    );
+    let e = ask(&mut run, "one").await;
+    assert!(!matches!(&e, Ending::Checkpoint { .. }), "{e:?}");
+    // The human reads, browses, comes back: longer than the whole clock.
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    let e = ask(&mut run, "two").await;
+    assert!(
+        !matches!(&e, Ending::Checkpoint { why, .. } if why.starts_with("clock")),
+        "{e:?}"
+    );
+}
+
 /// The same call with the same input, again and again: warned at three, stopped at five.
 #[tokio::test]
 async fn an_identical_call_loop_is_broken() {

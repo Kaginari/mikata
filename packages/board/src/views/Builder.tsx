@@ -33,6 +33,9 @@ import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import { type Chats, startChat } from '../data/chats.ts';
 import {
   GUARDS,
+  LIMITS,
+  type Limits,
+  MODEL,
   noteOpened,
   sessionOptions,
   setComposition,
@@ -40,6 +43,7 @@ import {
   useComposition,
 } from '../data/compose.ts';
 import { composed, opening, toml, useHarness } from '../data/harness.ts';
+import { useIntegrations } from '../data/integrations.ts';
 import { format } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
 import { Icon } from '../ui/Icon.tsx';
@@ -345,7 +349,7 @@ function useComposed(w: BoardWorld) {
   // The kept `--units` follows the kept switches over the profile the units have now.
   useEffect(() => {
     if (data && kept !== c.units) {
-      setComposition(w.id, { profile: c.profile, flips: c.flips, units: kept });
+      setComposition(w.id, { ...c, units: kept });
     }
   }, [data, kept, c, w.id]);
   /** A guard ([`GUARDS`]): switched off, it holds for one session and is never kept. */
@@ -362,7 +366,7 @@ function useComposed(w: BoardWorld) {
       else keep[id] = to;
     }
     setComposition(w.id, {
-      profile: c.profile,
+      ...c,
       flips: keep,
       units: composed(units, base, over(keep)),
     });
@@ -370,14 +374,230 @@ function useComposed(w: BoardWorld) {
   };
   const setProfile = (profile: string) => {
     setOnce(w.id, undefined);
-    setComposition(w.id, { profile, flips: {}, units: '' });
+    setComposition(w.id, { ...c, profile, flips: {}, units: '' });
   };
   const reset = () => {
     setOnce(w.id, undefined);
-    setComposition(w.id, { profile: c.profile, flips: {}, units: '' });
+    setComposition(w.id, { ...c, flips: {}, units: '' });
+  };
+  /** Hold new sessions here to `limits`; a limit left out is the configuration's. */
+  const setLimits = (limits: Limits) => {
+    const { limits: _, ...rest } = c;
+    setComposition(w.id, Object.keys(limits).length > 0 ? { ...rest, limits } : rest);
+  };
+  /** Ride `model` from the next new session on; `''`: the configured one. */
+  const setModel = (model: string) => {
+    const { model: _, ...rest } = c;
+    setComposition(w.id, model ? { ...rest, model } : rest);
   };
   const flipped = Object.keys(c.flips).length + Object.keys(onceFlips).length;
-  return { load, data, c, units, want, list, on, flip, setProfile, reset, flipped, onceFlips };
+  return {
+    load,
+    data,
+    c,
+    units,
+    want,
+    list,
+    on,
+    flip,
+    setProfile,
+    setModel,
+    setLimits,
+    reset,
+    flipped,
+    onceFlips,
+  };
+}
+
+/** Each limit as the Builder asks it: its label, its unit, the configuration's key and default. */
+const LIMIT_ROWS: readonly (readonly [keyof Limits, string, string, string, number])[] = [
+  ['steps', 'Steps', 'per ask', 'steps.solo', 200],
+  ['minutes', 'Clock', 'minutes per ask', 'limits.session_minutes', 60],
+  ['context', 'Context line', 'tokens', 'stress.context_tokens', 150_000],
+];
+
+/**
+ * What each ask of a new session here may spend — its steps, its clock, its context line — over
+ * the configuration, which each empty field shows. A value out of bounds is not kept.
+ */
+function LimitsPick({
+  world,
+  limits,
+  onPick,
+}: {
+  world: string;
+  limits: Limits;
+  onPick: (limits: Limits) => void;
+}) {
+  const load = useIntegrations(world);
+  const configured = (key: string, or: number) => {
+    const set =
+      load.state === 'ready'
+        ? load.data.config.value?.effective.find((e) => e.key === key)?.value
+        : undefined;
+    const n = set === null || set === undefined ? Number.NaN : Number(set);
+    return Number.isFinite(n) && n > 0 ? n : or;
+  };
+  return (
+    <fieldset className="bapp-limits">
+      <legend>Each ask may take</legend>
+      {LIMIT_ROWS.map(([k, label, unit, key, or]) => (
+        <LimitField
+          key={k}
+          label={label}
+          unit={unit}
+          range={LIMITS[k]}
+          step={k === 'context' ? 1000 : 1}
+          value={limits[k]}
+          placeholder={configured(key, or).toLocaleString('en')}
+          onPick={(n) => {
+            const { [k]: _, ...rest } = limits;
+            onPick(n === undefined ? rest : { ...rest, [k]: n });
+          }}
+        />
+      ))}
+    </fieldset>
+  );
+}
+
+/** One limit: typed freely, kept once it is a whole number within its bounds, empty for the
+ * configuration's. */
+function LimitField({
+  label,
+  unit,
+  range: [lo, hi],
+  step,
+  value,
+  placeholder,
+  onPick,
+}: {
+  label: string;
+  unit: string;
+  range: readonly [number, number];
+  step: number;
+  value: number | undefined;
+  placeholder: string;
+  onPick: (n: number | undefined) => void;
+}) {
+  const [draft, setDraft] = useState(value === undefined ? '' : String(value));
+  const n = Number(draft);
+  const ok = draft === '' || (Number.isInteger(n) && n >= lo && n <= hi);
+  return (
+    <label>
+      <span>{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={lo}
+        max={hi}
+        step={step}
+        value={draft}
+        placeholder={placeholder}
+        aria-invalid={!ok}
+        title={`${lo.toLocaleString('en')} to ${hi.toLocaleString('en')}; empty: as configured`}
+        onChange={(e) => {
+          const t = e.target.value.trim();
+          setDraft(t);
+          const v = Number(t);
+          // Out of bounds, nothing is asked: the configuration's holds, and the field says so.
+          onPick(t !== '' && Number.isInteger(v) && v >= lo && v <= hi ? v : undefined);
+        }}
+      />
+      <small>{unit}</small>
+    </label>
+  );
+}
+
+/** The select's word for "type a model's name". */
+const ANOTHER = '\u0000another';
+
+/**
+ * The model new sessions here ride: the configured one, a model the configuration names
+ * (`models.default`, a tier, the reader), or one typed by name — sent as `model`, which the
+ * session reads from `MIKATA_MODEL` over the configuration.
+ */
+function ModelPick({
+  world,
+  model,
+  onPick,
+}: {
+  world: string;
+  model: string;
+  onPick: (model: string) => void;
+}) {
+  const load = useIntegrations(world);
+  const models = load.state === 'ready' ? (load.data.config.value?.models ?? []) : [];
+  const configured = models.find((m) => m.key === 'models.default')?.model ?? null;
+  // What the human's own files name and the configuration can reach: a built-in tier rides
+  // `models.default` once it is set, and the default is the first choice already.
+  const named = [
+    ...new Set(
+      models.flatMap((m) =>
+        m.model && !m.problem && !m.origin.endsWith('(built in)') && m.model !== configured
+          ? [m.model]
+          : [],
+      ),
+    ),
+  ];
+  const options = model && !named.includes(model) ? [...named, model] : named;
+  const [typing, setTyping] = useState(false);
+  const [draft, setDraft] = useState('');
+  const ok = MODEL.test(draft.trim());
+  if (typing) {
+    return (
+      <form
+        className="bapp-model"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!ok) return;
+          onPick(draft.trim());
+          setTyping(false);
+        }}
+      >
+        <label>
+          Model{' '}
+          <input
+            // biome-ignore lint/a11y/noAutofocus: typed right after choosing to type it
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="a model the configuration can reach"
+            aria-invalid={draft !== '' && !ok}
+            spellCheck={false}
+          />
+        </label>
+        <button type="submit" disabled={!ok}>
+          Use
+        </button>
+        <button type="button" onClick={() => setTyping(false)}>
+          Cancel
+        </button>
+      </form>
+    );
+  }
+  return (
+    <label className="bapp-profile">
+      Model{' '}
+      <select
+        value={model}
+        onChange={(e) => {
+          if (e.target.value !== ANOTHER) onPick(e.target.value);
+          else {
+            setDraft(model);
+            setTyping(true);
+          }
+        }}
+      >
+        <option value="">{configured ? `configured (${configured})` : 'configured'}</option>
+        {options.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+        <option value={ANOTHER}>Another model…</option>
+      </select>
+    </label>
+  );
 }
 
 function Head({
@@ -463,28 +683,32 @@ function Builder({ w, chats }: { w: BoardWorld; chats: Chats }) {
       <Head
         icon={Layers}
         title="Harness Builder"
-        sub="Choose the profile and units, then start a session with them."
+        sub="Choose the profile, the model and the units, then start a session with them."
       >
-        <label className="bapp-profile">
-          Profile{' '}
-          <select value={h.c.profile} onChange={(e) => h.setProfile(e.target.value)}>
-            <option value="">default</option>
-            {h.data?.profiles.map((p) => (
-              <option key={p.name} value={p.name}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="bapp-go"
-          disabled={!h.data || starting}
-          onClick={() => void start()}
-        >
-          <Icon icon={Play} /> {starting ? 'Starting…' : 'Start session'}
-        </button>
+        <div className="bapp-controls">
+          <label className="bapp-profile">
+            Profile{' '}
+            <select value={h.c.profile} onChange={(e) => h.setProfile(e.target.value)}>
+              <option value="">default</option>
+              {h.data?.profiles.map((p) => (
+                <option key={p.name} value={p.name}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ModelPick world={w.id} model={h.c.model ?? ''} onPick={h.setModel} />
+          <button
+            type="button"
+            className="bapp-go"
+            disabled={!h.data || starting}
+            onClick={() => void start()}
+          >
+            <Icon icon={Play} /> {starting ? 'Starting…' : 'Start session'}
+          </button>
+        </div>
       </Head>
+      <LimitsPick world={w.id} limits={h.c.limits ?? {}} onPick={h.setLimits} />
       {why && (
         <p className="bapp-warn" role="alert">
           <Safe text={why} />
@@ -561,6 +785,13 @@ function Builder({ w, chats }: { w: BoardWorld; chats: Chats }) {
                   </>
                 ) : null}
                 --units <Safe text={h.list || '(as the profile is)'} />
+                {h.c.model ? (
+                  <>
+                    {' '}
+                    (MIKATA_MODEL=
+                    <Safe text={h.c.model} />)
+                  </>
+                ) : null}
               </span>
               . Paste the TOML in your global config.toml to keep it everywhere.
             </p>
