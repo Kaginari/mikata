@@ -2276,13 +2276,13 @@ async fn checks_the_harness_corrects_do_not_stop_the_run() {
     assert_eq!(notes, [] as [String; 0], "no correction strains the body");
 }
 
-/// A check whose command only prints the words holds whatever the work is, and the harness
-/// cannot tell it from a case that was right before: it refuses nothing. The pass names every
-/// line whose check gave its output before any change, so the human sees which of the lines it
-/// calls verified showed nothing. On our bench one run handed in `echo` for each of its
-/// twenty-eight lines.
+/// A check whose command only prints the words holds whatever the work is. The harness can
+/// see that one runs nothing, and refuses it: on our bench one run handed in `echo` for each of
+/// its twenty-eight lines. A check that runs the code and prints its answer before any change
+/// it cannot tell from a case that was right before: it refuses nothing, and the pass names the
+/// line, so the human sees which of the lines it calls verified showed nothing.
 #[tokio::test]
-async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
+async fn a_check_that_only_prints_the_words_is_refused_and_one_right_before_is_named() {
     let w = World::new("listed-echo");
     fs::write(w.world().join("total.sh"), TOTAL).unwrap();
     let model = Arc::new(ScriptedModel::new([
@@ -2294,10 +2294,15 @@ async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
         tool(
             "t2",
             "check",
-            json!({"line": "D2", "command": "sh total.sh"}),
+            json!({"line": "D1", "command": "sh total.sh 1 2 >/dev/null && echo 6", "gives": "6"}),
         ),
         tool(
             "t3",
+            "check",
+            json!({"line": "D2", "command": "sh total.sh"}),
+        ),
+        tool(
+            "t4",
             "write",
             json!({"path": "total.sh", "content": DOUBLED}),
         ),
@@ -2308,10 +2313,14 @@ async fn a_check_that_only_prints_the_words_is_named_in_the_pass() {
         ask(&mut run, LISTED).await,
         Ending::Answered("doubled".into())
     );
-    // The body is told what any check is told: nothing in its run changes.
     let said = results(&w);
     assert!(
-        !said[0].1 && said[0].0.contains("It prints that now."),
+        said[0].1 && said[0].0.contains("only prints words"),
+        "{said:?}"
+    );
+    // One that runs the code is told what any check is told: nothing in its run changes.
+    assert!(
+        !said[1].1 && said[1].0.contains("It prints that now."),
         "{said:?}"
     );
     let by: Vec<Vec<String>> = w

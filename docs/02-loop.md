@@ -724,6 +724,13 @@ stay was tried before, and failed. So the harness holds the list, by code:
 
 - **The body is told with the ask,** after it, and holds a `check` tool. For each line it hands
   in a command that prints what the line is about, and nothing else.
+- **A check runs its line's case.** Before it runs, a command that only prints words it holds
+  (`echo -5`, `print('SLICE(x, 4, 1)')`) is refused, and so is one that never names the values of
+  the line's case: the numbers and quoted words of its backticked input (in a line written with
+  no backticks, of what comes before its verb), in the command or in a file the command names,
+  blanks and letter case set aside. A call's name is not asked for, so a
+  command-line check (`cargo run -- 90` for `format(90)`) is a check. On our bench 169 checks of
+  3,483 were of these kinds, and a line that must stay, held to one, can never fail.
 - **A line that says `must give`** is held to an output the line states. One the line does not
   state is refused: the list is yours, and the body does not add to it. A line states an output
   when it holds it, or when the output given holds the one the line names after `must give`: a
