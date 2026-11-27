@@ -45,6 +45,16 @@ export function doneLines(text: string): DoneLine[] {
   return out;
 }
 
+/**
+ * Whether a model's stop reason ends its turn with an answer, not a call: the core writes the
+ * provider's reason as `EndTurn` (`mikata_provider::StopReason`, journaled by its name), a
+ * provider's own word as it came (`end_turn`, `stop`).
+ */
+export function endsTurn(stop: string): boolean {
+  const w = stop.replace(/[_\s-]/g, '').toLowerCase();
+  return w === 'endturn' || w === 'stop' || w === 'stopsequence';
+}
+
 /** How the core's note to the body on holding a list begins (`mikata_loop::done::List::note`). */
 const HOLDS = 'The ask holds a `## Done when` list (';
 
@@ -428,7 +438,7 @@ export class Chat {
         this.streaming = '';
         this.flushed = '';
         this.say(rest);
-        this.answered = event.stop === 'end_turn';
+        this.answered = endsTurn(event.stop);
         return;
       }
       case 'toolCall':
