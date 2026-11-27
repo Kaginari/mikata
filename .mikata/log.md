@@ -7908,3 +7908,12 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Not done by me:** a macOS archive run on a Mac; this host is Linux.
 - **What the release is:** the Bio Digital and Bio Pearl design system across the board, the site and the book; the board's fixes found by photographing it running; stage 14's plan and todo measured, OpenCode beside it.
 - **Branches:** at the owner's word, the 45 branches whose commits are all on main are deleted; the 13 with work not on main are kept. Four local copies stay where other threads have them checked out.
+
+### [2026-11-27T16:10:00+00:00] aibo Summoner — Mikata 1.3.0 is published
+- **Asked by** the owner: review every page of the book "to reflect what Mikata is in a simple elegant way", the Mermaid colours too; then the release. #484 (the book, the sandbox's commit, three faults found by photographing the running board) and #485 (version and dated changelog) approved and merged; main `850d120`, its CI green with macOS.
+- **What it holds:** secret files held (`secrets`); the approval a unit (`approval`); a session's changes kept for its project; the web board as one platform (#482); the terminal app redrawn (three views, solid cards); Guardrails that read the units; the book said simply, its diagrams on the darker night and coloured by meaning, its pictures from the running board and terminal app.
+- **Found by photographing the real board:** past runs were named by the memory quoted before the ask, in the rail, the Runs page and search (fixed in the server and the board); Mikata's spend was drawn in the lab's blue (now hot pink). Found on a real run before: a sandboxed commit ended in `fatal: setsid failed`, git detaching its upkeep (now off in a body's commands; seen fixed on a real run).
+- **Released:** tag `v1.3.0` at `850d120`; the workflow built the four archives, smoke-tested the Linux ones and drafted the release, first time, no runner held up.
+- **Checked from the outside before publishing:** the four archives against `SHA256SUMS`, each archive's members, the Linux x86_64 archive through `tools/rc-smoke.sh` and `tools/test-install.sh` from the tag's own tools (both PASS), the macOS and ARM binaries by `file` only.
+- **Published** on the owner's approval of #485, whose body said I would publish. Then `install.sh` from the tag, pinned and latest, under a throwaway HOME: `mikata 1.3.0`, `mikatad 1.3.0 (850d12034c)` both ways.
+- **Not done by me:** a macOS archive run on a Mac; this host is Linux.
