@@ -111,8 +111,10 @@ better or cheaper: carried from task to task, it gained or lost no pass in sixty
 ([the bench](bench.md#memory-carried-from-task-to-task)). On work that fails and is asked again,
 it is where Mikata learns from a mistake: told what was wrong once per attempt, with memory keeping
 every word, the small model went from 0 of 8 to 7 of 8 by the fourth attempt, while a fresh
-session told only the newest word went in circles, fixing one case and breaking the last
-([the bench](bench.md#memory-told-it-was-wrong)).
+session told only the newest word went in circles, fixing one case and breaking the last. That was
+with the code starting over at each attempt; with the code kept between attempts, memory and a fresh
+session both passed 2 of 7. What memory showed every time is that it does not break a case you
+named before ([the bench](bench.md#memory-told-it-was-wrong)).
 
 Six rules follow:
 

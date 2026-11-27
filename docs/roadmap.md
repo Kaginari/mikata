@@ -106,6 +106,25 @@ reader that writes it; and the list of what changed when an answer lands
   1.18 times Maki's dollars a pass. The plan and a lighter one stay a switch away; the todo,
   level, is not merged.
 
+## On main, for the next release
+
+- **Your secret files stay yours.** The `secrets` unit, on by default: `.env`, keys, kubeconfigs and
+  Terraform's state and variables are found as a session opens; the model sees their keys and
+  never a value, no tool writes or searches them, a command finds them empty unless you approved
+  it, and any value that reaches a result is struck out.
+- **Your approval is a unit too.** The `approval` unit, on by default, puts every act that leaves
+  your machine to you on a card. Only you can switch it off, and Mikata then says so wherever it
+  shows its guardrails.
+- **A session keeps its changes for its project,** in the project's local file and your own file
+  for that project, never in your global config.
+- **The board is the platform.** One frame for every page: each workspace with its sessions, the
+  Harness Builder that starts them, each session's conversation beside its live run, seven colour
+  palettes beside Mikata's own.
+- **The terminal app, redrawn:** three views (Light, Advanced, Focus), solid cards, the run's steps
+  as it goes, the files it changed, and the harness's own notes said plainly.
+- **A commit in the sandbox no longer reads as a failure** (git's background upkeep is off in a
+  body's commands).
+
 ## Next: asks without examples
 
 The largest gap we have measured. An ask with examples of its expected output passed 4 times in 4;

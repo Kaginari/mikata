@@ -138,7 +138,13 @@ One archive per target, `mikata-<target>.tar.gz`, holding `mikata-<version>-<tar
 
 A failed run publishes nothing. Fix on `main`, delete the tag (`git push origin :vX.Y.Z`, then
 `git tag -d vX.Y.Z`), and tag again; a tag that already reached users is never moved: cut the next
-patch version instead. The workflow can also be started by hand (`workflow_dispatch`) for an
+patch version instead.
+
+A run can also fail with nothing to fix: GitHub's macOS runners are sometimes all busy, and a job
+no runner picks up within 15 minutes is cancelled with no step run (1.2.0's first run, both macOS
+builds). Then re-run the failed jobs from the run's page, or, with no right to re-run, push the same
+tag again on the same commit (`git push origin :vX.Y.Z` then `git push origin vX.Y.Z`): no draft
+exists yet, so nothing is moved. The workflow can also be started by hand (`workflow_dispatch`) for an
 existing tag, to redraft after a draft was deleted.
 
 A pre-release tag (`vX.Y.Z-rc.1`) drafts a pre-release; its changelog section is
