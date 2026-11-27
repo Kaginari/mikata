@@ -84,43 +84,39 @@ flowchart TD
 ## In plain words
 
 An MCP server is a program that offers tools. Mikata starts only the servers you declare in your
-global configuration, inside the sandbox, and shows Mikata only the tools of the servers you named
-it in.
+global config, runs them inside the sandbox, and shows each agent only the servers you named for
+it. For Mikata, list `mikata` in the server's `races` (the lab's older name for it, `summoner`,
+works too).
 
-Every tool has a class — read, write, outward or destructive — that you declare for the tool or
-its server; a tool nobody declared is outward, unless the sandbox proves it a read.
+Every tool has a class: `read`, `write`, `outward` or `destructive`. You declare it for the tool or
+for its whole server. A tool nobody declared is treated as outward, unless the sandbox proves it
+only reads. Read and write tools run when called; an outward or destructive one asks you first,
+every time.
 
-A server Mikata may use names `mikata` in its `races` (or `summoner`, its name inside the code).
-Mikata may take every class: its `read` and `write` tools run as they are called, and
-an outward or destructive one, an undeclared tool included, asks you before each call.
+**Mikata pays only for what it uses.** A server sends the full definition of every tool it has,
+which can be thousands of tokens. So Mikata shows them in three levels, each priced before it
+loads:
 
-A server always sends every one of its tool definitions, so Mikata shows them in three levels,
-each priced before it loads:
+- **Level 0**, with the first ask: one line per server, saying what it is for, how many tools it
+  has, and what opening it would cost.
+- **Level 1**, when Mikata opens a server: each tool's name, class and one-line description.
+- **Level 2**, when it needs one tool: that tool's full description and schema.
 
-- **level 0**, with the body's first ask: one line per server — its name, what it is for, how many
-  tools it has, and what opening it costs;
-- **level 1**, when the body opens a server: its tools' names, classes and one-line descriptions;
-- **level 2**, when the body needs one tool: its full description and schema.
+No server starts until it is opened or called. Before each ask, the tools that fit it best are
+shown at level 1, ranked by the words of the ask, with no model asked. The ranking learns: a tool
+Mikata used on similar asks rises, one it loaded and never used sinks for a while. A tool used on
+most asks is kept in the stable start of the prompt, chosen when a session opens. A server that
+hangs or dies becomes a note saying so, never a wait.
 
-No server starts until a body opens it or calls it. Before each ask, the tools that best fit it
-are named at level 1, ranked by the words of the ask — no model is asked — so the right tool is
-usually in view without a search. The ranking also learns: a tool Mikata called on similar asks
-climbs, and one whose schema was loaded and never called sinks for a
-while. Only when the catalog is large and the best few score close does one short call to the
-fast tier reorder them; it can drop or reorder those few, never add one. A tool a body calls
-on most of its asks is placed in its stable prefix, chosen when a session starts, never during
-one. A server whose schemas would outgrow the prefix ceiling stays at level 0. On
-Anthropic, a schema loads as a native deferred tool, out of the cached prefix. A server that
-hangs or dies becomes a hole naming it, never a wait. Every word a server sends — descriptions, schemas, answers —
-is treated as data from outside: escaped, capped and marked as untrusted, to a body and to the
-reranker alike. Every load and call is journaled by the harness, outside the world, never by a
+**Everything a server sends is treated as outside data**: descriptions, schemas and answers are
+escaped, capped and marked untrusted. Every load and call is journaled by the harness, never by a
 model.
 
-**A plugin is an MCP server too (experimental).** A program you declare in `[plugins.<id>]`
-speaks MCP plus `mikata/hook`: at the handshake it says which points of the loop it hooks, and
-from then on the loop asks it at each of them, under a deadline, cut to the grant you gave it. A
-plugin with the `tools` grant also offers its tools here, through the same doors as any server.
-How a plugin loads, strikes out and swaps mid-session is [the plugins page](experimental/plugins.md).
+**A plugin is an MCP server too.** A program you declare under `[plugins.<id>]` speaks MCP plus
+`mikata/hook`: it says which points of the loop it wants, and the loop asks it at each one, under a
+deadline, within the permissions you gave it. With the `tools` permission it also offers tools,
+through the same three levels. How a plugin loads and swaps mid-session is on
+[the plugins page](experimental/plugins.md).
 
 ## Technical detail
 

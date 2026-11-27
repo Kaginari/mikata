@@ -88,17 +88,16 @@ sequenceDiagram
 
 ## In plain words
 
-`mikatad` exposes one JSON-RPC 2.0 API. The TypeScript SDK reaches it over stdio, the board over
-a loopback WebSocket. Types are defined in Rust and generated into TypeScript
-(`@mikata/protocol`), so the clients cannot drift. The terminal app, `mikata`, needs no wire:
-it hosts the session in its own process and draws the same events, made by the same function
-(`mikata_server::events`); its gate cards answer the same questions `gate/ask` carries, and
-`mikata run --json` prints those events as JSON lines.
+`mikatad` speaks one JSON-RPC 2.0 API. The TypeScript SDK reaches it over stdio, the board over a
+WebSocket on your machine. The types are defined once in Rust and generated into TypeScript
+(`@mikata/protocol`), so a client can never drift from the core. The terminal app, `mikata`, needs
+no wire at all: it runs the session in its own process and draws the same events, made by the same
+function (`mikata_server::events`). `mikata run --json` prints those events as JSON lines.
 
 A client opens a session, sends an ask, and reads the turn as a stream of events: text, tool
-calls, spend, the end gate's verdict. When the body wants to do something that needs you, the
-core asks the client (`gate/ask`) and waits; nothing that needs your word runs until a client
-says yes, and an unanswered ask is a no.
+calls, spend, the end gate's verdict. When Mikata wants to do something that needs you, the core
+asks the client (`gate/ask`) and waits. Nothing that needs your word runs until a client says yes,
+and an ask left unanswered is a no.
 
 ## Technical detail
 

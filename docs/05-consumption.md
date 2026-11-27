@@ -79,21 +79,20 @@ flowchart TD
 
 ## In plain words
 
-You set caps: per month, per day, per session. Before every model call, the body reads the usage
-ledger again and checks the call fits under every cap; if it does not, the body stops cleanly at a
-checkpoint you can resume, instead of overspending. When an ask is split by project, every
-project's body reads the same ledger and stops at the same caps.
+You set caps: per month, per day, per session. Before every model call, Mikata reads the usage
+ledger again and checks that the call fits under every cap. If it does not, Mikata stops cleanly
+at a checkpoint you can resume, rather than overspend. When an ask is split by project, every
+project's agent reads the same ledger and stops at the same caps.
 
 Every model call writes one line to the usage ledger: who spent it, on which model, how much was
-cached. The terminal status line and the board show it live: tokens, cost, cache hits, burn rate,
-what is left.
+cached. The terminal app and the board show it live: tokens, cost, cache hits, what is left.
 
 The biggest saving is designed in, not bolted on: every prompt is laid out so its start never
 changes between calls, which lets the provider's prompt cache serve most of it at a fraction of
 the price.
 
-In the [lab's](experimental/) modes budget also flows down a chain, each order carrying a slice
-of its giver's: that carving is [the lab's](experimental/the-lab-in-the-code.md#carving-the-budget-down-a-chain).
+In [the lab's](experimental/) modes, budget also flows down a chain of agents, each order carrying
+a slice of its giver's ([how it is carved](experimental/the-lab-in-the-code.md#carving-the-budget-down-a-chain)).
 
 ## Technical detail
 

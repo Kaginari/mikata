@@ -92,27 +92,27 @@ flowchart TD
 
 ## In plain words
 
-Most agent memories store whatever the model said and fetch the closest text back later. That
-has a hidden flaw: when the model is wrong and its words are saved, the next recall brings the
-mistake back as if it were a fact. Over many sessions the memory drifts towards believing its
-own errors.
+Most agent memories keep whatever the model said and fetch the closest text back later. That has a
+hidden flaw: when the model is wrong and its words are kept, the next recall brings the mistake
+back as if it were a fact. Over many sessions, such a memory drifts toward believing its own
+errors.
 
 Mikata splits memory in two. The **archive** is the evidence: the journal, the ledgers, the
 commits. It is never rewritten. The **traces** are the memory: short notes, each pointing at the
-evidence it came from, each marked as agreeing, disagreeing or correcting. Traces may change;
-the archive never does, so any belief can be walked back to the bytes behind it.
+evidence it came from, each marked as agreeing, disagreeing or correcting. Traces may change; the
+archive never does, so any belief can be walked back to what stands behind it.
 
-Memory also has two scopes. **Personal** memory belongs to one body's name (in light-coding, the
-session's body, which counts as the Mikata): it writes there freely, and only it recalls from
-there, so its mistakes cannot spread. **Shared** memory is what every session of the world reads,
-and only confirmed notes enter it.
+Memory also has two scopes. **Personal** memory belongs to one agent's name: it writes there
+freely, and only it recalls from there, so its mistakes cannot spread. **Shared** memory is what
+every session in the project reads, and only confirmed notes enter it.
 
-**What is measured, and what is not.** Carried from task to task on [the bench](bench.md#memory-carried-from-task-to-task),
-memory is kept, recalled and used by the body, and has not yet made a run better or cheaper:
-no pass gained or lost in sixty runs, and with a stronger model the runs that remember cost more.
-Those runs had no verify line, so they measured proposals alone: nothing was grounded and no
-failure was learned from. What a check behind each landing adds is the next thing to measure
-([roadmap](roadmap.md#next-a-memory-that-pays)).
+**What it has shown, both halves.** On work that already passes, memory has not yet made a run
+better or cheaper: carried from task to task, it gained or lost no pass in sixty runs
+([the bench](bench.md#memory-carried-from-task-to-task)). On work that fails and is asked again,
+it is where Mikata learns from a mistake: told what was wrong once per attempt, with memory keeping
+every word, the small model went from 0 of 8 to 7 of 8 by the fourth attempt, while a fresh
+session told only the newest word went in circles, fixing one case and breaking the last
+([the bench](bench.md#memory-told-it-was-wrong)).
 
 Six rules follow:
 
