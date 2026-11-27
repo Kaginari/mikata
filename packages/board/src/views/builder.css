@@ -18,10 +18,7 @@
 }
 .bapp .mono,
 .bapp-editor,
-.bapp-log,
-.bapp-ask,
-.bapp-units,
-.bapp-metric span {
+.bapp-units {
   font-family: var(--mn-font-mono);
 }
 .mn-icon {
@@ -86,126 +83,14 @@
 .bapp small {
   color: var(--mn-text-muted);
 }
-.bapp-ok {
-  color: var(--mn-success-text);
-}
+
 .bapp-warn {
   color: var(--mn-error);
 }
 
 /* ── the header: the brand ── */
-.bapp-head {
-  display: flex;
-  align-items: center;
-  gap: 17px;
-  padding: 12px 22px;
-  border-radius: 0 0 18px 18px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--mn-hot) 82%, var(--mn-bg)),
-    color-mix(in srgb, var(--mn-coral) 62%, var(--mn-bg)) 60%,
-    color-mix(in srgb, var(--mn-amber) 70%, var(--mn-bg))
-  );
-  box-shadow: 0 6px 28px color-mix(in srgb, var(--mn-hot) 30%, transparent);
-  color: var(--mn-text);
-}
-.bapp-brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font: 800 23px var(--mn-font-mono);
-  letter-spacing: -1px;
-  white-space: nowrap;
-  font-size: 30px;
-}
-.bapp-logo .mikata-mark {
-  width: 64px;
-  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--mn-bg) 45%, transparent));
-}
-.bapp-branddesc {
-  display: block;
-  max-width: none;
-  font: 500 13px var(--mn-font-mono);
-  letter-spacing: 0;
-  white-space: normal;
-}
-@media (min-width: 1550px) {
-  .bapp-branddesc {
-    display: block;
-  }
-}
-.bapp-nav {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-.bapp .bapp-nav button,
-.bapp-navlink {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 12px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--mn-text);
-  font-size: 15px;
-  font-weight: 800;
-  text-decoration: none;
-}
-.bapp .bapp-nav button:hover:not(:disabled),
-.bapp-navlink:hover {
-  border-color: color-mix(in srgb, var(--mn-on-brand) 40%, transparent);
-  background: color-mix(in srgb, var(--mn-on-brand) 10%, transparent);
-}
+
 /* the selected page: a surface cut out of the brand */
-.bapp .bapp-nav .bapp-active,
-.bapp .bapp-nav .bapp-active:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--mn-hot) 40%, var(--mn-line));
-  background: color-mix(in srgb, var(--mn-bg) 78%, var(--mn-hot));
-  color: var(--mn-text);
-  box-shadow: var(--mn-shadow);
-}
-.bapp-nav .bapp-active .mn-icon {
-  color: var(--mn-holo);
-}
-.bapp-head .bapp-muted {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--mn-on-brand);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.bapp .bapp-head .bapp-primary,
-.bapp .bapp-head .bapp-primary:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--mn-panel);
-  color: var(--mn-text);
-  white-space: nowrap;
-}
-.bapp .bapp-head .bapp-primary .mn-icon {
-  color: var(--mn-holo);
-}
-.bapp .bapp-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid transparent;
-  background: var(--mn-brand-surface);
-  color: var(--mn-on-brand);
-  font-weight: 800;
-  box-shadow: 0 0 18px var(--mn-glow-soft);
-}
-.bapp .bapp-primary:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--mn-brand-surface);
-  filter: saturate(1.15) brightness(1.05);
-}
 
 /* ── the three columns ── */
 .bapp-layout {
@@ -245,163 +130,14 @@
 }
 
 /* tags: a status as a pill, its colour and its words */
-.bapp .bapp-tags {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.bapp .bapp-tags li,
-.bapp .bapp-tag,
-.bapp .bapp-state,
-.bapp .bapp-verdict {
-  --tag-fg: var(--mn-text-muted);
-  --tag-bg: var(--mn-panel-raised);
-  --tag-line: var(--mn-line-strong);
-  --tag-dot: var(--mn-text-faint);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  max-width: 100%;
-  padding: 4px 12px;
-  border: 1px solid var(--tag-line);
-  border-radius: 999px;
-  background: var(--tag-bg);
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--tag-fg);
-  overflow-wrap: anywhere;
-}
-.bapp .bapp-tags li[data-tone="ok"],
-.bapp .bapp-tag[data-tone="ok"],
-.bapp .bapp-verdict {
-  --tag-fg: var(--mn-success-text);
-  --tag-bg: var(--mn-success-bg);
-  --tag-line: var(--mn-success-border);
-  --tag-dot: var(--mn-success-fill);
-}
-.bapp .bapp-tags li[data-tone="holo"],
-.bapp .bapp-tag[data-tone="holo"] {
-  --tag-fg: var(--mn-holo);
-  --tag-bg: color-mix(in srgb, var(--mn-hot) 10%, var(--mn-panel));
-  --tag-line: color-mix(in srgb, var(--mn-hot) 45%, var(--mn-line));
-  --tag-dot: var(--mn-hot);
-}
-.bapp .bapp-tags li[data-tone="alarm"],
-.bapp .bapp-state[data-state="Not landed"],
-.bapp .bapp-verdict[data-ok="false"] {
-  --tag-fg: var(--mn-error);
-  --tag-bg: var(--mn-error-bg);
-  --tag-line: color-mix(in srgb, var(--mn-error) 45%, var(--mn-line));
-  --tag-dot: var(--mn-error);
-}
-.bapp .bapp-state[data-state="Running"],
-.bapp .bapp-state[data-state="Starting"] {
-  --tag-fg: var(--mn-warning);
-  --tag-bg: var(--mn-warning-bg);
-  --tag-line: color-mix(in srgb, var(--mn-warning) 45%, var(--mn-line));
-  --tag-dot: var(--mn-amber);
-}
+
 /* verified: the bio gradient, olive words on lime */
-.bapp .bapp-state[data-state="Verified"] {
-  background: color-mix(in srgb, var(--mn-success-fill) 10%, var(--mn-panel));
-  color: var(--mn-success-fill);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--mn-success-fill) 35%, transparent);
-  border: 1.5px solid var(--mn-success-fill);
-}
-.bapp .bapp-dot {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--tag-dot);
-  box-shadow: 0 0 8px var(--tag-dot);
-}
 
 /* the left column */
-.bapp-side select {
-  width: 100%;
-  padding: 11px 12px;
-  border-color: color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line));
-  font-size: 17px;
-  font-weight: 700;
-}
-.bapp .bapp-path {
-  color: var(--mn-text-muted);
-  overflow-wrap: anywhere;
-  margin: 8px 0 16px;
-  font: 13px var(--mn-font-mono);
-}
-.bapp .bapp-navbtn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  margin: 2px 0;
-  padding: 8px 12px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--mn-text);
-  font-weight: 600;
-  text-align: left;
-  text-decoration: none;
-  font-size: 15px;
-}
-.bapp .bapp-navbtn .mn-icon {
-  color: var(--mn-hot);
-  width: 20px;
-  height: 20px;
-}
-.bapp .bapp-navbtn:hover:not(:disabled) {
-  border-color: var(--mn-line);
-  background: var(--mn-surface-hover);
-}
+
 /* the selected page: the brand */
-.bapp .bapp-navbtn.bapp-active,
-.bapp .bapp-navbtn.bapp-active:hover:not(:disabled) {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--mn-hot) 16%, var(--mn-panel-raised));
-  color: var(--mn-text);
-  font-weight: 800;
-  box-shadow: none;
-}
-.bapp .bapp-navbtn.bapp-active .mn-icon {
-  color: var(--mn-hot);
-}
-.bapp-side > p {
-  line-height: 1.5;
-}
-.bapp-metric {
-  margin: 11px 0;
-}
-.bapp-metric span {
-  display: flex;
-  justify-content: space-between;
-  font: 15px var(--mn-font-ui);
-}
-.bapp-bar {
-  height: 9px;
-  margin-top: 8px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: var(--mn-panel-raised);
-  box-shadow: inset 0 0 0 1px var(--mn-line);
-}
-.bapp-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 8px;
-  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral));
-  box-shadow: 0 0 8px color-mix(in srgb, var(--mn-hot) 55%, transparent);
-}
+
 /* the run's progress is execution: the bio gradient */
-.bapp-metric[data-kind="progress"] .bapp-bar i {
-  background: var(--mn-gradient-bio);
-}
 
 /* the middle */
 .bapp-top {
@@ -412,12 +148,12 @@
   margin-bottom: 18px;
 }
 .bapp-top h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.8px;
 }
 .bapp-top h2 {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.2px;
   word-spacing: 2px;
@@ -520,7 +256,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
 }
 .bapp-unit h3 .bapp-switch,
@@ -557,11 +293,7 @@
 .bapp-list .bapp-unit {
   min-height: 0;
 }
-.bapp-run {
-  display: block;
-  min-height: 0;
-  font: 12px var(--mn-font-mono);
-}
+
 .bapp .bapp-switch {
   display: flex;
   align-items: center;
@@ -622,11 +354,11 @@
   -webkit-background-clip: text;
   color: var(--mn-hot);
   letter-spacing: 0.06em;
-  font: 800 26px var(--mn-font-mono);
+  font: 800 22px var(--mn-font-mono);
 }
 .bapp-core p {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 15px;
 }
 .bapp-tabs {
   display: flex;
@@ -635,13 +367,7 @@
   margin: 0 0 10px;
   align-items: center;
 }
-.bapp .bapp-tabs .bapp-active,
-.bapp .bapp-tabs .bapp-active:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--mn-hot) 20%, var(--mn-panel));
-  color: var(--mn-text);
-  font-weight: 800;
-  border: 1px solid var(--mn-hot);
-}
+
 .bapp-editor {
   min-height: 0;
   margin: 0;
@@ -656,18 +382,7 @@
   counter-reset: toml;
   list-style: none;
 }
-.bapp-toolbar button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.bapp-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin: 10px 0;
-}
+
 .bapp-units {
   flex: 1;
   font: 12px var(--mn-font-mono);
@@ -711,23 +426,7 @@
 }
 
 /* the right */
-.bapp .bapp-state {
-  font-size: 15px;
-  letter-spacing: 0.06em;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  white-space: nowrap;
-}
-.bapp-ask {
-  width: 100%;
-  min-height: 70px;
-  padding: 10px;
-  border: 1px solid var(--mn-line);
-  border-radius: 9px;
-  background: var(--mn-bg);
-  resize: vertical;
-}
+
 .bapp-steps {
   display: flex;
   justify-content: space-between;
@@ -764,212 +463,10 @@
 .bapp-steps li[data-state="skipped"] {
   opacity: 0.5;
 }
-.bapp-log {
-  height: 380px;
-  padding: 14px;
-  overflow: auto;
-  border: 1px solid var(--mn-line);
-  border-radius: 10px;
-  background: var(--mn-bg);
-  font: 14px / 1.7 var(--mn-font-mono);
-  overflow-wrap: anywhere;
-  border-color: color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
-}
-.bapp .bapp-log-ask {
-  margin-bottom: 10px;
-  color: var(--mn-text);
-  font-weight: 700;
-}
-.bapp-log [data-tone="ok"] {
-  color: var(--mn-success-text);
-}
-.bapp-log [data-tone="alarm"] {
-  color: var(--mn-error);
-}
-.bapp-log [data-tone="now"],
-.bapp-log [data-tone="holo"] {
-  color: var(--mn-holo);
-}
+
 /* the end gate's word: verification, in the bio green */
-.bapp-result {
-  position: relative;
-  margin-top: 16px;
-  padding: 18px 20px;
-  overflow: hidden;
-  border: 1.5px solid var(--mn-success-fill);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--mn-success-fill) 7%, var(--mn-panel));
-  color: var(--mn-success-text);
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-success-fill) 28%, transparent);
-}
-.bapp-result::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: var(--mn-gradient-bio);
-  display: none;
-}
-.bapp-result h3 {
-  font: 800 26px var(--mn-font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--mn-success-fill);
-}
-.bapp-result[data-ok="false"] {
-  border-color: var(--mn-error);
-  background: var(--mn-error-bg);
-  color: var(--mn-error);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-error) 28%, transparent);
-}
-.bapp-result[data-ok="false"]::before {
-  background: var(--mn-error);
-}
-.bapp-numbers {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 15px 0 0;
-  margin-top: 16px;
-}
-.bapp-numbers div {
-  display: flex;
-  flex-direction: column-reverse;
-  padding: 16px 6px 12px;
-  border: 1px solid color-mix(in srgb, var(--mn-hot) 30%, var(--mn-line));
-  border-radius: 12px;
-  background: var(--mn-panel);
-  text-align: center;
-  position: relative;
-}
-.bapp-numbers dt {
-  color: var(--mn-text-muted);
-  font: 13px var(--mn-font-mono);
-}
-.bapp-numbers dd {
-  margin: 0 0 5px;
-  font: 800 17px var(--mn-font-mono);
-  font-size: 20px;
-}
-.bapp .bapp-notice {
-  margin-top: 14px;
-  font-size: 11px;
-  color: var(--mn-warning);
-}
 
 /* the session: the conversation and its composer */
-.bapp-sessionhead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 15px;
-}
-.bapp-sessionhead button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.bapp-conversation {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-height: 450px;
-  max-height: 58vh;
-  overflow: auto;
-  padding: 8px 3px;
-}
-.bapp-message {
-  align-self: stretch;
-  max-width: 93%;
-  padding: 17px;
-  border: 1px solid var(--mn-line);
-  border-radius: 12px;
-  background: var(--mn-panel-raised);
-  line-height: 1.7;
-  overflow-wrap: anywhere;
-}
-.bapp-message b {
-  display: block;
-  margin-bottom: 8px;
-  font: 800 12px var(--mn-font-mono);
-  letter-spacing: 0.06em;
-  color: var(--mn-holo);
-}
-.bapp .bapp-message p {
-  margin: 0 0 0.6em;
-  line-height: 1.7;
-}
-.bapp .bapp-message p:last-child {
-  margin-bottom: 0;
-}
-.bapp-message-user {
-  align-self: flex-end;
-  border-color: color-mix(in srgb, var(--mn-hot) 40%, var(--mn-line));
-  background: color-mix(in srgb, var(--mn-hot) 9%, var(--mn-panel));
-}
-.bapp-message-user b {
-  color: var(--mn-gold);
-}
-.bapp .bapp-calls {
-  align-self: flex-start;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: -6px 0 0 4px;
-  font: 12px var(--mn-font-mono);
-  color: var(--mn-text-muted);
-}
-.bapp-calls a {
-  color: var(--mn-holo);
-}
-.bapp .bapp-verdict {
-  align-self: flex-start;
-}
-.bapp-composer,
-.bapp-sidechat {
-  margin-top: 15px;
-  padding: 12px;
-  border: 1px solid var(--mn-line-strong);
-  border-radius: 12px;
-  background: var(--mn-panel-raised);
-}
-.bapp-composer:focus-within,
-.bapp-sidechat:focus-within {
-  border-color: var(--mn-hot);
-  box-shadow: 0 0 0 3px var(--mn-glow-soft);
-}
-.bapp-composer textarea,
-.bapp-sidechat textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 10px;
-  border: 0;
-  border-radius: 7px;
-  background: var(--mn-bg);
-  resize: vertical;
-}
-.bapp-sidechat textarea {
-  min-height: 54px;
-}
-.bapp-composerfoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
-}
-.bapp-sidechat label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 800;
-}
-.bapp-sidechat button {
-  width: 100%;
-  margin-top: 8px;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .mn-spin,
@@ -988,18 +485,8 @@
   .bapp-layout {
     grid-template-columns: 180px minmax(360px, 1fr);
   }
-  .bapp-live {
-    grid-column: 2;
-  }
-  .bapp-side {
-    grid-row: 1 / 3;
-  }
 }
 @media (max-width: 760px) {
-  .bapp-head {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
   .bapp-layout {
     display: block;
     padding: 9px;
@@ -1022,83 +509,15 @@
   .bapp-top {
     flex-wrap: wrap;
   }
-  .bapp-log {
-    height: 260px;
-  }
 }
 
 /* ── the owner's builder picture (2026-11-26): neon frames, a bright Run agent, the rail's status
  * as dots, cards lit pink on the left and amber on the right, a TOML editor with its lines, a
  * stepper of rings, a terminal log, a big VERIFIED ── */
 
-.bapp-slash {
-  font-style: italic;
-  font-weight: 900;
-}
-
-.bapp .bapp-head .bapp-run,
-.bapp .bapp-head .bapp-run:hover:not(:disabled) {
-  padding: 11px 20px;
-  border: 1px solid color-mix(in srgb, var(--mn-text) 25%, transparent);
-  border-radius: 10px;
-  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral));
-  color: var(--mn-text);
-  font-size: 16px;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-hot) 55%, transparent);
-}
-.bapp .bapp-head .bapp-run .mn-icon {
-  color: var(--mn-text);
-}
-
 /* panels: a neon frame */
 
 /* the rail */
-
-.bapp-railnav {
-  display: grid;
-  gap: 2px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--mn-line);
-}
-
-.bapp-badge {
-  margin-left: auto;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--mn-hot) 45%, var(--mn-panel));
-  font: 700 13px var(--mn-font-mono);
-}
-.bapp .bapp-status {
-  display: grid;
-  gap: 9px;
-  margin: 0 0 16px;
-  padding: 0 0 18px;
-  border-bottom: 1px solid var(--mn-line);
-  list-style: none;
-  font-size: 14px;
-}
-.bapp-status li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  overflow-wrap: anywhere;
-}
-.bapp-status .mn-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--mn-success-text);
-}
-.bapp-status .bapp-dot {
-  width: 12px;
-  height: 12px;
-  margin: 0 3px;
-  background: var(--mn-success-fill);
-  box-shadow: 0 0 8px var(--mn-success-fill);
-}
-.bapp-status li[data-tone="alarm"] .bapp-dot {
-  background: var(--mn-error);
-  box-shadow: 0 0 8px var(--mn-error);
-}
 
 /* the middle's head */
 .bapp-titled {
@@ -1115,7 +534,7 @@
 
 .bapp-top .bapp-muted {
   max-width: 430px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .bapp-main {
   padding: 18px 20px;
@@ -1182,12 +601,7 @@
 }
 
 /* the configuration and the start */
-.bapp-config {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 14px;
-  margin-top: 14px;
-}
+
 .bapp-confpanel {
   min-width: 0;
   padding: 10px;
@@ -1250,66 +664,8 @@
   color: var(--mn-holo);
 }
 
-.bapp-startbox {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-.bapp-startbox .bapp-ask {
-  min-height: 110px;
-  border-color: color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line));
-  font: 14px / 1.5 var(--mn-font-mono);
-}
-.bapp .bapp-start,
-.bapp .bapp-start:hover:not(:disabled) {
-  padding: 13px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, var(--mn-hot), var(--mn-coral) 60%, var(--mn-amber));
-  color: var(--mn-text);
-  font-size: 18px;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-hot) 45%, transparent);
-}
-.bapp-facts {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--mn-line);
-  border-radius: 10px;
-  background: var(--mn-bg);
-  font: 13px var(--mn-font-mono);
-}
-.bapp-facts div {
-  display: flex;
-  justify-content: space-between;
-}
-.bapp-facts dt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--mn-text-muted);
-}
-.bapp-facts dd {
-  margin: 0;
-}
-
 /* the live run */
-.bapp-live {
-  padding: 18px 18px;
-}
-.bapp-runline {
-  margin-top: 4px;
-  font: 14px var(--mn-font-mono);
-  color: var(--mn-text-muted);
-}
 
-.bapp .bapp-stop {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-color: var(--mn-error);
-  color: var(--mn-error);
-}
 /* the stepper: rings joined by rails, lit as far as the run has come */
 
 .bapp-steps li:not(:last-child)::after {
@@ -1358,38 +714,6 @@
   stroke-width: 3;
 }
 
-.bapp-log time {
-  color: var(--mn-text-muted);
-}
-
-.bapp .bapp-result-icon {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  color: var(--mn-success-fill);
-}
-
-.bapp-result p {
-  font: 14px / 1.5 var(--mn-font-mono);
-  color: var(--mn-text);
-}
-
-.bapp-result[data-ok="false"] h3,
-.bapp-result[data-ok="false"] .bapp-result-icon {
-  color: var(--mn-error);
-}
-
-.bapp-numbers div .mn-icon {
-  order: 3;
-  width: 26px;
-  height: 26px;
-  margin: 0 auto 8px;
-  color: var(--mn-hot);
-}
-.bapp-numbers div:last-child .mn-icon {
-  color: var(--mn-amber);
-}
-
 /* one screen, as the picture: compact cards and rail */
 
 /* the version rides in the card's title row */
@@ -1403,10 +727,6 @@
 }
 .bapp-unit h3 .bapp-pill + .bapp-switch {
   margin-left: 0;
-}
-
-.bapp-live .bapp-titled {
-  min-width: 0;
 }
 
 /* a card's name on one line, its version never broken */

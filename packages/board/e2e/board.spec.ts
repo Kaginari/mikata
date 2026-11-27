@@ -1,14 +1,12 @@
 /**
  * The board end to end, at phone (390×844) and desktop (1440×900) in both themes: screenshots,
- * rendered text contrast (WCAG AA), a label on every coloured node, the router, the drawers, the
+ * rendered text contrast (WCAG AA), a label on every coloured node, the router, the drawer, the
  * theme and hostile text.
  */
 import { fileURLToPath } from 'node:url';
-import type { BoardOverview } from '@mikata/protocol';
-import { expect, type Page, test, type WebSocketRoute } from '@playwright/test';
-import { FIXTURE_NOW, fixtureOverviews, fixtureWorlds } from '../src/data/fixtures.ts';
+import { expect, type Page, test } from '@playwright/test';
+import { FIXTURE_NOW, fixtureWorlds } from '../src/data/fixtures.ts';
 import { fixtureIntegrations, fixtureMetrics } from '../src/data/metricsFixtures.ts';
-import { DEFAULT_CAMERA, node, project } from '../src/data/net.ts';
 
 /** Where the screenshots go: test-results/screens/<project>-<theme>-<page>.png. */
 const screen = (file: string) =>
@@ -17,19 +15,26 @@ const screen = (file: string) =>
 const LIVE = fixtureWorlds.worlds.find((w) => w.name === 'tempest-try');
 if (!LIVE) throw new Error('the fixtures hold tempest-try');
 
+/** The workspace's harness, for the rail's runtime status and the session's Live run. */
+const UNITS = {
+  units: ['memory', 'plan', 'gate', 'secrets'].map((id) => ({
+    id,
+    kind: 'native',
+    version: '1',
+    on: true,
+    frame: false,
+    tightens: false,
+  })),
+  profiles: [],
+  holes: [],
+};
+
 /**
- * Opens the board at `hash`, with `/api/worlds` answering `body` and `/api/w/<id>` the overview
- * `overviews` holds (404 for another). The push socket is the test's: `sockets` collects each one
- * the page opens. Every CSP violation the page reports is collected, and `violations` reads them:
- * the page runs under the board server's own CSP.
+ * Opens the board at `hash`, with `/api/worlds` answering `body` and each workspace's reads
+ * answered by fixtures (its harness, its desk, no runs). Every CSP violation the page reports is
+ * collected, and `violations` reads them: the page runs under the board server's own CSP.
  */
-async function open(
-  page: Page,
-  hash: string,
-  body: unknown = fixtureWorlds,
-  overviews: Record<string, unknown> = fixtureOverviews,
-  sockets: WebSocketRoute[] = [],
-) {
+async function open(page: Page, hash: string, body: unknown = fixtureWorlds) {
   await page.addInitScript(() => {
     const seen: string[] = [];
     (window as { __csp?: string[] }).__csp = seen;
@@ -38,28 +43,23 @@ async function open(
     );
   });
   await page.clock.setFixedTime(FIXTURE_NOW);
-  await page.route('**/api/worlds', (r) =>
-    r.fulfill({ contentType: 'application/json', body: JSON.stringify(body) }),
-  );
-  await page.route('**/api/session', (r) =>
-    r.fulfill({ contentType: 'application/json', body: JSON.stringify({ csrf: 'ab'.repeat(32) }) }),
-  );
-  await page.route('**/api/w/*', (r) => {
-    const id = decodeURIComponent(new URL(r.request().url()).pathname.split('/').pop() ?? '');
-    const o = overviews[id];
-    return o
-      ? r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) })
-      : r.fulfill({ status: 404, contentType: 'text/plain', body: 'no listed world has this id' });
+  const json = (b: unknown) => ({ contentType: 'application/json', body: JSON.stringify(b) });
+  await page.route('**/api/worlds', (r) => r.fulfill(json(body)));
+  await page.route('**/api/session', (r) => r.fulfill(json({ csrf: 'ab'.repeat(32) })));
+  await page.route('**/api/sessions', (r) => r.fulfill(json({ sessions: [] })));
+  await page.route('**/api/w/**', (r) => {
+    const part = new URL(r.request().url()).pathname.split('/')[4];
+    if (part === 'units') return r.fulfill(json(UNITS));
+    if (part === 'desk') {
+      return r.fulfill(json({ verify: ['cargo test'], done: [], branch: 'main' }));
+    }
+    if (part === 'runs') return r.fulfill(json({ runs: [], more: 0 }));
+    return r.fulfill(json({}));
   });
-  await page.route('**/api/metrics?*', (r) =>
-    r.fulfill({ contentType: 'application/json', body: JSON.stringify(fixtureMetrics) }),
-  );
-  await page.route('**/api/integrations', (r) =>
-    r.fulfill({ contentType: 'application/json', body: JSON.stringify(fixtureIntegrations) }),
-  );
-  await page.routeWebSocket('**/ws/board', (ws) => {
-    sockets.push(ws);
-  });
+  await page.route('**/api/metrics?*', (r) => r.fulfill(json(fixtureMetrics)));
+  await page.route('**/api/integrations', (r) => r.fulfill(json(fixtureIntegrations)));
+  await page.routeWebSocket('**/ws/board', () => {});
+  await page.routeWebSocket('**/ws/session/**', () => {});
   await page.goto(`/${hash}`);
   await expect(page.locator('.shell')).toBeVisible();
 }
@@ -147,13 +147,6 @@ function unlabelled(page: Page) {
   );
 }
 
-const byName = (name: string) => {
-  const w = fixtureWorlds.worlds.find((x) => x.name === name);
-  if (!w) throw new Error(`the fixtures hold ${name}`);
-  return w;
-};
-const SQLGLOT = byName('sqlglot');
-const NOTES = byName('notes');
 const GONE =
   fixtureWorlds.missing.find((m) => m.name === 'old-spike') ??
   (() => {
@@ -161,14 +154,10 @@ const GONE =
   })();
 
 const PAGES: [string, string][] = [
-  ['home', '#/'],
-  ['world-live', `#/w/${LIVE.id}`],
-  ['world-tui-live', `#/w/${SQLGLOT.id}`],
-  ['world-silent', `#/w/${NOTES.id}`],
+  ['session', `#/w/${LIVE.id}`],
+  ['runs', `#/w/${LIVE.id}/runs`],
   ['world-missing', `#/w/${GONE.id}`],
-  ['session', `#/w/${LIVE.id}/s/r-17`],
   ['settings', '#/settings'],
-  ['net', '#/net'],
   ['metrics', '#/metrics'],
   ['integrations', '#/integrations'],
 ];
@@ -179,6 +168,7 @@ for (const theme of ['dark', 'light'] as const) {
 
     for (const [name, hash] of PAGES) {
       test(`${name}: screenshot, contrast, labels`, async ({ page }, info) => {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
         await open(page, hash);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('.shell[data-load="ready"]')).toBeAttached();
@@ -192,15 +182,13 @@ for (const theme of ['dark', 'light'] as const) {
       });
     }
 
-    test('the open drawer and pane read too', async ({ page }, info) => {
-      await open(page, '#/');
-      if (info.project.name === 'phone') {
-        await page.getByRole('button', { name: 'Menu' }).click();
-        await expect(page.locator('#rail')).toBeVisible();
-        await page.screenshot({
-          path: screen(`${info.project.name}-${theme}-rail`),
-        });
-      }
+    test('the open drawer reads too', async ({ page }, info) => {
+      test.skip(info.project.name !== 'phone', 'the drawer is the phone layout');
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await open(page, `#/w/${LIVE.id}/runs`);
+      await page.getByRole('button', { name: 'Menu' }).click();
+      await expect(page.locator('#pf-rail')).toBeVisible();
+      await page.screenshot({ path: screen(`${info.project.name}-${theme}-rail`) });
       expect(await lowContrast(page)).toEqual([]);
       expect(await unlabelled(page)).toEqual([]);
     });
@@ -213,103 +201,74 @@ test("the page runs under the board server's CSP", async ({ page }) => {
   await open(page, '#/settings');
   await page.getByRole('radio', { name: 'light' }).check();
   await page.goto(`/#/w/${LIVE.id}/s/r-17`);
-  await expect(page.locator('.page-chat .composer')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toBeVisible();
   expect(await violations(page)).toEqual([]);
 });
 
-test('every world reads in words, the latest first', async ({ page }, info) => {
+test('the front page opens the workspace worked in last; the rail lists every one', async ({
+  page,
+}, info) => {
   await open(page, '#/');
-  const cards = page.locator('.world-card');
-  await expect(cards).toHaveCount(3);
-  await expect(cards.first()).toContainText('tempest-try');
-  await expect(cards.first()).toContainText('live');
-  await expect(cards.last()).toContainText('never opened');
-  // A missing world is no card: it waits folded under the live ones, with how to forget it.
-  await expect(page.locator('.world-card', { hasText: 'old-spike' })).toHaveCount(0);
-  const missing = page.locator('.missing-worlds');
-  await expect(missing.locator('summary')).toHaveText('Missing (1)');
-  await expect(missing.locator('.missing-world')).toBeHidden();
-  await missing.locator('summary').click();
-  await expect(missing.locator('.missing-world')).toContainText('/tmp/old-spike');
-  await expect(missing.locator('.missing-world')).toContainText('missing since 2026-10-21');
-  await expect(missing.locator('.missing-world')).toContainText(
-    'mikatad board forget /tmp/old-spike',
-  );
-  expect(await lowContrast(page)).toEqual([]);
-  if (info.project.name === 'desktop') {
-    await expect(page.locator('.rail-world')).toHaveCount(3);
+  await expect(page).toHaveURL((u) => u.hash === `#/w/${LIVE.id}`);
+  if (info.project.name === 'phone') await page.getByRole('button', { name: 'Menu' }).click();
+  const picker = page.getByRole('combobox', { name: 'Workspace' });
+  await expect(picker).toHaveValue(LIVE.id);
+  for (const name of ['sqlglot', 'tempest-try', 'notes']) {
+    await expect(picker.locator('option', { hasText: name })).toHaveCount(1);
   }
 });
 
 test('deep links land, the back button returns', async ({ page }) => {
-  await open(page, '#/');
-  await page.goto(`/#/w/${LIVE.id}/memory`);
-  await expect(page.locator('.page-title')).toContainText('Memory');
+  await open(page, `#/w/${LIVE.id}/memory`);
+  await expect(page.locator('a.pf-navlink[aria-current="page"]')).toContainText('Memory');
   await page.goto(`/#/w/${LIVE.id}/s/r-17`);
-  await expect(page.locator('.page-chat .composer')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Ask Mikata' })).toBeVisible();
   await page.goBack();
-  await expect(page.locator('.page-title')).toContainText('Memory');
+  await expect(page.locator('a.pf-navlink[aria-current="page"]')).toContainText('Memory');
   await expect(page).toHaveTitle(/tempest-try · Mikata/);
 });
 
-test('an unknown address and an unknown world are said to be', async ({ page }) => {
+test('an unknown address and an unknown workspace are said to be', async ({ page }) => {
   await open(page, '#/nowhere/at/all');
   await expect(page.getByText('Nothing at this address')).toBeVisible();
   await page.goto('/#/w/ghost-0/s/x');
-  await expect(page.getByText('No such world')).toBeVisible();
+  await expect(page.getByText('No such workspace')).toBeVisible();
+  await page.goto(`/#/w/${GONE.id}`);
+  await expect(page.getByRole('heading', { name: 'old-spike is missing' })).toBeVisible();
+  await expect(page.getByText('mikatad board forget /tmp/old-spike')).toBeVisible();
 });
 
-test('the theme switch holds across a reload', async ({ page }) => {
+test('the theme holds across a reload, from the top bar or the settings', async ({ page }) => {
   await open(page, '#/settings');
   await page.getByRole('radio', { name: 'light' }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.getByRole('radio', { name: 'dark' }).check();
+  // The top bar's button walks auto → light → dark.
+  await page.getByRole('button', { name: /^Theme: light/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
-test('the rail is a drawer at phone width', async ({ page }, info) => {
+test('the rail is a drawer at phone width, focus in and back', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
-  await open(page, '#/');
-  await expect(page.locator('#rail')).toBeHidden();
-  expect(await page.locator('#rail').evaluate((e) => (e as HTMLElement).inert)).toBe(true);
+  await open(page, `#/w/${LIVE.id}/runs`);
+  const rail = page.locator('#pf-rail');
+  await expect(rail).toBeHidden();
+  expect(await rail.evaluate((e) => (e as HTMLElement).inert)).toBe(true);
   const menu = page.getByRole('button', { name: 'Menu' });
   await menu.click();
-  await expect(page.locator('#rail')).toBeVisible();
-  expect(await page.locator('#rail').evaluate((e) => (e as HTMLElement).inert)).toBe(false);
-  await expect(page.locator('#rail :focus')).toHaveCount(1);
+  await expect(rail).toBeVisible();
+  expect(await rail.evaluate((e) => (e as HTMLElement).inert)).toBe(false);
+  await expect(page.locator('#pf-rail :focus')).toHaveCount(1);
   await page.keyboard.press('Escape');
-  await expect(page.locator('#rail')).toBeHidden();
-  await expect(menu).toBeFocused();
-  await menu.click();
-  await page.locator('.rail-world', { hasText: 'sqlglot' }).click();
-  await expect(page.locator('#rail')).toBeHidden();
-  await expect(page.locator('.page-title')).toContainText('sqlglot');
-});
-
-test('the side pane is a drawer at phone width, focus in and back', async ({ page }, info) => {
-  test.skip(info.project.name !== 'phone', 'phone only');
-  await open(page, `#/w/${LIVE.id}`);
-  await expect(page.locator('#pane')).toBeHidden();
-  const toggle = page.getByRole('button', { name: 'Show the side pane' });
-  await toggle.click();
-  await expect(page.locator('#pane')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#pane')).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Show the side pane' })).toBeFocused();
-});
-
-test('the side pane folds, and stays folded', async ({ page }, info) => {
-  test.skip(info.project.name !== 'desktop', 'desktop only');
-  await open(page, '#/');
-  await expect(page.locator('#pane')).toBeVisible();
-  await page.getByRole('button', { name: 'Hide the side pane' }).click();
-  await expect(page.locator('#pane')).toBeHidden();
-  await page.reload();
-  await expect(page.locator('#pane')).toBeHidden();
-  await page.getByRole('button', { name: 'Show the side pane' }).click();
-  await expect(page.locator('#pane')).toBeVisible();
+  await expect(rail).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Menu' })).toBeFocused();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await rail.getByRole('link', { name: 'Harness Builder', exact: true }).click();
+  await expect(rail).toBeHidden();
+  await expect(page).toHaveURL(/\/builder$/);
 });
 
 test('hostile text from the server stays text', async ({ page }) => {
@@ -318,15 +277,16 @@ test('hostile text from the server stays text', async ({ page }) => {
   const evil = {
     ...LIVE,
     id: 'evil-1',
-    name: '<img src=x onerror="window.__pwned=1">\u202egnp.exe',
+    name: '<img src=x onerror="window.__pwned=1">‮gnp.exe',
     path: '/tmp/<script>window.__pwned=2</script>',
     remote: 'javascript:window.__pwned=3',
   };
   await open(page, '#/w/evil-1', { worlds: [evil] });
-  await expect(page.locator('.page-title')).toContainText('<img src=x');
-  await expect(page.locator('.page-title .safe-esc')).toHaveText('\\u{202e}');
+  await expect(page.locator('.ss-empty')).toContainText('<img src=x');
+  await expect(page.locator('.ss-empty .safe-esc')).toHaveText('\\u{202e}');
+  await expect(page.locator('.pf-path')).toContainText('<script>');
   expect(
-    await page.locator('main img, main script, #pane a, main a[href^="javascript"]').count(),
+    await page.locator('main img, main script, .pf-rail script, a[href^="javascript"]').count(),
   ).toBe(0);
   expect(await page.evaluate(() => (window as { __pwned?: number }).__pwned)).toBeUndefined();
   expect(errors).toEqual([]);
@@ -335,121 +295,8 @@ test('hostile text from the server stays text', async ({ page }) => {
 test('a page that loads with no console error', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  await open(page, '#/');
-  await expect(page.locator('.world-card').first()).toBeVisible();
-  expect(errors).toEqual([]);
-});
-
-test('each home row says its world: status, standing, gate, cost, what waits', async ({ page }) => {
-  await open(page, '#/');
-  const row = (w: { name: string }) => page.locator('.world-card', { hasText: w.name });
-  await expect(row(LIVE)).toContainText('live');
-  await expect(row(LIVE)).toContainText('grounded 41');
-  await expect(row(LIVE)).toContainText('shared 12');
-  await expect(row(LIVE)).toContainText('1 unproven');
-  await expect(row(LIVE)).toContainText('gate PASS');
-  await expect(row(LIVE)).toContainText('$0.42');
-  await expect(row(LIVE)).toContainText('waiting for you: 1 gate ask');
-  await expect(row(SQLGLOT)).toContainText('live in a terminal');
-  await expect(row(SQLGLOT)).toContainText('2 challenges open');
-  await expect(row(SQLGLOT)).toContainText('$0.03 + 2 unpriced');
-  await expect(row(NOTES)).toContainText('idle');
-  await expect(row(NOTES)).toContainText('no gate verdict yet');
-  await expect(row(NOTES)).not.toContainText('$');
-});
-
-test('a world overview says each source, and unknown where it is', async ({ page }) => {
-  await open(page, `#/w/${NOTES.id}`);
-  const panel = (t: string) => page.getByRole('region', { name: t });
-  await expect(panel('Status')).toContainText('idle');
-  await expect(panel('Last activity')).toContainText(
-    'unknown — nothing has happened here that the board can read',
-  );
-  await expect(panel('Latest spend')).toContainText('unknown — no call is booked yet');
-  await expect(panel('Challenges')).toContainText('no state directory');
-  await expect(panel('Challenges')).toContainText('harness');
-  await expect(panel('Memory')).toContainText('in-world, shown only');
-  await expect(panel('End gate')).toContainText('No verdict yet.');
-
-  // A missing world's link says where it was, since when, and how to forget it.
-  await page.goto(`/#/w/${GONE.id}`);
-  await expect(page.getByRole('heading', { name: 'old-spike is missing' })).toBeVisible();
-  await expect(page.getByText('missing since 2026-10-21')).toBeVisible();
-  await expect(page.getByText('mikatad board forget /tmp/old-spike')).toBeVisible();
-
-  await page.goto(`/#/w/${SQLGLOT.id}`);
-  await expect(page.getByText('too many entries: updates slowed')).toBeVisible();
-
-  await page.goto(`/#/w/${LIVE.id}`);
-  await expect(panel('Meters')).toContainText('precision 0.90 (18/20, 95% 0.70–0.97)');
-  await expect(panel('Meters')).toContainText('gateRight silent — no report yet');
-  await expect(page.getByText('Waiting for you: 1 gate ask')).toBeVisible();
-});
-
-test('a pushed world/changed is shown within a second', async ({ page }) => {
-  const sockets: WebSocketRoute[] = [];
-  const overviews: Record<string, BoardOverview> = structuredClone(fixtureOverviews);
-  await open(page, `#/w/${LIVE.id}`, fixtureWorlds, overviews, sockets);
-  await expect(page.locator('.page-live')).toHaveText('Updates as the world changes.');
-  await expect(page.getByRole('region', { name: 'Last activity' })).toContainText('log.md written');
-  const live = overviews[LIVE.id];
-  if (!live) throw new Error('fixtures');
-  live.activity = {
-    value: { at: '2026-10-30T11:59:59Z', what: 'a run journal written' },
-    source: '.mikata/instruments/loop/',
-    trusted: false,
-    why: null,
-  };
-  const [ws] = sockets;
-  if (!ws) throw new Error('the page opened no push socket');
-  const sent = Date.now();
-  ws.send(JSON.stringify({ jsonrpc: '2.0', method: 'world/changed', params: { id: LIVE.id } }));
-  await expect(page.getByRole('region', { name: 'Last activity' })).toContainText(
-    'a run journal written',
-    { timeout: 1000 },
-  );
-  expect(Date.now() - sent).toBeLessThan(1000);
-  // Another world's change rereads nothing here.
-  ws.send(JSON.stringify({ jsonrpc: '2.0', method: 'world/changed', params: { id: 'other' } }));
-});
-
-test('hostile names, paths and notes in an overview stay text', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  const base = fixtureOverviews[LIVE.id];
-  if (!base) throw new Error('fixtures');
-  const world = {
-    ...LIVE,
-    id: 'evil-2',
-    name: '<img src=x onerror="window.__pwned=1">\u202egnp',
-    path: '/tmp/<script>window.__pwned=2</script>',
-  };
-  const evil: BoardOverview = structuredClone(base);
-  evil.world = world;
-  evil.status.why = '<b onmouseover="window.__pwned=3">run</b> \u001b[31m held';
-  if (evil.gate.value?.last)
-    evil.gate.value.last.verdict = '<a href="javascript:alert(1)">PASS</a>';
-  if (evil.gate.value?.last) evil.gate.value.last.body = 'orc\u200bwire';
-  if (evil.spend.value) evil.spend.value.session = '<svg onload=alert(1)>';
-  evil.memory.source = 'javascript:window.__pwned=4';
-  await open(page, '#/', { worlds: [world] }, { 'evil-2': evil });
-  await expect(page.locator('.world-card')).toContainText('<img src=x');
-  await expect(page.locator('.world-card .safe-esc').first()).toHaveText('\\u{202e}');
-  await page.goto('/#/w/evil-2');
-  await expect(page.getByRole('region', { name: 'Status' })).toContainText('<b onmouseover');
-  await expect(page.getByRole('region', { name: 'Status' }).locator('.safe-esc')).toHaveText(
-    '\\u{1b}',
-  );
-  await expect(page.getByRole('region', { name: 'End gate' })).toContainText('<a href=');
-  await expect(page.getByRole('region', { name: 'End gate' }).locator('.safe-esc')).toHaveText(
-    '\\u{200b}',
-  );
-  expect(
-    await page
-      .locator('main img, main script, main svg:not(.mn-icon), main b, main a[href^="javascript"]')
-      .count(),
-  ).toBe(0);
-  expect(await page.evaluate(() => (window as { __pwned?: number }).__pwned)).toBeUndefined();
+  await open(page, `#/w/${LIVE.id}`);
+  await expect(page.locator('.ss')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -457,7 +304,11 @@ test('the metrics page says its totals, draws each chart with a legend, and keep
   page,
 }) => {
   await open(page, '#/metrics');
-  await expect(page.locator('.metrics-total')).toContainText('$3.12 (2 unpriced) · 1.9M wt');
+  const totals = page.locator('.mx-kpis');
+  await expect(totals).toContainText('$3.12');
+  await expect(totals).toContainText('2 calls unpriced');
+  await expect(totals).toContainText('1.9M wt weighted');
+  await expect(totals).toContainText('Cache hit');
   await expect(page.locator('svg[aria-label*="log axis"]')).toBeVisible();
   await expect(page.locator('.chart-log')).toHaveText('log axis');
   await expect(page.getByText('silent since 2026-10-20')).toBeVisible();
@@ -476,34 +327,4 @@ test('the integrations page is read-only and shows key sources, never values', a
   await expect(
     page.locator('details', { hasText: 'How to add an MCP server' }).locator('.howto-text'),
   ).toBeVisible();
-});
-
-test('the colony net paints its canvas, and a node clicked on it opens its card', async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await open(page, '#/net');
-  const canvas = page.locator('canvas.net-canvas');
-  await expect(canvas).toBeVisible();
-  // Painted: some pixel of the drawing is not transparent.
-  await expect
-    .poll(() =>
-      canvas.evaluate((c: HTMLCanvasElement) => {
-        const d = c.getContext('2d')?.getImageData(0, 0, c.width, c.height).data ?? [];
-        for (let i = 3; i < d.length; i += 4) if ((d[i] ?? 0) > 0) return true;
-        return false;
-      }),
-    )
-    .toBe(true);
-  await expect(page.locator('.net-card')).toHaveCount(0);
-  // Still under reduced motion: Summoner stays where the default camera puts it.
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('the canvas has a box');
-  const summoner = node('summoner');
-  if (!summoner) throw new Error('the net holds Summoner');
-  const at = project(summoner, DEFAULT_CAMERA, box.width, box.height);
-  await canvas.click({ position: { x: at.x, y: at.y } });
-  await expect(page.locator('.net-card')).toContainText('Summoner');
-  await page.getByRole('button', { name: 'Oni' }).click();
-  await expect(page.locator('.net-card')).toContainText('ascended from Kijin');
 });

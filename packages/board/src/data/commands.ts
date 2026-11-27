@@ -7,7 +7,7 @@
  * a regular expression from what was typed.
  */
 import type { BoardRun, BoardSession, BoardWorld } from '@mikata/protocol';
-import { BODIES_TABS, format, type Route, WORLD_SECTIONS, type WorldSection } from '../router.ts';
+import { format, type Route, WORLD_SECTIONS, type WorldSection } from '../router.ts';
 
 /** What a command is, for its group and its glyph. */
 export type CommandKind = 'page' | 'world' | 'section' | 'session' | 'run';
@@ -31,24 +31,14 @@ export const QUERY_CAP = 120;
 export const SHOWN_CAP = 50;
 
 const SECTION_NAMES: Record<WorldSection, string> = {
-  app: 'Mikata app',
-  builder: 'Harness builder',
-  bodies: 'Bodies & queue',
+  builder: 'Harness Builder',
+  plugins: 'Plugins',
+  runs: 'Runs',
+  journal: 'Run journal',
   memory: 'Memory',
-  ontology: 'Ontology',
-  journal: 'Journal',
-};
-
-const TAB_NAMES: Record<(typeof BODIES_TABS)[number], string> = {
-  colony: 'Colony net',
-  races: 'Race cards',
-  queue: 'Queue',
-  timeline: 'Timeline',
 };
 
 const PAGES: [Route, string][] = [
-  [{ name: 'worlds' }, 'Worlds'],
-  [{ name: 'net' }, 'Colony net'],
   [{ name: 'metrics' }, 'Metrics'],
   [{ name: 'integrations' }, 'Integrations'],
   [{ name: 'settings' }, 'Settings'],
@@ -107,16 +97,6 @@ export function commands(
         label: SECTION_NAMES[section],
         detail: w.name,
         href: format({ name: 'section', world: w.id, section }),
-      });
-    }
-    for (const tab of BODIES_TABS) {
-      if (tab === 'colony') continue; // the bodies section opens on it
-      out.push({
-        id: `section:${w.id}:bodies:${tab}`,
-        kind: 'section',
-        label: TAB_NAMES[tab],
-        detail: w.name,
-        href: format({ name: 'section', world: w.id, section: 'bodies', tab }),
       });
     }
   }

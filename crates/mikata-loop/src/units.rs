@@ -124,6 +124,10 @@ pub const SECRETS: &str = "secrets";
 /// human may switch it off: their global file or their own command, never a world's file.
 pub const APPROVAL: &str = "approval";
 
+/// The units that protect the human — the secret files, the approval card, the end gate, the
+/// hold on outward acts —: a session says which of them are off, to every client.
+pub const GUARDS: [&str; 4] = [SECRETS, APPROVAL, GATE, HOLD];
+
 /// The Dark Elf challenge ([`crate::challenge`]): a landing in a domain the roster routes is held
 /// for review. Off, it lands at once. By the human alone.
 pub const CHALLENGE: &str = "challenge";
@@ -329,6 +333,9 @@ pub struct Desk {
     pub digest: String,
     /// Changes the run could not take, and why, newest last.
     pub refused: Vec<String>,
+    /// Units whose next change taken is the session's alone, never kept for the world: a guard
+    /// switched off from the board's Configure lasts that session only.
+    pub unkept: std::collections::BTreeSet<String>,
 }
 
 /// The desk a run shares with its clients.

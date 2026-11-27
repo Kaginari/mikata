@@ -247,11 +247,11 @@
   *::before,
   *::after {
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion overrides every animation */
-    animation-duration: 0.01ms !important;
+    animation-duration: 0s !important;
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion overrides every animation */
     animation-iteration-count: 1 !important;
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion overrides every transition */
-    transition-duration: 0.01ms !important;
+    transition-duration: 0s !important;
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion overrides smooth scrolling */
     scroll-behavior: auto !important;
   }

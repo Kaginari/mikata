@@ -74,6 +74,9 @@ pub struct Hello {
     pub body: String,
     /// The orders held on the shared work queue as the session opens.
     pub held: u32,
+    /// The guards — `secrets`, `approval`, `gate`, `hold` — switched off for this session, as it
+    /// opened: every client says so on it.
+    pub guards_off: Vec<String>,
 }
 
 /// A session's budget under the human's caps.
@@ -226,6 +229,12 @@ pub enum Event {
         /// How many.
         held: u32,
     },
+    /// The guards the session runs without, sent when they changed after a turn: every client says
+    /// so on the session, live.
+    Guards {
+        /// Their ids: `secrets`, `approval`, `gate`, `hold`.
+        off: Vec<String>,
+    },
 }
 
 impl Event {
@@ -247,6 +256,7 @@ impl Event {
             Event::GateVerdict { .. } => "gateVerdict",
             Event::TurnEnded { .. } => "turnEnded",
             Event::Held { .. } => "held",
+            Event::Guards { .. } => "guards",
         }
     }
 }

@@ -662,6 +662,7 @@ fn hello(opened: &Opened, version: &str) -> Value {
         mode_why: opened.mode_why.clone(),
         body: SESSION_BODY.into(),
         held: held(&opened.world),
+        guards_off: opened.guards_off.clone(),
     })
     .unwrap_or(Value::Null)
 }
@@ -680,6 +681,7 @@ async fn drive(
     core: Arc<Core>,
 ) {
     let world = opened.world.clone();
+    let mut guards = opened.guards_off.clone();
     let mut session = opened.session;
     while let Some(line) = lines.recv().await {
         if core.closed.load(Ordering::SeqCst) {
@@ -695,6 +697,12 @@ async fn drive(
         };
         session.drive(&line, &mut on).await;
         core.emit(&Event::Held { held: held(&world) });
+        // A guard switched on or off during the turn is said at once, to every client.
+        let now = session.run().guards_off();
+        if now != guards {
+            core.emit(&Event::Guards { off: now.clone() });
+            guards = now;
+        }
         core.outstanding.fetch_sub(1, Ordering::SeqCst);
     }
 }

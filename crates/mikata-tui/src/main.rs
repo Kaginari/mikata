@@ -295,6 +295,10 @@ fn chat(
             &mut mikata_tui::pin::at_terminal,
         );
     }
+    // `--web` is the board instead of the terminal app: one or the other, never both.
+    if web {
+        return web_only(&world, resume.is_some());
+    }
     let variant = Variant::choose(theme, |k| std::env::var(k).ok());
     let scheme = Scheme::choose(theme, |k| std::env::var(k).ok());
     highlight::warm();
@@ -332,10 +336,7 @@ fn chat(
     // account stays where it was: `mikata status`, the journal's `law` beat, `--help`.
     model.fact(Tag::Model, &opened.model, &opened.provider);
     model.fact(Tag::Sandbox, &opened.sandbox, "");
-    // The human's approval switched off is said first and in gold: acts leave unseen.
-    if opened.approval.starts_with("OFF") {
-        model.fact(Tag::Warn, &opened.approval, "");
-    }
+    guards_said(&mut model, &opened);
     model.sandbox.clone_from(&opened.sandbox);
     model.fact(Tag::Mode, opened.mode.word(), &opened.mode_why);
     if let Some(e) = unhardened {
@@ -367,7 +368,6 @@ fn chat(
     model.units = Some(host.unit_desk());
     // The sidebar's memory and races come from the world, read off the UI thread.
     host.run(model.survey());
-    board(&world, &tx, web);
     let result = run(model, &host, tx, &rx);
     host.stop();
     // The session's runs fill evolution's windows: one tick after it, in the background.
@@ -383,12 +383,31 @@ fn chat(
     }
 }
 
-/// With `--web`, make sure a board runs with this world on it and open it in the browser, off the
-/// UI thread; its one status line, which never holds a key, comes to the app. Without it no board
-/// starts: `board.autostart` and `board.open` are no longer read here. `board.port` still is.
-fn board(world: &std::path::Path, tx: &std::sync::mpsc::Sender<mikata_tui::app::Msg>, web: bool) {
-    if !web {
-        return;
+/// The human's approval switched off is said first and in gold — acts leave unseen —, then every
+/// guard switched off for the session, as the board says it too.
+fn guards_said(model: &mut Model, opened: &mikata_loop::Opened) {
+    if opened.approval.starts_with("OFF") {
+        model.fact(Tag::Warn, &opened.approval, "");
+    }
+    if !opened.guards_off.is_empty() {
+        model.fact(
+            Tag::Warn,
+            format!("guards off: {}", opened.guards_off.join(", ")),
+            "this session runs without them",
+        );
+    }
+}
+
+/// With --web: make sure a board runs with this world on it and open it in the browser, then
+/// leave — the board is the app, and its sessions are its own; no terminal app opens beside it.
+/// Its one status line never holds a key. `board.port` is read; a run to resume is taken up on the
+/// board, not here.
+fn web_only(world: &std::path::Path, resume: bool) -> ExitCode {
+    if resume {
+        return fail(
+            "--web opens the board, not a run: open the board and pick the run under Runs",
+            2,
+        );
     }
     let paths = mikata_loop::Paths::resolve(world);
     let port = mikata_loop::Config::load_global(&paths)
@@ -397,21 +416,24 @@ fn board(world: &std::path::Path, tx: &std::sync::mpsc::Sender<mikata_tui::app::
     #[cfg(unix)]
     {
         use mikata_server::board::autostart;
-        let (world, tx) = (world.to_path_buf(), tx.clone());
-        std::thread::spawn(move || {
-            let ask = autostart::Ask { open: true, port };
-            let status = match autostart::sibling() {
-                Ok(d) => autostart::ensure(&d, &world, ask, std::time::Duration::from_secs(5)),
-                Err(e) => format!("board: not started: {e}"),
-            };
-            let _ = tx.send(mikata_tui::app::Msg::Said(status));
-        });
+        let ask = autostart::Ask { open: true, port };
+        let status = match autostart::sibling() {
+            Ok(d) => autostart::ensure(&d, world, ask, std::time::Duration::from_secs(5)),
+            Err(e) => return fail(&format!("board: not started: {e}"), 1),
+        };
+        println!("mikata: {}", mikata_tui::safe::one_line(&status));
+        if status.contains("not started") {
+            return ExitCode::FAILURE;
+        }
+        ExitCode::SUCCESS
     }
     #[cfg(not(unix))]
     {
-        let _ = tx.send(mikata_tui::app::Msg::Said(
-            "board: autostart needs a Unix socket; run `mikatad board`".to_owned(),
-        ));
+        let _ = (world, port);
+        fail(
+            "--web needs a Unix socket for the board; run mikatad board --open",
+            1,
+        )
     }
 }
 

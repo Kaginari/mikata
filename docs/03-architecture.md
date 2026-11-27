@@ -251,7 +251,7 @@ flowchart TB
   ([the client protocol](04-protocol.md)). `mikatad` is that boundary: the SDK starts it as a child
   for one session, and `mikatad board` serves the board's chats for every world at once.
   `mikata --web` starts that board (or reuses the one running) from the `mikatad` installed beside
-  it, so the terminal and the browser show the same world.
+  it, instead of the terminal app: one or the other.
 - **Upkeep needs no session.** Listing runs, reading memory, pinning verify lines, walking the
   chained journals, folding the spend: these read and repair a world's records without a model or
   a key, and they are the human's tools — refused inside any body's command. They sit with
@@ -380,13 +380,13 @@ session's is. The session says what it opened in wherever it is shown:
 - `mikata status`: the `mode` line and why, with no key needed.
 - the app: its second line, with the option that asks for another.
 - `mikata run --json`: `"mode"` on the result line.
-- the protocol: `mode` and `modeWhy` in the `initialize` answer; the web board shows it in a
-  chat's side pane.
+- the protocol: `mode` and `modeWhy` in the `initialize` answer; the web board shows it among a
+  session's chips.
 - the journal: `"mode"` on the session's `law` beat, so a report reads the mode from the run.
 
 #### The board server
 
-`mikatad board [--port 7878] [--bind 127.0.0.1|::1] [--open|--app] [--background]` is one daemon for
+`mikatad board [--port 7878] [--bind 127.0.0.1|::1] [--open] [--background]` is one daemon for
 every world on the machine: an axum router in `mikata-server` (`src/board/`) on `127.0.0.1` and
 `[::1]`. Any other address is refused — remote use is an SSH port-forward of the same port
 (`ssh -L 7878:127.0.0.1:7878 <host>`), the explicit opt-in. One board runs per machine:
@@ -399,7 +399,7 @@ refused).
 socket made `0600` in the `0700` state directory, and writes a fresh nonce to `board.ctl` beside
 it (`0600`) at its start. Each connection asks one line and reads one, the nonce first: `ping`
 (`ok <pid> http://127.0.0.1:<port>`), `open` (the board opens the browser itself, on a launcher
-file as `--open` does), `open-app` (the same launcher as an app window) and `stop`. A body runs as the human's uid, and one with the network may
+file as `--open` does) and `stop`. A body runs as the human's uid, and one with the network may
 connect to a pathname socket, so the uid is not the guard: the board compares the nonce in
 constant time and answers `refused` to any line without it, and a body's sandbox reads no state
 directory, so it never has it. An asker speaks only to a socket and a nonce file its own uid owns;
@@ -408,23 +408,11 @@ crosses the socket. `mikatad board stop` stops this user's board under this stat
 nothing else. A second
 `mikatad board --open` asks the running board to open the browser this way.
 
-**The board as an app.** `mikatad app` (`mikatad board --app`) opens the board in a window of its
-own — no tabs, no address bar — through the first of Chrome, Edge, Brave, Chromium or Vivaldi it
-finds (on the `PATH`; on macOS, in `/Applications` or `~/Applications`), in the browser's app mode:
-`<browser> --app=file://<launcher>`. The launcher is the same file `--open` hands the default
-browser, so the key is never on the command line, and a snap browser gets it in its own
-directory. A browser already running takes the window into its own process. With none of them
-here it opens as `--open` does and says so. Either way the launcher points at `/?app`: the page
-trades the key as ever (the fragment is cleared, the query kept) and opens on the app screen,
-`#/w/<world>/app`, of the world worked in last — one world's session as one window: a header bar,
-the conversation as a timeline of steps beside Done when, Budgets and Guardrails, a command line
-and a status bar. It reads the session's live events, its hello and the world's desk
-(`GET /api/w/<world>/desk`: the verify line, the plan's `Done when`, the branch); a number the core
-does not give, such as a step cap, is not drawn. `--background`
-prints no URL: the board started with the terminal app runs so, and its log holds no key.
+`--background` prints no URL: the board started with the terminal app runs so, and its log holds no key.
 
-**Started with the terminal app.** Launched with `--web`, `mikata` makes sure a board runs as
-its session opens, off the UI thread, and opens it in the browser; without it no board starts.
+**Started by `mikata --web`.** Launched with `--web`, `mikata` opens no terminal app: it makes
+sure a board runs with the world on it, opens it in the browser, prints one line and leaves the
+board serving; without it no board starts.
 `board.autostart` and `board.open` are no longer read by the app (they still load); the port is
 still the human's:
 
@@ -705,6 +693,8 @@ a request in flight when the socket drops fails rather than hangs.
 
 #### The world overview
 
+An API: the board no longer draws a world's overview as a page; its runtime state is in the rail.
+
 `GET /api/w/<id>` reads one world in-process through the crates the CLI uses, so its numbers are
 the CLI's. Every field is a `Sourced<T>`: `{value, source, trusted, why}` — `value` is `null`
 when its source cannot be read and `why` then says so (unknown is said, never guessed, and no
@@ -732,6 +722,9 @@ file, the field is unknown and says which file and why. The usage ledger's last 
 when older bytes are left, `spend` says so. A run lock is probed only as a regular file.
 
 #### The memory and ontology pages
+
+The board draws the memory page; the ontology's facts are served for the lab and `mikatad onto`,
+no longer drawn as a page.
 
 Both read a world's knowledge in-process with the CLI's own functions, over a copy taken as the
 overview takes one (regular files only, capped): memory and facts live inside the world, so they
@@ -788,7 +781,7 @@ elsewhere, or does not exist is refused (422).
 #### The lab's pages
 
 The roster, the bodies page with its colony net and race cards, the queue and the timeline of
-commissions are the lab's, for its chain and collective: [the lab in the code](experimental/the-lab-in-the-code.md#the-boards-lab-pages-the-roster-the-bodies-the-colony-net-the-race-cards).
+commissions are the lab's, no longer drawn by the board, for its chain and collective: [the lab in the code](experimental/the-lab-in-the-code.md#the-boards-lab-pages-the-roster-the-bodies-the-colony-net-the-race-cards).
 
 #### The journal page
 
@@ -1278,37 +1271,37 @@ WCAG contrast: text 4.5:1 on its page and panels, the accent, alarm and the huma
 The board is the web cockpit `mikatad` serves on loopback — the human's page, and another thing
 than the work board the bodies of a session share
 ([`.mikata/tmp/board.md`](experimental/races.md#the-three-modes)): `packages/board`, React 19 built by
-Vite into static files, with no router, state or chart library. It looks like the terminal app
-and reads like claude.ai: a **rail** on the left, the **centre**, and a foldable **pane** on the
-right.
+Vite into static files, with no router, state or chart library. It is the platform: every
+workspace, each with many sessions at once, beside the terminal app's one.
 
-<img src="./img/board/worlds-dark.png" width="640" alt="The running board, dark: the rail with the worlds, a real world with its sessions, gate and spend, the pane at a glance">
+<img src="./img/board/sessions-dark.png" width="640" alt="The board, dark: the glowing top bar with the workspace's pages, the rail with the workspace, its sessions and the runtime's state, a session's conversation as a timeline of steps, and its Live run — Plan, Work, Verify, Land, the log, Done when, the guardrails and the numbers">
 
 <img src="./img/board/builder-dark.png" width="640" alt="A real world's Harness Builder, dark: its units wired to the Mikata core, the plan and its lighter form off, a real run verified on the right">
 
-**The rail.** At its head Mikata's icon and name, the name running the logo's gold into cyan
-(`--mn-brand-*`, fixed in every scheme, a deeper ink of each on a light page), then search, the **worlds** (each with its state in words: *present*
-with the age of its latest session or *never opened*, or *missing*, never dropped) and the board's
-own pages:
-Metrics, Integrations, Settings. Inside a world the rail becomes that world's: back to every
-world, *New chat*, its chats, and its sections (Bodies & queue, Memory, Ontology, Journal). At the
-foot, the theme. Below 760 px the rail is a drawer behind the menu button, and the pane a drawer
-too; a link followed, the scrim or Esc closes them. An opening drawer takes the focus and a
-closing one gives it back to its button, and the folded rail is `inert`. The pane's open or folded
-state is kept per browser.
+**The frame.** One frame for every page (`src/ui/Platform.tsx`, `src/platform.css`). The **top
+bar** is the brand's gradient, flowing, with Mikata's mark, the workspace's pages as tabs
+(Sessions, Harness Builder, Plugins, Runs), search (⌘K), the theme and *New session*. The
+**rail** below it is glass cards: the workspace (a picker of every world the board knows, its
+path, and its pages: Agent sessions, Harness Builder, Plugins, Run journal, Memory), its
+sessions (the live ones, then the latest runs, `+` for a new one), the runtime's state (the
+harness, the profile and the units new sessions open with, the live sessions) and the board's own pages (Metrics, Integrations,
+Settings). The **page** fills the rest and rises in as it changes. Below 860 px the tabs fold
+into the rail and the rail is a drawer behind the menu button; a link followed or the scrim
+closes it. The motion — the bar's flowing gradient and sweep, pages and lists arriving, live dots
+pulsing, the composer's frame turning while it has focus — stops under reduced motion.
 
 **Addresses.** A small hash router of the board's own (`src/router.ts`) gives every view an
 address, so a link, a reload or the back button lands where it was:
 
 | Address | View |
 |---|---|
-| `#/` | every world, live first, then by latest activity |
-| `#/w/<world>` | a world |
-| `#/w/<world>/builder` | its Harness Builder: a page of its own |
-| `#/w/<world>/<bodies\|memory\|ontology\|journal>` | a section of it |
-| `#/w/<world>/s/<session>` | a live chat |
+| `#/` | the workspace worked in last |
+| `#/w/<world>` | its newest live session, or a new one at the first ask |
+| `#/w/<world>/s/<session>` | a live session |
 | `#/w/<world>/r/<run>` | a past run, read-only |
-| `#/net`, `#/metrics`, `#/integrations`, `#/settings` | the board's pages |
+| `#/w/<world>/<builder\|plugins>` | the Harness Builder and the plugin inspector |
+| `#/w/<world>/<runs\|journal\|memory>` | its runs, its journal, its memory |
+| `#/metrics`, `#/integrations`, `#/settings` | the board's pages |
 
 Segments are URI-encoded, and `parse(format(r))` gives every route back. Any other address, a
 world the board does not know, and a view whose data is not served yet each say so in an empty
@@ -1318,11 +1311,11 @@ state, never a blank pane.
 
 | Page | Shows | Empty, loading, silent |
 |---|---|---|
-| Worlds `#/` | each world's row: status, latest session, memory standing, challenges, gate, spend | *No worlds yet*, with the command that adds one (`mikatad board add <dir>`); *Loading worlds…* |
-| A world `#/w/<world>` | its overview in panels, each with its source | *unknown* with its reason; a missing world keeps its page |
-| Harness Builder `#/w/<world>/builder` | a page of its own (no rail, no pane): a header with its views (Sessions, Harness builder, Plugins, Agent runs, Profiles, Journal) and *Run agent*; on the left the workspace (a world picker and its path), its status (the harness, the sandbox the run got, the units on) and the run's usage; in the middle every unit a session would open with as a card round the core, with a switch, its version and an icon, a profile to start from, and the composition as a global file's `[profiles.<name>]` and as `--units` (copy, export); on the right the run — the ask, Start and Stop, its stages (Plan, Work, Verify, Land), its log, the end gate's word, its wall time, steps and spend, a box to message it, and its approvals. *Sessions* shows the run's own conversation and composer. Start opens a chat with exactly that composition (`POST …/sessions` with `profile` and `units`) | *Reading the harness…*; *No run yet*; *Waiting for an ask…* |
-| A chat `#/w/<world>/s/<session>`, a past run `…/r/<run>` | the transcript in the terminal's grammar, the composer, the approval card | *A new chat*; *Connecting…*; *This chat is not live* |
-| Memory, Ontology | notes by body, scope and standing; facts by status, with confirm, wake and settle | *No note here*; *No contested fact* |
+| A session `#/w/<world>`, `…/s/<session>` | a header (the first ask as its title, its state — Ready, Running, Verified, Not landed —, the branch, the sandbox, the model, the mode, *Configure*, *End session*), the conversation as a timeline of steps (the human's words, each look, edit and check, the end gate's word), the composer (Enter sends; while a turn runs it queues the line for after it, as the terminal app does, and *Steer* or `/send <text>` folds words into the running turn instead; Esc or *Stop* interrupts; an observing tab may *Take over*), the queue, the approval card; beside it the **Live run**: Plan · Work · Verify · Land, the log, Done when, the guardrails, wall time, steps, cost and the context against its stress line. A first ask opens a session at its own address | *Ready in* the workspace; *Waiting for an ask…*; *This session has ended* |
+| A past run `…/r/<run>` | the transcript in the terminal's grammar, read-only, and *Resume* | *This chat is not live* |
+| Harness Builder `…/builder`, Plugins `…/plugins` | every unit a session opens with as a card round the core, with a switch, its version and an icon; a legend; a profile to start from; the composition as a global file's `[profiles.<name>]` (copy, export) and as the `--profile` and `--units` the workspace's new sessions open with — New session, the rail's `+`, a first ask. The composition is kept in this browser per workspace; a guard switched off (`secrets`, `approval`, `gate`, `hold`) holds for the next new session only, is never kept, and that session's header says so in the alarm's tone. Plugins inspects the native units and the declared plugins, with the same switches | *Reading the harness…* |
+| Runs `…/runs` | the live sessions, then the past runs, as cards, with their totals | *No session runs now*; *No past run yet* |
+| Memory | notes by body, scope and standing, with confirm and wake | *No note here* |
 | Journal | `log.md`'s entries and their contents | *No journal yet* |
 | Metrics `#/metrics` | spend, tokens, cache, burn, meters, sessions, scores, bench | a meter with no call reads *silent since …*, never 0; one whose journal does not hold reads *unavailable — why*; the bench *Not configured*, with the line to add |
 | Integrations, Settings | providers, key sources, MCP servers, the effective configuration; the theme | *Not configured* where the global file names nothing |
@@ -2033,7 +2026,7 @@ an empty list or table never overrides a lower layer:
   the tracked file they become holes saying so. So are `providers.*`: a provider decides where
   a key is sent, and a cloned repository must not point one elsewhere.
   So is `board.*` — `board.bench_results`, the directory of bench result rows the board shows;
-  `board.port`, the port a board the terminal app starts with `--web` listens on (`board.autostart`
+  `board.port`, the port a board `mikata --web` starts listens on (`board.autostart`
   and `board.open` still load, and are no longer read); `board.prune_after_days`, how long a missing world stays
   listed (14; 0 never; at most 3650): the board serves every world on the machine, so what it
   reads, whether it starts and what it opens and forgets are the human's.

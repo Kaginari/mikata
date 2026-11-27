@@ -6,7 +6,6 @@ describe('the router', () => {
     ['', { name: 'worlds' }],
     ['#', { name: 'worlds' }],
     ['#/', { name: 'worlds' }],
-    ['#/net', { name: 'net' }],
     ['#/metrics', { name: 'metrics' }],
     ['#/integrations/', { name: 'integrations' }],
     ['#/settings', { name: 'settings' }],
@@ -15,7 +14,8 @@ describe('the router', () => {
     ['#/w/a/s/r-17', { name: 'session', world: 'a', session: 'r-17' }],
     ['#/w/a%20b/s/x%2Fy', { name: 'session', world: 'a b', session: 'x/y' }],
     ['#/w/a/r/r1-2', { name: 'run', world: 'a', run: 'r1-2' }],
-    ['#/w/a/bodies/queue', { name: 'section', world: 'a', section: 'bodies', tab: 'queue' }],
+    ['#/w/a/builder', { name: 'section', world: 'a', section: 'builder' }],
+    ['#/w/a/runs/', { name: 'section', world: 'a', section: 'runs' }],
   ])('reads %j', (hash, route) => expect(parse(hash)).toEqual(route));
 
   it.each([
@@ -28,9 +28,10 @@ describe('the router', () => {
     '#/w/a/nope',
     '#/w/a/memory/extra',
     '#/w/a/memory/queue',
-    '#/w/a/bodies/nope',
+    '#/w/a/bodies',
+    '#/w/a/app',
+    '#/net',
     '#/metrics/extra',
-    '#/net/extra',
     '#/w/%E0%A4%A/s/x',
     '#/w/a/s/b/c/d',
   ])('gives an unknown route for %j, carrying the path', (hash) => {
@@ -39,13 +40,12 @@ describe('the router', () => {
 
   it.each<Route>([
     { name: 'worlds' },
-    { name: 'net' },
     { name: 'metrics' },
     { name: 'settings' },
     { name: 'world', world: 'x-1' },
-    { name: 'section', world: 'x/1', section: 'ontology' },
+    { name: 'section', world: 'x/1', section: 'plugins' },
     { name: 'session', world: 'w?#', session: 's p' },
     { name: 'run', world: 'w', run: 'r1-2' },
-    { name: 'section', world: 'w', section: 'bodies', tab: 'timeline' },
+    { name: 'section', world: 'w', section: 'runs' },
   ])('formats %j and reads it back', (route) => expect(parse(format(route))).toEqual(route));
 });

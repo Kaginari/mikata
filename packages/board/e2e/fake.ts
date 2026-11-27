@@ -41,6 +41,7 @@ export const hello = {
   modeWhy: 'Mikata works alone',
   body: 'summoner',
   held: 0,
+  guardsOff: [] as string[],
 };
 
 /** An event of the session's own body, or of `body`. */
@@ -63,6 +64,14 @@ export class Bridge {
   sockets: WebSocketRoute[] = [];
   sent: Msg[] = [];
   role: 'controller' | 'observer' = 'controller';
+  /** What `initialize` answers: the session's hello. */
+  hello: typeof hello = hello;
+  /** The session's units, as `units/list` names them: id → on. */
+  units = new Map<string, boolean>(
+    ['memory', 'what_changed', 'reader', 'stress', 'plan', 'gate', 'hold', 'secrets'].map(
+      (id) => [id, true] as const,
+    ),
+  );
   /** What a prompt does: by default a turn that answers in one line. */
   onPrompt: (text: string) => void = (text) => {
     this.emit('turnStarted', { text });
@@ -110,7 +119,7 @@ export class Bridge {
       }
       switch (m.method) {
         case 'initialize':
-          return answer(hello);
+          return answer(this.hello);
         case 'session/events': {
           const since = Number(m.params?.since ?? 0);
           return answer({
@@ -133,6 +142,24 @@ export class Bridge {
               params: { role: 'controller', controlled: true },
             }),
           );
+        case 'units/list':
+          return answer({
+            units: [...this.units].map(([uid, on]) => ({
+              id: uid,
+              version: '1',
+              state: on ? 'active' : 'inactive',
+            })),
+            digest: 'd',
+            pending: 0,
+            refused: [],
+          });
+        case 'units/change': {
+          if (this.role !== 'controller') return refuse('this tab observes: take over to act');
+          const uid = String(m.params?.id ?? '');
+          // Taken at once here: the fake run reaches its next safe point at once.
+          this.units.set(uid, m.params?.op === 'on');
+          return answer({ queued: true });
+        }
         case 'session/prompt':
           if (this.role !== 'controller') return refuse('this tab observes: take over to act');
           answer({ queued: false });
@@ -218,6 +245,26 @@ export async function openChat(
     ),
   );
   await page.route(`**/api/w/${LIVE.id}/runs`, (r) => r.fulfill(json(runs)));
+  // The harness and the desk the session page reads; a test's own routes (`extra`) win.
+  await page.route(`**/api/w/${LIVE.id}/units`, (r) =>
+    r.fulfill(
+      json({
+        units: ['plan', 'gate'].map((id) => ({
+          id,
+          kind: 'native',
+          version: '1',
+          on: true,
+          frame: false,
+          tightens: false,
+        })),
+        profiles: [],
+        holes: [],
+      }),
+    ),
+  );
+  await page.route(`**/api/w/${LIVE.id}/desk`, (r) =>
+    r.fulfill(json({ verify: ['pytest -q'], done: [], branch: 'main' })),
+  );
   await page.route(`**/api/w/${LIVE.id}`, (r) =>
     r.fulfill(
       json({

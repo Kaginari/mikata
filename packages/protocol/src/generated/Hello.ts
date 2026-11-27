@@ -68,4 +68,9 @@ body: string,
 /**
  * The orders held on the shared work queue as the session opens.
  */
-held: number, };
+held: number, 
+/**
+ * The guards — `secrets`, `approval`, `gate`, `hold` — switched off for this session, as it
+ * opened: every client says so on it.
+ */
+guardsOff: Array<string>, };

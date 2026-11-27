@@ -50,17 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   the unit off. A verify line that needs a secret file's values finds it empty too: give it
   what it needs through the environment, or switch the unit off. The board's Harness Builder
   shows it as a card.
-- `mikatad app` (`mikatad board --app`): Mikata as an app — a window of its own, no tabs and no
-  address bar, through Chrome, Edge, Brave, Chromium or Vivaldi in app mode, on the same one-time
-  launcher file as `--open`, so no key is on the command line. With none of them, it opens in the
-  browser and says so. It opens on the app screen (`#/w/<world>/app`) of the world worked in
-  last: a glowing header bar; the conversation as a timeline of steps (the human's ask, each edit
-  with its lines, each check with its output, the body's words, the end gate's Landed banner);
-  Done when, Budgets and Guardrails beside it; a command line and a status bar under it. Every
-  number is the session's own.
-- The Harness Builder as the owner's picture draws it: the top bar's Home (the app screen),
-  Harness Builder, Plugins, Profiles and Docs beside a bright Run agent; the rail's status as dots
-  and its usage as bars; unit cards framed pink on the left and amber on the right, their
+- The Harness Builder as the owner's picture draws it: unit cards framed pink on the left and amber on the right, their
   versions in their title rows, wired to a glowing core; the configuration as TOML with its line
   numbers and colours beside the ask and Start run; the live run's rings (Plan · Work · Verify ·
   Land), its log timed `[mm:ss]` from the run's start, a large VERIFIED and tiles with icons.
@@ -74,6 +64,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- **The web board is the platform**, one frame for every page: a top bar in the brand's flowing
+  gradient (Mikata's mark, the workspace's pages as tabs — Sessions, Harness Builder, Plugins,
+  Runs —, search, the theme, New session); a rail of glass cards (the workspace picker and its
+  pages, its sessions, the runtime's state, Metrics, Integrations and Settings); and the page. A
+  session is the conversation as a timeline of steps beside its **Live run** — Plan · Work ·
+  Verify · Land, the log, Done when, the guardrails, wall time, steps, cost and context —, with a
+  composer that sends — queued behind a running turn, as in the terminal app —, steers (*Steer*, `/send`), stops and takes over. The Harness Builder and the plugins are pages
+  of the frame, as the picture draws them: what they compose — a profile and switches — is what
+  the workspace's new sessions open with, kept in this browser; a guard switched off (`secrets`,
+  `approval`, `gate`, `hold`) holds for the next session only and that session says so. The rail
+  lists the live sessions by their ask, then the recent runs; a Runs page lists them all. `#/`
+  opens the workspace worked in last. Pages rise in, lists arrive one by one, live things pulse,
+  and all of it stands still under reduced motion.
+- **The board's palettes**: beside the native look (Bio Digital, Bio Pearl), seven gradient
+  systems — Solar Flare, Aurora, Ultraviolet, Cryo, Crimson Alloy, Golden Jade, Copper Iris —, in
+  Settings, dark and light, the top bar's gradient with them; every text role reads at AA on each.
+  The terminal app keeps its own schemes. The interface's face is Space Grotesk (JetBrains Mono
+  for code). A new session starts in the Harness Builder, where its profile and units are chosen;
+  Metrics, Integrations and Settings keep the workspace's frame; a session's header says the
+  guards it runs without, as the session itself reports them (`guardsOff` in the hello), in every
+  tab and in the terminal app.
+- **Configure on a running session** opens its units: every unit of the harness with a switch
+  showing whether it is on in that session now, switched at its next safe point (`units/list`,
+  `units/change`, now through the board) and kept for the project as `/unit` keeps it — but a guard
+  switched off holds for that session only (`units/change {keep: false}`), as the Builder's does.
+  A session is started in one place: the Harness Builder's Start session.
+
 - **The terminal app's cards are solid blocks.** Each message, answer, tool call, look and the
   gate's verdict is a block filled in its tint, a thick bar down its left in its colour, and a
   half-row lip on top in place of a border; no blank line between them, so the conversation
@@ -86,10 +103,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   one plain line, `@U` lines stay out of the answer, what changed shows eight lines and where the
   rest is kept, and a finished thought folds away (Alt+↑↓ or Ctrl+T shows it).
 
+### Removed
+
+- `mikata --web` with the terminal app: `--web` now opens the board alone, one or the other.
+- The board's old screens: the worlds list, a world's overview, the side pane, Bodies & queue,
+  the colony net (`#/net`) and the Ontology page. Their addresses say *Nothing at this address*.
+  The journal and the memory stay, inside the frame.
+
 ### Fixed
 
-- The terminal app's and the app's Guardrails read the `approval` and `secrets` units: off,
-  they say outward acts run without asking and that secret files are readable, never a tick.
+- The terminal app's Guardrails and a board session's read the `approval`, `secrets` and `gate`
+  units: off, they say outward acts run without asking and that secret files are readable, never a
+  tick.
 - The terminal app showed the memory the harness quotes above an ask as the human's own line.
 - The clock read 0:00 once a turn ended; it keeps the turn's time.
 - The light-coding reason and the approval card said "the Summoner" and "the human gate"; they say

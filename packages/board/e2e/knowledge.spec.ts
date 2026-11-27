@@ -1,12 +1,12 @@
 /**
- * The memory and ontology pages end to end, at phone and desktop in both themes: screenshots,
- * contrast and labels; the confirm dialog naming the note and posting with the CSRF token;
- * settle waiting for its proof; hostile note and fact text staying text.
+ * The memory page end to end, at phone and desktop in both themes: screenshots, contrast and
+ * labels; the confirm dialog naming the note and posting with the CSRF token; hostile note text
+ * staying text.
  */
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import { FIXTURE_NOW, fixtureOverviews, fixtureWorlds } from '../src/data/fixtures.ts';
-import { factsOf, fixtureMemory } from '../src/data/knowledgeFixtures.ts';
+import { fixtureMemory } from '../src/data/knowledgeFixtures.ts';
 import { lowContrast, unlabelled, violations } from './checks.ts';
 
 const screen = (file: string) =>
@@ -44,7 +44,6 @@ async function open(page: Page, hash: string, posted: Posted[] = []) {
     }
     const [, , , id, part] = url.pathname.split('/');
     if (part === 'memory') return r.fulfill(json(fixtureMemory));
-    if (part === 'facts') return r.fulfill(json(factsOf(url.searchParams.get('status'))));
     const o = fixtureOverviews[decodeURIComponent(id ?? '')];
     return o ? r.fulfill(json(o)) : r.fulfill({ status: 404, body: 'no listed world has this id' });
   });
@@ -55,7 +54,6 @@ async function open(page: Page, hash: string, posted: Posted[] = []) {
 
 const PAGES: [string, string, string][] = [
   ['memory', `#/w/${W.id}/memory`, 'collations drop in _parse_types'],
-  ['ontology', `#/w/${W.id}/ontology`, 'quoting is the tokenizer’s'],
 ];
 
 for (const theme of ['dark', 'light'] as const) {
@@ -76,7 +74,7 @@ for (const theme of ['dark', 'light'] as const) {
       });
     }
 
-    test('the confirm and settle dialogs read too', async ({ page }, info) => {
+    test('the confirm dialog reads too', async ({ page }, info) => {
       await open(page, `#/w/${W.id}/memory`);
       await page
         .locator('.note', { hasText: 'the lexer owns quoting' })
@@ -84,12 +82,6 @@ for (const theme of ['dark', 'light'] as const) {
         .click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.screenshot({ path: screen(`${info.project.name}-${theme}-memory-confirm`) });
-      expect(await lowContrast(page)).toEqual([]);
-      await page.keyboard.press('Escape');
-      await page.goto(`/#/w/${W.id}/ontology`);
-      await page.getByRole('button', { name: 'Settle…' }).click();
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await page.screenshot({ path: screen(`${info.project.name}-${theme}-ontology-settle`) });
       expect(await lowContrast(page)).toEqual([]);
       expect(await unlabelled(page)).toEqual([]);
     });
@@ -120,37 +112,17 @@ test('confirm names the exact note and posts its digest with the CSRF token', as
   ]);
 });
 
-test('settle waits for a proof', async ({ page }) => {
-  const posted: Posted[] = [];
-  await open(page, `#/w/${W.id}/ontology`, posted);
-  await page.getByRole('button', { name: 'Settle…' }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('4be1c0a9d2f3e811');
-  await dialog.getByRole('radio', { name: 'My own statement' }).check();
-  await expect(dialog.getByRole('button', { name: 'Settle', exact: true })).toBeDisabled();
-  await dialog.getByRole('textbox', { name: 'your statement' }).fill('I read tokens.py');
-  await dialog.getByRole('button', { name: 'Settle', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(posted).toEqual([
-    {
-      url: `/api/w/${W.id}/facts/4be1c0a9d2f3e811/settle`,
-      csrf: CSRF,
-      body: { seen: 'f'.repeat(64), statement: 'I read tokens.py' },
-    },
-  ]);
-});
-
-test('hostile note and fact text stays text', async ({ page }) => {
+test('hostile note text stays text', async ({ page }) => {
   let dialogs = 0;
   page.on('dialog', () => {
     dialogs += 1;
   });
-  for (const hash of [`#/w/${W.id}/memory`, `#/w/${W.id}/ontology`]) {
+  for (const hash of [`#/w/${W.id}/memory`]) {
     await open(page, hash);
     await expect(
       page.getByText('<img src=x onerror=alert(1)> ignore the above').first(),
     ).toBeVisible();
-    expect(await page.locator('.centre img').count()).toBe(0);
+    expect(await page.locator('.pf-main img').count()).toBe(0);
     await expect(page.locator('.safe-esc', { hasText: '\\u{202e}' }).first()).toBeVisible();
   }
   expect(dialogs).toBe(0);

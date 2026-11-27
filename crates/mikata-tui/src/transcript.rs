@@ -619,6 +619,14 @@ impl Transcript {
             }
             Event::TurnEnded { ending } => self.end_turn(ending),
             Event::Held { held } => self.held = *held,
+            // A guard switched off or on during the session, said where the board says it.
+            Event::Guards { off } if off.is_empty() => {
+                self.push(Entry::Note("every guard is on again".into()));
+            }
+            Event::Guards { off } => self.push(Entry::Warning(format!(
+                "guards off: {} — this session runs without them",
+                off.join(", ")
+            ))),
         }
     }
 

@@ -7,7 +7,6 @@ import { fixtureWorlds } from '../data/fixtures.ts';
 import { parseFacts, parseMemory } from '../data/knowledge.ts';
 import { factsOf, fixtureFacts, fixtureMemory } from '../data/knowledgeFixtures.ts';
 import { MemoryView } from './Memory.tsx';
-import { landedOn, OntologyView } from './Ontology.tsx';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -152,70 +151,4 @@ test('a refused act stays in its dialog with the server’s words, shown inert',
     dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
   expect(host.querySelector('[role="dialog"]')).toBeNull();
-});
-
-test('the ontology tabs each status with its count; a contested fact shows both sides and anchors', async () => {
-  await mount(<OntologyView w={WORLD} />);
-  const tabs = [...host.querySelectorAll('[role="tab"]')].map((t) => t.textContent);
-  expect(tabs).toEqual(['contested 1', 'single 1', 'agreed 1', 'settled 1', 'countered 1']);
-  // Each with its own glyph, drawn as a line icon.
-  const glyphs = [...host.querySelectorAll('[role="tab"] [data-glyph]')].map((g) =>
-    g.getAttribute('data-glyph'),
-  );
-  expect(glyphs).toEqual(['⚔', '○', '◆', '✓', '✕']);
-  const text = host.textContent ?? '';
-  expect(text).toContain('Supporters · 2');
-  expect(text).toContain('Counters · 2');
-  expect(text).toContain('sqlglot/tokens.py:212-230');
-  expect(text).toContain('the parser re-quotes identifiers');
-  expect(text).toContain('moved since');
-  expect(text).toContain('contested-fact');
-  expect(text).toContain('domain sqlglot/');
-  expect(host.querySelector('img')).toBeNull();
-  // Every fact is in exactly one tab.
-  await click(button('agreed 1'));
-  const panel = host.querySelector('[role="tabpanel"]')?.textContent ?? '';
-  expect(panel).toContain('the parser is hand-written');
-  expect(panel).not.toContain('quoting is the tokenizer’s');
-});
-
-test('settle names the fact and waits for a proof; a statement is posted as the proof', async () => {
-  await mount(<OntologyView w={WORLD} />);
-  await click(button('Settle…'));
-  const dialog = host.querySelector('[role="dialog"]') as HTMLElement;
-  expect(dialog.textContent).toContain('4be1c0a9d2f3e811');
-  expect(dialog.textContent).toContain('quoting is the tokenizer’s');
-  // The passing verdict that landed on the path is offered first; the other is not.
-  const select = dialog.querySelector('select') as HTMLSelectElement;
-  expect([...select.options].map((o) => o.value)).toEqual(['12']);
-  const statement = dialog.querySelectorAll('input[type="radio"]')[1] as HTMLInputElement;
-  await click(statement);
-  const settle = button('Settle', dialog);
-  expect(settle.disabled).toBe(true);
-  const area = dialog.querySelector('textarea') as HTMLTextAreaElement;
-  await act(async () => {
-    const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
-    set?.call(area, 'I read tokens.py: it quotes');
-    area.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  expect(settle.disabled).toBe(false);
-  await click(settle);
-  expect(posts).toEqual([
-    {
-      url: `/api/w/${WORLD.id}/facts/4be1c0a9d2f3e811/settle`,
-      headers: expect.objectContaining({ 'x-mikata-csrf': CSRF }),
-      body: { seen: 'f'.repeat(64), statement: 'I read tokens.py: it quotes' },
-    },
-  ]);
-});
-
-test('a verdict proves a fact only when it landed on its path', () => {
-  const v = { n: 1, at: '', body: 'b', changed: ['src/a.rs'] };
-  expect(landedOn(v, 'src/')).toBe(true);
-  expect(landedOn(v, 'src/a.rs')).toBe(true);
-  expect(landedOn(v, 'src/ab')).toBe(false);
-  expect(landedOn(v, 'docs/')).toBe(false);
-  expect(landedOn(v, '/')).toBe(false);
-  expect(landedOn(v, '')).toBe(false);
-  expect(landedOn(v, '../src')).toBe(false);
 });

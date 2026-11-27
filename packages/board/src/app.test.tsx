@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { App } from './App.tsx';
 import { fixtureWorlds } from './data/fixtures.ts';
-import { NODES } from './data/net.ts';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -43,21 +42,24 @@ async function mount(hash: string, body: unknown = fixtureWorlds, status = 200) 
   return root;
 }
 
-test('the home lists every world, each state in words', async () => {
+test('the front page opens the workspace worked in last; the rail lists every one', async () => {
   await mount('#/');
-  const text = host.textContent ?? '';
-  expect(text).toContain('Mikata');
-  for (const n of ['tempest-try', 'sqlglot', 'notes', 'old-spike']) expect(text).toContain(n);
-  expect(text).toContain('never opened');
-  expect(text).toContain('missing');
+  await act(async () => {
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  });
+  expect(window.location.hash).toBe('#/w/tempest-try-41f0aa2c9d3e8b77');
+  const options = [...host.querySelectorAll('select[aria-label="Workspace"] option')].map(
+    (o) => o.textContent,
+  );
+  for (const n of ['tempest-try', 'sqlglot', 'notes']) expect(options).toContain(n);
 });
 
 test('a world name is shown, never run', async () => {
   const evil = { ...fixtureWorlds.worlds[0], name: '<img src=x onerror=alert(1)>\u202e' };
-  await mount('#/', { worlds: [evil] });
-  // The board's own icon is the only image, from its own path: nothing from the name.
+  await mount(`#/w/${evil.id}/runs`, { worlds: [evil] });
+  // The board's own mark is the only image, from its own path: nothing from the name.
   const images = [...host.querySelectorAll('img')];
-  expect(images.map((i) => i.getAttribute('src'))).toEqual(['/mikata-icon.png']);
+  expect(images.map((i) => i.getAttribute('src'))).toEqual(['/mikata-mark.png']);
   expect(host.textContent).toContain('<img src=x onerror=alert(1)>\\u{202e}');
 });
 
@@ -69,12 +71,12 @@ test('an unknown address gives an honest empty state', async () => {
 
 test('an unknown world says so', async () => {
   await mount('#/w/ghost-1/memory');
-  expect(host.textContent).toContain('No such world');
+  expect(host.textContent).toContain('No such workspace');
 });
 
 test('a server that fails is said to', async () => {
   await mount('#/', {}, 503);
-  expect(host.textContent).toContain('The worlds could not be read');
+  expect(host.textContent).toContain('The workspaces could not be read');
   expect(host.textContent).toContain('503');
 });
 
@@ -148,25 +150,14 @@ test('the palette lists only addresses: picking one moves the page', async () =>
   expect(palette()).toBeNull();
 });
 
-test('the colony net page names every race and form, and a legend click opens its card', async () => {
-  await mount('#/net');
-  const text = host.textContent ?? '';
-  expect(document.title).toBe('Colony net · Mikata');
-  expect(host.querySelector('canvas.net-canvas')).not.toBeNull();
-  for (const n of NODES) expect(text, n.name).toContain(n.name);
-  expect(text).toContain('6 command edges · 5 ascension edges · one throne');
-  const oni = [...host.querySelectorAll<HTMLButtonElement>('.net-legend-item')].find(
-    (b) => b.textContent === 'Oni',
+test('the top bar and the rail light the page that is open', async () => {
+  await mount('#/w/sqlglot-9a1c33e07f2b4d10/plugins');
+  const tab = host.querySelector<HTMLAnchorElement>('a.pf-tab[aria-current="page"]');
+  expect(tab?.textContent).toContain('Plugins');
+  expect(tab?.getAttribute('href')).toBe('#/w/sqlglot-9a1c33e07f2b4d10/plugins');
+  const board = [...host.querySelectorAll<HTMLAnchorElement>('a.pf-navlink')].map((a) =>
+    a.getAttribute('href'),
   );
-  await act(async () => oni?.click());
-  expect(oni?.getAttribute('aria-pressed')).toBe('true');
-  expect(host.querySelector('.net-card')?.textContent).toContain('ascended from Kijin');
-  await act(async () => host.querySelector<HTMLButtonElement>('.net-card-close')?.click());
-  expect(host.querySelector('.net-card')).toBeNull();
-});
-
-test('the rail links the colony net', async () => {
-  await mount('#/');
-  const link = host.querySelector<HTMLAnchorElement>('a.rail-item[href="#/net"]');
-  expect(link?.textContent).toContain('Colony net');
+  for (const h of ['#/metrics', '#/integrations', '#/settings']) expect(board).toContain(h);
+  expect(host.querySelector('a[href="#/net"]')).toBeNull();
 });

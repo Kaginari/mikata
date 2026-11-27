@@ -62,25 +62,28 @@ export function StackedBars({
   days,
   label,
   value,
+  width = W,
 }: {
   days: readonly { day: string; parts: readonly { series: string; value: number }[] }[];
   label: string;
   value: (v: number) => string;
+  /** The plot's width in the drawing's units: a wide card draws wider, never stretched. */
+  width?: number;
 }) {
   const b = stacked(
     days.map((d) => ({ key: d.day, parts: d.parts })),
-    W,
+    width,
     H,
   );
   return (
     <figure className="chart">
       <svg
         className="chart-svg"
-        viewBox={`0 ${-PAD.top} ${W + PAD.right} ${H + PAD.top + PAD.bottom}`}
+        viewBox={`0 ${-PAD.top} ${width + PAD.right} ${H + PAD.top + PAD.bottom}`}
         role="img"
         aria-label={`${label}${b.y.kind === 'log' ? ', on a log axis' : ''}`}
       >
-        <Axis y={b.y} width={W} />
+        <Axis y={b.y} width={width} />
         {b.bars.map((bar) => (
           <g key={bar.key}>
             {bar.segments.map((s) => (

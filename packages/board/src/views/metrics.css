@@ -285,3 +285,189 @@ th .chart-legend,
 .tally-count {
   color: var(--mn-text-muted);
 }
+
+/* ── the platform's metrics and integrations pages ─────────────────────────────────────────── */
+
+.metrics-pg .pg-head {
+  margin-bottom: 18px;
+}
+.metrics-pg .metrics-filters {
+  margin-left: auto;
+}
+.metrics-pg .metrics-filters .pf-select {
+  width: auto;
+  min-width: 180px;
+}
+/* the window: a segmented control, the chosen one on the brand */
+.mx-seg {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--mn-line-strong);
+  border-radius: 11px;
+  background: var(--mn-panel-raised);
+}
+.mx-seg button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mn-text-muted);
+  font: 600 13px var(--mn-font-mono);
+  transition:
+    background var(--mn-fast) var(--mn-ease),
+    color var(--mn-fast) var(--mn-ease);
+}
+.mx-seg button:hover {
+  color: var(--mn-text);
+}
+.mx-seg button[aria-pressed="true"] {
+  background: var(--mn-brand-surface) var(--mn-hot);
+  color: var(--mn-on-brand);
+}
+
+/* the totals as tiles, lit from beneath */
+.mx-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.mx-kpis > div {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 16px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(var(--mn-panel-raised), var(--mn-panel-raised)) padding-box,
+    var(--pf-frame) border-box;
+  animation: pf-rise 480ms var(--mn-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 50ms);
+  transition: transform 300ms var(--pf-spring);
+}
+.mx-kpis > div::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: var(--mn-gradient-full);
+}
+.mx-kpis > div:hover {
+  transform: translateY(-3px);
+}
+.mx-kpis dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--mn-text-muted);
+  font: 700 11px var(--mn-font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mx-kpis dt .mn-icon {
+  color: var(--mn-holo);
+}
+.mx-kpis dd {
+  margin: 0;
+  color: var(--mn-text);
+  font: 800 24px var(--mn-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.mx-kpis small {
+  display: block;
+  margin-top: 4px;
+  color: var(--mn-text-muted);
+  font: 12px var(--mn-font-mono);
+}
+.mx-unknown {
+  margin: 0 0 16px;
+}
+
+/* every section a glass card; the charts two to a row, the spend across both */
+.metrics-pg .panels {
+  gap: 14px;
+}
+.metrics-pg .metrics-charts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.metrics-pg .metrics-tables {
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+}
+.metrics-pg .panel {
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(var(--mn-panel-raised), var(--mn-panel-raised)) padding-box,
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--mn-hot) 35%, var(--mn-line)),
+      var(--mn-line) 45%
+    )
+    border-box;
+  animation: pf-rise 520ms var(--mn-ease) backwards;
+}
+.metrics-pg .panel-title {
+  color: var(--mn-holo);
+  font: 700 12px var(--mn-font-mono);
+  letter-spacing: 0.12em;
+}
+.metrics-pg .panel-source {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--mn-line);
+  color: var(--mn-text-faint);
+  font-size: 11px;
+}
+.metrics-pg .metric-big {
+  font: 800 26px var(--mn-font-mono);
+}
+.metrics-pg .chart-svg {
+  max-height: 280px;
+}
+.metrics-pg .panel-wide .chart-svg {
+  max-height: none;
+}
+.metrics-pg .chart-fill {
+  rx: 2px;
+  transition: opacity var(--mn-fast) var(--mn-ease);
+}
+.metrics-pg .chart-fill:hover {
+  opacity: 0.8;
+}
+.metrics-pg .table thead th {
+  color: var(--mn-text-muted);
+  font: 700 11px var(--mn-font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.metrics-pg .table tbody tr:hover {
+  background: var(--mn-surface-hover);
+}
+
+@media (max-width: 860px) {
+  .metrics-pg .metrics-charts,
+  .metrics-pg .metrics-tables {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .metrics-pg .metrics-filters {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx-kpis > div,
+  .metrics-pg .panel {
+    animation: none;
+  }
+  .mx-kpis > div,
+  .mx-seg button,
+  .metrics-pg .chart-fill {
+    transition: none;
+  }
+}

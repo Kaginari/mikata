@@ -66,7 +66,7 @@ sequenceDiagram
     rect rgb(13, 11, 16)
       rect rgba(2,132,199,0.10)
       C->>D: initialize {clientInfo}
-      D-->>C: {protocol, version, world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}
+      D-->>C: {protocol, version, world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held, guardsOff}
       C->>D: session/prompt {text}
       end
       rect rgba(63,169,245,0.14)
@@ -106,11 +106,13 @@ says yes, and an unanswered ask is a no.
 |---|---|---|
 | requests (client → core) | `initialize`, `session/prompt`, `session/send`, `session/interrupt`, `session/events {since}`, `units/list`, `units/change`, `shutdown` | `session/resume`, `queue/list`, `queue/move`, `world/status`, `ledger/query`, `config/explain` |
 | requests (core → client) | `gate/ask` — the human gate, the only call the core blocks on | |
-| events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `changes`, `turnEnded`, `held` | `dispatch`, `report`, `ascension`, `evolution` |
+| events (core → client) | `turnStarted`, `queued`, `textDelta`, `toolStart`, `assistant`, `toolCall`, `toolResult`, `usage`, `note`, `warning`, `gateVerdict`, `changes`, `turnEnded`, `held`, `guards` | `dispatch`, `report`, `ascension`, `evolution` |
 
 Each message is one line of JSON. `initialize` opens the session and answers `{protocol, version,
-world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held}`:
-`mode` is `light-coding` (or one of the lab's two), and `modeWhy` says why the session opened in
+world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held, guardsOff}`:
+`guardsOff` names the guards (`secrets`, `approval`, `gate`, `hold`) the session runs without, so
+every client says so on it; a `guards {off}` event says them again whenever they change after a
+turn. `mode` is `light-coding` (or one of the lab's two), and `modeWhy` says why the session opened in
 it, in words for the human. A client that speaks another `protocol` stops rather than misread. Each event is the notification `event/<type>`, its fields beside the
 envelope. `session/prompt {text}` answers `{queued}` at once: a line sent while a turn runs
 waits its turn, and the session takes lines strictly in the order they came. `gate/ask` sends
@@ -130,7 +132,10 @@ says how many it cut; the journal keeps the whole.
 (`memory`) or `plugin:<id>` and `digest` fingerprints the composition. `units/change {op, id}`
 asks for one change: `op` is `on` or `off`, or `swap` with `with` naming the unit that takes
 `id`'s place. It answers `{queued, pending}` at once; the loop applies the change at the unit's
-next safe point and the journal records it ([plugins](experimental/plugins.md)). Bad params
+next safe point and the journal records it ([plugins](experimental/plugins.md)); the change is
+kept for the world as the terminal's `/unit` keeps it, unless `keep: false` asks it for this session
+alone (the board's Configure asks so for a guard switched off). Over the board, any tab may list and
+only the tab that controls may change. Bad params
 answer `-32602`; before `initialize`, both say no session is open.
 
 `mikatad` serves it: `mikatad [--world <dir>] [--mode <mode>]` speaks on stdin and stdout,

@@ -56,9 +56,9 @@ SOFTWARE.
 - **What Mikata uses:** line icons drawn inline by the board (`packages/board/src/ui/Icon.tsx`),
   bundled into the board's assets.
 
-## Manrope and JetBrains Mono (the board's fonts)
+## Space Grotesk and JetBrains Mono (the board's fonts)
 
-- **Upstream:** Manrope by Mikhail Sharanda, JetBrains Mono by JetBrains; npm `@fontsource/manrope`
+- **Upstream:** Space Grotesk by Florian Karsten, JetBrains Mono by JetBrains; npm `@fontsource/space-grotesk`
   5.3.0 and `@fontsource/jetbrains-mono` 5.3.0
 - **Licence:** SIL Open Font License 1.1
 - **What Mikata uses:** their Latin subsets, served by the board as files of its own.

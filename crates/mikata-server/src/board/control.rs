@@ -180,22 +180,6 @@ pub fn open(dir: &Path) -> Result<(), String> {
     }
 }
 
-/// Ask the board under `dir` to open itself as an app window on a fresh one-time link: `true`
-/// when it did, `false` when no browser here opens one and it opened as a page instead.
-///
-/// # Errors
-///
-/// None runs, or it could not open.
-pub fn open_app(dir: &Path) -> Result<bool, String> {
-    let answer = ask(dir, "open-app")?;
-    match answer.split_once(' ') {
-        _ if answer == "opened" => Ok(true),
-        _ if answer == "opened-page" => Ok(false),
-        Some(("unopened", why)) => Err(why.to_owned()),
-        _ => Err(format!("a strange answer: {answer}")),
-    }
-}
-
 /// Ask the board under `dir` to stop; its pid.
 ///
 /// # Errors
@@ -300,7 +284,7 @@ pub(crate) async fn serve(
             }
             let answer = match ask {
                 "ping" => format!("ok {} {}", std::process::id(), board.base()),
-                "open" | "open-app" if !super::built() => {
+                "open" if !super::built() => {
                     "unopened this mikatad has no board built in, so no page would spend the key"
                         .to_owned()
                 }
@@ -310,16 +294,6 @@ pub(crate) async fn serve(
                         tokio::task::spawn_blocking(move || board.open_browser(&dir)).await;
                     match opened {
                         Ok(Ok(())) => "opened".to_owned(),
-                        Ok(Err(e)) => format!("unopened {}", e.replace('\n', " ")),
-                        Err(e) => format!("unopened {e}"),
-                    }
-                }
-                "open-app" => {
-                    let board = Arc::clone(&board);
-                    let opened = tokio::task::spawn_blocking(move || board.open_app(&dir)).await;
-                    match opened {
-                        Ok(Ok(true)) => "opened".to_owned(),
-                        Ok(Ok(false)) => "opened-page".to_owned(),
                         Ok(Err(e)) => format!("unopened {}", e.replace('\n', " ")),
                         Err(e) => format!("unopened {e}"),
                     }

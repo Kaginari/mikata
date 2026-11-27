@@ -1072,7 +1072,11 @@ impl Live {
             }
             "board/takeOver" => self.take_over(&mut st, conn, id.as_ref(), now),
             "board/seen" => self.seen(&mut st, conn, controller, id.as_ref(), &value, now),
-            "session/prompt" | "session/send" | "session/interrupt" | "shutdown" => {
+            // The session's units, read by any tab: they change nothing.
+            "units/list" => self.forward(&mut st, conn, method, id, &value, now),
+            // A unit switched at its next safe point is an act: the controlling tab's alone.
+            "session/prompt" | "session/send" | "session/interrupt" | "units/change"
+            | "shutdown" => {
                 if !controller {
                     if id.is_some() {
                         st.push(

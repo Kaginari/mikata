@@ -11,8 +11,8 @@ import { Markdown } from '../safe/Markdown.tsx';
 import { Safe } from '../safe/Safe.tsx';
 import { Empty } from '../ui/Empty.tsx';
 import { Mark } from '../ui/Mark.tsx';
-import { Source } from './Bodies.tsx';
 import { Pager } from './Memory.tsx';
+import { Source } from './Source.tsx';
 import './bodies.css';
 import { shownBody } from '../data/names';
 

@@ -7,11 +7,13 @@
  */
 import './metrics.css';
 import type { BoardIntegrations, ConfigView } from '@mikata/protocol';
+import { Plug } from 'lucide-react';
 import { useState } from 'react';
 import { keyFileWords, keyWords, useIntegrations } from '../data/integrations.ts';
 import { Safe } from '../safe/Safe.tsx';
 import type { Choice } from '../theme.ts';
 import { Empty } from '../ui/Empty.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Mark } from '../ui/Mark.tsx';
 import { Unknown } from './facts.tsx';
 
@@ -321,14 +323,23 @@ function Board({ i, theme }: { i: BoardIntegrations; theme: Choice }) {
 export function IntegrationsView({ theme }: { theme: Choice }) {
   const load = useIntegrations(undefined);
   return (
-    <div className="page">
-      <header className="page-head">
-        <h1 className="page-title">Integrations</h1>
+    <div className="pg metrics-pg">
+      <header className="pg-head">
+        <span className="pg-icon" aria-hidden="true">
+          <Icon icon={Plug} />
+        </span>
+        <div>
+          <p className="ss-eyebrow">
+            Board <span>/ integrations</span>
+          </p>
+          <h1>Integrations</h1>
+          <p className="pg-sub">
+            The providers, the models each role rides, the MCP servers and the configuration —
+            read-only. Keys are shown by where they are read from, never by value; to change
+            anything, edit your global file.
+          </p>
+        </div>
       </header>
-      <p className="hint">
-        Read-only. Keys are shown by where they are read from, never by value; to change anything,
-        edit your global file.
-      </p>
       {load.state === 'loading' && (
         <Empty glyph="⣾" title="Loading the configuration…">
           Asking the board server.

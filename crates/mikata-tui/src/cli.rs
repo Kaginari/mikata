@@ -29,8 +29,9 @@ Options:
   --theme <name>    a scheme — neon (the default), ember, lagoon, harbor, dune, spice, or hud
                     (the board's cyan) — and/or dark, light or auto: lagoon-light. Unnamed,
                     MIKATA_THEME, else the terminal's background; /theme changes it live
-  --web             start the web board with the app, or reuse the one running, add this
-                    world to it and open it in the browser; without it no board starts
+  --web             the web board instead of the terminal app: start it, or reuse the one
+                    running, add this world to it, open it in the browser, and leave it
+                    serving; without it no board starts
   --probe           print what the terminal can draw (the logo's image protocol), and exit
   --json            with run: every event as a JSON line on stdout, then a `result` line
   --gate-tty        with run: put each gated act to you on the terminal (/dev/tty); without it
@@ -323,7 +324,7 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
         };
     }
     if web && !matches!(first, None | Some("chat" | "resume")) {
-        return Err("--web goes with the terminal app: mikata --web".into());
+        return Err("--web stands alone: mikata --web".into());
     }
     let chat = |resume| Command::Chat {
         world: world.clone(),

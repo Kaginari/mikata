@@ -146,4 +146,8 @@ ending: string, } | { "type": "held",
 /**
  * How many.
  */
-held: number, };
+held: number, } | { "type": "guards", 
+/**
+ * Their ids: `secrets`, `approval`, `gate`, `hold`.
+ */
+off: Array<string>, };

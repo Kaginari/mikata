@@ -123,6 +123,9 @@ export interface ChatView {
   bodies: readonly Body[];
   /** The orders held on the shared work queue. */
   held: number;
+  /** The guards the session runs without, as it last said them after a turn; `undefined` until
+   * it does (the hello says them as it opened). */
+  guardsOff?: readonly string[] | undefined;
 }
 
 const str = (v: unknown, k: string): string | undefined => {
@@ -307,6 +310,7 @@ export class Chat {
   private readonly pending = new Map<string, [string, FileMark][]>();
   private readonly bodies = new Map<string, Body>();
   private held = 0;
+  private guardsOff: string[] | undefined;
   private snapshot: ChatView | undefined;
 
   /** `self` is the session's own body (the hello's `body`); events under any other came from
@@ -401,6 +405,9 @@ export class Chat {
       case 'held':
         this.held = event.held;
         return;
+      case 'guards':
+        this.guardsOff = event.off.filter((g) => typeof g === 'string');
+        return;
     }
   }
 
@@ -432,6 +439,7 @@ export class Chat {
       files: [...this.files],
       bodies: [...this.bodies.values()],
       held: this.held,
+      guardsOff: this.guardsOff,
     };
   }
 

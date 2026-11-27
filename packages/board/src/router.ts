@@ -1,32 +1,20 @@
 /**
- * The board's own hash router: every view has an address (`#/w/<world>/s/<chat>` a live chat,
- * `#/w/<world>/r/<run>` a past one), so a link,
- * a reload or the back button lands where it was. No library: a parse, a format and a hook.
+ * The board's own hash router: every view has an address (`#/w/<world>` a workspace's sessions,
+ * `#/w/<world>/s/<chat>` one live session, `#/w/<world>/r/<run>` a past one), so a link, a reload
+ * or the back button lands where it was. No library: a parse, a format and a hook.
  */
 import { useEffect, useState } from 'react';
 
-/** The sections of a world, beside its chats. */
-export const WORLD_SECTIONS = [
-  'app',
-  'builder',
-  'bodies',
-  'memory',
-  'ontology',
-  'journal',
-] as const;
+/** The pages of a workspace, beside its sessions. */
+export const WORLD_SECTIONS = ['builder', 'plugins', 'runs', 'journal', 'memory'] as const;
 export type WorldSection = (typeof WORLD_SECTIONS)[number];
-
-/** The tabs of the bodies page: `#/w/<world>/bodies/<tab>`. */
-export const BODIES_TABS = ['colony', 'races', 'queue', 'timeline'] as const;
-export type BodiesTab = (typeof BODIES_TABS)[number];
 
 export type Route =
   | { name: 'worlds' }
   | { name: 'world'; world: string }
-  | { name: 'section'; world: string; section: WorldSection; tab?: BodiesTab }
+  | { name: 'section'; world: string; section: WorldSection }
   | { name: 'session'; world: string; session: string }
   | { name: 'run'; world: string; run: string }
-  | { name: 'net' }
   | { name: 'metrics' }
   | { name: 'integrations' }
   | { name: 'settings' }
@@ -55,7 +43,7 @@ export function parse(hash: string): Route {
   const unknown: Route = { name: 'unknown', path };
   const [head, a, b, c, ...rest] = parts;
   if (rest.length > 0) return unknown;
-  if (head === 'net' || head === 'metrics' || head === 'integrations' || head === 'settings') {
+  if (head === 'metrics' || head === 'integrations' || head === 'settings') {
     return a === undefined ? { name: head } : unknown;
   }
   if (head !== 'w' || a === undefined) return unknown;
@@ -69,9 +57,6 @@ export function parse(hash: string): Route {
   if (b === 'r') {
     const run = c === undefined ? undefined : decode(c);
     return run === undefined ? unknown : { name: 'run', world, run };
-  }
-  if (b === 'bodies' && c !== undefined && (BODIES_TABS as readonly string[]).includes(c)) {
-    return { name: 'section', world, section: 'bodies', tab: c as BodiesTab };
   }
   if (c === undefined && (WORLD_SECTIONS as readonly string[]).includes(b)) {
     return { name: 'section', world, section: b as WorldSection };
@@ -88,9 +73,7 @@ export function format(route: Route): string {
     case 'world':
       return w(route.world);
     case 'section':
-      return route.tab
-        ? `${w(route.world)}/${route.section}/${route.tab}`
-        : `${w(route.world)}/${route.section}`;
+      return `${w(route.world)}/${route.section}`;
     case 'session':
       return `${w(route.world)}/s/${encodeURIComponent(route.session)}`;
     case 'run':
