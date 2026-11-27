@@ -13,6 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **Studio, a third look for the board** beside Light and Dark (Settings, or the top bar's theme
+  switch: auto → light → dark → studio). It is the dark page made softer for long hours:
+  graphite surfaces, every colour a gentler step of the same hue, glows faint. The session page is
+  calm, its frames and tints neutral, the brand kept for the action, the page you are on and what
+  runs now; the Harness Builder keeps its colours; the header keeps its gradient, still.
+
 - **Choose the model when you start a session on the board.** The Harness Builder has a *Model*
   choice beside the profile: the configured model, any model your configuration names (the
   default, a tier, the reader), or one you type. Sessions started there ride it (the request's
@@ -38,6 +44,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **The header moves less**: its gradient drifts slowly (one pass in 48 seconds, its shine every 16), and stands still in Studio.
 - **Leaving a session's page no longer stops its work.** The board ended a chat 60 seconds after
   its last tab left, so a task stopped while you read another page (the metrics, a past run).
   Now a turn that runs always finishes; waiting approvals are still denied after 60 seconds with

@@ -1296,7 +1296,8 @@ workspace, each with many sessions at once, beside the terminal app's one.
 
 **The frame.** One frame for every page (`src/ui/Platform.tsx`, `src/platform.css`). The **top
 bar** is the brand's gradient, flowing, with Mikata's mark, the workspace's pages as tabs
-(Sessions, Harness Builder, Plugins, Runs), search (⌘K), the theme and *New session*. The
+(Sessions, Harness Builder, Plugins, Runs), search (⌘K), the theme (auto, light, dark, or
+studio: the dark page softer, the session calm, the Builder in its colours) and *New session*. The
 **rail** below it is glass cards: the workspace (a picker of every world the board knows, its
 path, and its pages: Agent sessions, Harness Builder, Plugins, Run journal, Memory), its
 sessions (the live ones, then the latest runs, `+` for a new one), the runtime's state (the

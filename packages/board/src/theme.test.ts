@@ -8,6 +8,18 @@ it('resolves a theme choice', () => {
   expect(resolve('auto', false)).toBe('dark');
   expect(resolve('dark', true)).toBe('dark');
   expect(resolve('light', false)).toBe('light');
+  // Studio is the dark page, softer.
+  expect(resolve('studio', true)).toBe('dark');
+});
+
+it('studio is dark with its own tone, and only while chosen', async () => {
+  const { apply } = await import('./theme.ts');
+  const root = document.documentElement;
+  window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia;
+  apply('studio');
+  expect([root.dataset.theme, root.dataset.look]).toEqual(['dark', 'studio']);
+  apply('dark');
+  expect([root.dataset.theme, root.dataset.look]).toEqual(['dark', undefined]);
 });
 
 it('keeps the palette per browser, over the native look; native unless another is chosen', () => {
