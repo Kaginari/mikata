@@ -124,7 +124,7 @@ for (const theme of ['dark', 'light'] as const) {
       await metrics.emulateMedia({ colorScheme: theme });
       await metrics.goto(`${new URL(url).origin}/#/metrics`);
       await expect(metrics.locator('main')).toContainText('Metrics');
-      await expect(metrics.locator('main')).toContainText('no calls');
+      await expect(metrics.locator('main')).toContainText('No ask in this window yet');
 
       // Chat, and approve under the card's protections.
       // A session is started in the Harness Builder, where its harness is chosen.

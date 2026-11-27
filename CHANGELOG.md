@@ -13,6 +13,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **A new Metrics page, read from what every ask did.** It replaces the old structured-coding
+  page: six headline numbers (asks, landed share, dollars a landing, the median ask, cache hits,
+  lines changed), every ask as a bar of model and tool time with how it ended, how asks end and
+  why they stop (steps, clock, context, interrupted…), asks per day, and the models, the
+  harnesses (each unit or plugin on or off) and asks with a `Done when` list compared side by
+  side, the tool mix and the work signals. Filter by workspace, window and model; hover or focus
+  any bar for its numbers. It moves live while a session works. The server reads it from the
+  runs' journals and the usage ledger (`GET /api/insights`).
 - **The terminal app has Studio too**, beside dark and light: `--theme studio`,
   `MIKATA_THEME=studio` or `/theme studio` live. On Mikata's own scheme it is the board's Studio
   colour for colour; every scheme's Studio is softer than its dark look, its panel frames one
@@ -28,7 +36,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   graphite surfaces, every colour a gentler step of the same hue, glows faint. The session page is
   calm, its frames and tints neutral, the brand kept for the action, the page you are on and what
   runs now; the Harness Builder keeps its colours; the header keeps its gradient, still.
-
 - **Choose the model when you start a session on the board.** The Harness Builder has a *Model*
   choice beside the profile: the configured model, any model your configuration names (the
   default, a tier, the reader), or one you type. Sessions started there ride it (the request's

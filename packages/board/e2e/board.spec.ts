@@ -6,6 +6,7 @@
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import { FIXTURE_NOW, fixtureWorlds } from '../src/data/fixtures.ts';
+import { fixtureInsights } from '../src/data/insightsFixtures.ts';
 import { fixtureIntegrations, fixtureMetrics } from '../src/data/metricsFixtures.ts';
 
 /** Where the screenshots go: test-results/screens/<project>-<theme>-<page>.png. */
@@ -57,6 +58,7 @@ async function open(page: Page, hash: string, body: unknown = fixtureWorlds) {
     return r.fulfill(json({}));
   });
   await page.route('**/api/metrics?*', (r) => r.fulfill(json(fixtureMetrics)));
+  await page.route('**/api/insights?*', (r) => r.fulfill(json(fixtureInsights)));
   await page.route('**/api/integrations', (r) => r.fulfill(json(fixtureIntegrations)));
   await page.routeWebSocket('**/ws/board', () => {});
   await page.routeWebSocket('**/ws/session/**', () => {});
@@ -300,20 +302,23 @@ test('a page that loads with no console error', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('the metrics page says its totals, draws each chart with a legend, and keeps hostile words text', async ({
+test('the metrics page reads every ask: its numbers, its charts with legends, hover, and hostile words as text', async ({
   page,
 }) => {
   await open(page, '#/metrics');
-  const totals = page.locator('.mx-kpis');
-  await expect(totals).toContainText('$3.12');
-  await expect(totals).toContainText('2 calls unpriced');
-  await expect(totals).toContainText('1.9M wt weighted');
-  await expect(totals).toContainText('Cache hit');
-  await expect(page.locator('svg[aria-label*="log axis"]')).toBeVisible();
-  await expect(page.locator('.chart-log')).toHaveText('log axis');
-  await expect(page.getByText('silent since 2026-10-20')).toBeVisible();
+  const kpis = page.getByRole('region', { name: 'Headline numbers' });
+  await expect(kpis).toContainText('Asks');
+  await expect(kpis).toContainText('6 calls unpriced');
+  await expect(page.locator('.mx-hit')).toHaveCount(13);
+  await expect(page.locator('.mx-legend').first()).toContainText('Tools');
+  // A bar says what it is, to the pointer and to the keyboard.
+  await page.locator('.mx-hit').nth(4).hover();
+  await expect(page.getByRole('tooltip')).toContainText('Blocked by the end gate');
+  await page.locator('.mx-hit').first().focus();
+  await expect(page.getByRole('tooltip')).toContainText('Landed');
+  await expect(page.getByRole('region', { name: 'Harnesses compared' })).toContainText('-reader');
   expect(await page.locator('main').textContent()).not.toContain('$0.00');
-  expect(await page.locator('main img').count()).toBe(0);
+  expect(await page.locator('main img, main script').count()).toBe(0);
   await expect(page.locator('main .safe-esc').first()).toHaveText('\\u{202e}');
   await page.getByRole('button', { name: '28d' }).click();
   await expect(page.getByRole('button', { name: '28d' })).toHaveAttribute('aria-pressed', 'true');

@@ -89,6 +89,10 @@
   --mn-state-disabled: var(--mn-line);
   --mn-info: var(--mn-race-summoner);
   --mn-info-bg: color-mix(in srgb, var(--mn-race-summoner) 14%, var(--mn-panel));
+  /* chart series, by fixed order (validated for colour-blind separation on each mode's page):
+   * one, then two — never cycled */
+  --mn-chart-1: #3987e5;
+  --mn-chart-2: #d95926;
   /* the harness graph */
   --mn-edge-native: var(--mn-hot);
   --mn-edge-plugin: var(--mn-amber);
@@ -124,6 +128,8 @@
 }
 
 :root[data-theme="light"] {
+  --mn-chart-1: #2a78d6;
+  --mn-chart-2: #eb6834;
   --mn-bg: #f3f6fa;
   --mn-panel: #ffffff;
   --mn-panel-raised: #e9eff6;
@@ -258,6 +264,9 @@
   /* the brand as it was on this page, kept where the session restores it */
   --mn-accent-keep: #e8579a;
   --mn-coral-keep: #ec7d70;
+  /* the chart series, a step softer (validated for colour-blind separation on this page) */
+  --mn-chart-1: #5b8fd6;
+  --mn-chart-2: #d0703f;
 }
 
 :root[data-scheme="neon"][data-theme="light"] {
