@@ -35,6 +35,8 @@ pub struct Ctx<'a> {
     pub me: &'a str,
     /// The clock, for what is live.
     pub now: Duration,
+    /// Every thought shown whole and plain (ctrl+o): its text in the page's own ink, not folded.
+    pub thinking: bool,
 }
 
 /// Output lines a done call shows before it folds.
@@ -93,8 +95,8 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
         Entry::Tool(call) => out.extend(card(call, w, ctx)),
         Entry::Group(group) => out.extend(group_card(group, w, ctx)),
         // A finished thought folds away, as a card's spent lines do: picked (alt+↑↓) or opened
-        // (ctrl+t) it shows again.
-        Entry::Thought(th) if th.took.is_some() && !th.focused && !th.expanded => {
+        // (ctrl+t) it shows again — and every one does while ctrl+o holds them open.
+        Entry::Thought(th) if th.took.is_some() && !th.focused && !th.expanded && !ctx.thinking => {
             return out_none();
         }
         Entry::Thought(thought) => out.extend(thought_lines(thought, w, ctx)),
@@ -845,6 +847,68 @@ fn fact_lines(tag: Tag, head: &str, rest: &str, alarm: bool, w: usize, t: &Theme
     out
 }
 
+/// Reasoning some hosts stream with a line break after every token (`Both\n tests\n pass\n`), or
+/// two, joined back into its prose for reading. Within such text a break is kept only where prose
+/// has one: before a list item (`- `, `* `, `1. ` after anything but a letter or a digit), and
+/// where a longer gap than the usual one follows the end of a sentence. Text whose lines are not
+/// mostly single tokens reads already, and is left as it is. For the eye only: the journal keeps
+/// what the provider sent, and that is what goes back to the model.
+#[must_use]
+pub fn unstutter(text: &str) -> std::borrow::Cow<'_, str> {
+    let lines: Vec<&str> = text.split('\n').filter(|l| !l.trim().is_empty()).collect();
+    let single = lines
+        .iter()
+        .filter(|l| l.split_whitespace().count() <= 1)
+        .count();
+    if single < 6 || single * 10 < lines.len() * 6 {
+        return std::borrow::Cow::Borrowed(text);
+    }
+    // The usual gap between two tokens is the stutter; only a longer one may be a break.
+    let mut gaps: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+    let (mut empty, mut seen) = (0usize, false);
+    for part in text.split('\n') {
+        if part.is_empty() {
+            empty += 1;
+            continue;
+        }
+        if seen {
+            *gaps.entry(empty).or_default() += 1;
+        }
+        (seen, empty) = (true, 0);
+    }
+    let usual = gaps
+        .iter()
+        .max_by_key(|(gap, n)| (**n, std::cmp::Reverse(**gap)))
+        .map_or(0, |(gap, _)| *gap);
+    let item = |p: &str| {
+        let t = p.as_bytes();
+        let marker = matches!(t.first(), Some(b'-' | b'*'))
+            || (t.first().is_some_and(u8::is_ascii_digit)
+                && p.trim_start_matches(|c: char| c.is_ascii_digit())
+                    .starts_with('.'));
+        let rest =
+            p.trim_start_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit() || c == '.');
+        marker && (rest.is_empty() || rest.starts_with(char::is_whitespace))
+    };
+    let mut out = String::with_capacity(text.len());
+    empty = 0;
+    for part in text.split('\n') {
+        if part.is_empty() {
+            empty += 1;
+            continue;
+        }
+        let last = out.trim_end().chars().last();
+        let after_word = last.is_some_and(char::is_alphanumeric);
+        let ended = last.is_some_and(|c| matches!(c, '.' | ':' | '!' | '?' | '\u{2713}'));
+        if !out.is_empty() && ((item(part) && !after_word) || (empty > usual && ended)) {
+            out.push('\n');
+        }
+        empty = 0;
+        out.push_str(part);
+    }
+    std::borrow::Cow::Owned(out)
+}
+
 /// Wrapped lines a live thought shows, its newest; the earlier ones are counted.
 pub const THINKING_LINES: usize = 8;
 
@@ -853,8 +917,21 @@ pub const THINKING_LINES: usize = 8;
 /// rail.
 fn thought_lines(th: &Thought, w: usize, ctx: &Ctx<'_>) -> Lines {
     let t = &ctx.theme;
-    let quiet = t.muted().add_modifier(Modifier::ITALIC);
-    let rail = [Span::styled("    │ ", t.line())];
+    // Opened by ctrl+o, a thought reads as text: the page's ink on a rail in the brand's colour.
+    let quiet = if ctx.thinking {
+        t.text()
+    } else {
+        t.muted().add_modifier(Modifier::ITALIC)
+    };
+    let rail = [Span::styled(
+        "    │ ",
+        if ctx.thinking { t.holo() } else { t.line() },
+    )];
+    let th = &Thought {
+        hidden: th.hidden && !ctx.thinking,
+        expanded: th.expanded || ctx.thinking,
+        ..th.clone()
+    };
     let Some(d) = th.took else {
         let has_text = !th.text.trim().is_empty();
         let mut head = vec![
@@ -865,7 +942,7 @@ fn thought_lines(th: &Thought, w: usize, ctx: &Ctx<'_>) -> Lines {
                 t.holo(),
             ),
         ];
-        if has_text {
+        if has_text && !ctx.thinking {
             head.push(Span::styled(
                 if th.hidden {
                     " · click to show"
@@ -877,8 +954,17 @@ fn thought_lines(th: &Thought, w: usize, ctx: &Ctx<'_>) -> Lines {
         }
         let mut out = vec![Line::from(head)];
         if has_text && !th.hidden {
-            let mut body = wrap_text(&clean(th.text.trim()), w.saturating_sub(6), quiet);
-            let earlier = body.len().saturating_sub(THINKING_LINES);
+            let mut body = wrap_text(
+                &clean(&unstutter(th.text.trim())),
+                w.saturating_sub(6),
+                quiet,
+            );
+            let keep = if ctx.thinking {
+                THINKING_LINES * 4
+            } else {
+                THINKING_LINES
+            };
+            let earlier = body.len().saturating_sub(keep);
             if earlier > 0 {
                 body.drain(..earlier);
                 out.push(Line::from(vec![
@@ -899,17 +985,23 @@ fn thought_lines(th: &Thought, w: usize, ctx: &Ctx<'_>) -> Lines {
     ];
     if has_text {
         head.push(Span::styled(
-            if th.expanded {
+            if ctx.thinking {
+                " · ctrl+o folds every thought"
+            } else if th.expanded {
                 " · ctrl+t folds"
             } else {
-                " · ctrl+t"
+                " · ctrl+t · ctrl+o shows every thought"
             },
             t.frame(),
         ));
     }
     let mut out = vec![Line::from(head)];
     if th.expanded && has_text {
-        let body = wrap_text(&clean(th.text.trim()), w.saturating_sub(6), quiet);
+        let body = wrap_text(
+            &clean(&unstutter(th.text.trim())),
+            w.saturating_sub(6),
+            quiet,
+        );
         out.extend(prefixed(body, &rail, &rail));
     }
     out
@@ -1042,6 +1134,32 @@ fn change_lines(c: &Change, input: &Value, inner: usize, t: &Theme, open: bool) 
 
 #[cfg(test)]
 mod tests {
+
+    /// A host's reasoning with a break after every token, as a real journal kept it, reads as
+    /// prose again; a list item keeps its line; prose that reads is untouched.
+    #[test]
+    fn reasoning_streamed_a_token_a_line_reads_as_prose() {
+        let sent = "Both\n tests\n pass\n:\n\n\n-\n `\nparse\n('\nfour\n days\n and\n a\n half\n')\n`\n returns\n \n6\n4\n8\n0\n \u{2713}\n\n\n-\n `\nparse\n('\nthree\n days\n and\n a\n half\n')\n`\n still\n returns\n \n5\n0\n4\n0\n \u{2713}\n\n\nNow\n let\n me\n run\n the\n end\n gate\n tests\n.\n";
+        assert_eq!(
+            super::unstutter(sent),
+            "Both tests pass:\n- `parse('four days and a half')` returns 6480 \u{2713}\n- `parse('three days and a half')` still returns 5040 \u{2713}\nNow let me run the end gate tests."
+        );
+        let prose = "I need to read the parser first.\n\nThen the tests.";
+        assert_eq!(super::unstutter(prose), prose);
+        // Two breaks a token, as another turn came: prose again, its sentences kept apart.
+        let doubled = "All\n tests\n pass\n.\n I\n\n\n have\n\n\n added\n\n\n it\n\n\n for\n 'six\n\n\n days'\n.\n\n\n All\n existing\n tests\n still\n pass\n.\n";
+        assert_eq!(
+            super::unstutter(doubled),
+            "All tests pass. I have added it for 'six days'.\n All existing tests still pass."
+        );
+        // A dash inside a number is no list.
+        let range = "on\n lines\n \n3\n2\n-\n3\n9\n.\n Currently\n we\n have\n:\n- '\ntwo\n'\n";
+        assert_eq!(
+            super::unstutter(range),
+            "on lines 32-39. Currently we have:\n- 'two'"
+        );
+    }
+
     use super::*;
 
     #[test]

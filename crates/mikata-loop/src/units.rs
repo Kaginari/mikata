@@ -336,6 +336,10 @@ pub struct Desk {
     /// Units whose next change taken is the session's alone, never kept for the world: a guard
     /// switched off from the board's Configure lasts that session only.
     pub unkept: std::collections::BTreeSet<String>,
+    /// A context stress line asked and not yet taken, in tokens: the session's alone.
+    pub context: Option<u64>,
+    /// The context stress line and the model's window, as the run last listed them.
+    pub line: Option<(u64, u64)>,
 }
 
 /// The desk a run shares with its clients.

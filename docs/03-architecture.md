@@ -341,7 +341,7 @@ mikata                          # a session in this world (also: mikata chat)
 mikata --world <dir>            # a session in that world
 mikata --mode light-coding      # the mode: light-coding, the one this book describes (the lab adds two)
 mikata resume last              # pick up the newest run that stopped (or --resume <run>)
-mikata --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, auto
+mikata --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, studio, auto
 mikata --probe                  # what the terminal draws, then exit
 mikata status                   # the mode and why, the model, the key's origin, the sandbox, the budget, holes, meters, envelopes, evolutions due
 mikata run "<ask>"              # one ask without the app
@@ -572,6 +572,7 @@ embeds a placeholder page saying so, and serves the API all the same.
 | `GET /api/w/<id>/facts` | `BoardFacts`: the counts of each status, a page of facts — `?status=settled\|agreed\|single\|contested\|countered`, `?offset=`, `?limit=` — `onto check`'s findings, the paths' owners and the verdicts a settle may cite |
 | `POST /api/w/<id>/facts/<fact>/settle` | `{"seen", "verdict": <n>}` or `{"seen", "statement": "…"}`: the fact settled on that proof, `by: human (board)`; no proof, or both, is refused (400); `BoardDone {done}` |
 | `GET /api/w/<id>/journal` | `BoardJournal`: `log.md`'s entries, newest first, with a table of contents — `?q=` (at most 200 characters, any case), `?offset=`, `?limit=` (20, at most 100) |
+| `GET /api/insights` | `BoardInsights` for `?world=<id>` or `all` over `?window=7d\|28d\|all`: every ask of the window's session runs (`board/insights.rs`), read from the runs' journals as the run listing reads them (by run id, no symlink, each journal capped, all under one budget, the newest 300 runs) and from the usage ledger, each model turn joined to its row by the provider's message id, else by place: the model and mode it rode, the units its run changed from the default, how it ended (landed, blocked, answered, stopped, failed, open) and why (steps, clock, context, stall, budget, interrupted, cut, error), its `Done when` lines, turns, calls, time in the model and in tools, failed calls, verdicts, lines written, whether a test ran after the last write, reads and re-reads, tokens and dollars (Mikata's price, else the provider's; none when unpriced); every tool's calls; the runs not read; what the ledgers could not cover. The Metrics page draws from it |
 | `GET /api/metrics` | `BoardMetrics` for `?world=<id>` or `all` (the default) over `?window=7d\|28d\|all` (`7d` by default; another word is 400): the usage ledgers' fold and the bench (the lab's meters and scores beside them) — see *Metrics and integrations* below |
 | `GET /api/integrations` | `BoardIntegrations`, read-only and redacted: the global file alone, or `?world=<id>`'s files layered over it — see *Metrics and integrations* below |
 | `WS /ws/board` | the push channel, subprotocol `mikata.board.v1` beside the CSRF entry; the server alone speaks — see *The watcher* below |
@@ -1066,6 +1067,10 @@ the session runs in this process.
 
 `--theme` names a scheme, a variant or both (`neon-light`). Unnamed, the variant is read from `MIKATA_THEME`, else the terminal's
 background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`, else neon.
+`studio` is a third look, the dark one softer for long hours: on `neon` it is the board's Studio
+colour for colour (`studio.page` in `@mikata/theme`, held equal by a test); any other scheme is
+softened — its surfaces a step toward graphite, its colours toward its muted text. In Studio the
+panels' frames are one quiet line, not the gradient, and a card is tinted half as much.
 
 #### The terminal app
 
@@ -1116,12 +1121,16 @@ one-row bars. The older words `center` and `zen` still name Advanced and Focus.
 | Alt+↑ ↓ | move the focus between cards (calls, groups, thoughts), scrolling each into view |
 | Ctrl+T, a click on a card | open the focused (or clicked) card — a call's output or diff, a group's calls, a thought's text — or fold it again; with none focused, the newest |
 | F2 | the next view: light, advanced, focus |
-| Ctrl+O | show or hide the panels |
+| Ctrl+L | the conversation alone; again, back to the view it left |
+| Ctrl+O | every thought shown whole, in plain text on a rail in the brand's colour; again, folded |
+| Ctrl+B | show or hide the panels |
 | Esc | stop the turn; back to the end of the transcript |
 | Ctrl+C | stop the turn, or leave when none runs |
 | 1 or y, 2 or n, 3, then Enter | answer an approval — yes, no, or no with a reason typed for the model; ↑ ↓ move the pick while the whole act shows — from no pick to No, stopping at the ends, never onto Yes unasked — and read a long act otherwise; Esc denies it |
 
-Slash commands: `/send <text>` steers the running turn at its next tool step, `/theme <scheme> [dark|light]`,
+Slash commands: `/send <text>` steers the running turn at its next tool step, `/context [tokens]` says
+the context line or moves it from the next safe point for this session (8000 tokens up to 90% of the
+model's window; out of bounds is refused and said), `/theme <scheme> [dark|light|studio]`,
 `/view light|advanced|focus`, `/clear`, `/help`, `/quit`.
 
 **It shows its work as it happens.** The status appears in the frame after Enter, before any
@@ -1296,7 +1305,8 @@ workspace, each with many sessions at once, beside the terminal app's one.
 
 **The frame.** One frame for every page (`src/ui/Platform.tsx`, `src/platform.css`). The **top
 bar** is the brand's gradient, flowing, with Mikata's mark, the workspace's pages as tabs
-(Sessions, Harness Builder, Plugins, Runs), search (⌘K), the theme and *New session*. The
+(Sessions, Harness Builder, Plugins, Runs), search (⌘K), the theme (auto, light, dark, or
+studio: the dark page softer, the session calm, the Builder in its colours) and *New session*. The
 **rail** below it is glass cards: the workspace (a picker of every world the board knows, its
 path, and its pages: Agent sessions, Harness Builder, Plugins, Run journal, Memory), its
 sessions (the live ones, then the latest runs, `+` for a new one), the runtime's state (the
@@ -1333,7 +1343,7 @@ state, never a blank pane.
 | Runs `…/runs` | the live sessions, then the past runs, as cards, with their totals | *No session runs now*; *No past run yet* |
 | Memory | notes by body, scope and standing, with confirm and wake | *No note here* |
 | Journal | `log.md`'s entries and their contents | *No journal yet* |
-| Metrics `#/metrics` | spend, tokens, cache, burn, meters, sessions, scores, bench | a meter with no call reads *silent since …*, never 0; one whose journal does not hold reads *unavailable — why*; the bench *Not configured*, with the line to add |
+| Metrics `#/metrics` | every ask of the window (`/api/insights`): headline numbers, every ask as a bar of model and tool time with how it ended, how asks end and why they stop, asks per day, models, harnesses (units on and off) and the `Done when` list compared, the tool mix, the work signals | *No ask in this window yet*; dollars never a made-up zero; what was not read, said |
 | Integrations, Settings | providers, key sources, MCP servers, the effective configuration; the theme | *Not configured* where the global file names nothing |
 
 Every page loads the same way — *Loading …* in the centre, never a blank pane — and a reread that
@@ -1377,8 +1387,19 @@ was shown, one answer per ask, the arming floor). Nothing read from inside a wor
 model, tool and world text is rendered inert, links are allowlisted, images never load, and secrets
 appear only as their source.
 
-**Metrics and integrations.** `#/metrics` filters by world (every world by default) and window
-(`7d`, `28d`, `all`) and opens on the totals line — `$3.12 (2 unpriced) · 1.9M wt · 40 calls ·
+**Metrics and integrations.** `#/metrics` reads `/api/insights` and filters by world (every world
+by default), window (`7d`, `28d`, `all`) and model. It opens on six numbers — the asks, the share
+of finished asks that landed, the dollars and a landed ask's share of them (the unpriced calls
+counted, never $0), the median ask's time and steps, the cache hit rate, the lines changed — then
+draws every ask (the newest 120) as a bar of model and tool time with its ending marked under it,
+how asks end and why they stop, asks per day by ending, where the time goes, the models, the
+harnesses (by the units each run changed) and asks with a `Done when` list against those without
+side by side (landed, steps, median time, cache, dollars a landing), the tool mix and the work
+signals (tested after the last write, failed calls, re-reads, repaired after a refusal). Every
+bar, day and row says its numbers on hover and on focus; each ending is a word and a mark beside
+its colour. It reads again when the push channel says a world changed. `/api/metrics`, the lab's
+fold (spend by race, meters, scores, the bench), still answers; the page no longer reads it: the
+totals line — `$3.12 (2 unpriced) · 1.9M wt · 40 calls ·
 in 570.0k · out 95.0k · cache read 1.1M · write 0` — then spend per day stacked by race, the
 cache hit rate per day, the burn per five minutes; the window's runs, folded from their journals
 as `mikatad runs --metrics` folds them (`board/health.rs`, read from inside the world, every

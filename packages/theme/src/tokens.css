@@ -89,6 +89,10 @@
   --mn-state-disabled: var(--mn-line);
   --mn-info: var(--mn-race-summoner);
   --mn-info-bg: color-mix(in srgb, var(--mn-race-summoner) 14%, var(--mn-panel));
+  /* chart series, by fixed order (validated for colour-blind separation on each mode's page):
+   * one, then two — never cycled */
+  --mn-chart-1: #3987e5;
+  --mn-chart-2: #d95926;
   /* the harness graph */
   --mn-edge-native: var(--mn-hot);
   --mn-edge-plugin: var(--mn-amber);
@@ -124,6 +128,8 @@
 }
 
 :root[data-theme="light"] {
+  --mn-chart-1: #2a78d6;
+  --mn-chart-2: #eb6834;
   --mn-bg: #f3f6fa;
   --mn-panel: #ffffff;
   --mn-panel-raised: #e9eff6;
@@ -202,6 +208,65 @@
   --mn-glow-soft: rgb(255 22 138 / 0.15);
   --mn-glow-success: 0 0 20px rgb(182 245 66 / 0.15);
   --mn-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+}
+
+:root[data-scheme="neon"][data-look="studio"]:not([data-theme="light"]) {
+  /* Studio: Bio Digital softened for long hours — graphite surfaces, every colour a gentler step
+   * of the same hue, glows faint. The session is calm; the Builder keeps its colours. */
+  --mn-bg: #0e0e12;
+  --mn-panel: #15151a;
+  --mn-panel-raised: #1c1c22;
+  --mn-line: #2b2b34;
+  --mn-text: #e8e8ee;
+  --mn-text-muted: #a5a5b3;
+  --mn-holo: #e8579a;
+  --mn-alarm: #f0705a;
+  --mn-gold: #e9b44c;
+  --mn-race-player: #e9b44c;
+  --mn-hot: #e8579a;
+  --mn-coral: #ec7d70;
+  --mn-amber: #e9b44c;
+  --mn-surface-hover: #24242b;
+  --mn-line-strong: #3d3d48;
+  --mn-text-faint: #85859a;
+  --mn-success: #a6d955;
+  --mn-success-fill: #a6d955;
+  --mn-success-text: #b7e27a;
+  --mn-success-bg: #1d2414;
+  --mn-success-border: #45592a;
+  --mn-success-on: #1a240a;
+  --mn-warning: #e9bd60;
+  --mn-warning-bg: #2b2414;
+  --mn-error: #f0705a;
+  --mn-error-text: #f6a291;
+  --mn-error-bg: #2b1713;
+  --mn-error-border: #5e3026;
+  --mn-error-hover: #f48a76;
+  --mn-error-critical: #ec5a44;
+  --mn-glow-error: 0 0 16px rgb(240 112 90 / 10%);
+  --mn-state-running: #a6d955;
+  --mn-state-thinking: #a58ae8;
+  --mn-state-verified: #b7e27a;
+  --mn-state-waiting: #e9bd60;
+  --mn-state-failed: #f0705a;
+  --mn-state-blocked: #ec5a44;
+  --mn-state-recovering: #7fa6e8;
+  --mn-state-paused: #a5a5b3;
+  --mn-state-disabled: #44444f;
+  --mn-info: #7fa6e8;
+  --mn-info-bg: #182131;
+  --mn-edge-disabled: #44444f;
+  --mn-canvas-grid: #24242b;
+  --mn-glow: rgb(232 87 154 / 0.18);
+  --mn-glow-soft: rgb(232 87 154 / 0.07);
+  --mn-glow-success: 0 0 14px rgb(166 217 85 / 0.1);
+  --mn-shadow: 0 6px 24px rgb(0 0 0 / 28%);
+  /* the brand as it was on this page, kept where the session restores it */
+  --mn-accent-keep: #e8579a;
+  --mn-coral-keep: #ec7d70;
+  /* the chart series, a step softer (validated for colour-blind separation on this page) */
+  --mn-chart-1: #5b8fd6;
+  --mn-chart-2: #d0703f;
 }
 
 :root[data-scheme="neon"][data-theme="light"] {

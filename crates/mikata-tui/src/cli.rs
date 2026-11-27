@@ -27,11 +27,17 @@ Options:
                     structured-coding or collective-coding; see Modes below
   --resume <run>    the same as `resume <run>`
   --theme <name>    a scheme — neon (the default), ember, lagoon, harbor, dune, spice, or hud
-                    (the board's cyan) — and/or dark, light or auto: lagoon-light. Unnamed,
-                    MIKATA_THEME, else the terminal's background; /theme changes it live
+                    (the board's cyan) — and/or dark, light, studio (dark, softer for long
+                    hours) or auto: lagoon-light. Unnamed, MIKATA_THEME, else the terminal's
+                    background; /theme changes it live
   --web             the web board instead of the terminal app: start it, or reuse the one
                     running, add this world to it, open it in the browser, and leave it
                     serving; without it no board starts
+  --context <n>     the context line in tokens, 200k say: past it old output folds, then the
+                    session compacts; 8000 up to 90% of the model's window. /context changes
+                    it in the app. Unset, stress.context_tokens, else 150k
+  --steps <n>       the steps each ask may take (10 to 5000); unset, steps.solo, else 200
+  --minutes <n>     each ask's clock (5 to 1440); unset, limits.session_minutes, else 60
   --probe           print what the terminal can draw (the logo's image protocol), and exit
   --json            with run: every event as a JSON line on stdout, then a `result` line
   --gate-tty        with run: put each gated act to you on the terminal (/dev/tty); without it
@@ -88,7 +94,8 @@ MIKATA_TUI_IMAGES=auto|kitty|iterm|sixel|blocks|off overrides the choice.
 
 Keys: enter sends (queued while a turn runs) · alt+enter breaks the line · ↑↓ history ·
 pgup/pgdn or the wheel scroll · esc stops the turn · ctrl+c stops, then quits ·
-ctrl+o the sidebar · alt+↑↓ pick a card, ctrl+t or a click expands it · at an approval, 1 (y)
+ctrl+l the conversation alone, and back · ctrl+o every thought shown whole · ctrl+b the
+sidebar · alt+↑↓ pick a card, ctrl+t or a click expands it · at an approval, 1 (y)
 yes, 2 (n) no or 3 no with a reason, then enter. A drag over the conversation selects its text
 alone and copies it on release (OSC 52, and wl-copy, xclip or xsel where found); esc lets it go.
 Shift and a drag is the terminal's own selection, the whole width.
@@ -161,7 +168,24 @@ struct Flags {
     web: bool,
     units: Option<mikata_loop::config::Composition>,
     profile: Option<String>,
+    /// What each ask may take, as the variables the session reads: `MIKATA_STEPS`, …
+    limits: Vec<(&'static str, String)>,
     words: Vec<String>,
+}
+
+/// A count as the human writes one: `600`, `200k`, `1.5m`.
+pub(crate) fn count(word: &str) -> Option<u64> {
+    let w = word.trim().to_ascii_lowercase();
+    let (digits, by) = match w.strip_suffix('k') {
+        Some(d) => (d, 1_000.0),
+        None => match w.strip_suffix('m') {
+            Some(d) => (d, 1_000_000.0),
+            None => (w.as_str(), 1.0),
+        },
+    };
+    let n: f64 = digits.parse().ok()?;
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    (n.is_finite() && n > 0.0).then(|| (n * by).round() as u64)
 }
 
 fn flags(args: &[String]) -> Result<Flags, String> {
@@ -225,6 +249,23 @@ fn flags(args: &[String]) -> Result<Flags, String> {
                 Some(_) if f.profile.is_some() => return Err("--profile is given once".into()),
                 _ => return Err("--profile needs a name, as `small-fix`".into()),
             },
+            // What each ask may take: the session holds the bounds and says when one is out.
+            flag @ ("--steps" | "--minutes" | "--context") => {
+                let var = match flag {
+                    "--steps" => "MIKATA_STEPS",
+                    "--minutes" => "MIKATA_MINUTES",
+                    _ => "MIKATA_CONTEXT",
+                };
+                match it.next().map(String::as_str).and_then(count) {
+                    Some(n) => {
+                        f.limits.retain(|(v, _)| *v != var);
+                        f.limits.push((var, n.to_string()));
+                    }
+                    None => {
+                        return Err(format!("{flag} needs a number, as 600 or 200k"));
+                    }
+                }
+            }
             "--probe" => f.probe = true,
             "--web" => f.web = true,
             "--json" => f.json = true,
@@ -254,6 +295,23 @@ pub fn units(args: &[String]) -> Result<Option<mikata_loop::config::Composition>
         return Ok(None);
     }
     Ok(flags(args)?.units)
+}
+
+/// What each ask may take, as `--steps`, `--minutes` and `--context` asked it: the variables the
+/// session reads (`MIKATA_STEPS`, `MIKATA_MINUTES`, `MIKATA_CONTEXT`) with their values, for the
+/// app and for `run` alike.
+///
+/// # Errors
+///
+/// What [`parse`] refuses on.
+pub fn limits(args: &[String]) -> Result<Vec<(&'static str, String)>, String> {
+    if args
+        .iter()
+        .any(|a| matches!(a.as_str(), "-h" | "--help" | "-V" | "--version"))
+    {
+        return Ok(Vec::new());
+    }
+    Ok(flags(args)?.limits)
 }
 
 /// The profile `run --profile` asks for, read as [`units`] reads `--units`; `None` when none.
@@ -296,6 +354,7 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
         web,
         units,
         profile,
+        limits: _,
         words,
     } = flags(args)?;
     let first = words.first().map(String::as_str);

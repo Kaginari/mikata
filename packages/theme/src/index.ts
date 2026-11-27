@@ -115,6 +115,36 @@ export const failure = {
   light: { text: '#a82a12', bg: '#fff1ed', border: '#f6b9aa' },
 } as const;
 
+/**
+ * Studio: Bio Digital softened for long hours (`data-look="studio"`) — its surfaces, inks, the
+ * states and failure, as the css sets them.
+ */
+export const studio = {
+  page: {
+    bg: '#0e0e12',
+    panel: '#15151a',
+    panelRaised: '#1c1c22',
+    line: '#2b2b34',
+    text: '#e8e8ee',
+    textMuted: '#a5a5b3',
+    holo: '#e8579a',
+    alarm: '#f0705a',
+    gold: '#e9b44c',
+  },
+  states: {
+    running: '#a6d955',
+    thinking: '#a58ae8',
+    verified: '#b7e27a',
+    waiting: '#e9bd60',
+    failed: '#f0705a',
+    blocked: '#ec5a44',
+    recovering: '#7fa6e8',
+    paused: '#a5a5b3',
+    disabled: '#44444f',
+  },
+  failure: { text: '#f6a291', bg: '#2b1713', border: '#5e3026' },
+} as const;
+
 export const SCHEMES = ['neon', 'ember', 'lagoon', 'harbor', 'dune', 'spice', 'hud'] as const;
 export type SchemeName = (typeof SCHEMES)[number];
 /** The scheme worn unless another is asked for. */

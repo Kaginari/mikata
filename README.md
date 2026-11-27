@@ -89,6 +89,7 @@ cd ~/code/my-project
 mikata                       # the terminal app
 mikata --web                 # the web board, opened in your browser
 mikata run "<ask>"           # one ask, no app: the answer on stdout
+mikata --context 200k        # the context line (and --steps, --minutes); /context moves it live
 mikata status                # the model, the key, the sandbox, what is switched on
 mikata resume last           # pick up the last run that stopped
 ```
@@ -110,7 +111,9 @@ it wrong does not land. Outside the app: `mikatad memory wrong "<what still fail
 
 Three views; **F2** switches between them. **Light**, the default, puts the conversation beside
 one slim column: the run's steps (Plan · Work · Verify · Land), the checks, the files changed, the
-budgets. **Advanced** shows every panel. **Focus** shows the conversation alone.
+budgets. **Advanced** shows every panel. **Focus** shows the conversation alone; **Ctrl+L** goes
+there and back. **Ctrl+O** shows every thought whole. `--theme studio` is the dark look, softer,
+for long hours.
 
 ### The web board
 

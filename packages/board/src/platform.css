@@ -146,11 +146,12 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
     var(--mn-coral) 80%,
     var(--mn-hot)
   );
-  background-size: 300% 100%;
+  /* less travel, slower: the bar moves, it does not pull the eye */
+  background-size: 160% 100%;
   background-color: var(--mn-hot);
   color: var(--mn-on-brand);
   box-shadow: 0 6px 30px -6px color-mix(in srgb, var(--mn-hot) 55%, transparent);
-  animation: pf-flow 18s linear infinite;
+  animation: pf-flow-bar 48s linear infinite;
 }
 .pf-top::after {
   content: "";
@@ -163,7 +164,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
     transparent 65%
   );
   transform: translateX(-100%);
-  animation: pf-sheen 7s var(--mn-ease) infinite;
+  animation: pf-sheen 16s var(--mn-ease) infinite;
   pointer-events: none;
 }
 
@@ -810,6 +811,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   padding: 8px 12px;
   border: 1px solid var(--mn-line-strong);
   border-radius: 10px;
+  background: var(--mn-panel-raised);
   color: var(--mn-text);
   font: 600 13px var(--mn-font-ui);
   text-decoration: none;
@@ -2057,6 +2059,12 @@ a.pf-mini {
     background-position: 300% 0;
   }
 }
+/* one tile of the bar's 160% gradient: (100% - 160%) × 266.667% = −160%, so the loop is seamless */
+@keyframes pf-flow-bar {
+  to {
+    background-position: 266.667% 0;
+  }
+}
 @keyframes pf-sheen {
   0%,
   55% {
@@ -2135,6 +2143,49 @@ a.pf-mini {
   to {
     --pf-angle: 360deg;
   }
+}
+
+/* ── Studio (data-look="studio"): the session calm for long hours. Its frames, tints and glows go
+ * neutral; the brand stays on the action, the page you are on, what runs now and your words'
+ * edge. The header keeps its gradient, still; the Builder keeps its colours. ── */
+:root[data-look="studio"] .pf-top {
+  animation: none;
+}
+:root[data-look="studio"] .pf-top::after {
+  display: none;
+}
+:root[data-look="studio"] .ss,
+:root[data-look="studio"] .pf-rail {
+  --pf-face: var(--mn-panel);
+  --pf-face-raised: var(--mn-panel-raised);
+  --pf-frame: linear-gradient(var(--mn-line), var(--mn-line));
+  --pf-glow: none;
+  --mapp-frame: linear-gradient(var(--mn-line), var(--mn-line));
+  --mapp-glow: none;
+  --mapp-face: var(--mn-panel);
+  --mn-hot: var(--mn-line-strong);
+  --mn-coral: var(--mn-line-strong);
+}
+:root[data-look="studio"]
+  :is(.ss, .pf-rail)
+  :is(
+    .pf-primary,
+    .ss-stop,
+    .ss-caret,
+    .ss-pulse,
+    .ss-meter,
+    .ss-livehead,
+    .bapp-steps li[data-state="now"],
+    .pf-navlink[aria-current="page"],
+    .pf-session[aria-current="page"]
+  ) {
+  --mn-hot: var(--mn-accent-keep);
+  --mn-coral: var(--mn-coral-keep);
+}
+:root[data-look="studio"] .ss .mapp-ask {
+  border-color: var(--mn-line);
+  background: var(--mn-panel-raised);
+  box-shadow: inset 3px 0 0 var(--mn-accent-keep);
 }
 
 @media (prefers-reduced-motion: reduce) {

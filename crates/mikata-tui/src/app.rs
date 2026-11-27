@@ -163,6 +163,9 @@ pub enum Cmd {
     Withdraw(String),
     /// The session's units: listed (`None`), or one switched on or off at its next safe point.
     Units(Option<(String, bool)>),
+    /// The context line: said as it stands (`None`), or moved to so many tokens at the next safe
+    /// point, for this session.
+    Context(Option<u64>),
     /// Put text on the clipboard: the terminal's (OSC 52) and the desktop's, where a tool is.
     Copy(String),
     /// Leave.
@@ -268,6 +271,10 @@ pub struct Model {
     pub last: Option<(String, bool)>,
     /// How much of the frame is drawn round the conversation.
     pub view: View,
+    /// The view ctrl+l left for the conversation alone, to go back to.
+    pub before_chat: Option<View>,
+    /// Every thought shown whole and plain (ctrl+o).
+    pub thinking: bool,
 }
 
 /// How much of the frame is drawn round the conversation, switched while the session runs.
@@ -348,7 +355,7 @@ pub(crate) struct Hits {
 }
 
 /// The commands typed with a slash.
-pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light] · /view light|advanced|focus · /clear · /quit · F2 next view · ctrl+o sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
+pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /context [tokens] the context line · /theme <name> [dark|light|studio] · /view light|advanced|focus · /clear · /quit · F2 next view · ctrl+l chat only · ctrl+o every thought · ctrl+b sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
 
 impl Model {
     /// A model for a session of `header`, in `variant`, at `size`.
@@ -385,6 +392,8 @@ impl Model {
             sandbox: String::new(),
             last: None,
             view: View::default(),
+            before_chat: None,
+            thinking: false,
         }
     }
 
@@ -998,10 +1007,22 @@ fn keys(m: &mut Model, key: KeyEvent, at: Instant) -> Vec<Cmd> {
     let shift = key.modifiers.contains(KeyModifiers::SHIFT);
     let alt = key.modifiers.contains(KeyModifiers::ALT);
     match key.code {
-        KeyCode::Char('o') if ctrl => {
+        KeyCode::Char('b') if ctrl => {
             m.sidebar.open = !m.sidebar.open;
             refit(m);
         }
+        // The conversation alone, and back to the view it left.
+        KeyCode::Char('l') if ctrl => {
+            m.view = match m.before_chat.take() {
+                Some(was) if m.view == View::Focus => was,
+                _ => {
+                    m.before_chat = Some(m.view);
+                    View::Focus
+                }
+            };
+            refit(m);
+        }
+        KeyCode::Char('o') if ctrl => m.thinking = !m.thinking,
         KeyCode::Char('t') if ctrl => toggle_focused(m),
         KeyCode::F(2) => {
             m.view = m.view.next();
@@ -1053,38 +1074,40 @@ fn gate_keys(m: &mut Model, key: KeyEvent, at: Instant) -> Vec<Cmd> {
     }
 }
 
-/// `/theme <words>`: a scheme, a variant or both, each kept as it was when unnamed; a word that
-/// names neither changes nothing and lists them.
+/// `/theme <words>`: a scheme, a look (dark, light or studio) or both, each kept as it was when
+/// unnamed; a word that names neither changes nothing and lists them.
 fn theme(m: &mut Model, arg: &str) {
     let words: Vec<&str> = arg.split_whitespace().collect();
     let scheme = words.iter().find_map(|w| Scheme::parse(w));
-    let variant = words
+    // A look: dark, light, or studio (the dark one, softer).
+    let look = words
         .iter()
         .find_map(|w| match w.to_ascii_lowercase().as_str() {
-            "dark" => Some(Variant::Dark),
-            "light" => Some(Variant::Light),
+            "dark" => Some((Variant::Dark, false)),
+            "light" => Some((Variant::Light, false)),
+            "studio" => Some((Variant::Dark, true)),
             _ => None,
         });
     let known = words.iter().all(|w| {
-        Scheme::parse(w).is_some() || matches!(w.to_ascii_lowercase().as_str(), "dark" | "light")
+        Scheme::parse(w).is_some()
+            || matches!(w.to_ascii_lowercase().as_str(), "dark" | "light" | "studio")
     });
     if words.is_empty() || !known {
         let all: Vec<&str> = Scheme::ALL.iter().map(|s| s.word()).collect();
         m.info(format!(
-            "/theme <name> [dark|light] — {} · wearing {} {}",
+            "/theme <name> [dark|light|studio] — {} · wearing {} {}",
             all.join(" "),
             m.theme.scheme.word(),
-            match m.theme.variant {
-                Variant::Dark => "dark",
-                Variant::Light => "light",
+            match (m.theme.studio, m.theme.variant) {
+                (true, _) => "studio",
+                (false, Variant::Dark) => "dark",
+                (false, Variant::Light) => "light",
             }
         ));
         return;
     }
-    m.theme = Theme::of(
-        scheme.unwrap_or(m.theme.scheme),
-        variant.unwrap_or(m.theme.variant),
-    );
+    let (variant, studio) = look.unwrap_or((m.theme.variant, m.theme.studio));
+    m.theme = Theme::look(scheme.unwrap_or(m.theme.scheme), variant, studio);
 }
 
 /// What `/wrong` would keep, shown before anything is kept.
@@ -1198,6 +1221,16 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
                 }
             },
             "units" => return vec![Cmd::Units(None)],
+            // The context line: said as it stands, or moved for this session.
+            "context" => match arg.trim() {
+                "" => return vec![Cmd::Context(None)],
+                word => match crate::cli::count(word) {
+                    Some(tokens) => return vec![Cmd::Context(Some(tokens))],
+                    None => m.info(
+                        "/context [tokens]: the context line, 200k say; alone, where it stands",
+                    ),
+                },
+            },
             "unit" | "plugin" => match unit_change(name, arg) {
                 Ok(changes) => return changes.into_iter().map(|c| Cmd::Units(Some(c))).collect(),
                 Err(usage) => m.info(usage),

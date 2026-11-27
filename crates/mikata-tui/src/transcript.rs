@@ -266,9 +266,10 @@ impl Entry {
     }
 }
 
-/// What an entry's layout depends on beyond the entry: the width, the theme, the spinner's frame
-/// and the clock's second while it is live, and whether the next entry continues its panel.
-type Key = (usize, (Scheme, Variant), usize, u64, bool);
+/// What an entry's layout depends on beyond the entry: the width, the theme (Studio included),
+/// the spinner's frame and the clock's second while it is live, whether the next entry continues
+/// its panel, and whether every thought is held open (ctrl+o).
+type Key = (usize, (Scheme, Variant, bool), usize, u64, bool, bool);
 
 /// A laid-out entry.
 #[derive(Debug, Clone)]
@@ -825,10 +826,11 @@ impl Transcript {
         };
         let key = (
             ctx.width,
-            (ctx.theme.scheme, ctx.theme.variant),
+            (ctx.theme.scheme, ctx.theme.variant, ctx.theme.studio),
             frame,
             second,
             self.joins(i),
+            ctx.thinking,
         );
         let fresh = cache[i].as_ref().is_some_and(|l| l.key == key);
         if !fresh {

@@ -92,3 +92,39 @@ fn every_scheme_equals_the_typescript_one() {
         differs.join(", ")
     );
 }
+
+/// Studio on Mikata's own scheme is the board's Studio, colour for colour (`studio.page` in
+/// `@mikata/theme`), and every other scheme's Studio is softer than its dark look.
+#[test]
+fn studio_equals_the_boards_and_is_softer() {
+    use mikata_tui::theme::{Scheme, Theme, Variant};
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../packages/theme/src/index.ts"
+    );
+    let src = std::fs::read_to_string(path).expect("the TypeScript theme");
+    let studio = Theme::look(Scheme::Neon, Variant::Light, true);
+    assert_eq!(studio.variant, Variant::Dark, "Studio is a dark look");
+    assert!(studio.studio);
+    assert_eq!(
+        ours(studio.p.named()),
+        object(&src, "export const studio = {")
+    );
+    let chroma = |c: Rgb| {
+        let Rgb(red, green, blue) = c;
+        i32::from(red.max(green).max(blue)) - i32::from(red.min(green).min(blue))
+    };
+    for s in Scheme::ALL.into_iter().filter(|s| *s != Scheme::Hud) {
+        let (soft, dark) = (
+            Theme::look(s, Variant::Dark, true).p,
+            Theme::of(s, Variant::Dark).p,
+        );
+        for (a, b) in [(soft.holo, dark.holo), (soft.gold, dark.gold)] {
+            assert!(
+                chroma(a) <= chroma(b),
+                "{}: {a:?} is not softer than {b:?}",
+                s.word()
+            );
+        }
+    }
+}

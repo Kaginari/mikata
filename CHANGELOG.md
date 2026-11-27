@@ -13,6 +13,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **A new Metrics page, read from what every ask did.** It replaces the old structured-coding
+  page: six headline numbers (asks, landed share, dollars a landing, the median ask, cache hits,
+  lines changed), every ask as a bar of model and tool time with how it ended, how asks end and
+  why they stop (steps, clock, context, interrupted…), asks per day, and the models, the
+  harnesses (each unit or plugin on or off) and asks with a `Done when` list compared side by
+  side, the tool mix and the work signals. Filter by workspace, window and model; hover or focus
+  any bar for its numbers. It moves live while a session works. The server reads it from the
+  runs' journals and the usage ledger (`GET /api/insights`).
+- **The context line, steps and clock from the terminal too.** `mikata --context 200k`,
+  `--steps 600` and `--minutes 120` (and the same on `mikata run`) hold the session to them, as the
+  board's Harness Builder does; `/context` says where the line stands in the app, and
+  `/context 120k` moves it from the next safe point, for that session, within 8000 tokens and 90%
+  of the model's window (one out of bounds is refused, and said).
+- **The terminal app has Studio too**, beside dark and light: `--theme studio`,
+  `MIKATA_THEME=studio` or `/theme studio` live. On Mikata's own scheme it is the board's Studio
+  colour for colour; every scheme's Studio is softer than its dark look, its panel frames one
+  quiet line and its cards half as tinted.
+- **ctrl+l shows the conversation alone**, and ctrl+l again goes back to the view you were in.
+  **ctrl+o shows every thought whole**, in plain text on a rail in the brand's colour; again,
+  they fold. The sidebar moves to **ctrl+b**.
+- **The terminal app's panels carry three large strokes** on each panel's top edge, thick
+  slants each running from one of the brand's colours to the next: hot, coral, amber.
+
+- **Studio, a third look for the board** beside Light and Dark (Settings, or the top bar's theme
+  switch: auto → light → dark → studio). It is the dark page made softer for long hours:
+  graphite surfaces, every colour a gentler step of the same hue, glows faint. The session page is
+  calm, its frames and tints neutral, the brand kept for the action, the page you are on and what
+  runs now; the Harness Builder keeps its colours; the header keeps its gradient, still.
 - **Choose the model when you start a session on the board.** The Harness Builder has a *Model*
   choice beside the profile: the configured model, any model your configuration names (the
   default, a tier, the reader), or one you type. Sessions started there ride it (the request's
@@ -42,6 +70,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   as `end_turn`, but the core sends it by name (`EndTurn`): *Checking* never showed, and Verify
   lit only once the verdict came. It now reads the core's word, and a provider's own.
 
+- **A card in the terminal app no longer has a square on its first line.** The lip above each
+  card drew its first cell in the bar's colour, a whole cell wide over a half-cell bar.
+
+- **The header moves less**: its gradient drifts slowly (one pass in 48 seconds, its shine every 16), and stands still in Studio.
 - **Leaving a session's page no longer stops its work.** The board ended a chat 60 seconds after
   its last tab left, so a task stopped while you read another page (the metrics, a past run).
   Now a turn that runs always finishes; waiting approvals are still denied after 60 seconds with
