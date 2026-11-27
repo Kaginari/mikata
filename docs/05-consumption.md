@@ -8,7 +8,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -17,14 +17,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -41,15 +41,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -70,30 +70,29 @@ flowchart TD
     class CAP you
     classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class SES,L store
-    classDef mikata fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
+    classDef mikata fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
     class B,P mikata
     classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class M step
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 ## In plain words
 
-You set caps: per month, per day, per session. Before every model call, the body reads the usage
-ledger again and checks the call fits under every cap; if it does not, the body stops cleanly at a
-checkpoint you can resume, instead of overspending. When an ask is split by project, every
-project's body reads the same ledger and stops at the same caps.
+You set caps: per month, per day, per session. Before every model call, Mikata reads the usage
+ledger again and checks that the call fits under every cap. If it does not, Mikata stops cleanly
+at a checkpoint you can resume, rather than overspend. When an ask is split by project, every
+project's agent reads the same ledger and stops at the same caps.
 
 Every model call writes one line to the usage ledger: who spent it, on which model, how much was
-cached. The terminal status line and the board show it live: tokens, cost, cache hits, burn rate,
-what is left.
+cached. The terminal app and the board show it live: tokens, cost, cache hits, what is left.
 
 The biggest saving is designed in, not bolted on: every prompt is laid out so its start never
 changes between calls, which lets the provider's prompt cache serve most of it at a fraction of
 the price.
 
-In the [lab's](experimental/) modes budget also flows down a chain, each order carrying a slice
-of its giver's: that carving is [the lab's](experimental/the-lab-in-the-code.md#carving-the-budget-down-a-chain).
+In [the lab's](experimental/) modes, budget also flows down a chain of agents, each order carrying
+a slice of its giver's ([how it is carved](experimental/the-lab-in-the-code.md#carving-the-budget-down-a-chain)).
 
 ## Technical detail
 

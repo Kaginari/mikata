@@ -1,6 +1,7 @@
 import type { Arrived } from '@mikata/protocol';
 import { describe, expect, it } from 'vitest';
 import { Chat, groupCounts, humanWords, summary, THE_ASK } from './chat.ts';
+import { parseRuns } from './chats.ts';
 
 let seq = 0;
 const ev = (type: string, fields: Record<string, unknown> = {}, body = 'summoner') => {
@@ -186,4 +187,22 @@ it('a turn shows the human their own words, not what the harness quoted above th
   const quoted = `Recalled from memory (a proposed note is unproven):\n@M n1 personal proposed support: x\n\n${THE_ASK}\n\nAdd format(minutes).`;
   expect(humanWords(quoted)).toBe('Add format(minutes).');
   expect(humanWords('Add format(minutes).')).toBe('Add format(minutes).');
+});
+
+it("a run's title is the human's words, not the memory quoted before them", () => {
+  const ask = `Recalled from memory (a proposed note is unproven):\n- n1 a note\n\n---\n\n${THE_ASK}\n\nmake total skip blanks`;
+  const { runs } = parseRuns({
+    runs: [
+      {
+        id: 'r1764237600-42',
+        when: '2026-11-27T10:00:00Z',
+        state: 'ended',
+        why: '',
+        ask,
+        turns: 1,
+      },
+    ],
+    more: 0,
+  });
+  expect(runs[0]?.ask).toBe('make total skip blanks');
 });

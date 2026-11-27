@@ -14,7 +14,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -23,14 +23,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -47,15 +47,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -63,7 +63,7 @@ config:
 ---
 sequenceDiagram
     autonumber
-    box rgb(13, 11, 16)
+    box rgb(7, 5, 10)
       actor V as Player
       participant R as Summoner
       participant E as elf-engine
@@ -71,7 +71,7 @@ sequenceDiagram
       participant S as slime-wire
       participant G as gate
     end
-    rect rgb(13, 11, 16)
+    rect rgb(7, 5, 10)
       rect rgba(63,169,245,0.14)
       V->>R: "the wire should read @W lines into Report.Wrote"
       R->>R: plan · Done when: D1 · the map, on the board
@@ -256,7 +256,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -265,14 +265,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -289,15 +289,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -332,7 +332,7 @@ flowchart TD
     class OK,VIA good
     classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
     class NO1,NO2,NO3,NO4,NO5 bad
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 The law decides on five facts and the world finds them, from the creature docs: the lineage
@@ -416,7 +416,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -425,14 +425,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -449,15 +449,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -485,7 +485,7 @@ flowchart TD
     class SQ store
     classDef kijin fill:#d7263d,stroke:#d7263d,stroke-width:2px,color:#ffffff
     class TQ kijin
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 **In plain words.** A session never loses what arrives while it works. What you type during a

@@ -8,7 +8,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -17,14 +17,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -41,15 +41,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -82,103 +82,94 @@ flowchart TD
     end
     classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class V you
-    classDef mikata fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
+    classDef mikata fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
     class M,P mikata
     classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
     class L store
     classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class C,G gate
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 ## In plain words
 
-**Mikata** (味方, "ally": the one on your side) is a coding agent. You give it an ask; one body
-works through it over your whole repository, the way a careful engineer would:
+**Mikata** (味方, *ally*: the one on your side) is a coding agent. You give it an ask. One agent,
+Mikata, works through it over your whole repository, the way a careful engineer would:
 
-1. **It does the work,** reading only the lines it needs, inside your repository, and runs what
-   it needs to run: the tests, a build, a script.
-2. **The end gate judges every file it changed:** your verify line runs green, and no test was
-   deleted or skipped.
-3. **What you say must hold is held.** Lines under `## Done when` in your ask, or the lines a
-   reader you name writes, are run by the harness on the finished work, every one, before the
-   answer lands.
+1. **It does the work.** It reads only the lines it needs, writes inside your repository, and runs
+   what it needs to run: the tests, a build, a script. Every command runs in a sandbox.
+2. **It is held to "done".** If your ask says what done means, under `## Done when`, the harness
+   runs each line on the finished work before the answer lands.
+3. **It passes the end gate.** Your project's test command runs green, and no test was deleted or
+   skipped. Until then, nothing lands.
+4. **It shows you what changed.** Its last checks run again on your code as it was and as it is
+   now, and you see where they differ. No model reads that list; you do.
 
-4. **You are shown what changed, by its own checks:** when the answer has landed, its last
-   checks are run again on the code as you gave it and on the finished work, and you see where
-   they print differently ([the loop](02-loop.md#what-changed-by-its-own-checks)). No model reads
-   that list. You do.
+**It asks before it acts outside.** A push, a pull request, a publish or a deploy waits for your
+approval on a card. Denied, it stays undone. `mikata run`, made for scripts, denies every such act
+unless you pass `--gate-tty`.
 
-**Its own plan is one switch away.** Asked for (`--profile planned`, or `plan = true` under
-`[units]`), the body first writes down what "done" means, weighs two or three ways, and runs every
-line and the tests it touched before it answers. That habit took Mikata from 5 of 10 to level with
-OpenCode and Maki on our bench. Measured again on 25 November it earned no pass: on twenty mathjs
-fixes Mikata passed 17 with it and 17 without, and without it a pass cost 18% less, 1.18 times
-what one costs with Maki, which passed 15 ([the bench](bench.md#the-plan-measured-again)). So it is
-off by default, and Mikata needs nothing set up.
+**It keeps your secrets.** `.env` files, keys, kubeconfigs and Terraform state are found when a
+session opens. The model sees their keys and never a value; no tool writes or searches them; a
+command finds them empty, unless it is an act you approved, such as a deploy. Any value that
+slips into a result is struck out before the model reads it.
 
-**You can write the list yourself, or have a reader write it.** Lines under `## Done when` in your
-ask (`D1: ... must give ...`, `D2: ... must stay as it is today`) are held by the harness, not
-by Mikata's word: it hands in one command a line, the harness reads what must stay from your
-code before anything changes, and runs every line when the answer lands
-([the loop](02-loop.md#a-done-when-list-in-the-ask)). Name a model as `models.reader` and it
-writes those lines for each ask, from the ask alone. On the two asks our bench fails most, that
-is the difference between 1 pass in 6 and 6 in 6; on four asks stated as prose, with nothing
-added but the reader, between 6 passes in 12 and 10. The list is what does it: the same lists
-handed over as a plain note, held by nothing, passed 11 in 12, and 8 in 12 in each of the two
-other harnesses we run beside Mikata, where those passed 5 and 3 without
-([the bench](bench.md#the-list-held)). What the hold adds is a pass that names what verified it
-and what must stay read from your code; it costs about four dollars in ten more a run and is not
-shown to add passes. Read the list a reader writes: the harness holds whatever it says, and
-names in its pass any line whose check showed nothing of the work.
+**It remembers.** What matters is written to your repository's `.mikata/` folder: the journal,
+the ledgers, memory. Sessions forget; the world remembers. Tell it when it was wrong
+(`/wrong` in the app), and the next session that meets the same ask starts from your words.
 
-**An ask that names several projects is split by itself.** When the ask names two or more folders
-at the root of your repository that each hold a project file of their own (`pyproject.toml`,
-`Cargo.toml`, `package.json`, `go.mod`, …), Mikata runs one body a project, at once, each with its
-folder as its root, then checks each project once before it answers. Five whole repositories in
-one ask: one body fixed 2.5 of 5 on average; one body a project, 4.5 of 5.
+### Say what done means
 
-**It acts outside only with your word.** Mikata reads and writes inside your repository, and every
-command runs in a sandbox. When the ask needs an act that leaves your machine (a push, a pull
-request, a publish, a deploy), Mikata does it itself, and each one shows you an approval card first:
-denied, it stays undone. `mikata run` denies every such act unless you pass `--gate-tty`.
+You can write the list yourself:
 
-**What it learns stays with the repository.** Everything that matters is written to the world
-folder, `.mikata/`: the journal `log.md`, the ledgers, memory. Sessions forget; the world
-remembers.
+```text
+Add support for 1h30m durations.
 
-### Say what the result must be
+## Done when
+- D1: parse('1h30m') must give 90
+- D2: parse('90') must stay as it is today
+```
 
-Mikata checks its work against what the ask states. On four tasks, an ask with its examples and
-their expected output passed 4 times in 4; the same ask as one paragraph of prose passed 4 times
-in 8, at the same price. Without examples the body writes its own checks from its own reading of
-the ask, and a wrong reading passes them: one task failed 4 times in 4 on a case the ask said, in
-words, must stay as it was. One example of what must change and one of what must not is worth more
-than a paragraph.
+Mikata hands in one command per line; the harness reads what must stay from your code before
+anything changes, and runs every line when the answer lands
+([the loop](02-loop.md#a-done-when-list-in-the-ask)). Or name a **reader**, a model that writes the
+lines from a plain ask (`models.reader` in your config). Read what it writes: the harness holds
+whatever the list says.
 
-When you did write prose, read the last lines Mikata shows you: what its own checks print now and
-printed before. In 21 of the 25 runs that failed on our prose asks, the mistake is in those lines,
-and it is quicker to see there than in a diff.
+On our bench, the list is what makes the difference: on the asks we fail most, stated as prose, a
+held list turned 1 pass in 6 into 6 in 6 ([the bench](bench.md#the-list-held)).
+
+**Ask with examples.** One example of what must change and one of what must not is worth more than
+a paragraph: on our bench, an ask with examples passed 4 times in 4, the same ask in prose 4 times
+in 8. When you did write prose, read the last lines Mikata shows you, what its checks print now and
+printed before: that is where a misreading shows first.
+
+### Big asks split by themselves
+
+When an ask names two or more folders that each hold a project of their own (`Cargo.toml`,
+`package.json`, `pyproject.toml`, `go.mod`, …), Mikata runs one agent per project, at once, each in
+its own folder, then checks each project before it answers. On five repositories in one ask, one
+agent fixed 2.5 of 5 on average; one agent per project, 4.5 of 5.
+
+### Make it yours
+
+Every part of the loop is a **unit** you can switch on or off: memory, the end gate, the held
+"done" list, the reader, what-changed, the fold that keeps long sessions small, the stress
+signals, the approval card, the secret files, a plan before code, and more. A **profile** names a
+mix for a kind of work: `--profile planned` turns on a written plan before any code, which is off
+by default because on our bench it cost more and won no pass
+([the bench](bench.md#the-plan-measured-again)). A **plugin** is a unit of your own: a program that
+speaks MCP, run in the sandbox ([plugins](experimental/plugins.md)).
+
+Switch units in the board's **Harness Builder**, with `/unit on|off <name>` in the terminal app,
+`--units` on `mikata run`, or under `[units]` in your config. The guards (the end gate, the
+approval card, the secret files) can only be switched off by you, never by a project's file.
 
 ### The modes
 
-Every session opens in **light-coding**: the one body above. `mikata status` says the mode and
-why. Two other modes, where the work is handed down a chain of bodies or shared by a collective,
-are kept as [experimental](experimental/): usable, measured, and frozen, since one body a project
-did better on every screen.
-
-### Compose it (experimental)
-
-Every part of the loop is a **unit** you can switch: memory, the end gate, the held `Done when`
-list, the fold, the stress signals, what-changed, the reader, the challenge, and the prompt's plan
-and its lighter form, both off by default (`[units]` in your global file, `--units` on `mikata
-run`, `/unit on|off` in the terminal). A **profile** names a mix for a kind of work (`--profile
-planned` puts the plan back, `--profile prose` its lighter form).
-A **plugin** is a program of yours that speaks MCP plus `mikata/hook`, run in the sandbox under a
-deadline, and loaded, unloaded or swapped while a session runs ([plugins](experimental/plugins.md)).
-The board's **Harness Builder** draws the units round the core and starts a run with exactly
-that composition. What each unit is worth is measured one at a time
-([plugins: where it stands](experimental/plugins.md#where-it-stands)).
+Every session runs in **light-coding**: the one agent above. `mikata status` says so. Two older
+modes, a chain of agents and a collective, are kept in [the lab](experimental/): they still run,
+and are frozen, since one agent per project did better every time we measured.
 
 ## Technical detail
 
@@ -190,7 +181,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -199,14 +190,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -223,15 +214,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -252,14 +243,14 @@ flowchart TD
       BOARD <-->|WebSocket, loopback + token| CORE
       CLI --> SB
       CLI <--> W
-      CLI <-->|HTTPS streaming| LLM
+      CLI <--> LLM
       CORE --> SB
       CORE <--> W
       CORE <-->|HTTPS streaming| LLM
     end
     classDef ts fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class BOARD ts
-    classDef rs fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
+    classDef rs fill:#ff168a,stroke:#ff168a,stroke-width:1.5px,color:#07050a
     class CLI,CORE rs
     classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class SB gate
@@ -267,42 +258,42 @@ flowchart TD
     class W store
     classDef outside fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class LLM outside
-    style user fill:#16111b,stroke:#59405d,color:#f5eff7
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style user fill:#110c14,stroke:#59405d,color:#f5eff7
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
-- **The core** (Rust crates) owns everything that must be correct: the loop, the gate, the
-  sandbox, the ledgers, the provider clients. It has no UI, and every surface links the same
-  crates.
-- **`mikata`** (Rust, Ratatui) is the command you run. With no subcommand it is the terminal
-  app; `mikata run "<ask>"` asks once without it, for scripts. It hosts the session in its own
-  process, with no protocol between the screen and the core, and draws the same events the server
-  sends ([the terminal UI](03-architecture.md#the-terminal-ui)). It renders; it decides nothing.
+- **The core** (Rust crates) owns everything that must be correct: the loop, the gates, the
+  sandbox, the ledgers, the provider clients. It has no screen of its own; every surface links the
+  same crates.
+- **`mikata`** (Rust, Ratatui) is the command you run. With no subcommand it is the terminal app;
+  `mikata run "<ask>"` asks once without it, for scripts. It runs the session in its own process
+  and draws the same events the server sends ([the terminal app](03-architecture.md#the-terminal-ui)).
+  It renders; it decides nothing.
 - **`mikatad`** (Rust) is the core as a server: JSON-RPC 2.0 over stdio for the TypeScript SDK
-  ([the client protocol](04-protocol.md)), the web board on loopback, and the world's admin
-  commands (`mikatad runs`, `mikatad memory status`, …).
-- **The board** (TypeScript, React) is the web cockpit, served by `mikatad` on loopback. It
-  speaks the same protocol over a WebSocket; its Harness Builder composes a run's units and
-  follows the run live.
-- One protocol, defined once in Rust; the TypeScript types are generated from it. A client can
+  ([the client protocol](04-protocol.md)), the web board on your machine, and housekeeping commands
+  (`mikatad runs`, `mikatad memory status`, …).
+- **The board** (TypeScript, React) is the web platform `mikatad` serves on loopback: every
+  workspace and its sessions, the Harness Builder that starts them, each session's conversation
+  beside its live run. It speaks the same protocol over a WebSocket.
+- One protocol, defined once in Rust; the TypeScript types are generated from it, so a client can
   never drift from the core.
 
 ### What is fixed and what is yours
 
 | Compiled in (code) | Configured (data) |
 |---|---|
-| the loop, its budgets and stress instruments | the provider and the model |
-| the end gate's checks | your verify line (the project's test command) |
+| the loop, its budgets and stress signals | the provider and the model |
+| the end gate's checks | your project's test command (its verify line) |
 | the classes of an act: `read`, `write`, `outward`, `destructive` | guard rules that ask you instead of refusing |
 | the sandbox's rules | budgets: amounts per session, day, month |
-| the meters and the ledgers | provider credentials, by reference, never inline |
-| the split by project | MCP servers, and Minds: know-how a body can load |
+| the secret files Mikata always holds (`.env`, keys, state) | more secret files to hold (`secrets.also`) |
+| the meters and the ledgers | provider keys, by reference, never inline |
+| the split by project | MCP servers, and Minds: know-how an agent can load |
 
 ### Where it comes from
 
 Mikata grew out of [isekai](https://github.com/Kaginari/isekai) and was called **Mnemorph** until
-November 2026. Mnemorph's idea was a kingdom of races, each a different kind of body with its own
-tools: Elves that plan, Orcs that judge, Slimes that write. The bench kept the discipline and
-dropped the kingdom: one body that writes "done" down and checks it beat the chain of races on
-every screen. The races live on as the [experimental lab](experimental/), and their rules live
-on inside the one body.
+November 2026. Mnemorph was a kingdom of races, each a different kind of agent with its own tools:
+Elves that plan, Orcs that judge, Slimes that write. The bench kept the discipline and dropped the
+kingdom: one agent that writes "done" down and checks it beat the chain of races every time. The
+races live on in [the lab](experimental/), and their rules live on inside Mikata.

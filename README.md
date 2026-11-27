@@ -4,90 +4,154 @@
 
 # Mikata
 
-**The coding agent on your side** (味方, *mikata*: ally). You give it an ask; one body does the
-work and checks it before it answers. Every change then passes the end gate: your verify line
-runs green, and no test is deleted or skipped. Say what done means in the ask and the harness
-holds each line; ask for a plan (`--profile planned`) and the body writes what done means down
-before any code. The plan is off by default: on our last screen it earned no pass and cost up to
-a sixth of the calls.
+**The coding agent on your side.** *Mikata* (味方) is Japanese for *ally*.
 
-On our bench, ten real fixes in a large Python library, with the same small open model in every
-harness, run twice a week apart ([the bench](docs/bench.md)):
+You tell Mikata what to change. It works in your repository, runs your tests, and checks its own
+work before it answers. Nothing lands until your tests pass and no test was deleted or skipped.
+Nothing leaves your machine without your yes.
 
-| Harness | Passed | Per pass |
+Mikata is a harness: the program around a language model that gives it tools, keeps it safe and
+holds it to its word. Bring any model; Mikata makes it careful.
+
+## What it does for you
+
+- **It checks before it answers.** Every change passes the **end gate**: your project's test
+  command runs green, and no test is deleted or skipped.
+- **It holds you to your words, and itself to them too.** Write what "done" means under
+  `## Done when` in your ask, and the harness runs each line on the finished work. A *reader*
+  model can write those lines for you from a plain-language ask.
+- **It asks before it acts outside.** A push, a pull request, a publish or a deploy waits for
+  your approval on a card. Every command runs in a sandbox.
+- **It keeps your secrets.** `.env` files, keys, kubeconfigs and Terraform state are found when a
+  session opens. The model sees their keys, never their values.
+- **It shows you what changed.** When an answer lands, Mikata runs its checks again on your code
+  as it was and as it is now, and shows you where they differ.
+- **It remembers.** What a session learns is kept in your repository, in `.mikata/`. Tell it when
+  it was wrong, and the next session starts from your correction.
+- **It splits big asks.** Name several projects in one ask and Mikata works on each at once, then
+  checks each one.
+
+## How it does on our bench
+
+Ten real fixes in a large Python library, the same small open model in every harness, each task
+run twice a week apart:
+
+| Harness | Passed | Cost per pass |
 |---|---|---|
 | **Mikata** | **16 of 20** | **$0.50** |
 | Maki | 15 of 20 | $0.91 |
 | OpenCode | 14 of 20 | $0.87 |
 
-On passes the three are level: by the bar we wrote first, no difference is shown. On a second
-codebase (ten fixes in a JavaScript library) they are level again, 8, 7 and 6 of 10, and with a
-stronger model every one of them passes all ten. Mikata is not always the cheapest: on the
-JavaScript fixes, which are smaller, Maki's pass cost a third of Mikata's, and with the stronger
-model half.
-
-**Say what done means, and the harness holds it.** Put lines under `## Done when` in your ask
-(`D1: ... must give ...`, `D2: ... must stay as it is today`), or name a reader, a model that
-writes them from the ask alone. Mikata hands the harness one command a line. The harness reads
-what must stay from your code before anything changes, and runs every line when the answer
-lands. On the two asks our bench fails most, stated as prose: 1 pass in 6 without a list, 6 in 6
-with one held. With a reader named and nothing added to the ask, four prose asks passed 10 times
-in 12 on the release, where they passed 6 without one. The list is what does it: handed the same
-lists as a plain note, Mikata passed 11, and OpenCode and Maki 8 each where they had passed 5 and
-3. What the hold adds is a pass that names what verified it; it is not shown to add passes.
-
-**An ask that spans several projects is split by itself.** Name two or more folders that each hold
-a project of their own, and Mikata runs one body a project, at once, then checks each. Five whole
-repositories in one ask: one body fixed 2.5 of 5 on average; one body a project, 4.5 of 5.
-
-**It acts outside only with your word.** It reads and writes inside your repository, every command
-runs in a sandbox, and an act that leaves your machine (a push, a pull request, a publish) is put to
-you first, every time.
-
-**Your secret files stay yours.** `.env`, keys, kubeconfigs and Terraform's state and variables in
-your repository are found as a session opens: the body is shown their keys and never a value, no
-tool writes or searches them, a command finds them empty — but an act you approve, such as a
-deploy, which reads them as they are — and any value of theirs is struck from what the model
-reads. Name more with `secrets.also = ["bootstrap/inventory.yml"]`.
-
-**It shows you what changed, by its own checks.** When an answer lands, Mikata's last checks are
-run again on the code as you gave it and on the finished work, and you see where they print
-differently. Its checks hold its reading of your ask; you are the one who knows whether a line
-that changed should have.
-
-| Read | For |
-|---|---|
-| [Overview](docs/01-overview.md) | what Mikata does with an ask, in one picture |
-| [The loop](docs/02-loop.md) | one turn, budgets, the stress instruments, resume, the end gate |
-| [Architecture](docs/03-architecture.md) | crates, the terminal UI, the board, storage, sandbox, configuration |
-| [The client protocol](docs/04-protocol.md) | how the SDK and the board speak to `mikatad` |
-| [Consumption](docs/05-consumption.md) | how every token is budgeted, metered and stopped |
-| [MCP](docs/06-mcp.md) | MCP servers: declared, scoped, priced, ranked |
-| [Memory](docs/07-memory.md) | the archive, notes, recall, the write rule |
-| [The bench](docs/bench.md) | what we measured, against whom, and every screen since |
-| [Roadmap](docs/roadmap.md) | what comes next |
-| [Lessons](docs/lessons.md) · [Releasing](docs/releasing.md) | what we learned; how a version ships |
-| [Experimental: the lab](docs/experimental/) | the races, the chain and the collective: Mikata's past as Mnemorph, kept and frozen |
+On passes, the three are level: the difference is within what chance allows. Mikata costs less
+here, but not everywhere: on smaller JavaScript fixes Maki was cheaper. Every number, with its
+method and its failures, is on [the bench](docs/bench.md).
 
 ## Install
 
-**With the installer** (Linux x86_64 and arm64, macOS Apple Silicon and Intel):
+Linux (x86_64, arm64) and macOS (Apple Silicon, Intel):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Kaginari/mikata/main/install.sh | sh
-sh install.sh --version 1.0.0 --dir ~/bin    # a given release, somewhere else
 ```
 
-It downloads the release's archive for this machine, refuses it unless it matches the release's
-`SHA256SUMS`, and puts the binaries in `~/.local/bin` (`MIKATA_INSTALL_DIR` or `--dir` to
-choose). It needs no sudo and edits no shell profile: when the directory is not on PATH, it prints
-the line to add. Once a release carries build provenance ([releasing](docs/releasing.md#provenance-signing)),
-an archive can also be checked against the workflow that built it:
-`gh attestation verify mikata-<target>.tar.gz --repo Kaginari/mikata`.
+The installer checks each download against the release's `SHA256SUMS`, needs no sudo, and puts the
+binaries in `~/.local/bin` (`--dir` to choose another). Other ways — a given version, by hand, or
+from source — are in [Install, in detail](#install-in-detail).
+
+## Set a model
+
+Name a provider and a model once, in `~/.config/mikata/config.toml`:
+
+```toml
+[providers.openrouter]
+kind = "openai"
+base_url = "https://openrouter.ai/api"
+key_env = "OPENROUTER_API_KEY"     # the variable that holds your key — never the key itself
+
+[models]
+provider = "openrouter"
+default = "anthropic/claude-sonnet-5.5"
+```
+
+Then give Mikata your project's test command: the end gate runs it on every change, and until a
+project has one there is nothing to check. `mikatad memory status` suggests one (`cargo test
+--workspace`, `pytest`, `npm test`, …). Put it on the `Verify:` line of
+`.mikata/summoner/summoner/README.md`; the next time you start `mikata` there, it asks you once
+whether to trust it (`mikatad verify pin summoner` does the same). `mikata status` shows what is
+pinned.
+
+## Use it
+
+```sh
+export OPENROUTER_API_KEY=…
+cd ~/code/my-project
+
+mikata                       # the terminal app
+mikata --web                 # the web board, opened in your browser
+mikata run "<ask>"           # one ask, no app: the answer on stdout
+mikata status                # the model, the key, the sandbox, what is switched on
+mikata resume last           # pick up the last run that stopped
+```
+
+`mikata run` exits 0 only when the answer landed, so scripts can trust it. It denies every act
+that needs your approval unless you pass `--gate-tty`.
+
+**Ask well.** Give an example of what must change and one of what must not. On our bench, an ask
+with examples passed twice as often as the same ask in prose.
+
+**Say when it was wrong.** In the terminal app, type `/wrong <what is wrong>` after an answer, then
+`/keep`. The next time that ask comes, your words come first; written as a case
+(`` `total 1 2` must give `6` ``), they become a line of its "done" list, and an answer that leaves
+it wrong does not land. Outside the app: `mikatad memory wrong "<what still fails>"`.
+
+### The terminal app
+
+<img src="docs/img/tui/dashboard-dark.png" width="820" alt="The terminal app in its Light view: a gradient header bar, the answer and the end gate's pass banner, and one slim column with the run's steps, checks, files changed, budgets and guardrails">
+
+Three views; **F2** switches between them. **Light**, the default, puts the conversation beside
+one slim column: the run's steps (Plan · Work · Verify · Land), the checks, the files changed, the
+budgets. **Advanced** shows every panel. **Focus** shows the conversation alone.
+
+### The web board
+
+<img src="docs/img/board/sessions-dark.png" width="820" alt="The web board: a session's conversation as a timeline of steps beside its live run, under the brand's top bar">
+
+`mikata --web`, or `mikatad board --open`, opens the board on your machine. It shows every
+project you work in and their sessions. Start a session from the **Harness Builder**, where you
+choose what is switched on. Follow it live, answer its approvals, and read past runs.
+
+The board listens on your machine only. From another machine, forward the port over SSH
+(`ssh -L 7878:127.0.0.1:7878 <host>`).
+
+## Make it yours
+
+Every part of Mikata's loop is a **unit** you can switch on or off: memory, the end gate, the held
+"done" list, the reader, what-changed, the approval card, the secret files, and more. Switch them
+in the board's Harness Builder, with `/unit on|off <name>` in the terminal app, or under `[units]`
+in your config. A **profile** names a mix for a kind of work. A **plugin** adds a unit of your own.
+See [the architecture](docs/03-architecture.md) and [plugins](docs/experimental/plugins.md).
+
+## Read more
+
+| Page | What it tells you |
+|---|---|
+| [Overview](docs/01-overview.md) | what Mikata does with an ask, in one picture |
+| [The loop](docs/02-loop.md) | one turn, start to finish, and the end gate |
+| [Architecture](docs/03-architecture.md) | the parts, the terminal app, the board, the sandbox, configuration |
+| [The client protocol](docs/04-protocol.md) | how programs talk to Mikata |
+| [Consumption](docs/05-consumption.md) | how spending is budgeted and stopped |
+| [MCP](docs/06-mcp.md) | connecting MCP servers |
+| [Memory](docs/07-memory.md) | what Mikata remembers, and why |
+| [The bench](docs/bench.md) | every measurement, with its method |
+| [Roadmap](docs/roadmap.md) · [Lessons](docs/lessons.md) · [Releasing](docs/releasing.md) | what comes next, what we learned, how a version ships |
+| [The lab](docs/experimental/) | Mikata's past as Mnemorph: races, chains, collectives, kept and frozen |
+
+## Install, in detail
+
+**A given version, or another folder:** `sh install.sh --version 1.2.0 --dir ~/bin`.
 
 **By hand**, from [the releases](https://github.com/Kaginari/mikata/releases): download
-`mikata-<target>.tar.gz` and `SHA256SUMS`, check, unpack, and put the binaries side by side on
-PATH:
+`mikata-<target>.tar.gz` and `SHA256SUMS`, then:
 
 ```sh
 sha256sum -c --ignore-missing SHA256SUMS     # macOS: shasum -a 256 -c --ignore-missing SHA256SUMS
@@ -98,150 +162,48 @@ cp mikata-*/mikata mikata-*/mikatad mikata-*/mikata-guard ~/.local/bin/   # no g
 **From source**, in a checkout:
 
 ```sh
-cargo install --path crates/mikata-tui      # mikata, into ~/.cargo/bin
-cargo install --path crates/mikata-sandbox  # mikata-guard, beside it (Linux)
-pnpm install --frozen-lockfile && pnpm --filter @mikata/board build   # the board, built into…
-cargo install --path crates/mikatad         # mikatad: the server, the board and the admin commands
+pnpm install --frozen-lockfile && pnpm --filter @mikata/board build   # the web board first
+cargo install --path crates/mikata-tui       # mikata
+cargo install --path crates/mikatad          # mikatad
+cargo install --path crates/mikata-sandbox   # mikata-guard (Linux)
 ```
 
-Three binaries, one core:
+Three programs, one core:
 
-| Binary | For | Use it to |
-|---|---|---|
-| `mikata` | you, at a terminal, and your scripts | a session in the terminal app (`mikata`), one ask without it (`mikata run "<ask>"`), pick up a run that stopped (`mikata resume last`), check the setup (`mikata status`) |
-| `mikatad` | other programs, and the world's upkeep | serve the [client protocol](docs/04-protocol.md) to the TypeScript SDK, the web board on loopback (`mikatad board`), and the admin commands: `runs`, `memory`, `q`, `incident`, `housekeep` |
-| `mikata-guard` | Linux | the kernel guard every command runs through, found beside `mikata`; without it, on Linux, `mikata` runs no command and `mikata status` says so |
+| Program | What it is |
+|---|---|
+| `mikata` | the terminal app, and `mikata run` for scripts |
+| `mikatad` | the web board, the server for the TypeScript SDK, and housekeeping commands (`mikatad runs`, `mikatad memory`, …) |
+| `mikata-guard` | on Linux, the sandbox every command runs through; without it, Mikata runs no command |
 
-`mikatad` embeds the board as it finds it built in `packages/board/dist` when it is compiled;
-compiled without it, it serves a page saying so, and its API.
+**Keys.** `key_file = "~/.config/mikata/openrouter.key"` reads the key from a file when the variable
+is unset. The file must be yours, mode `600`, and outside every project. Providers, keys and
+spending caps are read only from your global config, never from a project's.
 
-**Coming from Mnemorph?** The first time `mikata` or `mikatad` runs, a world's `.mnemorph/`
-folder and the `mnemorph` folders under your config and state homes are moved to their Mikata
-names, and the move is said. The `MNEMORPH_*` environment variables are no longer read: use
-`MIKATA_*`.
-
-## Set a model
-
-Name a provider and a model once, for every world, in `~/.config/mikata/config.toml`
-(`$XDG_CONFIG_HOME/mikata/config.toml`). A world's `.mikata/config.local.toml` overrides it,
-except for providers, caps, MCP servers and anything that loosens the gate or the sandbox, which
-only this global file sets ([configuration](docs/03-architecture.md#configuration)):
-
-```toml
-[providers.openrouter]
-kind = "openai"
-base_url = "https://openrouter.ai/api"
-key_env = "OPENROUTER_API_KEY"     # the variable that holds the key (never write the key here)
-key_file = "~/.config/mikata/openrouter.key"  # used when the variable is unset; chmod 600
-
-[models]
-provider = "openrouter"
-default = "anthropic/claude-sonnet-5.5"
-```
-
-`key_file` is read only from this global file, never from a world's config. The file must be
-yours, mode `600`, and outside every world.
-
-**Give it your test command.** The end gate runs your project's verify line on every change.
-Until a world has one, nothing a session claims is grounded, and `mikatad memory status` suggests
-the line for your project (`cargo test --workspace`, `pytest`, `npm test`, …).
-
-**Say when it was wrong.** `mikatad memory wrong "<what still fails>"` keeps your words as a
-correction under that ask: the next session that meets it is told first. Say what must come out,
-as ``mikatad memory wrong "`total 1 2` must give `6`; it gives `3`"``, and the harness holds it:
-whenever that ask comes again the case is a line of its `Done when` list, and an answer that
-leaves it wrong does not land. `mikatad memory withdraw <note>` takes a correction back.
-Add `--check "<command>"` to name the command that shows your case: the harness then holds the
-line to what your command prints, and no command the model writes stands in for it. In a session,
-type `/wrong <what is wrong>` after an answer (with `--check <command>` the same way): it shows whether your words will be
-held or kept as advice, and under which ask, and keeps them only on `/keep` (`/drop` keeps
-nothing). `/withdraw` takes back the last one you kept.
-
-## Run it
-
-```sh
-export OPENROUTER_API_KEY=…         # or keep it in the key_file
-mikata                            # a session in this world, in the terminal app
-mikata --world ~/code/project     # …in another
-mikata status                     # the mode, the model, the key's origin, the sandbox, the config's holes
-mikata run "<ask>"                # one ask without the app: the answer on stdout
-echo "<ask>" | mikata run --json  # every event as a JSON line, then a result line
-mikata resume last                # pick up the newest run that stopped
-mikatad runs                      # the runs that may be resumed
-mikatad board                     # the web board on 127.0.0.1:7878: open the URL it prints
-mikata --web                      # the web board instead: started (or reused), opened
-```
-
-`mikata run` goes through the same session and end gate as the app, and exits 0 only when the
-answer landed; it denies every act that needs your approval unless you pass `--gate-tty`
-([`mikata run`](docs/03-architecture.md#mikata-run)). From a checkout, `cargo run -p mikata-tui --`
-runs the same binary.
-
-### The terminal app
-
-<img src="docs/img/tui/dashboard-dark.png" width="820" alt="The terminal app in its Light view: a gradient header bar, the answer and the end gate's pass banner, and one slim column with Run (Plan, Work, Verify, Land), Checks, Files changed, Budgets and Guardrails">
-
-Three views, **F2** (or `/view light|advanced|focus`) to switch. *Light*, the default: the
-conversation beside one slim column (the run's Plan · Work · Verify · Land, Done when, the
-checks, the files changed, the budgets). *Advanced*: every panel, a column each side. *Focus*: the
-conversation alone. A tool card is two rows until you open it (a click or Ctrl+T); Ctrl+O hides
-the panels ([the terminal app](docs/03-architecture.md#the-terminal-app)). `mikata --web` opens
-the web board instead: every workspace and its sessions on one platform.
-
-**Say what the result must be.** An ask with examples of the expected output passed twice as often
-on our bench as the same ask in prose: Mikata checks its work against what you wrote, so one
-example of what must change and one of what must not is worth more than a paragraph.
-
-### The board
-
-`mikatad board` prints `http://127.0.0.1:7878/#k=<key>`; the key works once, traded by the page for
-a session cookie. It listens on loopback only: from another machine, forward the same port
-(`ssh -L 7878:127.0.0.1:7878 <host>`), then open the printed URL. A second `mikatad board` prints
-the running board's URL, with a new key waiting. The board answers at `127.0.0.1`, `[::1]` and
-`localhost` and refuses every other host name, to block DNS rebinding. `mikatad board stop` stops
-it ([the board](docs/03-architecture.md#the-board)).
-
-It is every world on the machine in one page, and for each world a **Harness Builder**
-(`#/w/<world>/builder`): the session's conversation, its units switched on and off around the core,
-a run started with exactly that harness and followed live — its stages, its log, the end gate's
-word, its spend — and its approvals, with the terminal's protections. ⌘K (Ctrl+K) jumps anywhere;
-`?` lists every shortcut. It wears Mikata's design system: **Bio Digital** in the dark, **Bio
-Pearl** in the light — hot pink to amber for the brand, lime for what lives, connects and verifies.
-
-| | Dark | Light |
-|---|---|---|
-| Sessions | <img src="docs/img/board/sessions-dark.png" width="400" alt="The Sessions view, dark: the run's conversation with its tool cards and the end gate's pass, the workspace, status and usage on the left, the live run on the right"> | <img src="docs/img/board/sessions-light.png" width="400" alt="The Sessions view, light"> |
-| Harness builder | <img src="docs/img/board/builder-dark.png" width="400" alt="The Harness builder, dark: the units and plugins as cards wired to the Mikata core, native units in pink, a plugin in amber, one off and dashed; the run verified on the right"> | <img src="docs/img/board/builder-light.png" width="400" alt="The Harness builder, light"> |
-| Plugin inspector | <img src="docs/img/board/plugins-dark.png" width="400" alt="The plugin inspector, dark: every native unit and plugin with its kind, whether it is loaded or connected, and its id"> | <img src="docs/img/board/plugins-light.png" width="400" alt="The plugin inspector, light"> |
-| Approval | <img src="docs/img/board/approval-dark.png" width="400" alt="An approval over the dimmed page, dark: the act whole, its reason, the plan it binds to, the answers numbered"> | <img src="docs/img/board/approval-light.png" width="400" alt="An approval, light"> |
-| Profiles | <img src="docs/img/board/profiles-dark.png" width="400" alt="The Profiles view, dark: the build's profiles, each with its composition and Apply"> | <img src="docs/img/board/profiles-light.png" width="400" alt="The Profiles view, light"> |
+**Coming from Mnemorph?** The first run moves `.mnemorph/` folders and config to their Mikata
+names and says so. Use `MIKATA_*` environment variables instead of `MNEMORPH_*`.
 
 ## Build it
 
-| Tool | Version | Install |
-|---|---|---|
-| Rust | pinned in `rust-toolchain.toml` | [rustup](https://rustup.rs): the pin installs itself |
-| cargo-nextest, cargo-deny, cargo-llvm-cov | latest | prebuilt: [nexte.st](https://nexte.st), [cargo-deny releases](https://github.com/EmbarkStudios/cargo-deny/releases) |
-| just | latest | [just.systems](https://just.systems) |
-| actionlint | latest | [releases](https://github.com/rhysd/actionlint/releases) |
-| Node | 22 (`.nvmrc`) | your usual Node manager |
-| pnpm | pinned in `package.json` | `corepack enable` |
+You need Rust (pinned in `rust-toolchain.toml`), Node 22, pnpm (`corepack enable`), and
+[just](https://just.systems). For the full check, also cargo-nextest, cargo-deny,
+cargo-llvm-cov and actionlint.
 
 ```sh
 just setup     # install the TypeScript workspace
-just           # the full check: Rust, TypeScript, the layering, the book, the workflows
-just docs-dev  # read the book as a website while writing it
+just           # the full check: Rust, TypeScript, layering, the book, the workflows
+just docs-dev  # read the book as a website while you write it
 ```
 
-| Path | Holds |
+| Folder | Holds |
 |---|---|
-| `crates/` | the Rust core, one crate per concern, layered ([architecture](docs/03-architecture.md)) |
-| `packages/` | the TypeScript side: protocol, sdk, theme, board |
-| `docs/` | the book; `docs/experimental/` is the lab |
-| `site/` | the book as a website (VitePress) |
-| `assets/` | Mikata's logo and icons; the races' portraits and cards |
-| `.mikata/` | Mikata's own world: its law, journal and the lab's creature cards |
+| `crates/` | the Rust core, one crate per concern |
+| `packages/` | TypeScript: the protocol, the SDK, the theme, the board |
+| `docs/` | this book; `docs/experimental/` is the lab |
+| `site/` | the book as a website |
+| `assets/` | Mikata's logo and icons |
+| `.mikata/` | Mikata's own project memory and journal |
 | `tools/` | repository checks |
 
-What changed in each version: [the changelog](CHANGELOG.md). Mikata is MIT licensed
-([LICENSE](LICENSE)); what it bundles: [third-party notices](THIRD-PARTY-NOTICES.md).
+What changed in each version is in [the changelog](CHANGELOG.md). Mikata is MIT licensed
+([LICENSE](LICENSE)); what it bundles is in [third-party notices](THIRD-PARTY-NOTICES.md).

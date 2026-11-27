@@ -12,7 +12,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -21,14 +21,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -45,15 +45,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -62,7 +62,8 @@ config:
 flowchart TD
     subgraph MIKATA_BG[" "]
       direction TB
-      R("1.1.0<br/>what done means, held") --> N(["Now · 1.2.0<br/>a harness you compose"])
+      R("1.1.0<br/>what done means, held") --> R2("1.2.0<br/>a harness you compose")
+      R2 --> N(["Now, on main<br/>secret files · the platform"])
       N --> M("Next<br/>a memory that pays")
       M --> F("Then<br/>a fold for long runs")
       F --> S("Later<br/>the split, wider")
@@ -70,16 +71,16 @@ flowchart TD
       N -.-> L
     end
     classDef shipped fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
-    class R shipped
-    classDef now fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
+    class R,R2 shipped
+    classDef now fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
     class N now
     classDef next fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class M next
-    classDef later fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
+    classDef later fill:#59405d,stroke:#59405d,stroke-width:2px,color:#f5eff7
     class F,S later
     classDef lab fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
     class L lab
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 ## Now: 1.2.0, a harness you compose
@@ -105,6 +106,25 @@ reader that writes it; and the list of what changed when an answer lands
   the plan 17, a `todo` the body keeps when it wants 17, Maki 15; no plan the cheapest Mikata, at
   1.18 times Maki's dollars a pass. The plan and a lighter one stay a switch away; the todo,
   level, is not merged.
+
+## On main, for the next release
+
+- **Your secret files stay yours.** The `secrets` unit, on by default: `.env`, keys, kubeconfigs and
+  Terraform's state and variables are found as a session opens; the model sees their keys and
+  never a value, no tool writes or searches them, a command finds them empty unless you approved
+  it, and any value that reaches a result is struck out.
+- **Your approval is a unit too.** The `approval` unit, on by default, puts every act that leaves
+  your machine to you on a card. Only you can switch it off, and Mikata then says so wherever it
+  shows its guardrails.
+- **A session keeps its changes for its project,** in the project's local file and your own file
+  for that project, never in your global config.
+- **The board is the platform.** One frame for every page: each workspace with its sessions, the
+  Harness Builder that starts them, each session's conversation beside its live run, seven colour
+  palettes beside Mikata's own.
+- **The terminal app, redrawn:** three views (Light, Advanced, Focus), solid cards, the run's steps
+  as it goes, the files it changed, and the harness's own notes said plainly.
+- **A commit in the sandbox no longer reads as a failure** (git's background upkeep is off in a
+  body's commands).
 
 ## Next: asks without examples
 

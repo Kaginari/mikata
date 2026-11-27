@@ -112,6 +112,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- The board named a run by the memory the core quoted before the ask ("Recalled from memory (a
+  proposed note…"), in the rail, the Runs page and search; it names it by the human's words, from
+  the server and again in the board.
+- The board drew Mikata's spend in the lab's blue; it is Mikata's hot pink, as in every chart.
+- A commit in a body's sandbox printed `fatal: setsid failed` (git detaching its upkeep, which the
+  sandbox refuses) after a commit that landed, and the body read it as a failure. Git's automatic
+  upkeep is off in a body's commands; the human's own git keeps the repository.
 - The terminal app's Guardrails and a board session's read the `approval`, `secrets` and `gate`
   units: off, they say outward acts run without asking and that secret files are readable, never a
   tick.

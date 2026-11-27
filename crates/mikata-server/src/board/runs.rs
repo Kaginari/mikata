@@ -294,7 +294,8 @@ fn summary(dir: &Path, id: String, at: SystemTime, budget: &mut u64) -> BoardRun
         when: rfc3339(at),
         state: if live { RunState::Live } else { state },
         why: mikata_loop::wire::shown(&why),
-        ask: mikata_loop::wire::shown(&one_line(ask, ASK_CHARS)),
+        // The human's own words, not the memory the core quoted before them.
+        ask: mikata_loop::wire::shown(&one_line(mikata_loop::run::human_words(ask), ASK_CHARS)),
         turns: count(
             beats
                 .iter()

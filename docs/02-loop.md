@@ -8,7 +8,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -17,14 +17,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -41,23 +41,23 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
-flowchart LR
+flowchart TD
     subgraph MIKATA_BG[" "]
-      direction LR
+      direction TB
       P("perceive<br/>budget · clock · context") --> RC("recall<br/>memories · tool manifest")
       RC --> PL("plan<br/>one model call")
       PL --> A("act<br/>one tool call")
@@ -77,51 +77,44 @@ flowchart LR
     class DONE good
     classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
     class FAIL bad
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 ## In plain words
 
-A body runs the same six beats, over and over, until it has an answer:
+Mikata works in a loop of six beats, over and over, until it has an answer:
 
-1. **Perceive** — check the fuel gauge: how much budget, time and context is left. If it is
-   running out, save what matters and stop cleanly instead of crashing.
-2. **Recall** — pull in the few memories and tools that fit the question, as pointers, not
-   pasted text, always including one that disagrees if any does ([memory](07-memory.md)).
-3. **Plan** — ask the model what to do next.
-4. **Act** — run one tool the model asked for, after checking that the act is on the body's shelf
-   (light-coding's Mikata reads, writes and acts outside the machine) and, for a push, a publish or
-   any act a guard rule you set names, after asking you.
-5. **Verify** — did the tool work? A failure counts against the body; a command that ran and
-   answered "no" (a test that is red, a search that finds nothing) is a result, not a failure.
-6. **Record** — write what happened to the journal and the ledger.
+1. **Perceive.** Check the gauges: how much budget, time and context is left. When one runs low,
+   save what matters and stop cleanly rather than crash.
+2. **Recall.** Bring in the few memories and tools that fit the ask, as pointers rather than pasted
+   text, and always the one that disagrees, if any does ([memory](07-memory.md)).
+3. **Plan.** Ask the model what to do next.
+4. **Act.** Run the one tool the model asked for. An act that leaves your machine, such as a push
+   or a publish, waits for your approval first.
+5. **Verify.** Did the tool work? A command that ran and said "no", like a red test or an empty
+   search, is a result, not a failure.
+6. **Record.** Write what happened to the journal and the ledger.
 
-When the model stops calling tools and answers, the **gate** judges any files the body wrote.
-If it fails, the body gets one chance to fix it. Then it answers you.
+When the model stops calling tools and answers, the **end gate** judges every file that changed:
+your test command must pass, and no test may be deleted or skipped. If the gate refuses, Mikata
+gets one more try; a second refusal ends the run, and says why. Only a passing answer lands.
 
-The body does one more thing before it answers: it runs the list it wrote at the
-start, every output the ask states, and the tests for the files it changed. A difference or a red
-test means it is not done. The gate checks what the human pinned; the list checks what the ask
-said.
+**When your ask says what done means**, in lines of its own (`D1: … must give …`,
+`D2: … must stay as it is today`), the harness holds the work to them itself. Mikata hands in one
+command per line. For a line that must stay, the harness runs that command on your code before
+anything changes and keeps what it prints, so Mikata never gets to decide what "today" was. When the
+answer lands, every line runs again; one that does not hold sends the work back.
 
-When your ask says what done means in lines of its own (`D1: ... must give ...`, `D5: ... must
-stay as it is today`), or a reader you named wrote them for it, the harness holds the work to
-them itself. The body hands in one command a line. For a line that must stay, the harness runs
-it on the code as you gave it and keeps what it prints: the body is never the one who says what
-"today" is. When the answer lands every line is run again, and a line that changed fails the
-landing.
-
-And when the answer has landed, the harness does one thing for you: it runs the body's own last
-checks again, on the code as your ask found it and on the finished work, and shows you where they
-print differently. The body's checks hold the body's reading of your ask; you are the one who
-knows whether a line that changed should have.
+**When the answer has landed**, the harness does one more thing for you: it runs Mikata's last
+checks again, on your code as it was and as it is now, and shows you where they differ. Those checks
+are Mikata's reading of your ask; you are the one who knows whether a line that changed should
+have.
 
 ## Technical detail
 
-The loop is one function, and this chapter describes it as Mikata runs it and as we test it: one
-body, Mikata, with the whole repository as its soil (light-coding). The lab's chain and collective
-add rules of their own — races and their shelves, territory, commissions, courts and their heals —
-kept in [the lab in the code](experimental/the-lab-in-the-code.md).
+The loop is one function. This chapter describes it as Mikata runs it and as we test it: one agent,
+Mikata, over the whole repository (light-coding). The lab's chain and collective add rules of their
+own, kept in [the lab in the code](experimental/the-lab-in-the-code.md).
 
 ### One act, in order
 
@@ -131,7 +124,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -140,14 +133,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -164,15 +157,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -180,7 +173,7 @@ config:
 ---
 sequenceDiagram
     autonumber
-    box rgb(13, 11, 16)
+    box rgb(7, 5, 10)
       participant M as model
       participant L as loop
       participant C as classifier
@@ -188,7 +181,7 @@ sequenceDiagram
       participant H as you
       participant X as sandboxed tool
     end
-    rect rgb(13, 11, 16)
+    rect rgb(7, 5, 10)
       M->>L: tool_use(bash, "git push origin feat/x")
       L->>C: classify
       C-->>L: outward
@@ -199,16 +192,16 @@ sequenceDiagram
       else allowed
         L->>H: the act whole, and the plan it binds to
         H-->>L: yes
-        L->>X: run, secrets injected, outputs redacted
+        L->>X: run (secret values struck from its output)
         X-->>L: result
         L-->>M: tool_result
       end
     end
 ```
 
-The order is fixed and cheap-first: classify → permission rules → you, for an act that leaves the
-machine → run. A refusal never reaches the sandbox, and every refusal names the lawful route. (In
-the lab two more checks sit between: the body's race shelf and its territory.)
+The order is fixed, cheapest first: classify, then the permission rules, then you (for an act that
+leaves the machine), then run. A refusal never reaches the sandbox, and every refusal names the way
+that is allowed. The lab adds two more checks in between: the agent's race and its territory.
 
 ### Budgets are readings
 

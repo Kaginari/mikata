@@ -1025,7 +1025,16 @@ fn run(
         .env("TMPDIR", &tmp)
         // No terminal is the command's: a push with no login fails at once, never asks a username.
         .env("GIT_TERMINAL_PROMPT", "0")
-        .env("GH_PROMPT_DISABLED", "1");
+        .env("GH_PROMPT_DISABLED", "1")
+        // No upkeep of the repository behind a commit: git detaches it with setsid, which the
+        // sandbox refuses, and says `fatal: setsid failed` after a commit that landed — a body
+        // reads that as a failed commit. The human's own git keeps the repository. (The
+        // environment's own git config was dropped by `scrubbed_env`, so these are the only ones.)
+        .env("GIT_CONFIG_COUNT", "2")
+        .env("GIT_CONFIG_KEY_0", "maintenance.auto")
+        .env("GIT_CONFIG_VALUE_0", "false")
+        .env("GIT_CONFIG_KEY_1", "gc.auto")
+        .env("GIT_CONFIG_VALUE_1", "0");
     // The recheck is the last thing before the spawn: everything else is already prepared, so
     // the window in which the world can change unseen is the recheck's own reading of it.
     if let Some((approved, made)) = approved {

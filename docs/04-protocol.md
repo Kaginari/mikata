@@ -11,7 +11,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -20,14 +20,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -44,26 +44,26 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
     wrappingWidth: 360
 ---
 sequenceDiagram
-    box rgb(13, 11, 16)
+    box rgb(7, 5, 10)
       participant C as SDK client
       participant D as mikatad
     end
-    rect rgb(13, 11, 16)
+    rect rgb(7, 5, 10)
       rect rgba(2,132,199,0.10)
       C->>D: initialize {clientInfo}
       D-->>C: {protocol, version, world, model, provider, session, run, holes, budget, key, sandbox, mode, modeWhy, body, held, guardsOff}
@@ -88,17 +88,16 @@ sequenceDiagram
 
 ## In plain words
 
-`mikatad` exposes one JSON-RPC 2.0 API. The TypeScript SDK reaches it over stdio, the board over
-a loopback WebSocket. Types are defined in Rust and generated into TypeScript
-(`@mikata/protocol`), so the clients cannot drift. The terminal app, `mikata`, needs no wire:
-it hosts the session in its own process and draws the same events, made by the same function
-(`mikata_server::events`); its gate cards answer the same questions `gate/ask` carries, and
-`mikata run --json` prints those events as JSON lines.
+`mikatad` speaks one JSON-RPC 2.0 API. The TypeScript SDK reaches it over stdio, the board over a
+WebSocket on your machine. The types are defined once in Rust and generated into TypeScript
+(`@mikata/protocol`), so a client can never drift from the core. The terminal app, `mikata`, needs
+no wire at all: it runs the session in its own process and draws the same events, made by the same
+function (`mikata_server::events`). `mikata run --json` prints those events as JSON lines.
 
 A client opens a session, sends an ask, and reads the turn as a stream of events: text, tool
-calls, spend, the end gate's verdict. When the body wants to do something that needs you, the
-core asks the client (`gate/ask`) and waits; nothing that needs your word runs until a client
-says yes, and an unanswered ask is a no.
+calls, spend, the end gate's verdict. When Mikata wants to do something that needs you, the core
+asks the client (`gate/ask`) and waits. Nothing that needs your word runs until a client says yes,
+and an ask left unanswered is a no.
 
 ## Technical detail
 
