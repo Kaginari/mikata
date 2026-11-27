@@ -11,6 +11,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { journalOf } from '../src/data/bodiesFixtures.ts';
 import { FIXTURE_NOW, fixtureWorlds } from '../src/data/fixtures.ts';
+import { fixtureInsights } from '../src/data/insightsFixtures.ts';
 import { fixtureMemory } from '../src/data/knowledgeFixtures.ts';
 import { fixtureIntegrations, fixtureMetrics } from '../src/data/metricsFixtures.ts';
 import { askLine, Bridge, CHAT, LIVE, openChat, richTurn, runs } from './fake.ts';
@@ -44,6 +45,7 @@ async function routeAll(page: Page, worlds: unknown = fixtureWorlds) {
   await page.route('**/api/session', (r) => r.fulfill(json({ csrf: 'ab'.repeat(32) })));
   await page.route('**/api/sessions', (r) => r.fulfill(json({ sessions: [] })));
   await page.route('**/api/metrics?*', (r) => r.fulfill(json(fixtureMetrics)));
+  await page.route('**/api/insights?*', (r) => r.fulfill(json(fixtureInsights)));
   await page.route('**/api/integrations*', (r) => r.fulfill(json(fixtureIntegrations)));
   await page.route('**/api/w/**', (r) => {
     const url = new URL(r.request().url());

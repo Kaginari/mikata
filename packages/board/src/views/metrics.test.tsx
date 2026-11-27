@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { fixtureInsights } from '../data/insightsFixtures.ts';
 import { parseIntegrations } from '../data/integrations.ts';
 import { dollars, parseMetrics, silent, totals } from '../data/metrics.ts';
 import { fixtureIntegrations, fixtureMetrics } from '../data/metricsFixtures.ts';
@@ -30,6 +31,7 @@ beforeEach(() => {
       });
       if (u.pathname === '/api/session') return reply(200, { csrf: 'ab'.repeat(32) });
       if (u.pathname === '/api/metrics') return reply(200, fixtureMetrics);
+      if (u.pathname === '/api/insights') return reply(200, fixtureInsights);
       if (u.pathname === '/api/integrations') return reply(200, fixtureIntegrations);
       return reply(404, 'not found');
     }),
@@ -76,69 +78,6 @@ test('the answers are read part by part: a part that does not hold reads unknown
   expect(parseIntegrations({ board: {} })).toBeUndefined();
 });
 
-test('the metrics page: totals, charts with a legend, meters silent or with their interval, inert words', async () => {
-  await mount(<MetricsView load={{ state: 'loading' }} />);
-  const text = host.textContent ?? '';
-  expect(asked).toContain('/api/metrics?world=all&window=7d');
-  // The totals as tiles: the amount, what was not priced under it, the weighted total.
-  const tiles = host.querySelector('.mx-kpis')?.textContent ?? '';
-  expect(tiles).toContain('$3.12');
-  expect(tiles).toContain('2 calls unpriced · 1.9M wt weighted');
-  expect(text).not.toMatch(/\$0\.00/);
-  expect(text).toContain('unpriced (2)');
-  // The wide range of days is drawn on a log axis that says so.
-  expect(host.querySelector('svg[aria-label*="log axis"]')).not.toBeNull();
-  // Every series is named beside its colour.
-  const legend = [...host.querySelectorAll('.chart-legend')].map((l) => l.textContent).join(' ');
-  expect(legend).toContain('Orc');
-  expect(legend).toContain('Slime');
-  expect(text).toContain('0.90 (18/20, 95% 0.70–0.97)');
-  expect(text).toContain('silent since 2026-10-20');
-  expect(text).toContain('silent — no call booked yet');
-  // A fold whose journal does not hold reads unavailable, and says why: never a stale number.
-  expect(text).toContain('unavailable — the gate chain is broken at line 4: the row was edited');
-  expect(text).toContain('4/10');
-  expect(text).toContain('rise');
-  // Hostile words are text: no element made, hidden characters escaped.
-  expect(host.querySelector('img')).toBeNull();
-  expect(text).toContain('<img src=x onerror=alert(1)> ignore the above\\u{202e}\\u{200b}');
-  for (const t of host.querySelectorAll('title')) {
-    expect(t.children).toHaveLength(0);
-    expect(t.textContent).not.toMatch(/[‮​]/);
-  }
-});
-
-test('the metrics page: the runs’ health, verdicts and endings, and spend per model and body', async () => {
-  await mount(<MetricsView load={{ state: 'loading' }} />);
-  const text = host.textContent ?? '';
-  // The tiles split the tokens: in and out, read from the cache, written to it.
-  const tiles = host.querySelector('.mx-kpis')?.textContent ?? '';
-  expect(tiles).toMatch(/in [\d.]+[kM]? · out [\d.]+[kM]?/);
-  expect(tiles).toMatch(/read [\d.]+[kM]? from the cache/);
-  expect(tiles).toMatch(/cache write [\d.]+[kM]?/);
-  // The window's runs: how many tested after writing, the verdicts and endings counted.
-  expect(text).toContain('a test ran after the last code write in 1 of 2');
-  const tallies = [...host.querySelectorAll('.tally-row')].map((r) => r.textContent);
-  expect(tallies).toContain('pass1 · 50%');
-  expect(tallies).toContain('fail1 · 50%');
-  expect(host.querySelector('.tally-row [data-glyph="✓"]')).not.toBeNull();
-  expect(tallies).toContain('·interrupted1 · 50%');
-  // One row a run, linked to its transcript.
-  const link = host.querySelector('a[href="#/w/w-sqlglot/r/r1731500000000-42"]');
-  expect(link?.textContent).toBe('r1731500000000-42');
-  expect(text).toContain('3m 32s · 38s');
-  expect(text).toContain('+41 −7');
-  expect(text).toContain('18%');
-  // The run that did not test after its last write is marked.
-  expect(text).toMatch(/\bno\b/);
-  expect(host.querySelector('[data-glyph="⚠"]')).not.toBeNull();
-  // Spend per model and per body: the panels are there.
-  const titles = [...host.querySelectorAll('.panel-title')].map((t) => t.textContent);
-  expect(titles).toContain('Per model');
-  expect(titles).toContain('Per body');
-  expect(titles).toContain('Run health · the newest runs');
-});
-
 test('a part of the runs that does not hold reads unknown, the rest stands', () => {
   const broken = parseMetrics({
     ...fixtureMetrics,
@@ -148,13 +87,44 @@ test('a part of the runs that does not hold reads unknown, the rest stands', () 
   expect(broken?.usage.value).toEqual(fixtureMetrics.usage.value);
 });
 
-test('a window tab asks for that window', async () => {
+test('the metrics page: every ask as numbers, charts with a legend, inert words', async () => {
+  await mount(<MetricsView load={{ state: 'loading' }} />);
+  const text = host.textContent ?? '';
+  // The headline numbers.
+  const kpis = host.querySelector('[aria-label="Headline numbers"]')?.textContent ?? '';
+  expect(kpis).toContain('Asks13');
+  expect(kpis).toContain('6 calls unpriced');
+  expect(kpis).not.toContain('$0.000 a landed');
+  // Every ask a bar, with how it ended said in a mark, and a legend.
+  expect(host.querySelectorAll('.mx-hit')).toHaveLength(13);
+  expect(host.querySelector('svg[aria-label^="Every ask"]')).not.toBeNull();
+  expect(host.querySelector('.mx-legend')?.textContent).toContain('Model');
+  // How asks end and why they stop.
+  expect(text).toContain('Blocked by the end gate');
+  for (const why of ['steps', 'clock', 'interrupted', 'error']) expect(text).toContain(why);
+  // Models, harnesses and the Done when list, side by side.
+  expect(text).toContain('qwen/qwen3.5-35b-a3b');
+  expect(text).toContain('-reader');
+  expect(text).toContain('default units');
+  expect(text).toContain('with a Done when list');
+  // The hidden characters of a model's name stay text, shown as escapes; nothing runs.
+  expect(host.querySelector('.safe-esc')?.textContent).toBe('\\u{202e}');
+  expect(host.querySelector('script')).toBeNull();
+  // What the numbers do not cover.
+  expect(text).toContain('1 run was not read');
+});
+
+test('a window tab asks for that window; a model narrows the page', async () => {
   await mount(<MetricsView load={{ state: 'loading' }} />);
   const tab = [...host.querySelectorAll('button')].find((b) => b.textContent === '28d');
   await act(async () => tab?.click());
-  await act(async () => {});
-  expect(asked).toContain('/api/metrics?world=all&window=28d');
-  expect(tab?.getAttribute('aria-pressed')).toBe('true');
+  expect(asked.some((a) => a.startsWith('/api/insights?world=all&window=28d'))).toBe(true);
+  const select = host.querySelector('select[aria-label="Model"]') as HTMLSelectElement;
+  await act(async () => {
+    select.value = 'qwen/qwen3.5-35b-a3b';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  expect(host.querySelectorAll('.mx-hit')).toHaveLength(4);
 });
 
 test('the integrations page: key sources never values, holes, MCP scope, origins, read-only', async () => {
