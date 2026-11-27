@@ -572,6 +572,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 28px;
+  padding: 4px 2px;
   margin: 6px 0 0 10px;
   color: var(--mn-holo);
   font-size: 13px;

@@ -304,7 +304,11 @@ test('the metrics page says its totals, draws each chart with a legend, and keep
   page,
 }) => {
   await open(page, '#/metrics');
-  await expect(page.locator('.metrics-total')).toContainText('$3.12 (2 unpriced) · 1.9M wt');
+  const totals = page.locator('.mx-kpis');
+  await expect(totals).toContainText('$3.12');
+  await expect(totals).toContainText('2 calls unpriced');
+  await expect(totals).toContainText('1.9M wt weighted');
+  await expect(totals).toContainText('Cache hit');
   await expect(page.locator('svg[aria-label*="log axis"]')).toBeVisible();
   await expect(page.locator('.chart-log')).toHaveText('log axis');
   await expect(page.getByText('silent since 2026-10-20')).toBeVisible();

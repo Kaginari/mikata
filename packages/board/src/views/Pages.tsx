@@ -1,5 +1,6 @@
 /** The board-wide pages, and the page for an address the board does not have. */
 import type { BoardMissing } from '@mikata/protocol';
+import { Settings } from 'lucide-react';
 import type { Load } from '../data/worlds.ts';
 import { Safe } from '../safe/Safe.tsx';
 import {
@@ -12,6 +13,7 @@ import {
 } from '../theme.ts';
 import { shellWord, since } from '../time.ts';
 import { Empty } from '../ui/Empty.tsx';
+import { Icon } from '../ui/Icon.tsx';
 
 export function SettingsView({
   theme,
@@ -26,9 +28,18 @@ export function SettingsView({
 }) {
   const mode = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
   return (
-    <div className="page">
-      <header className="page-head">
-        <h1 className="page-title">Settings</h1>
+    <div className="pg">
+      <header className="pg-head">
+        <span className="pg-icon" aria-hidden="true">
+          <Icon icon={Settings} />
+        </span>
+        <div>
+          <p className="ss-eyebrow">
+            Board <span>/ settings</span>
+          </p>
+          <h1>Settings</h1>
+          <p className="pg-sub">The board's look, kept for this browser.</p>
+        </div>
       </header>
       <section className="setting">
         <h2 className="setting-title" id="setting-theme">

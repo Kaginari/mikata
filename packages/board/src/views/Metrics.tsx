@@ -1,11 +1,20 @@
 /**
- * Metrics: what the usage ledgers spent over a window — the totals line, spend per day by race,
+ * Metrics: what the usage ledgers spent over a window — the totals as tiles, spend per day by race,
  * the cache hit rate, the burn — beside the race meters with their count and interval, the Dark
  * Elf's scores and the bench. Unpriced never reads $0; a silent meter reads "silent since …", an unavailable one says why;
  * every word a world wrote goes through `<Safe>`.
  */
 import './metrics.css';
-import type { BoardMetrics, MetricsCreature, Named, Sourced, Tally } from '@mikata/protocol';
+import type { BoardMetrics, MetricsCreature, Named, Sourced, Tally, Usage } from '@mikata/protocol';
+import {
+  Activity,
+  ChartColumnIncreasing,
+  Coins,
+  Cpu,
+  Database,
+  Flame,
+  type LucideIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
   dollars,
@@ -13,7 +22,6 @@ import {
   pct,
   silent,
   tokens,
-  totals,
   useMetrics,
   WINDOWS,
   type Window,
@@ -22,10 +30,46 @@ import {
 import type { Load } from '../data/worlds.ts';
 import { format } from '../router.ts';
 import { Safe } from '../safe/Safe.tsx';
+import { shown } from '../safe/shown.ts';
 import { Legend, ShareLine, Sparkline, StackedBars, Whisker } from '../ui/Charts.tsx';
 import { Empty } from '../ui/Empty.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Mark, type Tone } from '../ui/Mark.tsx';
 import { rate, Unknown } from './facts.tsx';
+
+/** The window's numbers as tiles: what was spent, the tokens it took, the calls, the cache's
+ * share and the burn — each with what it is made of, in words. */
+function Kpis({ u, window }: { u: Usage; window: string }) {
+  const t = u.total;
+  const tiles: [LucideIcon, string, string, string][] = [
+    [
+      Coins,
+      'Spent',
+      // The amount alone, large; what was not priced is said under it, never read as $0.
+      t.usd === null ? dollars(null, t.unpriced) : dollars(t.usd, 0),
+      `${t.unpriced > 0 ? `${t.unpriced} calls unpriced · ` : ''}${wt(t.wt)} weighted · ${window}`,
+    ],
+    [Cpu, 'Tokens', tokens(t.input + t.output), `in ${tokens(t.input)} · out ${tokens(t.output)}`],
+    [Activity, 'Calls', String(t.calls), `cache write ${tokens(t.cacheWrite)}`],
+    [Database, 'Cache hit', pct(t.cacheHit), `read ${tokens(t.cacheRead)} from the cache`],
+    [Flame, 'Burn', `${wt(Math.round(u.burnPerMinute))}/min`, 'over the last five minutes'],
+  ];
+  return (
+    <dl className="mx-kpis" aria-label="Totals">
+      {tiles.map(([icon, label, value, sub], i) => (
+        <div key={label} style={{ '--i': i } as React.CSSProperties}>
+          <dt>
+            <Icon icon={icon} /> {label}
+          </dt>
+          <dd>
+            {value}
+            <small>{sub}</small>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 function Source({ s }: { s: Sourced<unknown> }) {
   return (
@@ -93,6 +137,7 @@ function Charts({ m }: { m: BoardMetrics }) {
             days={days}
             label="weighted tokens per day, stacked by who spent them"
             value={wt}
+            width={760}
           />
         )}
       </Panel>
@@ -608,28 +653,40 @@ export function MetricsView({ load }: { load: Load }) {
   const worlds = load.state === 'ready' ? load.data.worlds : [];
   const names = new Map(worlds.map((w) => [w.id, w.name]));
   return (
-    <div className="page">
-      <header className="page-head">
-        <h1 className="page-title">Metrics</h1>
+    <div className="pg metrics-pg">
+      <header className="pg-head">
+        <span className="pg-icon" aria-hidden="true">
+          <Icon icon={ChartColumnIncreasing} />
+        </span>
+        <div>
+          <p className="ss-eyebrow">
+            Board <span>/ metrics</span>
+          </p>
+          <h1>Metrics</h1>
+          <p className="pg-sub">
+            What the harness spent, how much the cache saved, and how the runs ended.
+          </p>
+        </div>
         <div className="metrics-filters">
-          <label className="select">
-            <span className="visually-hidden">World</span>
-            <select value={world} onChange={(e) => setWorld(e.target.value)}>
-              <option value="all">every world</option>
-              {worlds.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <fieldset className="tabs">
+          <select
+            className="pf-select"
+            aria-label="Workspace"
+            value={world}
+            onChange={(e) => setWorld(e.target.value)}
+          >
+            <option value="all">Every workspace</option>
+            {worlds.map((w) => (
+              <option key={w.id} value={w.id}>
+                {shown(w.name)}
+              </option>
+            ))}
+          </select>
+          <fieldset className="mx-seg">
             <legend className="visually-hidden">Window</legend>
             {WINDOWS.map((w) => (
               <button
                 key={w}
                 type="button"
-                className="tab"
                 aria-pressed={window === w}
                 onClick={() => setWindow(w)}
               >
@@ -653,20 +710,13 @@ export function MetricsView({ load }: { load: Load }) {
       )}
       {m.state === 'ready' && (
         <>
-          <p className="metrics-total mono">
-            <span className="visually-hidden">Totals: </span>
-            {m.data.usage.value ? (
-              <>
-                {totals(m.data.usage.value.total)} · {m.data.usage.value.total.calls} calls · in{' '}
-                {tokens(m.data.usage.value.total.input)} · out{' '}
-                {tokens(m.data.usage.value.total.output)} · cache read{' '}
-                {tokens(m.data.usage.value.total.cacheRead)} · write{' '}
-                {tokens(m.data.usage.value.total.cacheWrite)} · {m.data.window}
-              </>
-            ) : (
+          {m.data.usage.value ? (
+            <Kpis u={m.data.usage.value} window={m.data.window} />
+          ) : (
+            <p className="mx-unknown">
               <Unknown why={m.data.usage.why} />
-            )}
-          </p>
+            </p>
+          )}
           <Charts m={m.data} />
           <div className="panels metrics-tables">
             <RunsSummary m={m.data} />
