@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-27
+
 ### Added
 
 - **A session keeps its changes for its world, never in the global file.** Running Mikata in a
@@ -1085,7 +1087,8 @@ collective-coding are kept as the lab, usable and frozen.
 - The canvases: each page's sketches drawn by tldraw's Mermaid converter as `.tldr` documents and
   light and dark SVGs in the pages, every canvas checked for script and outside links [#311].
 
-[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.2.0...main
+[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.3.0...main
+[1.3.0]: https://github.com/Kaginari/mikata/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Kaginari/mikata/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Kaginari/mikata/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Kaginari/mikata/releases/tag/v1.0.0
