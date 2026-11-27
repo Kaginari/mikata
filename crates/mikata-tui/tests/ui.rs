@@ -401,7 +401,7 @@ fn the_light_theme_paints_a_light_page() {
     let buf = draw(&mut m, 80, 24);
     // The page under the header bar, and the Agent loop panel's face.
     assert_eq!(buf[(1, 0)].bg, rgb(LIGHT.bg));
-    assert_eq!(buf[(2, 2)].bg, rgb(LIGHT.panel));
+    assert_eq!(buf[(78, 2)].bg, rgb(LIGHT.panel));
     let (x, y) = find(&buf, "hello").unwrap_or_else(|| panic!("{}", screen(&buf)));
     assert_eq!(buf[(x, y)].fg, rgb(LIGHT.text));
     let (x, y) = find(&buf, "def").unwrap();

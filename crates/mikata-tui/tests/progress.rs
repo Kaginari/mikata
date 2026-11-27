@@ -173,22 +173,23 @@ fn the_ask_is_a_raised_panel_with_room_and_a_footer() {
         .iter()
         .position(|l| l.contains("ask, or /help"))
         .expect("the prompt");
-    // A card, as a sent line is: a rounded border, no label drawn on it.
+    // A solid card, as a sent line is: its lip, its bar, no label drawn on it.
     assert!(!scr.contains("╭─ ASK"), "{scr}");
-    assert!(rows[at].contains("┃ │ › "), "{}", rows[at]);
-    assert!(rows[at - 1].contains("┃ ╭────"), "its top edge:\n{scr}");
+    assert!(rows[at].contains("┃ ▌ › "), "{}", rows[at]);
+    assert!(rows[at - 1].contains("┃ ▄▄▄▄"), "its lip:\n{scr}");
     // Room to write: two more face rows, then the footer under a rule.
     for r in &rows[at + 1..at + 3] {
-        assert!(
-            r.starts_with("┃ │ ") && r.contains(" │ "),
-            "a face row: {r}"
-        );
+        assert!(r.starts_with("┃ ▌ "), "a face row: {r}");
     }
     assert!(rows[at + 3].contains("────"), "the rule: {}", rows[at + 3]);
     let foot = rows[at + 4];
     assert!(foot.contains("◆ mikata · light-coding"), "{foot}");
     assert!(foot.contains("enter send · alt+enter line"), "{foot}");
-    assert!(rows[at + 5].contains("┃ ╰────"), "its bottom edge:\n{scr}");
+    // No bottom edge: the card ends where the panel does.
+    assert!(
+        rows[at + 5].contains("┗━━━━"),
+        "the panel's edge under it:\n{scr}"
+    );
     // Busy, the footer says where a line goes; with an approval up, what comes first.
     send(&mut m, "fix it");
     let scr = screen(&mut m, 120, 40);
