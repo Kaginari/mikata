@@ -24,6 +24,7 @@ pub mod facts;
 pub mod guard;
 pub mod harness;
 pub mod health;
+pub mod insights;
 pub mod instance;
 pub mod integrations;
 pub mod journal;
@@ -468,6 +469,7 @@ impl Board {
             .route("/api/w/{world}/timeline", get(knowledge::get_timeline))
             .route("/api/w/{world}/journal", get(knowledge::get_journal))
             .route("/api/metrics", get(metrics_of))
+            .route("/api/insights", get(insights_of))
             .route("/api/integrations", get(integrations_of))
             .route("/ws/board", get(watch::socket))
             .route(
@@ -825,6 +827,32 @@ impl Board {
         Some(metrics::metrics(world, &of, window, now, bench))
     }
 
+    /// The insights over `window` of the listed world `world` or of `all`; `None` when no listed
+    /// world has the id.
+    #[must_use]
+    pub fn insights(
+        &self,
+        world: &str,
+        window: mikata_loop::world::spend::Window,
+        now: mikata_loop::world::ledger::Timestamp,
+    ) -> Option<insights::BoardInsights> {
+        let all = self.worlds().worlds;
+        let of: Vec<BoardWorld> = if world == "all" {
+            all
+        } else {
+            vec![all.into_iter().find(|w| w.id == world)?]
+        };
+        let present: Vec<(BoardWorld, std::path::PathBuf)> = of
+            .into_iter()
+            .filter(|w| w.state == WorldState::Present)
+            .map(|w| {
+                let p = std::path::PathBuf::from(&w.path);
+                (w, p)
+            })
+            .collect();
+        Some(insights::insights(world, &present, window, now))
+    }
+
     /// The integrations, of the listed world `world`'s files over the global one, or of the global
     /// file alone; `None` when no listed, present world has the id.
     #[must_use]
@@ -1053,6 +1081,22 @@ async fn metrics_of(State(board): State<Arc<Board>>, uri: Uri) -> Response {
     let now = mikata_loop::world::ledger::Timestamp::now();
     match tokio::task::spawn_blocking(move || board.metrics(&world, window, now)).await {
         Ok(Some(m)) => withheld(&m),
+        Ok(None) => refuse(StatusCode::NOT_FOUND, "no listed world has this id"),
+        Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
+    }
+}
+
+/// `GET /api/insights?world=<id|all>&window=7d|28d|all`: [`insights::BoardInsights`]; `all`
+/// and `7d` unless asked.
+async fn insights_of(State(board): State<Arc<Board>>, uri: Uri) -> Response {
+    use mikata_loop::world::spend::Window;
+    let world = query(&uri, "world").unwrap_or_else(|| "all".to_owned());
+    let Some(window) = Window::parse(query(&uri, "window").as_deref().unwrap_or("7d")) else {
+        return refuse(StatusCode::BAD_REQUEST, "`window` is 7d, 28d or all");
+    };
+    let now = mikata_loop::world::ledger::Timestamp::now();
+    match tokio::task::spawn_blocking(move || board.insights(&world, window, now)).await {
+        Ok(Some(i)) => withheld(&i),
         Ok(None) => refuse(StatusCode::NOT_FOUND, "no listed world has this id"),
         Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }
