@@ -66,6 +66,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **The Live run says when the end gate checks.** The board looked for the model's stop reason
+  as `end_turn`, but the core sends it by name (`EndTurn`): *Checking* never showed, and Verify
+  lit only once the verdict came. It now reads the core's word, and a provider's own.
+
 - **A card in the terminal app no longer has a square on its first line.** The lip above each
   card drew its first cell in the bar's colour, a whole cell wide over a half-cell bar.
 

@@ -82,7 +82,7 @@ function run(b: Bridge, text: string) {
     occupancy: 18_400,
     stressLine: 128_000,
   });
-  b.emit('assistant', { text: 'Parsed 1h30m as 90 minutes; "90" is unchanged.', stop: 'end_turn' });
+  b.emit('assistant', { text: 'Parsed 1h30m as 90 minutes; "90" is unchanged.', stop: 'EndTurn' });
   b.emit('gateVerdict', {
     passed: true,
     verdict: 'PASS',

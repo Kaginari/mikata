@@ -160,7 +160,7 @@ test('hostile text from a model or a tool stays text', async ({ page }) => {
   b.emit('turnStarted', { text: evil });
   b.emit('assistant', {
     text: `${evil}\n\n[click](javascript:window.__pwned=3) [data](data:text/html,<b>x</b>) ![beacon](https://evil.example/b.png) <a href="javascript:window.__pwned=4">a</a>\n\n\`\`\`html\n<script>window.__pwned=5</script>\n\`\`\``,
-    stop: 'end_turn',
+    stop: 'EndTurn',
   });
   b.emit('toolCall', { id: 't1', name: 'bash', input: { command: '<b onmouseover=x>ls</b>' } });
   b.emit('toolResult', {
@@ -192,7 +192,7 @@ test('hostile text from a model or a tool stays text', async ({ page }) => {
 test('a dropped socket reconnects and replays, and nothing shows twice', async ({ page }) => {
   const b = new Bridge();
   b.emit('turnStarted', { text: 'first' });
-  b.emit('assistant', { text: 'one', stop: 'end_turn' });
+  b.emit('assistant', { text: 'one', stop: 'EndTurn' });
   b.emit('turnEnded', { ending: 'answered' });
   await openChat(page, b);
   const asks = page.locator('.ss-msg-user');
@@ -201,7 +201,7 @@ test('a dropped socket reconnects and replays, and nothing shows twice', async (
   for (const s of b.sockets) await s.close({ code: 4000, reason: 'drop' });
   b.sockets = [];
   b.emit('turnStarted', { text: 'second' });
-  b.emit('assistant', { text: 'two', stop: 'end_turn' });
+  b.emit('assistant', { text: 'two', stop: 'EndTurn' });
   b.emit('turnEnded', { ending: 'answered' });
   await expect(asks).toHaveCount(2);
   const since = b.sent.filter((m) => m.method === 'session/events').map((m) => m.params?.since);
@@ -303,7 +303,7 @@ test('a past run reads from its journal, read-only, and resumes', async ({ page 
       {
         jsonrpc: '2.0',
         method: 'event/assistant',
-        params: { session: '', run: PAST, body: '', seq: 2, text: 'Half done.', stop: 'end_turn' },
+        params: { session: '', run: PAST, body: '', seq: 2, text: 'Half done.', stop: 'EndTurn' },
       },
       {
         jsonrpc: '2.0',
@@ -353,7 +353,7 @@ test('a scroll up is kept when a redraw comes before its scroll event', async ({
   const b = new Bridge();
   for (let i = 0; i < 200; i++) {
     b.emit('turnStarted', { text: `question ${i}` });
-    b.emit('assistant', { text: `Answer ${i}: a few words of prose`, stop: 'end_turn' });
+    b.emit('assistant', { text: `Answer ${i}: a few words of prose`, stop: 'EndTurn' });
     b.emit('turnEnded', { ending: 'answered' });
   }
   await openPast(page, b);
@@ -395,7 +395,7 @@ test('2,000 messages scroll in a window, smoothly', async ({ page }, info) => {
     b.emit('turnStarted', { text: `question ${i}` });
     b.emit('assistant', {
       text: `Answer ${i}: ${'a few words of prose to wrap '.repeat((i % 5) + 1)}`,
-      stop: 'end_turn',
+      stop: 'EndTurn',
     });
     b.emit('turnEnded', { ending: 'answered' });
   }
@@ -445,7 +445,7 @@ test('a long live session draws its newest steps, scrolls smoothly and keeps up'
     b.emit('toolResult', { id: `c${i}`, content: `ok ${i}`, isError: false, cut: 0 });
     b.emit('assistant', {
       text: `Answer ${i}: ${'a few words '.repeat((i % 5) + 1)}`,
-      stop: 'end_turn',
+      stop: 'EndTurn',
     });
     b.emit('turnEnded', { ending: 'answered' });
   }
@@ -497,7 +497,7 @@ test('a long live session draws its newest steps, scrolls smoothly and keeps up'
     });
   });
   b.emit('turnStarted', { text: 'one more' });
-  b.emit('assistant', { text: 'Answer at the end', stop: 'end_turn' });
+  b.emit('assistant', { text: 'Answer at the end', stop: 'EndTurn' });
   const took = await page.evaluate(() => (window as { __landed?: Promise<number> }).__landed);
   expect(took).toBeLessThan(500);
 });
@@ -505,7 +505,7 @@ test('a long live session draws its newest steps, scrolls smoothly and keeps up'
 /** A turn that landed, followed by what changed: `last` is its text's last line. */
 function landedWithChanges(b: Bridge, last: string) {
   b.emit('turnStarted', { text: 'keep the one-string form of a fractional interval' });
-  b.emit('assistant', { text: 'Fixed.', stop: 'end_turn' });
+  b.emit('assistant', { text: 'Fixed.', stop: 'EndTurn' });
   b.emit('gateVerdict', {
     passed: true,
     verdict: 'PASS',

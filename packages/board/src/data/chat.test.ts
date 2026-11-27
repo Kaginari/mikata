@@ -1,6 +1,6 @@
 import type { Arrived } from '@mikata/protocol';
 import { describe, expect, it } from 'vitest';
-import { Chat, groupCounts, humanWords, summary, THE_ASK } from './chat.ts';
+import { Chat, endsTurn, groupCounts, humanWords, summary, THE_ASK } from './chat.ts';
 import { parseRuns } from './chats.ts';
 
 let seq = 0;
@@ -205,4 +205,30 @@ it("a run's title is the human's words, not the memory quoted before them", () =
     more: 0,
   });
   expect(runs[0]?.ask).toBe('make total skip blanks');
+});
+
+describe('a turn the model ended with an answer', () => {
+  it('reads the stop reason as the core writes it, and as a provider says it', () => {
+    // The core journals and sends `mikata_provider::StopReason` by name.
+    expect(endsTurn('EndTurn')).toBe(true);
+    expect(endsTurn('StopSequence')).toBe(true);
+    expect(endsTurn('ToolUse')).toBe(false);
+    expect(endsTurn('MaxTokens')).toBe(false);
+    expect(endsTurn('PauseTurn')).toBe(false);
+    // A provider's own word, passed through.
+    expect(endsTurn('end_turn')).toBe(true);
+    expect(endsTurn('stop')).toBe(true);
+    expect(endsTurn('tool_calls')).toBe(false);
+  });
+
+  it('marks the view answered until the next call or ask', () => {
+    const chat = new Chat('summoner');
+    chat.fold(ev('turnStarted', { text: 'go' }));
+    chat.fold(ev('assistant', { text: 'Let me look.', stop: 'ToolUse' }));
+    expect(chat.view().answered).toBe(false);
+    chat.fold(ev('assistant', { text: 'Done.', stop: 'EndTurn' }));
+    expect(chat.view().answered).toBe(true);
+    chat.fold(ev('turnStarted', { text: 'next' }));
+    expect(chat.view().answered).toBe(false);
+  });
 });
