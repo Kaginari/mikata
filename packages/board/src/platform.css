@@ -277,7 +277,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 }
 .pf-icon:disabled {
   opacity: 0.5;
-  cursor: default;
+  cursor: not-allowed;
 }
 .pf-menu {
   display: none;
@@ -315,7 +315,7 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 }
 .pf-primary:disabled {
   opacity: 0.55;
-  cursor: default;
+  cursor: not-allowed;
 }
 .pf-page .pf-primary {
   border: 0;
@@ -1521,33 +1521,13 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
 
 /* the Builder's way to a new session, beside its profile */
 .bapp .bapp-go,
-.su .bapp-go {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: 12px;
-  padding: 8px 14px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--mn-brand-surface) var(--mn-hot);
-  color: var(--mn-on-brand);
-  font: 700 14px var(--mn-font-ui);
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 0 8px 22px -10px var(--mn-hot);
-  transition:
-    transform 260ms var(--pf-spring),
-    box-shadow var(--mn-fast) var(--mn-ease);
-}
-.bapp .bapp-go:hover:not(:disabled),
-.su .bapp-go:hover:not(:disabled) {
+.bapp .bapp-go:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 12px 28px -8px var(--mn-hot);
 }
-.bapp .bapp-go:disabled,
-.su .bapp-go:disabled {
+.bapp .bapp-go:disabled {
   opacity: 0.55;
-  cursor: default;
+  cursor: not-allowed;
 }
 
 /* no session yet: one card pointing at the Builder */
@@ -1749,10 +1729,6 @@ a.pf-mini {
   border: 1px solid var(--mn-line-strong);
   color: var(--mn-text-muted);
 }
-.su-list li[data-changed="true"] {
-  border-color: var(--mn-gold);
-  box-shadow: inset 3px 0 0 var(--mn-gold);
-}
 /* the switch, plain to read: off a grey track and its knob left; on lime, its knob right */
 .su .bapp-switch {
   position: relative;
@@ -1791,7 +1767,7 @@ a.pf-mini {
 }
 .su .bapp-switch:disabled {
   opacity: 0.5;
-  cursor: default;
+  cursor: not-allowed;
 }
 .su .bapp-switch:focus-visible {
   outline: 2px solid var(--mn-holo);
@@ -1807,29 +1783,19 @@ a.pf-mini {
 .su-state[data-on="true"] {
   color: var(--mn-success-text);
 }
-.su-changed {
-  flex: none;
-  padding: 1px 7px;
-  border: 1px solid var(--mn-gold);
-  border-radius: 999px;
-  color: var(--mn-gold);
-  font: 600 10px var(--mn-font-mono);
-}
-.su-foot {
-  display: flex;
+.su-fixed {
+  display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--mn-line);
-}
-.su-saved {
-  flex: 1;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--mn-line-strong);
+  border-radius: 999px;
   color: var(--mn-text-muted);
-  font-size: 13px;
+  font: 600 10px var(--mn-font-mono);
 }
-.su .bapp-go {
-  margin-left: 0;
+.su-list li[data-fixed="true"] {
+  background: color-mix(in srgb, var(--mn-panel-raised) 60%, var(--mn-panel));
 }
 .su-refused {
   margin: 0;

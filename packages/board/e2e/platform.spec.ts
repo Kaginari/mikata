@@ -17,7 +17,7 @@ const units = {
       kind: 'native',
       version: '1',
       on: id !== 'hold',
-      frame: false,
+      frame: id === 'plan',
       tightens: false,
     }),
   ),
@@ -116,7 +116,7 @@ test('a guard switched off during a session is said at once, and its return too'
   await expect(chips.locator('li[data-status="alarm"]')).toHaveCount(0);
 });
 
-test("Configure lists a running session's units; Save switches them at their next safe point", async ({
+test("Configure lists a running session's units and switches those it can at their next safe point", async ({
   page,
 }) => {
   const b = new Bridge();
@@ -127,30 +127,27 @@ test("Configure lists a running session's units; Save switches them at their nex
   const changes = () => b.sent.filter((m) => m.method === 'units/change').map((m) => m.params);
   // Every unit of the harness, on as the session has it now.
   await expect(dialog.getByRole('switch', { name: 'Memory: on' })).toBeEnabled();
-  await expect(dialog.getByRole('switch', { name: 'End gate: on' })).toBeVisible();
-  // Flipped, a switch is a draft: nothing reaches the session before Save.
+  // The plan is part of the prompt: fixed while the session runs, so it has no switch.
+  await expect(dialog.getByRole('switch', { name: /^Plan:/ })).toHaveCount(0);
+  await expect(dialog.locator('li[data-fixed="true"]')).toContainText('fixed for this session');
+  // No Save: a switch goes to the session at once, said waiting until the run takes it.
+  await expect(dialog.getByRole('button', { name: 'Save' })).toHaveCount(0);
   await dialog.getByRole('switch', { name: 'Memory: on' }).click();
-  await dialog.getByRole('switch', { name: 'End gate: on' }).click();
+  await expect.poll(changes).toEqual([{ op: 'off', id: 'memory' }]);
   await expect(dialog.getByRole('switch', { name: 'Memory: off' })).toBeVisible();
-  await expect(dialog.getByText('2 unsaved changes')).toBeVisible();
-  // A guard switched off is said before anything runs without it.
-  await expect(dialog.locator('.su-warn')).toContainText('runs without: gate');
-  expect(changes()).toEqual([]);
-  // Discard puts the switches back as the session has them.
-  await dialog.getByRole('button', { name: 'Discard' }).click();
-  await expect(dialog.getByRole('switch', { name: 'Memory: on' })).toBeVisible();
-  await dialog.getByRole('switch', { name: 'Memory: on' }).click();
+  // A guard switched off: said, and asked for this session only, never kept for the project.
   await dialog.getByRole('switch', { name: 'End gate: on' }).click();
-  await dialog.getByRole('button', { name: 'Save' }).click();
-  // Saved: each asked of the session; the guard for this session only, never kept.
+  await expect(dialog.locator('.su-warn')).toContainText('runs without: gate');
   await expect.poll(changes).toEqual([
     { op: 'off', id: 'memory' },
     { op: 'off', id: 'gate', keep: false },
   ]);
-  await expect(dialog.getByText('2 changes saved')).toBeVisible();
-  await expect(dialog.getByRole('switch', { name: 'Memory: off' })).toBeVisible();
-  // The list scrolls inside the dialog, its foot in view.
-  await expect(dialog.getByRole('button', { name: 'Save' })).toBeInViewport();
+  // A switch shows the hand: it can be clicked.
+  expect(
+    await dialog
+      .getByRole('switch', { name: 'Memory: off' })
+      .evaluate((e) => getComputedStyle(e).cursor),
+  ).toBe('pointer');
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 });

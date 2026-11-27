@@ -43,6 +43,23 @@ button {
   color: inherit;
 }
 
+/* Whatever can be clicked says so with the hand; what is disabled says it cannot be. */
+button:not(:disabled),
+[role="button"],
+[role="switch"]:not(:disabled),
+[role="option"],
+a[href],
+select:not(:disabled),
+summary,
+label:has(> input:not(:disabled)) {
+  cursor: pointer;
+}
+button:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 :focus-visible {
   outline: 2px solid var(--mn-holo);
   outline-offset: 2px;

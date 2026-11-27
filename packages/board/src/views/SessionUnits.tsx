@@ -1,13 +1,15 @@
 /**
- * A running session's units, from its Configure: every unit the workspace's harness has, each with
- * a switch showing whether it is on in this session now (`units/list`), switched at its next safe
- * point (`units/change`) as the terminal app's `/unit` does — and kept for the project as that
- * is, but for a guard switched off: that holds for this session only, as the Builder's does. A dialog: the focus held inside it, Esc or its button closes it. Only the tab that controls
- * the session switches; another reads.
+ * A running session's units, from its Configure: every unit of the workspace's harness, on or off
+ * as the session has it now (`units/list`). A unit that can change while the session runs has a
+ * switch, taken at its next safe point (`units/change`) as the terminal app's `/unit` takes it,
+ * and kept for the project as that is — but a guard switched off holds for this session only, as
+ * the Builder's does. A unit that is part of the prompt (`frame`: the plan) is fixed while the
+ * session runs: it is shown, with no switch. A dialog: the focus held inside it, Esc or its button
+ * closes it. Only the tab that controls the session switches; another reads.
  */
 import type { BoardWorld } from '@mikata/protocol';
 import type { UnitsListed } from '@mikata/sdk/browser';
-import { Save, ShieldAlert, SlidersHorizontal, X } from 'lucide-react';
+import { Lock, ShieldAlert, SlidersHorizontal, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GUARDS } from '../data/compose.ts';
 import { useHarness } from '../data/harness.ts';
@@ -32,11 +34,9 @@ export function SessionUnits({
   const harness = useHarness(w.id);
   const [listed, setListed] = useState<UnitsListed | undefined>();
   const [why, setWhy] = useState<string | undefined>();
+  // Switches asked of the session and not yet taken: id → on.
   const [asked, setAsked] = useState<Map<string, boolean>>(new Map());
-  // The switches flipped and not yet saved: nothing reaches the session before Save.
-  const [draft, setDraft] = useState<Map<string, boolean>>(new Map());
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState<string | undefined>();
+  const [busy, setBusy] = useState<string | undefined>();
   const box = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const controls = live.role === 'controller' && live.link !== 'closed';
@@ -86,50 +86,30 @@ export function SessionUnits({
     (a, b) => rank(a.id) - rank(b.id),
   );
   /** On in the session now, or as asked and not yet taken. */
-  const sessionOn = (id: string) =>
+  const isOn = (id: string) =>
     asked.get(id) ?? listed?.units.some((u) => u.id === id && u.state === 'active') ?? false;
-  /** As the switch shows it: the draft over the session. */
-  const isOn = (id: string) => draft.get(id) ?? sessionOn(id);
   const failed = (id: string) =>
     listed?.units.some((u) => u.id === id && u.state === 'failed') ?? false;
-  const flip = (id: string) => {
-    setSaved(undefined);
-    setDraft((m) => {
-      const next = new Map(m);
-      const to = !isOn(id);
-      if (to === sessionOn(id)) next.delete(id);
-      else next.set(id, to);
-      return next;
-    });
-  };
-  const save = async () => {
-    if (draft.size === 0 || saving) return;
-    setSaving(true);
+  const flip = async (id: string) => {
+    if (busy) return;
+    const to = !isOn(id);
+    setBusy(id);
     setWhy(undefined);
-    let done = 0;
     try {
-      for (const [id, to] of draft) {
-        // A guard switched off holds for this session only, as the Harness Builder's does: never
-        // kept, so the next session opens with it. Any other switch is kept, as `/unit` keeps it.
-        await live.switchUnit(id, to, !(GUARDS.has(id) && !to));
-        setAsked((m) => new Map(m).set(id, to));
-        done += 1;
-      }
-      setDraft(new Map());
-      setSaved(
-        `${done} change${done === 1 ? '' : 's'} saved: each lands at its unit's next safe point.`,
-      );
+      // A guard switched off holds for this session only, as the Harness Builder's does: never
+      // kept, so the next session opens with it. Any other switch is kept, as `/unit` keeps it.
+      await live.switchUnit(id, to, !(GUARDS.has(id) && !to));
+      setAsked((m) => new Map(m).set(id, to));
       void read();
     } catch (e) {
       setWhy(e instanceof Error ? e.message : String(e));
     } finally {
-      setSaving(false);
-      // The button that had the focus is spent: it goes back inside the dialog, for Esc and Tab.
-      close.current?.focus();
+      setBusy(undefined);
     }
   };
   const guardsOff = units.filter((u) => GUARDS.has(u.id) && !isOn(u.id)).map((u) => u.id);
-  const guardsDrafted = [...draft].filter(([id, to]) => GUARDS.has(id) && !to).map(([id]) => id);
+  // What the run refused, each said once.
+  const refused = [...new Set(listed?.refused ?? [])].slice(-3);
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a click beside the dialog closes it
@@ -162,17 +142,17 @@ export function SessionUnits({
           </button>
         </header>
         <p className="su-sub">
-          Flip the switches, then Save: each change lands at its unit's next safe point and is kept
-          for this project as <code className="mono">/unit</code> keeps it in the terminal — but a
-          guard switched off holds for this session only.
+          A switch lands at its unit's next safe point and is kept for this project, as{' '}
+          <code className="mono">/unit</code> keeps it in the terminal — but a guard switched off
+          holds for this session only. A unit that is part of the prompt is fixed while the session
+          runs: change it in the Harness Builder, for the next session.
           {!controls && ' Another tab controls this session: take over to switch.'}
         </p>
         {guardsOff.length > 0 && (
           <p className="su-warn" role="status">
             <Icon icon={ShieldAlert} />
             <span>
-              This session runs without: <Safe text={guardsOff.join(', ')} />
-              {guardsDrafted.length > 0 ? ' once saved, for this session only.' : '.'}
+              This session runs without: <Safe text={guardsOff.join(', ')} />.
             </span>
           </p>
         )}
@@ -186,9 +166,8 @@ export function SessionUnits({
             const d = described(u);
             const on = isOn(u.id);
             const waiting = asked.has(u.id);
-            const changed = draft.has(u.id);
             return (
-              <li key={u.id} data-on={on} data-kind={u.kind} data-changed={changed}>
+              <li key={u.id} data-on={on} data-kind={u.kind} data-fixed={u.frame}>
                 <Icon icon={d.icon} />
                 <span className="su-name">
                   <b>
@@ -198,21 +177,25 @@ export function SessionUnits({
                     <Safe text={d.about} />
                   </small>
                 </span>
-                {changed && <small className="su-changed">unsaved</small>}
-                {waiting && !changed && (
-                  <small className="su-pending">at its next safe point</small>
-                )}
+                {waiting && <small className="su-pending">at its next safe point</small>}
                 {failed(u.id) && <small className="su-failed">failed</small>}
                 {GUARDS.has(u.id) && <small className="su-guard">guard</small>}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={on}
-                  aria-label={`${d.name}: ${on ? 'on' : 'off'}`}
-                  className="bapp-switch"
-                  disabled={!controls || listed === undefined || saving}
-                  onClick={() => flip(u.id)}
-                />
+                {u.frame ? (
+                  <small className="su-fixed" title="Part of the prompt: fixed while it runs">
+                    <Icon icon={Lock} /> fixed for this session
+                  </small>
+                ) : (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    aria-label={`${d.name}: ${on ? 'on' : 'off'}`}
+                    className="bapp-switch"
+                    disabled={!controls || listed === undefined}
+                    aria-busy={busy === u.id}
+                    onClick={() => void flip(u.id)}
+                  />
+                )}
                 <span className="su-state" data-on={on} aria-hidden="true">
                   {on ? 'On' : 'Off'}
                 </span>
@@ -220,36 +203,9 @@ export function SessionUnits({
             );
           })}
         </ul>
-        <footer className="su-foot">
-          <span className="su-saved" role="status">
-            {saved ??
-              (draft.size > 0
-                ? `${draft.size} unsaved change${draft.size === 1 ? '' : 's'}`
-                : 'No change')}
-          </span>
-          <button
-            type="button"
-            className="ss-configure"
-            disabled={draft.size === 0 || saving}
-            onClick={() => {
-              setDraft(new Map());
-              close.current?.focus();
-            }}
-          >
-            Discard
-          </button>
-          <button
-            type="button"
-            className="bapp-go"
-            disabled={!controls || draft.size === 0 || saving}
-            onClick={() => void save()}
-          >
-            <Icon icon={Save} /> {saving ? 'Saving…' : 'Save'}
-          </button>
-        </footer>
-        {listed && listed.refused.length > 0 && (
+        {refused.length > 0 && (
           <ul className="su-refused" aria-label="Refused">
-            {listed.refused.slice(-3).map((r) => (
+            {refused.map((r) => (
               <li key={r}>
                 <Safe text={r} />
               </li>
