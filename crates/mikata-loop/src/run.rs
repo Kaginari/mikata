@@ -380,6 +380,9 @@ pub struct Run {
     /// When the clock of the ask now running started: the deadline counts from here, so a
     /// session left open between asks spends none of it.
     clock: Instant,
+    /// Whether a dispatcher cut this run's time from its own ([`Run::within`]): its clock then
+    /// never starts again, whatever it is asked.
+    bounded: bool,
     gate: Option<EndGate>,
     before: Option<Tree>,
     /// The tree as this ask found it, kept in the attic: what its checks are run on again.
@@ -592,6 +595,7 @@ impl Run {
             last_occupancy: 0,
             started: Instant::now(),
             clock: Instant::now(),
+            bounded: false,
             gate: None,
             before: None,
             start: None,
@@ -733,6 +737,7 @@ impl Run {
             .limits
             .deadline
             .min(self.clock.elapsed().saturating_add(left));
+        self.bounded = true;
         self
     }
 
@@ -1839,9 +1844,12 @@ impl Run {
         );
         self.stand_before();
         // The step budget, the clock and the stress instruments are each commission's: a human
-        // ask is one. The time a session sat waiting for its next ask is no ask's.
+        // ask is one. The time a session sat waiting for its next ask is no ask's; a run whose
+        // dispatcher gave it its time keeps that time.
         self.ask_steps = 0;
-        self.clock = Instant::now();
+        if !self.bounded {
+            self.clock = Instant::now();
+        }
         self.stress = Stress::for_steps(self.limits.steps);
         self.ask_begins(text);
         self.noticed = false;
