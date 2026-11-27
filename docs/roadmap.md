@@ -63,7 +63,7 @@ flowchart TD
     subgraph MIKATA_BG[" "]
       direction TB
       R("1.1.0<br/>what done means, held") --> R2("1.2.0<br/>a harness you compose")
-      R2 --> N(["Now, on main<br/>secret files · the platform"])
+      R2 --> N(["Now · 1.3.0<br/>secret files · the platform"])
       N --> M("Next<br/>a memory that pays")
       M --> F("Then<br/>a fold for long runs")
       F --> S("Later<br/>the split, wider")
@@ -83,7 +83,28 @@ flowchart TD
     style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
-## Now: 1.2.0, a harness you compose
+## Now: 1.3.0, your secrets kept and the board as a platform
+
+1.3.0 (27 November) holds:
+
+- **Your secret files stay yours.** The `secrets` unit, on by default: `.env`, keys, kubeconfigs and
+  Terraform's state and variables are found as a session opens; the model sees their keys and
+  never a value, no tool writes or searches them, a command finds them empty unless you approved
+  it, and any value that reaches a result is struck out.
+- **Your approval is a unit too.** The `approval` unit, on by default, puts every act that leaves
+  your machine to you on a card. Only you can switch it off, and Mikata then says so wherever it
+  shows its guardrails.
+- **A session keeps its changes for its project,** in the project's local file and your own file
+  for that project, never in your global config.
+- **The board is the platform.** One frame for every page: each workspace with its sessions, the
+  Harness Builder that starts them, each session's conversation beside its live run, seven colour
+  palettes beside Mikata's own.
+- **The terminal app, redrawn:** three views (Light, Advanced, Focus), solid cards, the run's steps
+  as it goes, the files it changed, and the harness's own notes said plainly.
+- **A commit in the sandbox no longer reads as a failure** (git's background upkeep is off in a
+  body's commands).
+
+## Before: 1.2.0, a harness you compose
 
 1.0.0 was the first release as Mikata. 1.1.0 (21 November) holds what came of the largest gap we
 had measured, asks without examples: a `## Done when` list in the ask, held by the harness; a
@@ -106,25 +127,6 @@ reader that writes it; and the list of what changed when an answer lands
   the plan 17, a `todo` the body keeps when it wants 17, Maki 15; no plan the cheapest Mikata, at
   1.18 times Maki's dollars a pass. The plan and a lighter one stay a switch away; the todo,
   level, is not merged.
-
-## On main, for the next release
-
-- **Your secret files stay yours.** The `secrets` unit, on by default: `.env`, keys, kubeconfigs and
-  Terraform's state and variables are found as a session opens; the model sees their keys and
-  never a value, no tool writes or searches them, a command finds them empty unless you approved
-  it, and any value that reaches a result is struck out.
-- **Your approval is a unit too.** The `approval` unit, on by default, puts every act that leaves
-  your machine to you on a card. Only you can switch it off, and Mikata then says so wherever it
-  shows its guardrails.
-- **A session keeps its changes for its project,** in the project's local file and your own file
-  for that project, never in your global config.
-- **The board is the platform.** One frame for every page: each workspace with its sessions, the
-  Harness Builder that starts them, each session's conversation beside its live run, seven colour
-  palettes beside Mikata's own.
-- **The terminal app, redrawn:** three views (Light, Advanced, Focus), solid cards, the run's steps
-  as it goes, the files it changed, and the harness's own notes said plainly.
-- **A commit in the sandbox no longer reads as a failure** (git's background upkeep is off in a
-  body's commands).
 
 ## Next: asks without examples
 
