@@ -38,6 +38,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **The Live run says when the end gate checks.** The board looked for the model's stop reason
+  as `end_turn`, but the core sends it by name (`EndTurn`): *Checking* never showed, and Verify
+  lit only once the verdict came. It now reads the core's word, and a provider's own.
+
 - **Leaving a session's page no longer stops its work.** The board ended a chat 60 seconds after
   its last tab left, so a task stopped while you read another page (the metrics, a past run).
   Now a turn that runs always finishes; waiting approvals are still denied after 60 seconds with

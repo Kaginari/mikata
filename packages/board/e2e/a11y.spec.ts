@@ -133,7 +133,7 @@ for (const theme of ['dark', 'light'] as const) {
       expect(await axe(page)).toEqual([]);
       // A turn ends live: its answer is said once, politely.
       b.emit('turnStarted', { text: 'again' });
-      b.emit('assistant', { text: 'The second answer.', stop: 'end_turn' });
+      b.emit('assistant', { text: 'The second answer.', stop: 'EndTurn' });
       b.emit('turnEnded', { ending: 'answered' });
       await expect(page.getByTestId('announce-polite')).toContainText('The second answer.');
       // An ask: said at once, and the card holds the page.

@@ -75,7 +75,7 @@ export class Bridge {
   /** What a prompt does: by default a turn that answers in one line. */
   onPrompt: (text: string) => void = (text) => {
     this.emit('turnStarted', { text });
-    this.emit('assistant', { text: `Answered: ${text}`, stop: 'end_turn' });
+    this.emit('assistant', { text: `Answered: ${text}`, stop: 'EndTurn' });
     this.emit('turnEnded', { ending: 'answered' });
   };
 
@@ -293,7 +293,7 @@ export function richTurn(b: Bridge) {
   b.emit('turnStarted', { text: 'fix the collate parse' });
   b.emit('assistant', {
     text: "I'll ask **orc-sql** to judge, then read the parser.",
-    stop: 'tool_use',
+    stop: 'ToolUse',
   });
   b.emit('toolCall', {
     id: 't1',
@@ -345,7 +345,7 @@ export function richTurn(b: Bridge) {
   });
   b.emit('assistant', {
     text: 'Collations now survive `_parse_types`:\n\n```python\nreturn self._parse_collate(this)  # keep it\n```\n\n- 412 tests pass\n- one file changed',
-    stop: 'end_turn',
+    stop: 'EndTurn',
   });
   b.emit('gateVerdict', {
     passed: true,
