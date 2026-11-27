@@ -45,7 +45,12 @@ pub fn panel(
     }
     let (x0, x1, y0, y1) = (area.x, area.right() - 1, area.y, area.bottom() - 1);
     let edge = |buf: &mut Buffer, x: u16, y: u16, s: &str| {
-        let c = sweep(t, x, screen_w);
+        // Studio keeps its frames calm: one quiet line, the gradient left to the header.
+        let c = if t.studio {
+            t.p.line.mix(t.p.text_muted, 0.35)
+        } else {
+            sweep(t, x, screen_w)
+        };
         let cell = &mut buf[(x, y)];
         cell.set_symbol(s);
         cell.set_style(
@@ -90,21 +95,53 @@ pub fn panel(
     if !title.is_empty() {
         buf.set_line(area.x + 2, area.y, &truncate(head, room.into()), room);
     }
-    if area.width > 24 {
-        let slashes = " //// ";
-        let at = area.right() - 8;
-        let c = sweep(t, at, screen_w);
-        buf.set_string(
-            at,
-            area.y,
-            slashes,
-            Style::new()
-                .fg(c.color())
-                .bg(t.p.panel.color())
-                .add_modifier(Modifier::BOLD),
-        );
-    }
+    let title_cells = if title.is_empty() {
+        0
+    } else {
+        title.chars().count() + 6
+    };
+    hatch(buf, area, title_cells, t);
     inside
+}
+
+/// The hatch on a panel's top edge, at its right end: three large strokes, each a thick slant drawn
+/// as a pair of triangles (`◢◤`), each running from one of the brand's colours to the next — hot to
+/// coral, coral to amber, amber to gold. None on a panel too narrow for them beside its title.
+fn hatch(buf: &mut Buffer, area: Rect, title_cells: usize, t: &Theme) {
+    // Triangles, never blocks: no picture is built from block characters (the pictures test).
+    const STROKE: [&str; 2] = ["\u{25e2}", "\u{25e4}"];
+    const WIDTH: u16 = 3 * 2 + 2 * 2;
+    if usize::from(area.width) < title_cells + 6 + usize::from(WIDTH) + 2 {
+        return;
+    }
+    let stops = [
+        t.p.holo,
+        t.p.holo.mix(t.p.gold, 0.35),
+        t.p.holo.mix(t.p.gold, 0.7),
+        t.p.gold,
+    ];
+    let mut x = area.right().saturating_sub(WIDTH + 3);
+    for g in 0..3 {
+        for (i, glyph) in STROKE.iter().enumerate() {
+            let c = if i == 0 {
+                stops[g]
+            } else {
+                stops[g].mix(stops[g + 1], 0.6)
+            };
+            let cell = &mut buf[(x, area.y)];
+            cell.set_symbol(glyph);
+            cell.set_style(Style::new().fg(c.color()).bg(t.p.panel.color()));
+            x += 1;
+        }
+        if g < 2 {
+            for _ in 0..2 {
+                let gap = &mut buf[(x, area.y)];
+                gap.set_symbol(" ");
+                gap.set_style(Style::new().bg(t.p.panel.color()));
+                x += 1;
+            }
+        }
+    }
 }
 
 /// A bar filled with the gradient, cell by cell across the screen, `line` on its middle row in

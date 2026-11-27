@@ -85,6 +85,8 @@ impl Surface {
     #[must_use]
     pub fn card(t: &Theme, hue: Option<Rgb>, k: f32) -> Self {
         let s = Scale::of(t);
+        // Studio tints a card half as much: its hue stays on the bar.
+        let k = if t.studio { k * 0.5 } else { k };
         Self::raise(&s, s.card, hue, k, false)
     }
 
@@ -238,14 +240,13 @@ impl Slab {
         let edge = s.spine.unwrap_or_else(|| s.shade.mix(s.gloss, 0.5));
         let mut out: Lines = Vec::with_capacity(rows.len() + 1);
         if self.top {
+            // The lip is the face's tone all along: a half block is a whole cell wide and the bar
+            // half of one, so a lip cell in the bar's hue stood out as a square on the first line.
             let first = if self.band > 0 { s.band } else { s.face };
-            out.push(Line::from(vec![
-                Span::styled("▄", Style::new().fg(edge.color()).bg(s.plane.color())),
-                Span::styled(
-                    "▄".repeat(bw - 1),
-                    Style::new().fg(first.color()).bg(s.plane.color()),
-                ),
-            ]));
+            out.push(Line::from(Span::styled(
+                "▄".repeat(bw),
+                Style::new().fg(first.color()).bg(s.plane.color()),
+            )));
         }
         for (i, row) in rows.into_iter().enumerate() {
             let face = if i < self.band { s.band } else { s.face };
@@ -300,8 +301,10 @@ mod tests {
         // band's tone over the page.
         assert_ne!(s.band, s.face);
         assert_eq!(lines[1].spans[0].style.fg, Some(t.races.summoner.color()));
-        assert_eq!(lines[0].spans[1].style.fg, Some(s.band.color()));
-        assert_eq!(lines[0].spans[1].style.bg, Some(s.plane.color()));
+        // The lip is one tone end to end: no square of the bar's hue on the first line.
+        assert_eq!(lines[0].spans.len(), 1);
+        assert_eq!(lines[0].spans[0].style.fg, Some(s.band.color()));
+        assert_eq!(lines[0].spans[0].style.bg, Some(s.plane.color()));
         assert_eq!(lines[2].spans[1].style.bg, Some(s.face.color()));
     }
 

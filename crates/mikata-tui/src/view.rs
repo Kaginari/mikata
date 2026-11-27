@@ -34,6 +34,7 @@ pub fn ctx(m: &Model, width: usize) -> Ctx<'_> {
         spinner: m.spinner.view(),
         me: &m.header.body,
         now: m.transcript.clock,
+        thinking: m.thinking,
     }
 }
 
