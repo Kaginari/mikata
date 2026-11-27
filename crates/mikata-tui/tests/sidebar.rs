@@ -312,15 +312,15 @@ fn every_section_shows_what_the_observer_and_the_world_gave() {
 }
 
 #[test]
-fn ctrl_o_toggles_the_sidebar_and_a_narrow_terminal_folds_it() {
+fn ctrl_b_toggles_the_sidebar_and_a_narrow_terminal_folds_it() {
     let mut m = model();
     busy_session(&mut m);
     assert!(screen(&draw(&mut m, 120, 40)).contains("memory ─"));
-    ctrl(&mut m, 'o');
+    ctrl(&mut m, 'b');
     let scr = screen(&draw(&mut m, 120, 40));
     assert!(!scr.contains("memory ─"), "{scr}");
     assert_eq!(m.main_area().0, 116, "the transcript takes the width");
-    ctrl(&mut m, 'o');
+    ctrl(&mut m, 'b');
     assert!(screen(&draw(&mut m, 120, 40)).contains("memory ─"));
     assert!(screen(&draw(&mut m, 100, 40)).contains("memory ─"));
     let narrow = screen(&draw(&mut m, 99, 40));
@@ -864,5 +864,20 @@ fn a_new_ask_shows_its_own_done_when_never_the_plan_an_earlier_ask_left() {
     assert!(
         s.contains("`t 1` must give `1`") && !s.contains("the old ask's line"),
         "{s}"
+    );
+}
+
+/// ctrl+l shows the conversation alone and goes back to the view it left.
+#[test]
+fn ctrl_l_shows_the_chat_alone_and_back() {
+    let mut m = model();
+    assert_eq!(m.view, mikata_tui::app::View::Advanced);
+    ctrl(&mut m, 'l');
+    assert_eq!(m.view, mikata_tui::app::View::Focus);
+    ctrl(&mut m, 'l');
+    assert_eq!(
+        m.view,
+        mikata_tui::app::View::Advanced,
+        "back to the view it left"
     );
 }

@@ -27,8 +27,9 @@ Options:
                     structured-coding or collective-coding; see Modes below
   --resume <run>    the same as `resume <run>`
   --theme <name>    a scheme — neon (the default), ember, lagoon, harbor, dune, spice, or hud
-                    (the board's cyan) — and/or dark, light or auto: lagoon-light. Unnamed,
-                    MIKATA_THEME, else the terminal's background; /theme changes it live
+                    (the board's cyan) — and/or dark, light, studio (dark, softer for long
+                    hours) or auto: lagoon-light. Unnamed, MIKATA_THEME, else the terminal's
+                    background; /theme changes it live
   --web             the web board instead of the terminal app: start it, or reuse the one
                     running, add this world to it, open it in the browser, and leave it
                     serving; without it no board starts
@@ -88,7 +89,8 @@ MIKATA_TUI_IMAGES=auto|kitty|iterm|sixel|blocks|off overrides the choice.
 
 Keys: enter sends (queued while a turn runs) · alt+enter breaks the line · ↑↓ history ·
 pgup/pgdn or the wheel scroll · esc stops the turn · ctrl+c stops, then quits ·
-ctrl+o the sidebar · alt+↑↓ pick a card, ctrl+t or a click expands it · at an approval, 1 (y)
+ctrl+l the conversation alone, and back · ctrl+o every thought shown whole · ctrl+b the
+sidebar · alt+↑↓ pick a card, ctrl+t or a click expands it · at an approval, 1 (y)
 yes, 2 (n) no or 3 no with a reason, then enter. A drag over the conversation selects its text
 alone and copies it on release (OSC 52, and wl-copy, xclip or xsel where found); esc lets it go.
 Shift and a drag is the terminal's own selection, the whole width.

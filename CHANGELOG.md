@@ -13,6 +13,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **The terminal app has Studio too**, beside dark and light: `--theme studio`,
+  `MIKATA_THEME=studio` or `/theme studio` live. On Mikata's own scheme it is the board's Studio
+  colour for colour; every scheme's Studio is softer than its dark look, its panel frames one
+  quiet line and its cards half as tinted.
+- **ctrl+l shows the conversation alone**, and ctrl+l again goes back to the view you were in.
+  **ctrl+o shows every thought whole**, in plain text on a rail in the brand's colour; again,
+  they fold. The sidebar moves to **ctrl+b**.
+- **The terminal app's panels carry a longer hatch**: three groups of bold slashes on each
+  panel's top edge, each sweeping from one of the brand's colours to the next.
+
 - **Studio, a third look for the board** beside Light and Dark (Settings, or the top bar's theme
   switch: auto → light → dark → studio). It is the dark page made softer for long hours:
   graphite surfaces, every colour a gentler step of the same hue, glows faint. The session page is
@@ -43,6 +53,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   which are folded.
 
 ### Fixed
+
+- **A card in the terminal app no longer has a square on its first line.** The lip above each
+  card drew its first cell in the bar's colour, a whole cell wide over a half-cell bar.
 
 - **The header moves less**: its gradient drifts slowly (one pass in 48 seconds, its shine every 16), and stands still in Studio.
 - **Leaving a session's page no longer stops its work.** The board ended a chat 60 seconds after

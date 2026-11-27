@@ -329,7 +329,8 @@ fn chat(
     };
     let home = std::env::var_os("HOME").map(PathBuf::from);
     let mut model = Model::new(header(&opened, home.as_deref()), variant, (80, 24));
-    model.theme = Theme::of(scheme, variant);
+    let studio = mikata_tui::theme::studio_chosen(theme, |k| std::env::var(k).ok());
+    model.theme = Theme::look(scheme, variant, studio);
     model.sidebar.root = Some(opened.world.clone());
     model.session_id.clone_from(&opened.session_id);
     // The session's facts, one tagged row each: what matters sharp, the rest quiet. The full

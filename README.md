@@ -110,7 +110,9 @@ it wrong does not land. Outside the app: `mikatad memory wrong "<what still fail
 
 Three views; **F2** switches between them. **Light**, the default, puts the conversation beside
 one slim column: the run's steps (Plan · Work · Verify · Land), the checks, the files changed, the
-budgets. **Advanced** shows every panel. **Focus** shows the conversation alone.
+budgets. **Advanced** shows every panel. **Focus** shows the conversation alone; **Ctrl+L** goes
+there and back. **Ctrl+O** shows every thought whole. `--theme studio` is the dark look, softer,
+for long hours.
 
 ### The web board
 

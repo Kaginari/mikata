@@ -107,6 +107,26 @@ pub fn reasoning(content: &[serde_json::Value]) -> Option<String> {
         .filter_map(|b| b.get("value"));
     let mut found = false;
     let mut text = String::new();
+    let k_is = |kind: &str, what: &str| kind == format!("{}{what}", mikata_loop::OPAQUE_PREFIX);
+    // Whether the details carry text of their own: then they are the reasoning, read once.
+    let has_details = content.iter().any(|b| {
+        b.get("value").is_some_and(|v| {
+            v.get("type")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|t| k_is(t, "reasoning_details"))
+                && v.get("items")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|items| {
+                        items.iter().any(|i| {
+                            ["text", "summary"].iter().any(|k| {
+                                i.get(*k)
+                                    .and_then(serde_json::Value::as_str)
+                                    .is_some_and(|t| !t.trim().is_empty())
+                            })
+                        })
+                    })
+        })
+    });
     let s = |v: &serde_json::Value, k: &str| {
         v.get(k)
             .and_then(serde_json::Value::as_str)
@@ -122,20 +142,37 @@ pub fn reasoning(content: &[serde_json::Value]) -> Option<String> {
             "thinking" => s(v, "thinking"),
             "redacted_thinking" => String::new(),
             k if k == format!("{}reasoning_content", mikata_loop::OPAQUE_PREFIX) => s(v, "text"),
-            k if k == format!("{}reasoning_details", mikata_loop::OPAQUE_PREFIX) => v
-                .get("items")
-                .and_then(serde_json::Value::as_array)
-                .into_iter()
-                .flatten()
-                .map(|i| {
+            // The details stream as fragments of one text, a token each, under one index: they
+            // are put back together as they came; another index is another part, on its own line.
+            k if k == format!("{}reasoning_details", mikata_loop::OPAQUE_PREFIX) => {
+                let mut whole = String::new();
+                let mut last: Option<u64> = None;
+                for i in v
+                    .get("items")
+                    .and_then(serde_json::Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
                     let t = s(i, "text");
-                    if t.is_empty() { s(i, "summary") } else { t }
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
+                    let t = if t.is_empty() { s(i, "summary") } else { t };
+                    let index = i.get("index").and_then(serde_json::Value::as_u64);
+                    if !whole.is_empty() && index != last {
+                        whole.push('\n');
+                    }
+                    last = index;
+                    whole.push_str(&t);
+                }
+                whole
+            }
             _ => continue,
         };
         found = true;
+        // A host may send one reasoning twice, as `reasoning_content` and as `reasoning_details`:
+        // the details, whole, stand for it; the streamed content only when they are absent.
+        let streamed = k_is(kind, "reasoning_content");
+        if streamed && has_details {
+            continue;
+        }
         if !piece.is_empty() {
             if !text.is_empty() {
                 text.push('\n');

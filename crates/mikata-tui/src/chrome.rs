@@ -45,7 +45,12 @@ pub fn panel(
     }
     let (x0, x1, y0, y1) = (area.x, area.right() - 1, area.y, area.bottom() - 1);
     let edge = |buf: &mut Buffer, x: u16, y: u16, s: &str| {
-        let c = sweep(t, x, screen_w);
+        // Studio keeps its frames calm: one quiet line, the gradient left to the header.
+        let c = if t.studio {
+            t.p.line.mix(t.p.text_muted, 0.35)
+        } else {
+            sweep(t, x, screen_w)
+        };
         let cell = &mut buf[(x, y)];
         cell.set_symbol(s);
         cell.set_style(
@@ -90,21 +95,60 @@ pub fn panel(
     if !title.is_empty() {
         buf.set_line(area.x + 2, area.y, &truncate(head, room.into()), room);
     }
-    if area.width > 24 {
-        let slashes = " //// ";
-        let at = area.right() - 8;
-        let c = sweep(t, at, screen_w);
-        buf.set_string(
-            at,
-            area.y,
-            slashes,
-            Style::new()
-                .fg(c.color())
-                .bg(t.p.panel.color())
-                .add_modifier(Modifier::BOLD),
-        );
-    }
+    let title_cells = if title.is_empty() {
+        0
+    } else {
+        title.chars().count() + 6
+    };
+    hatch(buf, area, title_cells, t);
     inside
+}
+
+/// The hatch on a panel's top edge, at its right end: three groups of bold slashes, each
+/// sweeping from one of the brand's colours to the next — hot to coral, coral to amber, amber to
+/// gold. Six cells a group where the edge has room after the title, two where it has less, none
+/// on a narrow panel.
+fn hatch(buf: &mut Buffer, area: Rect, title_cells: usize, t: &Theme) {
+    // A slash, never a block: no picture is built from characters (the pictures test holds it).
+    const GLYPH: &str = "/";
+    let room = usize::from(area.width).saturating_sub(title_cells + 6);
+    let per: usize = if room >= 3 * 6 + 4 {
+        6
+    } else if room >= 3 * 2 + 4 {
+        2
+    } else {
+        return;
+    };
+    let stops = [
+        t.p.holo,
+        t.p.holo.mix(t.p.gold, 0.35),
+        t.p.holo.mix(t.p.gold, 0.7),
+        t.p.gold,
+    ];
+    let width = u16::try_from(3 * per + 2).unwrap_or(u16::MAX);
+    let mut x = area.right().saturating_sub(width + 3);
+    for g in 0..3 {
+        for i in 0..per {
+            #[allow(clippy::cast_precision_loss)]
+            let f = i as f32 / (per.saturating_sub(1).max(1)) as f32;
+            let c = stops[g].mix(stops[g + 1], f);
+            let cell = &mut buf[(x, area.y)];
+            cell.set_symbol(GLYPH);
+            cell.set_style(
+                Style::new()
+                    .fg(c.color())
+                    .bg(t.p.panel.color())
+                    .add_modifier(Modifier::BOLD),
+            );
+            x += 1;
+        }
+        if g < 2 {
+            let gap = &mut buf[(x, area.y)];
+            gap.set_symbol(" ");
+            gap.set_style(Style::new().bg(t.p.panel.color()));
+            x += 1;
+        }
+    }
 }
 
 /// A bar filled with the gradient, cell by cell across the screen, `line` on its middle row in

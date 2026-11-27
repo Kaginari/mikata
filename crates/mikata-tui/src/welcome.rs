@@ -109,7 +109,8 @@ pub fn card(m: &Model, w: usize) -> Lines {
     for (k, what) in [
         ("⏎", "ask"),
         ("/", "commands"),
-        ("ctrl+o", "sidebar"),
+        ("ctrl+l", "chat only"),
+        ("ctrl+o", "thinking"),
         ("ctrl+t", "expand"),
         ("esc", "interrupt"),
     ] {
@@ -308,7 +309,8 @@ mod tests {
             for label in ["world", "model", "memory", "verify"] {
                 assert!(text.contains(&caps(label)), "{w}: {label}");
             }
-            assert!(text.contains("ctrl+o sidebar"));
+            assert!(text.contains("ctrl+l chat only"));
+            assert!(text.contains("ctrl+o thinking"));
         }
     }
 

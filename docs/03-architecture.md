@@ -341,7 +341,7 @@ mikata                          # a session in this world (also: mikata chat)
 mikata --world <dir>            # a session in that world
 mikata --mode light-coding      # the mode: light-coding, the one this book describes (the lab adds two)
 mikata resume last              # pick up the newest run that stopped (or --resume <run>)
-mikata --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, auto
+mikata --theme lagoon-light     # a scheme (neon, ember, lagoon, harbor, dune, spice, hud) and/or dark, light, studio, auto
 mikata --probe                  # what the terminal draws, then exit
 mikata status                   # the mode and why, the model, the key's origin, the sandbox, the budget, holes, meters, envelopes, evolutions due
 mikata run "<ask>"              # one ask without the app
@@ -1066,6 +1066,10 @@ the session runs in this process.
 
 `--theme` names a scheme, a variant or both (`neon-light`). Unnamed, the variant is read from `MIKATA_THEME`, else the terminal's
 background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`, else neon.
+`studio` is a third look, the dark one softer for long hours: on `neon` it is the board's Studio
+colour for colour (`studio.page` in `@mikata/theme`, held equal by a test); any other scheme is
+softened — its surfaces a step toward graphite, its colours toward its muted text. In Studio the
+panels' frames are one quiet line, not the gradient, and a card is tinted half as much.
 
 #### The terminal app
 
@@ -1116,12 +1120,14 @@ one-row bars. The older words `center` and `zen` still name Advanced and Focus.
 | Alt+↑ ↓ | move the focus between cards (calls, groups, thoughts), scrolling each into view |
 | Ctrl+T, a click on a card | open the focused (or clicked) card — a call's output or diff, a group's calls, a thought's text — or fold it again; with none focused, the newest |
 | F2 | the next view: light, advanced, focus |
-| Ctrl+O | show or hide the panels |
+| Ctrl+L | the conversation alone; again, back to the view it left |
+| Ctrl+O | every thought shown whole, in plain text on a rail in the brand's colour; again, folded |
+| Ctrl+B | show or hide the panels |
 | Esc | stop the turn; back to the end of the transcript |
 | Ctrl+C | stop the turn, or leave when none runs |
 | 1 or y, 2 or n, 3, then Enter | answer an approval — yes, no, or no with a reason typed for the model; ↑ ↓ move the pick while the whole act shows — from no pick to No, stopping at the ends, never onto Yes unasked — and read a long act otherwise; Esc denies it |
 
-Slash commands: `/send <text>` steers the running turn at its next tool step, `/theme <scheme> [dark|light]`,
+Slash commands: `/send <text>` steers the running turn at its next tool step, `/theme <scheme> [dark|light|studio]`,
 `/view light|advanced|focus`, `/clear`, `/help`, `/quit`.
 
 **It shows its work as it happens.** The status appears in the frame after Enter, before any
