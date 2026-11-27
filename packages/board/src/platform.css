@@ -843,13 +843,47 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   letter-spacing: 0.1em;
   white-space: nowrap;
 }
+/* each state its colour (--mn-state-*), and its word always beside it */
+.ss-badge[data-state="Thinking"],
+.ss-badge[data-state="Checking"],
+.ss-badge[data-state="Recovering"],
+.ss-badge[data-state="Needs you"],
+.ss-badge[data-state="Blocked"],
+.ss-badge[data-state="Failed"],
+.ss-badge[data-state="Paused"] {
+  border-color: var(--state);
+  background: color-mix(in srgb, var(--state) 14%, var(--mn-panel));
+  color: var(--state);
+}
+.ss-badge[data-state="Thinking"] {
+  --state: var(--mn-state-thinking);
+}
+.ss-badge[data-state="Checking"] {
+  --state: var(--mn-state-running);
+}
+.ss-badge[data-state="Recovering"] {
+  --state: var(--mn-state-recovering);
+}
+.ss-badge[data-state="Needs you"] {
+  --state: var(--mn-state-waiting);
+}
+.ss-badge[data-state="Blocked"] {
+  --state: var(--mn-state-blocked);
+  box-shadow: var(--mn-glow-error);
+}
+.ss-badge[data-state="Failed"] {
+  --state: var(--mn-state-failed);
+}
+.ss-badge[data-state="Paused"] {
+  --state: var(--mn-state-paused);
+}
 .ss-badge[data-state="Ready"],
-.ss-badge[data-state="Waiting"] {
+.ss-badge[data-state="Answered"] {
   border-color: var(--mn-success-border);
   color: var(--mn-success-text);
 }
 .ss-badge[data-state="Ready"]::before,
-.ss-badge[data-state="Waiting"]::before {
+.ss-badge[data-state="Answered"]::before {
   content: "";
   width: 7px;
   height: 7px;
@@ -870,11 +904,6 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   color: var(--mn-success-on);
   box-shadow: 0 0 18px -2px var(--mn-success-fill);
   animation: pf-pop 520ms var(--pf-spring) backwards;
-}
-.ss-badge[data-state="Not landed"] {
-  border-color: var(--mn-error);
-  background: var(--mn-error-bg);
-  color: var(--mn-error);
 }
 .ss-pulse {
   width: 7px;
@@ -1171,6 +1200,8 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   color: var(--mn-text-muted);
 }
 .ss-modelname {
+  flex: 0 1 auto;
+  min-width: 9ch;
   overflow: hidden;
   color: var(--mn-text);
   font-weight: 600;
@@ -1181,15 +1212,46 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   margin-left: auto;
   white-space: nowrap;
 }
-.ss-model[data-busy="true"] > span::before {
+.ss-model {
+  --state: var(--mn-state-paused);
+}
+.ss-model[data-phase="running"],
+.ss-model[data-phase="checking"] {
+  --state: var(--mn-state-running);
+}
+.ss-model[data-phase="thinking"] {
+  --state: var(--mn-state-thinking);
+}
+.ss-model[data-phase="waiting"] {
+  --state: var(--mn-state-waiting);
+}
+.ss-model[data-phase="recovering"] {
+  --state: var(--mn-state-recovering);
+}
+.ss-model[data-phase="verified"] {
+  --state: var(--mn-state-verified);
+}
+.ss-model[data-phase="blocked"],
+.ss-model[data-phase="failed"] {
+  --state: var(--mn-state-failed);
+}
+.ss-model > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mn-text-muted);
+  text-overflow: ellipsis;
+}
+.ss-model > span::before {
   content: "";
   display: inline-block;
   width: 7px;
   height: 7px;
   margin-right: 7px;
   border-radius: 50%;
-  background: var(--mn-success);
-  box-shadow: 0 0 8px var(--mn-success);
+  background: var(--state);
+  box-shadow: 0 0 8px var(--state);
+}
+.ss-model[data-busy="true"] > span::before {
   animation: pf-blink 1.2s steps(1) infinite;
 }
 
@@ -2076,7 +2138,7 @@ a.pf-mini {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ss-model[data-busy="true"] > span::before {
+  .ss-model > span::before {
     animation: none;
   }
   .ss-card h3 .ss-chevron {

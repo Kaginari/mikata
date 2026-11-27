@@ -340,8 +340,9 @@ impl Scheme {
             Self::Harbor => r(0x60_c1e5, 0xa0_e0ef, 0xff_5c7a, 0x1b_365d),
             // colorhunt ff933e ffcb56 ffe9a9 73a5ca
             Self::Dune => r(0xff_933e, 0xff_cb56, 0xe5_484d, 0x73_a5ca),
-            // Bio: hot ff168a, amber ffb020, error ff5575, plum 3d2b40 (the owner's, 2026-11-25)
-            Self::Neon => r(0xff_168a, 0xff_b020, 0xff_5575, 0x3d_2b40),
+            // Bio: hot ff168a, amber ffb020, plum 3d2b40 (the owner's, 2026-11-25); failure a
+            // vermilion measured apart from the hot pink (2026-11-27)
+            Self::Neon => r(0xff_168a, 0xff_b020, 0xff_5a3c, 0x3d_2b40),
             // colorhunt 309898 ff9f00 f4631e cb0404
             Self::Spice => r(0x3c_b8b8, 0xff_9f00, 0xe8_2a22, 0x30_9898),
             Self::Hud => return None,
@@ -382,7 +383,7 @@ impl Scheme {
                 text: Rgb::hex(0x21_1626),
                 text_muted: Rgb::hex(0x65_546b),
                 holo: Rgb::hex(0xc0_125c),
-                alarm: Rgb::hex(0xb0_1c42),
+                alarm: Rgb::hex(0xb8_2e15),
                 gold: Rgb::hex(0x8f_5506),
             },
             (_, variant) => Self::leaned(base, r, variant),

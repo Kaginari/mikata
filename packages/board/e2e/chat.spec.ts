@@ -275,10 +275,12 @@ test('while a turn runs, Enter queues, Steer and /send steer, Stop and Esc inter
     failures: ['cargo test'],
     unverified: [],
   });
-  await expect(page.locator('.mapp-landed[data-ok="false"]')).toContainText(
-    'Not landed: cargo test',
-  );
-  await expect(page.locator('.ss-head .ss-badge')).toHaveText('NOT LANDED');
+  // The refusal is the one failure in full red: what failed, and the way to repair it.
+  const blocked = page.locator('.mapp-blocked');
+  await expect(blocked).toContainText('Verification failed');
+  await expect(blocked).toContainText('1 check failed · the end gate blocked the answer.');
+  await expect(blocked.locator('.mapp-blocked-list')).toContainText('cargo test');
+  await expect(page.locator('.ss-head .ss-badge')).toHaveText('BLOCKED');
 });
 
 test('a past run reads from its journal, read-only, and resumes', async ({ page }) => {

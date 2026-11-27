@@ -69,6 +69,24 @@
   --mn-warning-bg: color-mix(in srgb, var(--mn-gold) 14%, var(--mn-panel));
   --mn-error: var(--mn-alarm);
   --mn-error-bg: color-mix(in srgb, var(--mn-alarm) 14%, var(--mn-panel));
+  --mn-error-text: var(--mn-error);
+  --mn-error-border: color-mix(in srgb, var(--mn-error) 45%, var(--mn-line));
+  --mn-error-hover: color-mix(in srgb, var(--mn-error) 80%, var(--mn-text));
+  --mn-error-critical: var(--mn-error);
+  --mn-glow-error: 0 0 20px color-mix(in srgb, var(--mn-error) 15%, transparent);
+  --mn-gradient-error: linear-gradient(135deg, var(--mn-error-critical), var(--mn-error));
+  /* what a run is doing, each said with an icon and a word as well (never colour alone):
+   * running and verified are one family, a spinner and a tick apart; failed and blocked are one
+   * red, a failed line and the filled panel the end gate's refusal wears */
+  --mn-state-running: var(--mn-success);
+  --mn-state-thinking: var(--mn-info);
+  --mn-state-verified: var(--mn-success-text);
+  --mn-state-waiting: var(--mn-warning);
+  --mn-state-failed: var(--mn-error);
+  --mn-state-blocked: var(--mn-error-critical);
+  --mn-state-recovering: var(--mn-info);
+  --mn-state-paused: var(--mn-text-muted);
+  --mn-state-disabled: var(--mn-line);
   --mn-info: var(--mn-race-summoner);
   --mn-info-bg: color-mix(in srgb, var(--mn-race-summoner) 14%, var(--mn-panel));
   /* the harness graph */
@@ -138,7 +156,7 @@
   --mn-text: #f5eff7;
   --mn-text-muted: #b7a9bc;
   --mn-holo: #ff168a;
-  --mn-alarm: #ff5575;
+  --mn-alarm: #ff5a3c;
   --mn-gold: #ffb020;
   --mn-race-player: #ffb020;
   --mn-hot: #ff168a;
@@ -158,8 +176,23 @@
   --mn-bio-3: #d9f95c;
   --mn-warning: #ffc857;
   --mn-warning-bg: #332711;
-  --mn-error: #ff5575;
-  --mn-error-bg: #361522;
+  /* failure: a vermilion, measured apart from the brand's hot pink (#ff168a) */
+  --mn-error: #ff5a3c;
+  --mn-error-text: #ff9a85;
+  --mn-error-bg: #32160f;
+  --mn-error-border: #74301f;
+  --mn-error-hover: #ff7a60;
+  --mn-error-critical: #ff3b1f;
+  --mn-glow-error: 0 0 20px rgb(255 90 60 / 15%);
+  --mn-state-running: #b6f542;
+  --mn-state-thinking: #b18cff;
+  --mn-state-verified: #c8fa73;
+  --mn-state-waiting: #ffc857;
+  --mn-state-failed: #ff5a3c;
+  --mn-state-blocked: #ff3b1f;
+  --mn-state-recovering: #82b1ff;
+  --mn-state-paused: #b7a9bc;
+  --mn-state-disabled: #514655;
   --mn-info: #82b1ff;
   --mn-info-bg: #17253c;
   --mn-edge-disabled: #514655;
@@ -173,7 +206,7 @@
 
 :root[data-scheme="neon"][data-theme="light"] {
   /* Bio Pearl: the same life on a pearl page. The text roles are the brand made to read at AA
-   * on every surface and tint (hot #c0125c, amber #8f5506, lime #426a12, error #b01c42); the brand itself stays in
+   * on every surface and tint (hot #c0125c, amber #8f5506, lime #426a12, error #a82a12 on its own tint, #b82e15 as a mark); the brand itself stays in
    * fills, edges and the gradients. */
   --mn-bg: #faf7fa;
   --mn-panel: #ffffff;
@@ -182,7 +215,7 @@
   --mn-text: #211626;
   --mn-text-muted: #65546b;
   --mn-holo: #c0125c;
-  --mn-alarm: #b01c42;
+  --mn-alarm: #b82e15;
   --mn-gold: #8f5506;
   --mn-race-player: #8f5506;
   --mn-hot: #d91670;
@@ -202,8 +235,22 @@
   --mn-bio-3: #d9f95c;
   --mn-warning: #8f5506;
   --mn-warning-bg: #fff4d9;
-  --mn-error: #b01c42;
-  --mn-error-bg: #fde8ed;
+  --mn-error: #b82e15;
+  --mn-error-text: #a82a12;
+  --mn-error-bg: #fff1ed;
+  --mn-error-border: #f6b9aa;
+  --mn-error-hover: #a82a12;
+  --mn-error-critical: #a82a12;
+  --mn-glow-error: 0 0 20px rgb(184 46 21 / 8%);
+  --mn-state-running: #5c960b;
+  --mn-state-thinking: #7c3aed;
+  --mn-state-verified: #426a12;
+  --mn-state-waiting: #a16207;
+  --mn-state-failed: #b82e15;
+  --mn-state-blocked: #a82a12;
+  --mn-state-recovering: #285fcc;
+  --mn-state-paused: #796780;
+  --mn-state-disabled: #c5b6c9;
   --mn-info: #285fcc;
   --mn-info-bg: #eaf1ff;
   --mn-edge-active: #65a30d;
