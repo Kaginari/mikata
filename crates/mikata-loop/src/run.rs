@@ -74,6 +74,13 @@ pub struct Limits {
     pub changes: bool,
 }
 
+/// What is left of a run's budget, shared with its tools: all of it, `u64::MAX` when uncapped.
+fn budget_cell(limits: &Limits) -> Arc<std::sync::atomic::AtomicU64> {
+    Arc::new(std::sync::atomic::AtomicU64::new(
+        limits.budget_wt.map_or(u64::MAX, |b| b.min(u64::MAX - 1)),
+    ))
+}
+
 impl Limits {
     /// A race's steps, a session's clock, a 200k window.
     #[must_use]
@@ -370,6 +377,9 @@ pub struct Run {
     spent_wt: u64,
     last_occupancy: u64,
     started: Instant,
+    /// When the clock of the ask now running started: the deadline counts from here, so a
+    /// session left open between asks spends none of it.
+    clock: Instant,
     gate: Option<EndGate>,
     before: Option<Tree>,
     /// The tree as this ask found it, kept in the attic: what its checks are run on again.
@@ -558,9 +568,7 @@ impl Run {
     pub fn new(body: Body, limits: Limits, setup: Setup) -> Self {
         let interrupt = Arc::new(Interrupt::default());
         let frame = frame(&body.system, &setup.tools);
-        let budget_left = Arc::new(std::sync::atomic::AtomicU64::new(
-            limits.budget_wt.map_or(u64::MAX, |b| b.min(u64::MAX - 1)),
-        ));
+        let budget_left = budget_cell(&limits);
         Self {
             body,
             limits,
@@ -583,6 +591,7 @@ impl Run {
             spent_wt: 0,
             last_occupancy: 0,
             started: Instant::now(),
+            clock: Instant::now(),
             gate: None,
             before: None,
             start: None,
@@ -723,7 +732,7 @@ impl Run {
         self.limits.deadline = self
             .limits
             .deadline
-            .min(self.started.elapsed().saturating_add(left));
+            .min(self.clock.elapsed().saturating_add(left));
         self
     }
 
@@ -810,7 +819,7 @@ impl Run {
         let (decider, cutoffs) = (Arc::clone(&d.decider), d.cutoffs);
         let interrupt = Arc::clone(&self.interrupt);
         // A decision is meant to take milliseconds: it never outlives the run's own clock.
-        let left = (self.started + self.limits.deadline).saturating_duration_since(Instant::now());
+        let left = (self.clock + self.limits.deadline).saturating_duration_since(Instant::now());
         let budget = left.min(mikata_provider::SystemOne::policy().turn);
         let ask = bench_ask(command, output);
         let decision = tokio::select! {
@@ -1829,8 +1838,10 @@ impl Run {
             }],
         );
         self.stand_before();
-        // The step budget and the stress instruments are each commission's: a human ask is one.
+        // The step budget, the clock and the stress instruments are each commission's: a human
+        // ask is one. The time a session sat waiting for its next ask is no ask's.
         self.ask_steps = 0;
+        self.clock = Instant::now();
         self.stress = Stress::for_steps(self.limits.steps);
         self.ask_begins(text);
         self.noticed = false;
@@ -1838,7 +1849,7 @@ impl Run {
         self.stash = Stashes::found(mikata_tools::stash_depth(self.cx.world()));
         // The clock reaches every command of this ask, the gate's verify lines included.
         self.cx
-            .set_deadline(Some(self.started + self.limits.deadline));
+            .set_deadline(Some(self.clock + self.limits.deadline));
         self.cx.set_pace(self.pace());
         // An Elf whose ask names its Orcs' domains has its lane handed out before its first turn;
         // a light-coding ask that names separate projects, one body a project.
@@ -3552,7 +3563,7 @@ impl Run {
         if self.ask_steps >= self.limits.steps {
             return Some(Stop::Salvage(format!("steps: {} taken", self.ask_steps)));
         }
-        if self.started.elapsed() >= self.limits.deadline {
+        if self.clock.elapsed() >= self.limits.deadline {
             return Some(Stop::Salvage(
                 "clock: the deadline passed between turns".into(),
             ));
@@ -4829,7 +4840,7 @@ impl Run {
             }
             // Each order's clock is cut from this run's: set before any call of the turn has.
             self.cx
-                .set_deadline(Some(self.started + self.limits.deadline));
+                .set_deadline(Some(self.clock + self.limits.deadline));
             self.cx.set_pace(self.pace());
             let (left, cap) = self.budget();
             let share = left.map(|l| l / picked.len() as u64);
@@ -5004,7 +5015,7 @@ impl Run {
             }
             before = Some((name.clone(), input.clone()));
             self.cx
-                .set_deadline(Some(self.started + self.limits.deadline));
+                .set_deadline(Some(self.clock + self.limits.deadline));
             self.cx.set_pace(self.pace());
             // An order run at once with others has no time of its own: its clock is the batch's.
             let (o, ms) = if let Some(o) = ready.remove(&id) {
@@ -5090,7 +5101,7 @@ impl Run {
         request: &Request,
         on: &mut (dyn FnMut(Event) + Send),
     ) -> Called {
-        let left = self.limits.deadline.saturating_sub(self.started.elapsed());
+        let left = self.limits.deadline.saturating_sub(self.clock.elapsed());
         let interrupt = Arc::clone(&self.interrupt);
         let call = tokio::time::timeout(left, self.model.complete(request, on));
         let answered = tokio::select! {
@@ -5334,7 +5345,7 @@ impl Run {
         let grace = self
             .limits
             .deadline
-            .saturating_sub(self.started.elapsed())
+            .saturating_sub(self.clock.elapsed())
             .clamp(Duration::from_secs(2), DRAIN_GRACE);
         let mut quiet = |_: Event| {};
         let Ok(Ok(r)) =
@@ -5415,7 +5426,7 @@ impl Run {
         let grace = self
             .limits
             .deadline
-            .saturating_sub(self.started.elapsed())
+            .saturating_sub(self.clock.elapsed())
             .clamp(Duration::from_secs(2), DRAIN_GRACE);
         let mut salvage = self.last_turn(&note, "drain", grace).await;
         if let Some(text) = salvage.as_mut() {

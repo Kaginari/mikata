@@ -18,6 +18,62 @@ import type { Arrived } from '@mikata/protocol';
 export const THE_ASK =
   'Above: what the harness remembers, quoted as data. Below: the ask, from the human, to act on.';
 
+/** A line of an ask's `## Done when` list: its name (`D1`) and what it says. */
+export type DoneLine = readonly [string, string];
+
+/**
+ * The named lines under `## Done when` in `text`, in order — read as the core reads them
+ * (`mikata_loop::lines::list`): a `## ` heading opens or closes the list, a line's list mark is
+ * set aside, and only a line named `D<n>` is one.
+ */
+export function doneLines(text: string): DoneLine[] {
+  const out: DoneLine[] = [];
+  let inside = false;
+  for (const raw of text.split('\n')) {
+    const t = raw.trim();
+    if (t.startsWith('## ')) {
+      inside = t.slice(3).trim() === 'Done when';
+      continue;
+    }
+    if (!inside) continue;
+    const s = t.replace(/^[-*]+/, '').trimStart();
+    const cut = s.search(/[: ]/);
+    if (cut < 0) continue;
+    const name = s.slice(0, cut);
+    if (/^D\d+$/.test(name)) out.push([name, s.slice(cut + 1).trim()]);
+  }
+  return out;
+}
+
+/** How the core's note to the body on holding a list begins (`mikata_loop::done::List::note`). */
+const HOLDS = 'The ask holds a `## Done when` list (';
+
+/**
+ * An ask as the board shows it: the human's words with the list the harness holds for it (theirs,
+ * a reader's, or a correction of theirs kept from before), never the memory quoted above it nor
+ * the harness's instructions to the body after it; and that list's lines.
+ */
+export function askOf(text: string): { words: string; list: DoneLine[] } {
+  const mine = humanWords(text);
+  const at = mine.indexOf(HOLDS);
+  let words = at < 0 ? mine : mine.slice(0, at);
+  // A correction's own sentence about whose words it is, and a command the human named for it,
+  // are the harness's to the body: each one line (`mikata_loop::done::List::after_the_ask`),
+  // under the list's own lines or beside them.
+  words = words
+    .split('\n')
+    .filter((l) => !/the human's own (word|words|command)/.test(l))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+  // Read from what is left: the harness's own sentences name lines too, and are none. A name
+  // said twice is one line (`mikata_loop::lines::of_ask`).
+  const list = doneLines(words).filter(
+    ([name], i, all) => all.findIndex(([n]) => n === name) === i,
+  );
+  return { words, list };
+}
+
 /** The human's own words of a turn's text: what follows the core's marker, or the whole text. */
 export function humanWords(text: string): string {
   const at = text.lastIndexOf(THE_ASK);
@@ -48,7 +104,8 @@ export interface Call {
 }
 
 export type Entry =
-  | { kind: 'user'; key: string; text: string }
+  /** The human's line, as `askOf` reads it: their words, and the `Done when` list it holds. */
+  | { kind: 'user'; key: string; text: string; list: readonly DoneLine[] }
   | { kind: 'assistant'; key: string; text: string; head: boolean }
   | { kind: 'tool'; key: string; call: Call }
   | { kind: 'group'; key: string; calls: Call[] }
@@ -110,6 +167,8 @@ export interface ChatView {
   queued: readonly string[];
   /** A turn runs. */
   busy: boolean;
+  /** The model ended its turn with an answer, not a call: the end gate runs now. */
+  answered: boolean;
   /** When the running turn began (ms), if seen live. */
   since?: number | undefined;
   /** The tokens the running turn spent so far. */
@@ -294,6 +353,7 @@ export class Chat {
   private readonly running = new Map<string, number>();
   private queued: string[] = [];
   private busy = false;
+  private answered = false;
   private since: number | undefined;
   private turnBase = 0;
   private step: Step = { output: true };
@@ -340,9 +400,11 @@ export class Chat {
         this.flushed = '';
         this.headed = false;
         this.busy = true;
+        this.answered = false;
         this.since = now;
         this.turnBase = this.usage.tokens;
-        this.push({ kind: 'user', key: '', text: humanWords(event.text) });
+        const { words, list } = askOf(event.text);
+        this.push({ kind: 'user', key: '', text: words, list });
         this.beginStep(now);
         return;
       }
@@ -366,6 +428,7 @@ export class Chat {
         this.streaming = '';
         this.flushed = '';
         this.say(rest);
+        this.answered = event.stop === 'end_turn';
         return;
       }
       case 'toolCall':
@@ -430,6 +493,7 @@ export class Chat {
       streaming: this.streaming,
       queued: this.queued.slice(),
       busy: this.busy,
+      answered: this.answered,
       since: this.since,
       turnTokens: this.usage.tokens - this.turnBase,
       current,

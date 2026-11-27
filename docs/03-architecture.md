@@ -575,7 +575,7 @@ embeds a placeholder page saying so, and serves the API all the same.
 | `GET /api/metrics` | `BoardMetrics` for `?world=<id>` or `all` (the default) over `?window=7d\|28d\|all` (`7d` by default; another word is 400): the usage ledgers' fold and the bench (the lab's meters and scores beside them) — see *Metrics and integrations* below |
 | `GET /api/integrations` | `BoardIntegrations`, read-only and redacted: the global file alone, or `?world=<id>`'s files layered over it — see *Metrics and integrations* below |
 | `WS /ws/board` | the push channel, subprotocol `mikata.board.v1` beside the CSRF entry; the server alone speaks — see *The watcher* below |
-| `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mikata resume`'s opening; `"profile": "<name>"` and `"units": "-plan,+plan_lite"` open it with that composition, as `mikata run --profile` and `--units` do (passed to the chat as `MIKATA_PROFILE` and `MIKATA_UNITS`; a name that is no word, or a list that does not read, is refused with `400`); `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
+| `POST /api/w/<world>/sessions` | a chat in a listed, present world: `{}` opens a new session, `{"resume": "<run>"}` (a session's run id, `r<ms>-<pid>`) or `{"resume": "last"}` resumes a stopped run through `mikata resume`'s opening; `"profile": "<name>"` and `"units": "-plan,+plan_lite"` open it with that composition, as `mikata run --profile` and `--units` do, `"model": "<model>"` with that model over `models.default`, and `"steps"`, `"minutes"` and `"context"` with each ask's steps (10 to 5,000), clock (5 to 1,440 minutes) and context line (from 8,000 tokens; the session refuses one past 90% of its model's window) (passed to the chat as `MIKATA_PROFILE`, `MIKATA_UNITS`, `MIKATA_MODEL`, `MIKATA_STEPS`, `MIKATA_MINUTES` and `MIKATA_CONTEXT`; a name that is no word, a list that does not read, or a model named with other than letters, digits and `-_.:/@+`, is refused with `400`); `201` with `BoardStarted`: `{"session": BoardSession, "hello": Hello}`. `429` past the cap of live chats, `502` with the child's reason when it does not open. The browser that posts it owns the chat |
 | `GET /api/sessions` | `BoardSessions`: `{"sessions": [{"id", "world", "session", "run", "controlled", "tabs", "asks"}]}`, the live chats |
 | `WS /ws/session/<id>` | a tab on a live chat (below), subprotocol `mikata.v1` |
 | `GET /api/w/<id>/units` | `BoardUnits`: `{"units": [{"id", "kind", "version", "on", "frame", "tightens"}], "profiles": [{"name", "units", "from"}], "holes"}` — the harness a session in the world would open with: every native unit with its version and whether the configuration has it on, every plugin the global file declares, the build's profiles then the global file's; `holes` says what did not read. The Harness Builder reads it |
@@ -603,8 +603,8 @@ anywhere, nothing read from inside a world grants trust. The child makes itself 
 before it reads a key, as every `mikatad` does. The bridge opens the session itself
 (`initialize`) and keeps the hello; a tab's `initialize` is answered with it.
 
-**Ending.** A chat ends when its controller sends `shutdown`, when the child leaves, when the grace
-runs out, or when the board stops (Ctrl-C or SIGTERM ends every chat before the server does). Each
+**Ending.** A chat ends when its controller sends `shutdown`, when the child leaves, when it sat
+30 minutes with no tab and no turn running, or when the board stops (Ctrl-C or SIGTERM ends every chat before the server does). Each
 waiting ask is denied with the reason, the child is sent `shutdown` and its input closed — it
 denies what waits, stops the turn, journals the run and exits — and once it has exited, or after
 10 seconds, its process group is killed while the child is still unreaped, so the group's id
@@ -676,8 +676,10 @@ with `board/takeOver` ("waiting in another tab — take over"); a tab of another
 only. An observer's `session/prompt`, `session/send`, `session/interrupt` and `shutdown` are
 refused (`-32011`), and its gate answers too. Each tab is sent `board/role {role, controlled}` on
 connect and whenever control moves. With no controller for 60 seconds after the chat opened — a tab closed and not
-reopened — the waiting asks are denied ("no tab held the chat for 60 s") and the chat ends; the
-denial reaches the body as any denial does and is journaled with the run. A tab whose board
+reopened, or the human on another page of the board — the waiting asks are denied ("no tab held
+the chat for 60 s to answer"); the denial reaches the body as any denial does and is journaled
+with the run. The turn goes on: work is never stopped for want of a tab, and a tab that comes back
+replays what it missed. A chat with no controller and no turn running ends after 30 minutes. A tab whose board
 session ends is closed with 4401.
 
 **Limits.** At most 8 live chats and 8 tabs per chat (4429); a tab's message at most 1 MiB (a
@@ -890,9 +892,14 @@ which posts `{"resume": "<run>"}`. The list is read on opening, when the push ch
 changed (at most every 2 s), every 10 s, and when a session ends.
 
 **A live session** (`src/views/Session.tsx`) is its conversation as a timeline of steps, the
-composer under it, and the **Live run** beside it: Plan · Work · Verify · Land, the log, the
-`Done when` list, the guardrails as the session runs them (a guard switched off says so), wall
-time, steps, cost and context against its stress line. The header names the session by its first
+composer under it, and the **Live run** beside it, which follows the ask now running: Plan · Work
+· Verify · Land (Work while the body changes files and runs its own checks, Verify once it has
+answered and the end gate runs), the model and what it does now (thinking, writing, running a
+tool, waiting on the end gate), the log of this ask, the
+`Done when` list of the ask now running (its own, else the plan this ask wrote; never one an
+earlier ask left), the guardrails as the session runs them (a guard switched off says so), wall
+time, steps, cost and context against its stress line. *Done when* and *Guardrails* fold by their
+title; the browser keeps which are folded. The header names the session by its first
 ask, with a state badge and its chips, and says *guards off* in the alarm's tone when it runs
 without one. A long session stays fast: the timeline draws its newest 200 rows (*Show earlier* adds
 more) and redraws only the step an event changed.
@@ -1076,7 +1083,7 @@ The frames are drawn by the app itself: `cargo run -p mikata-tui --example frame
 | welcome | the card the conversation opens on: on first run it sits at the top of the conversation and scrolls away with the transcript as messages come. One title line, **◆ Mikata**, the version and the tagline; what Mikata does in four lines (one body that writes "done" down and checks it, the end gate, the split by project, memory with provenance); the world, the model, the session, **memory** and **verify** in small capitals; the first keys |
 | transcript | each message and call a rounded card in its colour: the human's lines in gold; the body's Markdown (headings, emphasis, code highlighted, lists, quotes, links, tables) with `✦`; tool calls in their class's colour (a look blue, a write violet, an outward act orange, a destructive one red). **A tool card is two rows until opened**: `● bash  pytest -q  read`, then `⎿ ok · 2.0s · 412 passed · +3 lines` — the output's last line and how many it stands for, an edit's `+3 −0`, a failure's last line in alarm; a click or Ctrl+T opens its output, its numbered diff or a new file's head whole. Consecutive reads, indexes, greps and globs are one card (`read 4 files · grep 3 patterns`); the reasoning one quiet line; the end gate's verdict one line with its counts |
 | activity strip | above the input from the frame an ask is sent until its turn ends: a spinner, the phase as a verb in a moving shimmer, the time the turn has run, its tokens |
-| Done when | the body's list from its plan, each line ticked once the end gate passes the answer |
+| Done when | the list the current ask is held to — the one its own text carries (yours, a reader's, a correction kept), else the plan's only when this ask wrote it — each line ticked once the end gate passes the answer; a list an earlier ask left in the plan is never shown as the new ask's |
 | Checks | each check the end gate holds — every verify command, *tests intact*, *duties done* — as ok, failed or no result, with its time: from the gate's latest verdict, or the body's own later run of the command; a bar of how many held |
 | Budgets | steps, wall clock, the context against its stress line as a gauge, the spend |
 | Guardrails | what the sandbox holds every command to (the project, the network, a `/tmp` of its own) and what the gates hold the session to (verify must pass, no test deleted or skipped, outward acts ask you), each ticked where it is in force |
@@ -1322,7 +1329,7 @@ state, never a blank pane.
 |---|---|---|
 | A session `#/w/<world>`, `…/s/<session>` | a header (the first ask as its title, its state — Ready, Running, Verified, Not landed —, the branch, the sandbox, the model, the mode, *Configure*, *End session*), the conversation as a timeline of steps (the human's words, each look, edit and check, the end gate's word), the composer (Enter sends; while a turn runs it queues the line for after it, as the terminal app does, and *Steer* or `/send <text>` folds words into the running turn instead; Esc or *Stop* interrupts; an observing tab may *Take over*), the queue, the approval card; beside it the **Live run**: Plan · Work · Verify · Land, the log, Done when, the guardrails, wall time, steps, cost and the context against its stress line. A first ask opens a session at its own address | *Ready in* the workspace; *Waiting for an ask…*; *This session has ended* |
 | A past run `…/r/<run>` | the transcript in the terminal's grammar, read-only, and *Resume* | *This chat is not live* |
-| Harness Builder `…/builder`, Plugins `…/plugins` | every unit a session opens with as a card round the core, with a switch, its version and an icon; a legend; a profile to start from; the composition as a global file's `[profiles.<name>]` (copy, export) and as the `--profile` and `--units` the workspace's new sessions open with — New session, the rail's `+`, a first ask. The composition is kept in this browser per workspace; a guard switched off (`secrets`, `approval`, `gate`, `hold`) holds for the next new session only, is never kept, and that session's header says so in the alarm's tone. Plugins inspects the native units and the declared plugins, with the same switches | *Reading the harness…* |
+| Harness Builder `…/builder`, Plugins `…/plugins` | every unit a session opens with as a card round the core, with a switch, its version and an icon; a legend; a profile to start from; the model the workspace's new sessions ride (the configured one, a model the configuration names, or one typed by name) and what each ask may take — steps, minutes, the context line — each empty field showing the configuration's; the composition as a global file's `[profiles.<name>]` (copy, export) and as the `--profile` and `--units` the workspace's new sessions open with — New session, the rail's `+`, a first ask. The composition is kept in this browser per workspace; a guard switched off (`secrets`, `approval`, `gate`, `hold`) holds for the next new session only, is never kept, and that session's header says so in the alarm's tone. Plugins inspects the native units and the declared plugins, with the same switches | *Reading the harness…* |
 | Runs `…/runs` | the live sessions, then the past runs, as cards, with their totals | *No session runs now*; *No past run yet* |
 | Memory | notes by body, scope and standing, with confirm and wake | *No note here* |
 | Journal | `log.md`'s entries and their contents | *No journal yet* |
@@ -2059,7 +2066,9 @@ an empty list or table never overrides a lower layer:
   before it replaces the file; a failed save is returned, and the file stays as it was.
 - **Models**: `models.default` is one model for everything: every tier the human's own files did
   not set rides it, so a cloned repository's tiers do not override it; `models.tier.<tier>` names
-  a tier's model (the lab adds a model per body, office and race).
+  a tier's model (the lab adds a model per body, office and race). `MIKATA_MODEL` names the
+  model one session's body rides over `models.default`, through the same backend: the board's
+  Harness Builder sets it for the sessions it starts.
   `models.fallback.<model>` names the next model to try when a model is not found.
   `models.reader` names the model that reads each light-coding ask apart and writes what done
   means for it ([the loop](02-loop.md#a-done-when-list-in-the-ask)): none unless the human's own

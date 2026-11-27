@@ -11,6 +11,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Added
+
+- **Choose the model when you start a session on the board.** The Harness Builder has a *Model*
+  choice beside the profile: the configured model, any model your configuration names (the
+  default, a tier, the reader), or one you type. Sessions started there ride it (the request's
+  `model`, given to the session as `MIKATA_MODEL`, which goes over `models.default` through the
+  same provider); the session's header says it.
+- **Set each ask's steps, clock and context line when you start a session.** The Harness Builder
+  shows them under the model, each empty field showing your configuration's value; the session
+  is held to what you set (`MIKATA_STEPS`, `MIKATA_MINUTES`, `MIKATA_CONTEXT`, which `mikata`
+  reads too). A context line past 90% of the model's window is refused, as in the configuration.
+- **The Live run shows the model at work**: its name, and what it does now — thinking, writing,
+  running a tool, waiting on the end gate.
+- **Done when and Guardrails fold** on the board's Live run, by their title; the browser keeps
+  which are folded.
+
+### Fixed
+
+- **Leaving a session's page no longer stops its work.** The board ended a chat 60 seconds after
+  its last tab left, so a task stopped while you read another page (the metrics, a past run).
+  Now a turn that runs always finishes; waiting approvals are still denied after 60 seconds with
+  no tab, as no one is there to answer them; a chat with no tab and nothing running ends after 30
+  minutes. Back on its page, the tab replays what it missed.
+- **The clock is each ask's.** It counted from the session's start, so a session left open for an
+  hour stopped its next ask at once ("clock: the deadline passed"). Each ask now has its whole
+  clock (`limits.session_minutes`, 60 minutes by default).
+- **The Live run follows the ask now running.** Its stepper and log showed the last ask's steps
+  while a new one started, and lit Verify as soon as one file was written. Work now lasts until
+  the model answers; Verify lights while the end gate runs.
+- **An ask's lines keep their line breaks** in the session's timeline.
+
+- **A new ask shows its own Done when list.** The board and the terminal app showed the list in
+  the body's plan file, so a new ask showed the last ask's lines, open. They now show the list the
+  ask itself carries (yours, a reader's, or a correction kept), and the plan's only when this ask
+  wrote it. The harness's own sentences about a list are no longer counted as lines.
+
 ## [1.3.0] - 2026-11-27
 
 ### Added

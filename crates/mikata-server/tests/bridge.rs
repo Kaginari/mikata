@@ -700,7 +700,7 @@ async fn a_waiting_ask_survives_a_reload_and_the_reloaded_tab_answers_it() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn with_no_controller_past_the_grace_the_ask_is_denied_and_the_chat_ends() {
+async fn with_no_controller_past_the_grace_the_ask_is_denied_and_an_idle_chat_ends_later() {
     let r = rig("grace", Limits::default());
     let owner = r.login().await;
     let other = r.login().await;
@@ -722,8 +722,9 @@ async fn with_no_controller_past_the_grace_the_ask_is_denied_and_the_chat_ends()
     tokio::time::sleep(Duration::from_millis(600)).await;
     assert_eq!(r.live(&owner).await.len(), 1);
 
+    // Past it, no one is there to answer: the ask is denied, and the turn goes on to its end.
     r.board.pass(Duration::from_secs(11));
-    let seen = watcher.until(|m| method(m) == "board/ended").await;
+    let seen = watcher.until(|m| note(m).is_some()).await;
     let denied = seen
         .iter()
         .find_map(note)
@@ -733,9 +734,40 @@ async fn with_no_controller_past_the_grace_the_ask_is_denied_and_the_chat_ends()
         "{denied}"
     );
     assert!(denied.contains("no tab held the chat for 60 s"), "{denied}");
+    watcher.until(|m| method(m) == "event/turnEnded").await;
+    // The chat lives on: the human may come back to it.
+    r.board.pass(Duration::from_mins(29));
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    assert_eq!(r.live(&owner).await.len(), 1, "not idle long enough");
+
+    r.board.pass(Duration::from_secs(61));
+    watcher.until(|m| method(m) == "board/ended").await;
     assert!(watcher.next().await.is_none());
     assert_eq!(watcher.closed, Some(4001));
     assert_eq!(r.live(&owner).await, Vec::<Value>::new());
+}
+
+/// A turn that runs is never ended for want of a tab: the human browsing another page, or their
+/// laptop closed, leaves the work going.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_running_turn_outlives_its_tab_leaving() {
+    let r = rig("outlives", Limits::default());
+    let owner = r.login().await;
+    let sid = r.start(&owner).await;
+    let mut tab = r.tab(&owner, &sid).await;
+    tab.role().await;
+    tab.request(1, "session/prompt", &json!({"text": "events 100 50"}))
+        .await;
+    tab.until(|m| method(m) == "event/textDelta").await;
+    drop(tab);
+    // Past every grace, the turn still runs: the chat stays.
+    r.board.pass(Duration::from_mins(45));
+    tokio::time::sleep(Duration::from_millis(800)).await;
+    assert_eq!(r.live(&owner).await.len(), 1, "a running turn is not ended");
+    // Back on its page, the tab finds the work still going.
+    let mut back = r.tab(&owner, &sid).await;
+    assert_eq!(back.role().await, "controller");
+    back.until(|m| method(m) == "event/turnEnded").await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -889,6 +921,35 @@ async fn the_child_gets_a_scrubbed_env_and_dies_with_the_chat_and_the_board() {
         "{names:?}"
     );
     assert!(names.contains("MIKATA_BOARD_PID"), "{names:?}");
+    assert!(
+        !names.contains("MIKATA_MODEL") && !names.contains("MIKATA_PROFILE"),
+        "nothing asked, nothing set: {names:?}"
+    );
+
+    // What the Harness Builder composed reaches the child, the model among it.
+    let (status, body) = r
+        .post_body(
+            &b,
+            r#"{"profile": "small-fix", "units": "-plan", "model": "openrouter:qwen/qwen3-coder", "steps": 600, "minutes": 180, "context": 170000}"#,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let composed = body["session"]["id"].as_str().unwrap().to_owned();
+    let mut other = r.tab(&b, &composed).await;
+    other.role().await;
+    other
+        .request(1, "session/prompt", &json!({"text": "env"}))
+        .await;
+    let env = other.until(|m| note(m).is_some()).await;
+    let env: Value = serde_json::from_str(note(env.last().unwrap()).unwrap()).unwrap();
+    assert_eq!(env["MIKATA_MODEL"], "openrouter:qwen/qwen3-coder");
+    assert_eq!(env["MIKATA_PROFILE"], "small-fix");
+    assert_eq!(env["MIKATA_UNITS"], "-plan");
+    assert_eq!(env["MIKATA_STEPS"], "600");
+    assert_eq!(env["MIKATA_MINUTES"], "180");
+    assert_eq!(env["MIKATA_CONTEXT"], "170000");
+    other.request(2, "shutdown", &json!({})).await;
+    other.until(|m| method(m) == "board/ended").await;
 
     tab.request(2, "session/prompt", &json!({"text": "spawn"}))
         .await;
@@ -1067,6 +1128,13 @@ async fn a_crash_says_why_and_a_resume_names_only_a_run() {
         r#"{"profile": ""}"#,
         r#"{"units": "plan"}"#,
         r#"{"units": "-plan,,+x"}"#,
+        // A model is named as the configuration names one: never a space, a quote or nothing.
+        r#"{"model": ""}"#,
+        r#"{"model": "a model"}"#,
+        r#"{"model": "x\"; rm -rf ."}"#,
+        r#"{"steps": 3}"#,
+        r#"{"minutes": 100000}"#,
+        r#"{"context": 1000}"#,
     ] {
         let (status, _) = r.post_body(&b, bad).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{bad}");

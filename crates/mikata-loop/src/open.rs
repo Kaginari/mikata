@@ -421,6 +421,17 @@ pub type ModelOf = (
     Option<String>,
 );
 
+/// The model the session's body rides: the one asked for as it opens (the board's choice,
+/// `MIKATA_MODEL`), else the configuration's. Either is reached through the same backends and
+/// keys.
+#[must_use]
+pub fn session_model(config: &Config, env: &dyn Fn(&str) -> Option<String>) -> String {
+    env("MIKATA_MODEL")
+        .map(|m| m.trim().to_owned())
+        .filter(|m| !m.is_empty())
+        .unwrap_or_else(|| config.model_for("summoner", Race::Summoner, None))
+}
+
 /// The session's model in `world`, reached through the backend the human chose, its key read
 /// from the variable the provider names or else its key file ([`crate::key::resolve`]): the
 /// model, its backend, the name the configuration gives it and the key's source.
@@ -434,7 +445,7 @@ pub fn model_of(
     world: &Path,
     env: &dyn Fn(&str) -> Option<String>,
 ) -> Result<ModelOf, String> {
-    let named = config.model_for("summoner", Race::Summoner, None);
+    let named = session_model(config, env);
     let backend = config.backend(&named)?;
     let worlds = crate::key::known_worlds(Some(world));
     let resolved = crate::key::resolve(&backend.provider_name, &backend.provider, env, &worlds)?;
@@ -686,6 +697,8 @@ fn build(
     (limits.window, limits.stress_tokens) = config.context_line(model_id)?;
     // The throne works alone until it hands work down, Elves below it or none: the chain's steps.
     limits.steps = config.solo_steps();
+    // What the human asked of this one session as it started (the board's Harness Builder).
+    asked_limits(&mut limits, &env)?;
     if let Some(dir) = attic {
         cx = cx.with_attic(attic_of(config, dir, world)?);
     }
@@ -944,6 +957,56 @@ fn on_at_open(config: &Config, asked: &Composition, id: &str) -> bool {
             || config.unit(id).is_some_and(|u| u.on && !u.from_world()),
             |c| c.on,
         )
+}
+
+/// What the human asks of one session as it opens, over the configuration: `MIKATA_STEPS` (the
+/// steps an ask may take, 10 to 5,000), `MIKATA_MINUTES` (an ask's clock, 5 to 1,440) and
+/// `MIKATA_CONTEXT` (the context stress line in tokens, from 8,000 to 90% of the model's
+/// window). The board's Start session sets them.
+///
+/// # Errors
+///
+/// A value that is no whole number or is out of its range: a session held to a limit nobody
+/// asked for is not opened.
+pub fn asked_limits(
+    limits: &mut crate::run::Limits,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Result<(), String> {
+    let asked = |key: &str, lo: u64, hi: u64| -> Result<Option<u64>, String> {
+        let Some(v) = env(key)
+            .map(|v| v.trim().to_owned())
+            .filter(|v| !v.is_empty())
+        else {
+            return Ok(None);
+        };
+        let n: u64 = v
+            .parse()
+            .map_err(|_| format!("{key}: `{v}` is not a whole number"))?;
+        if (lo..=hi).contains(&n) {
+            Ok(Some(n))
+        } else {
+            Err(format!("{key}: {n} is outside {lo} to {hi}"))
+        }
+    };
+    if let Some(n) = asked("MIKATA_STEPS", 10, 5_000)? {
+        limits.steps = u32::try_from(n).unwrap_or(u32::MAX);
+    }
+    if let Some(n) = asked("MIKATA_MINUTES", 5, 24 * 60)? {
+        limits.deadline = Duration::from_secs(n * 60);
+    }
+    let most = limits.window * mikata_config::STRESS_PCT / 100;
+    if let Some(n) = asked("MIKATA_CONTEXT", 8_000, u64::MAX)? {
+        if n > most {
+            return Err(format!(
+                "MIKATA_CONTEXT: {n} tokens is above {}% of the model's window ({} tokens): the \
+                 line may be at most {most}",
+                mikata_config::STRESS_PCT,
+                limits.window
+            ));
+        }
+        limits.stress_tokens = n;
+    }
+    Ok(())
 }
 
 /// The composition the human asks for as a session opens: the global file's profile
@@ -1312,6 +1375,65 @@ fn ids() -> (String, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_session_takes_the_steps_clock_and_context_asked_within_bounds() {
+        let base = crate::run::Limits::for_race(Race::Summoner);
+        let with = |pairs: &'static [(&'static str, &'static str)]| {
+            move |k: &str| {
+                pairs
+                    .iter()
+                    .find(|(key, _)| *key == k)
+                    .map(|(_, v)| (*v).to_owned())
+            }
+        };
+        let mut l = base;
+        asked_limits(
+            &mut l,
+            &with(&[
+                ("MIKATA_STEPS", "600"),
+                ("MIKATA_MINUTES", "180"),
+                ("MIKATA_CONTEXT", "170000"),
+            ]),
+        )
+        .unwrap();
+        assert_eq!(
+            (l.steps, l.deadline, l.stress_tokens),
+            (600, Duration::from_hours(3), 170_000)
+        );
+        let mut l = base;
+        asked_limits(&mut l, &with(&[])).unwrap();
+        assert_eq!(
+            (l.steps, l.deadline, l.stress_tokens),
+            (base.steps, base.deadline, base.stress_tokens),
+            "nothing asked, nothing changed"
+        );
+        for bad in [
+            &[("MIKATA_STEPS", "lots")][..],
+            &[("MIKATA_STEPS", "3")],
+            &[("MIKATA_MINUTES", "100000")],
+            &[("MIKATA_CONTEXT", "190000")],
+        ] {
+            assert!(asked_limits(&mut { base }, &with(bad)).is_err(), "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn the_model_asked_for_goes_over_the_configurations() {
+        let config = Config::default();
+        let configured = config.model_for("summoner", Race::Summoner, None);
+        let asked = |m: &'static str| move |k: &str| (k == "MIKATA_MODEL").then(|| m.to_owned());
+        assert_eq!(
+            session_model(&config, &asked("vllm:qwen3-coder")),
+            "vllm:qwen3-coder"
+        );
+        assert_eq!(
+            session_model(&config, &asked("  ")),
+            configured,
+            "blank asks nothing"
+        );
+        assert_eq!(session_model(&config, &|_: &str| None), configured);
+    }
 
     #[test]
     fn a_resumed_run_in_another_mode_says_the_one_it_stopped_in() {

@@ -59,3 +59,43 @@ test('what a session was opened with is said back only when it holds together', 
   window.sessionStorage.setItem('mikata.opened', JSON.stringify({ s2: { units: '-a; rm' } }));
   expect(openedWith('s2')).toBeUndefined();
 });
+
+test('the model chosen rides every new session here, and only a name the server takes is kept', () => {
+  setComposition('w4', { profile: '', flips: {}, units: '', model: 'openrouter:qwen/qwen3-coder' });
+  expect(sessionOptions('w4')).toEqual({ model: 'openrouter:qwen/qwen3-coder' });
+  expect(sessionOptions('w4')).toEqual({ model: 'openrouter:qwen/qwen3-coder' });
+  expect(compositionOf({ profile: '', flips: {}, units: '', model: 'a model' })).toBeUndefined();
+  expect(compositionOf({ profile: '', flips: {}, units: '', model: 'x"; rm' })).toBeUndefined();
+  // The guards switched off once are never stored with it.
+  setOnce('w4', { flips: { gate: false }, units: '-gate' });
+  setComposition('w4', { ...composition('w4'), units: '' });
+  const kept = JSON.parse(window.localStorage.getItem('mikata.compose') ?? '{}');
+  expect(kept.w4).toEqual({
+    profile: '',
+    flips: {},
+    units: '',
+    model: 'openrouter:qwen/qwen3-coder',
+  });
+  noteOpened('s4', { model: 'claude-haiku-5-5' });
+  expect(openedWith('s4')).toEqual({ model: 'claude-haiku-5-5' });
+});
+
+test('the limits chosen ride every new session here, and only bounded whole numbers are kept', () => {
+  setComposition('w5', {
+    profile: '',
+    flips: {},
+    units: '',
+    limits: { steps: 600, minutes: 180, context: 170_000 },
+  });
+  expect(sessionOptions('w5')).toEqual({ steps: 600, minutes: 180, context: 170_000 });
+  for (const limits of [{ steps: 3 }, { minutes: 1.5 }, { context: '9000' }, { budget: 10 }]) {
+    expect(
+      compositionOf({ profile: '', flips: {}, units: '', limits }),
+      JSON.stringify(limits),
+    ).toBeUndefined();
+  }
+  noteOpened('s5', { steps: 600 });
+  expect(openedWith('s5')).toEqual({ steps: 600 });
+  window.sessionStorage.setItem('mikata.opened', JSON.stringify({ s6: { steps: 2 } }));
+  expect(openedWith('s6')).toBeUndefined();
+});

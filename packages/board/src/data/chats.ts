@@ -195,12 +195,24 @@ export function useChats(world: string | undefined): Chats {
 export async function startChat(
   world: string,
   resume?: string,
-  composed?: { profile?: string; units?: string },
+  composed?: {
+    profile?: string;
+    units?: string;
+    model?: string;
+    steps?: number;
+    minutes?: number;
+    context?: number;
+  },
 ): Promise<BoardStarted> {
-  const ask: Record<string, string> = {};
+  const ask: Record<string, string | number> = {};
   if (resume !== undefined) ask.resume = resume;
   if (composed?.profile) ask.profile = composed.profile;
   if (composed?.units) ask.units = composed.units;
+  if (composed?.model) ask.model = composed.model;
+  for (const k of ['steps', 'minutes', 'context'] as const) {
+    const n = composed?.[k];
+    if (n !== undefined) ask[k] = n;
+  }
   const res = await post(`/api/w/${encodeURIComponent(world)}/sessions`, ask);
   if (!res.ok) {
     const why = (await res.text().catch(() => '')).slice(0, 300);

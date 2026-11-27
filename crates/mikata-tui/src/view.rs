@@ -292,8 +292,8 @@ fn stack(m: &Model, buf: &mut Buffer, area: Rect, screen_w: u16, panes: &[Pane],
 fn light_column(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16) {
     let cols = usize::from(area.width.saturating_sub(4));
     let mut panes = vec![Pane::new("▶", "Run", crate::chrome::stepper(m, cols))];
-    if !m.sidebar.done.is_empty() {
-        let title = format!("Done when ({})", m.sidebar.done.len());
+    if !m.sidebar.done_now().is_empty() {
+        let title = format!("Done when ({})", m.sidebar.done_now().len());
         panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
     }
     panes.push(Pane::new("✓", "Checks", crate::chrome::checks(m, cols)));
@@ -320,8 +320,8 @@ fn panels(m: &Model, area: Rect, buf: &mut Buffer, screen_w: u16, wide: bool) {
     // listed, gives its panel up.
     let short = area.height < 30;
     let mut panes = vec![Pane::new("▶", "Run", crate::chrome::stepper(m, cols))];
-    if !(short && m.sidebar.done.is_empty()) {
-        let title = format!("Done when ({})", m.sidebar.done.len());
+    if !(short && m.sidebar.done_now().is_empty()) {
+        let title = format!("Done when ({})", m.sidebar.done_now().len());
         panes.push(Pane::new("☑", title, crate::chrome::done_when(m, cols)));
     }
     panes.push(Pane::new("▮", "Budgets", crate::chrome::budgets(m, cols)));

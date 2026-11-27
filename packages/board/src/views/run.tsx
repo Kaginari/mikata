@@ -25,30 +25,43 @@ export function verdictOf(view: ChatView | undefined) {
   return v?.kind === 'verdict' ? v : undefined;
 }
 
+/**
+ * Where the turn in `view` stands. Plan until the body changes a file that is not its plan; Work
+ * while it changes files and runs its own checks — a file written does not end Work, the answer
+ * does; Verify once it has answered and the end gate runs; Land when the gate passes. Read on one
+ * turn ([`latestTurn`](./Session.tsx)): an earlier turn's steps are not this one's.
+ */
 export function stages(view: ChatView | undefined, planOn: boolean): [Stage, StageState][] {
   const entries = view?.entries ?? [];
   const all = calls(entries);
   const done = (c: Call) => c.outcome !== undefined && !c.outcome.isError;
   const planned = all.some((c) => writes(c) && done(c) && pathOf(c).endsWith('plan.md'));
-  const worked = all.some((c) => writes(c) && done(c) && !pathOf(c).endsWith('plan.md'));
+  const worked = all.some((c) => writes(c) && !pathOf(c).endsWith('plan.md'));
   const verdict = verdictOf(view);
   const busy = view?.busy ?? false;
-  const list: [Stage, boolean][] = [
-    ['Plan', planned || worked || verdict !== undefined],
-    ['Work', worked || verdict !== undefined],
-    ['Verify', verdict !== undefined],
-    ['Land', verdict?.verdict === 'PASS'],
-  ];
-  let now = false;
-  return list.map(([s, ok]) => {
+  // The model ended its turn with an answer, not a call: the end gate runs then.
+  const answered = verdict !== undefined || (view?.answered ?? false);
+  const now: Stage | undefined = !busy
+    ? undefined
+    : verdict !== undefined
+      ? undefined
+      : answered
+        ? 'Verify'
+        : planOn && !worked
+          ? 'Plan'
+          : 'Work';
+  const order: Stage[] = ['Plan', 'Work', 'Verify', 'Land'];
+  const at = now ? order.indexOf(now) : -1;
+  return order.map((s, i): [Stage, StageState] => {
     if (s === 'Plan' && !planOn) return [s, 'skipped'];
-    if (s === 'Land' && verdict !== undefined && verdict.verdict !== 'PASS') return [s, 'failed'];
-    if (ok) return [s, 'done'];
-    if (!now && busy) {
-      now = true;
-      return [s, 'now'];
-    }
-    return [s, 'next'];
+    if (s === 'Land' && verdict !== undefined)
+      return [s, verdict.verdict === 'PASS' ? 'done' : 'failed'];
+    if (s === 'Verify' && verdict !== undefined) return [s, 'done'];
+    if (at >= 0) return [s, i < at ? 'done' : i === at ? 'now' : 'next'];
+    // Not running: as far as the turn came.
+    const reached =
+      s === 'Plan' ? planned || worked || answered : s === 'Work' ? worked || answered : false;
+    return [s, reached ? 'done' : 'next'];
   });
 }
 

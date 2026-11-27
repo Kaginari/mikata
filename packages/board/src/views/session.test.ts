@@ -1,8 +1,19 @@
 import { expect, test } from 'vitest';
-import type { ChatView, Entry, Usage } from '../data/chat.ts';
-import { THE_ASK } from '../data/chat.ts';
+import type { ChatView, DoneLine, Entry, Usage } from '../data/chat.ts';
+import { askOf, THE_ASK } from '../data/chat.ts';
 import { deskOf } from '../data/desk.ts';
-import { counted, kept, spoken, type Turn, turns, WINDOW, windowed } from './Session.tsx';
+import { stages } from './run.tsx';
+import {
+  counted,
+  currentList,
+  kept,
+  latestTurn,
+  spoken,
+  type Turn,
+  turns,
+  WINDOW,
+  windowed,
+} from './Session.tsx';
 
 const usage: Usage = {
   usd: 0,
@@ -19,6 +30,7 @@ const view = (entries: Entry[]): ChatView => ({
   streaming: '',
   queued: [],
   busy: false,
+  answered: false,
   turnTokens: 0,
   usage,
   files: [],
@@ -30,7 +42,7 @@ test('a turn reads as the human words and the steps that answered them', () => {
   const ask = `Recalled from memory:\n- n1 a note\n\n${THE_ASK}\n\nadd days to format()`;
   const t = turns(
     view([
-      { kind: 'user', key: 'u', text: ask },
+      { kind: 'user', key: 'u', text: ask, list: [] },
       {
         kind: 'group',
         key: 'g',
@@ -133,6 +145,7 @@ test('a long session draws its newest rows; a turn cut through keeps its newest 
   const turn = (n: number, steps: number): Turn => ({
     key: `t${n}`,
     ask: `ask ${n}`,
+    list: [],
     steps: Array.from({ length: steps }, (_, i) => say(`t${n}s${i}`)),
   });
   // Three turns: 1 + 3, 1 + 500, 1 + 2 rows.
@@ -149,4 +162,97 @@ test('a long session draws its newest rows; a turn cut through keeps its newest 
   expect(windowed([turn(0, 3)], WINDOW)).toEqual({ shown: [turn(0, 3)], hidden: 0 });
   // A larger limit shows more; enough shows all.
   expect(windowed(all, 10_000).hidden).toBe(0);
+});
+
+test('a new ask shows its own Done when list, never the plan an earlier ask left', () => {
+  const desk = { verify: [], suggested: null, done: ['D1 a line of an earlier ask'], branch: null };
+  const turn = (list: DoneLine[], planned: boolean): Turn => ({
+    key: 't',
+    ask: 'ask',
+    list,
+    steps: planned ? [{ kind: 'plan', key: 'p', mark: 'ok' }] : [],
+  });
+  expect(currentList(turn([], false), desk)).toEqual([]);
+  expect(currentList(turn([], true), desk)).toEqual(['D1 a line of an earlier ask']);
+  expect(currentList(turn([['D1', 'parse("1d") must give 1440']], false), desk)).toEqual([
+    'D1 parse("1d") must give 1440',
+  ]);
+  expect(currentList(undefined, desk)).toEqual([]);
+});
+
+test("an ask shows the human's words and the list the harness holds, not its notes to the body", () => {
+  const text = `${THE_ASK}\n\nmake total skip blanks\n\n## Done when\nD1: total(['1', '', '2']) must give 3\nD2: total(['4']) must stay as it is today\n\nD2 is the human's own word: they said an earlier answer was wrong.\n\nThe ask holds a \`## Done when\` list (D1 to D2), and the harness holds your work to it.`;
+  const { words, list } = askOf(text);
+  expect(list).toEqual([
+    ['D1', "total(['1', '', '2']) must give 3"],
+    ['D2', "total(['4']) must stay as it is today"],
+  ]);
+  expect(words).toContain('make total skip blanks');
+  expect(words).toContain('D1: total');
+  expect(words).not.toContain('harness holds your work');
+  expect(words).not.toContain("the human's own word");
+  // A command the human pinned to a line is said right under the list, in the same paragraph.
+  const pinned = `${THE_ASK}\n\nfix it\n\n## Done when\nD1: total(['1']) must give 1\nD1 is checked by the human's own command, handed in already: \`t 1\`.\n\nThe ask holds a \`## Done when\` list (D1), and the harness holds your work to it.`;
+  expect(askOf(pinned).list).toEqual([['D1', "total(['1']) must give 1"]]);
+});
+
+test('the Live run follows the ask now running, not what an earlier ask did', () => {
+  const verdict: Entry = {
+    kind: 'verdict',
+    key: 'x',
+    verdict: 'PASS',
+    changed: ['d.py'],
+    failures: [],
+    unverified: [],
+  };
+  const first: Entry = { kind: 'user', key: 'u1', text: 'one', list: [] };
+  const second: Entry = { kind: 'user', key: 'u2', text: 'two', list: [] };
+  expect(latestTurn(view([first, verdict, second]))?.entries).toEqual([second]);
+  expect(latestTurn(view([first, verdict]))?.entries).toEqual([first, verdict]);
+  expect(latestTurn(undefined)).toBeUndefined();
+});
+
+test('the stepper says what the body does now: writing a file is Work until it answers', () => {
+  const edit = (id: string, path: string, done: boolean): Entry => ({
+    kind: 'tool',
+    key: id,
+    call: {
+      id,
+      name: 'edit',
+      input: { path },
+      stopped: false,
+      ...(done ? { outcome: { content: 'ok', isError: false, cut: 0 } } : {}),
+    },
+  });
+  const ask: Entry = { kind: 'user', key: 'u', text: 'fix it', list: [] };
+  const states = (v: ChatView, planOn = false) =>
+    stages(v, planOn)
+      .map(([, s]) => s)
+      .join(' ');
+  const running = (entries: Entry[], answered = false) => ({
+    ...view(entries),
+    busy: true,
+    answered,
+  });
+  expect(states(running([ask]))).toBe('skipped now next next');
+  expect(states(running([ask]), true)).toBe('now next next next');
+  // One file written, more to come: still Work, never Verify.
+  expect(states(running([ask, edit('1', 'd.py', true), edit('2', 'e.py', false)]))).toBe(
+    'skipped now next next',
+  );
+  // The model answered: the end gate runs.
+  expect(states(running([ask, edit('1', 'd.py', true)], true))).toBe('skipped done now next');
+  // The gate's word.
+  const passed: Entry = {
+    kind: 'verdict',
+    key: 'x',
+    verdict: 'PASS',
+    changed: ['d.py'],
+    failures: [],
+    unverified: [],
+  };
+  expect(states(view([ask, edit('1', 'd.py', true), passed]))).toBe('skipped done done done');
+  expect(
+    states(view([ask, edit('1', 'd.py', true), { ...passed, verdict: 'FAIL' } as Entry])),
+  ).toBe('skipped done done failed');
 });

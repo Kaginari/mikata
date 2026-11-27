@@ -326,7 +326,7 @@ fn cost(m: &Model) -> String {
 #[must_use]
 pub fn done_when(m: &Model, w: usize) -> Lines {
     let t = &m.theme;
-    let lines = &m.sidebar.done;
+    let lines = m.sidebar.done_now();
     if lines.is_empty() {
         return vec![truncate(
             Line::from(Span::styled(

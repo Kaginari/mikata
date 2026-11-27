@@ -128,7 +128,7 @@ The board listens on your machine only. From another machine, forward the port o
 Every part of Mikata's loop is a **unit** you can switch on or off: memory, the end gate, the held
 "done" list, the reader, what-changed, the approval card, the secret files, and more. Switch them
 in the board's Harness Builder, with `/unit on|off <name>` in the terminal app, or under `[units]`
-in your config. A **profile** names a mix for a kind of work. A **plugin** adds a unit of your own.
+in your config. The Builder also picks the model a new session rides. A **profile** names a mix for a kind of work. A **plugin** adds a unit of your own.
 See [the architecture](docs/03-architecture.md) and [plugins](docs/experimental/plugins.md).
 
 ## Read more

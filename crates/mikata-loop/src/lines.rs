@@ -45,6 +45,35 @@ pub fn list(plan: &str) -> Vec<Line> {
     out
 }
 
+/// How the harness's note to the body on holding a list begins ([`crate::done::List::note`]).
+pub const HOLDS: &str = "The ask holds a `## Done when` list (";
+
+/// The list an ask is held to, read from the text a turn started with: the human's words (after
+/// the memory the core quoted above them, [`crate::run::human_words`]) and the lines the harness
+/// said after them — a reader's, a correction kept — up to its note to the body, less its own
+/// sentences on whose lines they are and which command checks one. A client shows this list for
+/// the ask, never one an earlier ask left in a plan. The board's `askOf` mirrors it.
+#[must_use]
+pub fn of_ask(text: &str) -> Vec<Line> {
+    let mine = crate::run::human_words(text);
+    let mine = mine.find(HOLDS).map_or(mine, |at| &mine[..at]);
+    let kept: Vec<&str> = mine
+        .lines()
+        .filter(|l| {
+            !["the human's own word", "the human's own command"]
+                .iter()
+                .any(|s| l.contains(s))
+        })
+        .collect();
+    let mut out: Vec<Line> = Vec::new();
+    for line in list(&kept.join("\n")) {
+        if !out.iter().any(|(name, _)| *name == line.0) {
+            out.push(line);
+        }
+    }
+    out
+}
+
 /// The list a dispatcher's orders may name: the lines its own order carried down to it, or else
 /// the `## Done when` of its own plan: its seat's `plan.md`, and for the Summoner the plan solo's
 /// prompt has it write, `.mikata/tmp/plan.md`, or the collective's board.

@@ -9,7 +9,10 @@
 //!   pages, `more` saying another follows.
 //! - **Asks**: `gate/ask` is a request, not an event, so the bridge keeps each waiting ask and
 //!   sends it again to a tab that connects, with its time left (`leftMs`). With no controller for
-//!   the grace (60 s), the waiting asks are denied and the chat ends.
+//!   the grace (60 s), the waiting asks are denied: no one is there to answer them. The chat lives
+//!   on: a turn that runs finishes with no tab watching — the human browsing another page, or
+//!   their laptop closed —, and a chat with no turn running and no controller ends after
+//!   [`Limits::idle`] (30 minutes).
 //! - **Approvals**: every field of an ask reaches the tabs already passed through `shown`, with
 //!   the SHA-256 of that text. The page renders it as text; its card acknowledges the render
 //!   (`board/seen`) when it is first visible. An allow is taken only from the controller, once,
@@ -170,8 +173,11 @@ pub struct Limits {
     pub inbound: usize,
     /// The requests one tab may have waiting on the child.
     pub calls: usize,
-    /// How long a chat waits with no controller before its asks are denied and it ends.
+    /// How long a chat waits with no controller before its waiting asks are denied.
     pub grace: Duration,
+    /// How long a chat with no controller and no turn running lives before it ends: a running
+    /// turn is never ended for want of a tab.
+    pub idle: Duration,
     /// How long a child may take to open the session.
     pub open: Duration,
     /// How long a child may take to leave once asked, before its group is killed.
@@ -205,6 +211,7 @@ impl Default for Limits {
             inbound: 1 << 20,
             calls: 64,
             grace: Duration::from_secs(60),
+            idle: Duration::from_mins(30),
             open: Duration::from_secs(60),
             leave: Duration::from_secs(10),
             send: Duration::from_secs(30),
@@ -449,6 +456,14 @@ pub struct Asked {
     pub profile: Option<String>,
     /// `MIKATA_UNITS`.
     pub units: Option<String>,
+    /// `MIKATA_MODEL`: the model the session's body rides, over `models.default`.
+    pub model: Option<String>,
+    /// `MIKATA_STEPS`: the steps an ask may take.
+    pub steps: Option<u64>,
+    /// `MIKATA_MINUTES`: an ask's clock.
+    pub minutes: Option<u64>,
+    /// `MIKATA_CONTEXT`: the context stress line, in tokens.
+    pub context: Option<u64>,
 }
 
 /// An ask as a human is shown it: every field the child sent, passed through `shown`.
@@ -593,6 +608,10 @@ struct State {
     answered: VecDeque<String>,
     /// Since when no tab controls the chat.
     orphaned: Option<Instant>,
+    /// Whether the session's own turn runs.
+    turn: bool,
+    /// When the session's last turn ended.
+    quiet: Option<Instant>,
     /// The child-side id's number → the tab and the id it used.
     calls: HashMap<u64, (u64, Value)>,
     next_conn: u64,
@@ -880,9 +899,16 @@ impl Live {
                 let Some(seq) = value["params"]["seq"].as_u64() else {
                     return;
                 };
+                let body = value["params"]["body"].as_str().unwrap_or(SESSION_BODY);
+                if m == "event/turnStarted" && body == SESSION_BODY {
+                    st.turn = true;
+                }
                 if m == "event/turnEnded" {
+                    if body == SESSION_BODY {
+                        st.turn = false;
+                        st.quiet = Some(now);
+                    }
                     // A turn that ended waits on nothing: the session's own ends them all.
-                    let body = value["params"]["body"].as_str().unwrap_or(SESSION_BODY);
                     st.withdraw(
                         |a| body == SESSION_BODY || a.body == body,
                         "withdrawn: the asking turn ended",
@@ -1452,7 +1478,8 @@ impl Live {
     }
 
     /// The clock's tick: asks past the gate's wait are dropped; past the grace with no
-    /// controller, the reason the chat ends.
+    /// controller, the waiting asks are denied; with no controller and no turn running for
+    /// [`Limits::idle`], the reason the chat ends.
     fn tick(&self, now: Instant) -> Option<String> {
         let limits = &self.limits;
         let mut st = lock(&self.state);
@@ -1462,15 +1489,30 @@ impl Live {
             limits,
             now,
         );
-        let orphaned = st.controller.is_none()
-            && st
-                .orphaned
-                .is_some_and(|at| now.saturating_duration_since(at) >= limits.grace);
-        orphaned.then(|| {
-            format!(
-                "no tab held the chat for {} s: what waited at the gate is denied, and the chat \
-                 ended",
+        let alone = if st.controller.is_none() {
+            st.orphaned
+        } else {
+            None
+        }?;
+        if now.saturating_duration_since(alone) >= limits.grace && !st.asks.is_empty() {
+            let why = format!(
+                "denied: no tab held the chat for {} s to answer",
                 limits.grace.as_secs()
+            );
+            // The child hears each denial, and its turn goes on; the tabs hear the asks are gone.
+            if let Some(input) = lock(&self.input).as_ref() {
+                for id in st.asks.keys() {
+                    let _ = input.try_send(deny_line(id, &why));
+                }
+            }
+            st.withdraw(|_| true, &why, limits, now);
+        }
+        // Idle since the later of the tab leaving and the last turn ending.
+        let since = st.quiet.map_or(alone, |q| q.max(alone));
+        (!st.turn && now.saturating_duration_since(since) >= limits.idle).then(|| {
+            format!(
+                "no tab held the chat and no turn ran for {} minutes: the chat ended",
+                limits.idle.as_secs() / 60
             )
         })
     }
@@ -1709,6 +1751,18 @@ impl Bridge {
         if let Some(u) = &asked.units {
             cmd.env("MIKATA_UNITS", u);
         }
+        if let Some(m) = &asked.model {
+            cmd.env("MIKATA_MODEL", m);
+        }
+        for (var, n) in [
+            ("MIKATA_STEPS", asked.steps),
+            ("MIKATA_MINUTES", asked.minutes),
+            ("MIKATA_CONTEXT", asked.context),
+        ] {
+            if let Some(n) = n {
+                cmd.env(var, n.to_string());
+            }
+        }
         #[cfg(unix)]
         cmd.process_group(0);
         cmd
@@ -1815,7 +1869,8 @@ impl Bridge {
         })
     }
 
-    /// A chat's keeper: it ends the chat when asked, when the child leaves, or past the grace.
+    /// A chat's keeper: it ends the chat when asked, when the child leaves, or left idle with no
+    /// tab ([`Limits::idle`]).
     async fn watch(self: Arc<Self>, live: Arc<Live>, mut ends: mpsc::UnboundedReceiver<String>) {
         let mut every = tokio::time::interval(Duration::from_millis(250));
         loop {

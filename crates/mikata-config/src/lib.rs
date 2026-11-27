@@ -1279,8 +1279,8 @@ impl Config {
             .unwrap_or(REPLY_TOKENS)
     }
 
-    /// How long a session may run before its checkpoint: the human's `limits.session_minutes`,
-    /// else an hour. Zero is no clock and falls back.
+    /// How long one ask may run before its checkpoint: the human's `limits.session_minutes`, else
+    /// an hour. The clock starts with each ask. Zero is no clock and falls back.
     #[must_use]
     pub fn session_clock(&self) -> std::time::Duration {
         let minutes = self

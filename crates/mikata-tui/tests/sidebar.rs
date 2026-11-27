@@ -815,3 +815,54 @@ fn the_survey_reads_the_verify_line_or_a_suggestion() {
     );
     let _ = std::fs::remove_dir_all(&w);
 }
+
+/// The Done when panel shows the list the current ask is held to: the one its text carries, else
+/// the plan's only when this ask wrote it. A list an earlier ask left in the plan never shows as
+/// the new ask's, undone.
+#[test]
+fn a_new_ask_shows_its_own_done_when_never_the_plan_an_earlier_ask_left() {
+    let mut m = model();
+    let plan = |m: &mut Model, seq: u64| {
+        update(
+            m,
+            Msg::Surveyed {
+                seq,
+                survey: Survey {
+                    done: vec!["D1 the old ask's line".into()],
+                    ..Survey::default()
+                },
+            },
+        );
+    };
+    let ask = |m: &mut Model, text: &str| {
+        ev(m, Event::TurnStarted { text: text.into() });
+    };
+    // The first ask writes the plan: its list shows.
+    ask(&mut m, "make total skip blanks");
+    call(
+        &mut m,
+        "c1",
+        "write",
+        json!({"path": ".mikata/tmp/plan.md", "content": "## Done when\n- D1 the old ask's line"}),
+        "wrote",
+    );
+    plan(&mut m, 1);
+    assert!(screen(&draw(&mut m, 120, 40)).contains("the old ask's line"));
+    // A new ask with no list: the old plan is not its list.
+    ask(&mut m, "now rename it");
+    plan(&mut m, 2);
+    let s = screen(&draw(&mut m, 120, 40));
+    assert!(!s.contains("the old ask's line"), "{s}");
+    // A new ask with its own list: that list, and the harness's sentences about it are none of it.
+    ask(
+        &mut m,
+        "fix it\n\n## Done when\nD1: `t 1` must give `1`\nD1 is checked by the human's own command, handed in already: `t 1`.\n\nThe ask holds a `## Done when` list (D1), and the harness holds your work to it.",
+    );
+    plan(&mut m, 3);
+    let s = screen(&draw(&mut m, 120, 40));
+    assert!(s.contains("Done when (1)"), "{s}");
+    assert!(
+        s.contains("`t 1` must give `1`") && !s.contains("the old ask's line"),
+        "{s}"
+    );
+}
