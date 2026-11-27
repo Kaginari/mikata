@@ -13,6 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- **The context line, steps and clock from the terminal too.** `mikata --context 200k`,
+  `--steps 600` and `--minutes 120` (and the same on `mikata run`) hold the session to them, as the
+  board's Harness Builder does; `/context` says where the line stands in the app, and
+  `/context 120k` moves it from the next safe point, for that session, within 8000 tokens and 90%
+  of the model's window (one out of bounds is refused, and said).
+
 - **Choose the model when you start a session on the board.** The Harness Builder has a *Model*
   choice beside the profile: the configured model, any model your configuration names (the
   default, a tier, the reader), or one you type. Sessions started there ride it (the request's

@@ -757,3 +757,34 @@ fn status_lists_each_envelope() {
     let _ = std::fs::remove_dir_all(&w);
     let _ = std::fs::remove_dir_all(w.join("../mikata-cli-envelopes-state"));
 }
+
+/// What each ask may take is asked at the command line, for the app and for run alike, as the
+/// variables the session reads; a value that is no number is refused.
+#[test]
+fn the_limits_are_asked_at_the_command_line() {
+    let args = |a: &[&str]| a.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+    assert_eq!(
+        mikata_tui::cli::limits(&args(&["--context", "200k", "--steps", "600"])),
+        Ok(vec![
+            ("MIKATA_CONTEXT", "200000".to_owned()),
+            ("MIKATA_STEPS", "600".to_owned())
+        ])
+    );
+    assert_eq!(
+        mikata_tui::cli::limits(&args(&[
+            "run",
+            "fix it",
+            "--minutes",
+            "90",
+            "--context",
+            "1.5m"
+        ])),
+        Ok(vec![
+            ("MIKATA_MINUTES", "90".to_owned()),
+            ("MIKATA_CONTEXT", "1500000".to_owned())
+        ])
+    );
+    assert!(p(&["--context", "lots"]).is_err());
+    assert!(p(&["--steps"]).is_err());
+    assert_eq!(mikata_tui::cli::limits(&args(&["--help"])), Ok(Vec::new()));
+}
