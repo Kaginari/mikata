@@ -114,7 +114,7 @@ budgets. **Advanced** shows every panel. **Focus** shows the conversation alone.
 
 ### The web board
 
-<img src="docs/img/board/session-dark.png" width="820" alt="The web board: a session's conversation as a timeline of steps beside its live run, under the brand's top bar">
+<img src="docs/img/board/sessions-dark.png" width="820" alt="The web board: a session's conversation as a timeline of steps beside its live run, under the brand's top bar">
 
 `mikata --web`, or `mikatad board --open`, opens the board on your machine. It shows every
 project you work in and their sessions. Start a session from the **Harness Builder**, where you

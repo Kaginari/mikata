@@ -13,6 +13,7 @@ import type {
 } from '@mikata/protocol';
 import { eventType } from '@mikata/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { humanWords } from './chat.ts';
 import { usePush } from './push.ts';
 import { establish, post, signedOut } from './session.ts';
 
@@ -38,7 +39,8 @@ function run(v: unknown): BoardRun | undefined {
   if (!RUN_STATES.includes(state as RunState) || !str(why) || !str(ask) || !nat(turns)) {
     return undefined;
   }
-  return { id, when, state: state as RunState, why, ask, turns };
+  // A run's ask as the core sent it carries the memory it quoted first; its title is the human's.
+  return { id, when, state: state as RunState, why, ask: humanWords(ask), turns };
 }
 
 /** The live chats an answer holds. */

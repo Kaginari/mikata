@@ -111,8 +111,9 @@
 .chart-fill {
   fill: var(--mn-text-muted);
 }
+/* Mikata, the session's own body: its brand colour, as in every chart of the book */
 .chart-fill[data-series="summoner"] {
-  fill: var(--mn-race-summoner);
+  fill: var(--mn-hot);
 }
 .chart-fill[data-series="elf"] {
   fill: var(--mn-race-elf);

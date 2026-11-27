@@ -1,9 +1,8 @@
-# Lessons carried from isekai
+# Lessons
 
-Every row below is a failure isekai actually shipped, hit in use, or caught late. Mikata does not
-carry them as advice: each row becomes either a test that fails if the mistake comes back, or a
-design rule the code makes impossible to break, and the milestone column names the rung of the
-roadmap where that test or rule must exist before the rung counts as done.
+Every row below is a mistake that was really made: shipped by isekai, the project Mikata grew from,
+or caught on Mikata's own bench. None is kept as advice. Each one became a test that fails if the
+mistake comes back, or a rule the code makes impossible to break.
 
 ## In one picture
 

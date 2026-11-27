@@ -1064,7 +1064,7 @@ background as `COLORFGBG` reports it, else dark; the scheme from `MIKATA_THEME`,
 
 <img src="./img/tui/dashboard-dark.png" width="760" alt="The terminal app in its Light view, dark: a gradient header bar, the answer and the end gate's pass banner, what changed, and one slim column: Run (Plan, Work, Verify, Land all lit), Checks, Files changed, Budgets, Guardrails">
 
-<img src="./img/tui/approval-dark.png" width="380" alt="A real approval over the dimmed view: git push origin master boxed under a $ prompt, its reason, approve once picked as a gradient button"> <img src="./img/tui/focus-dark.png" width="380" alt="The Focus view: the conversation alone, a page wide, under one-row bars">
+<img src="./img/tui/approval-dark.png" width="380" alt="A real approval over the dimmed view: git push origin master boxed under a $ prompt, the plan it is bound to, its reason, and the answers as buttons"> <img src="./img/tui/focus-dark.png" width="380" alt="The Focus view: the conversation alone, a page wide, under one-row bars">
 
 The frames are drawn by the app itself: `cargo run -p mikata-tui --example frame -- <width> <height>
 <dark|light> [scheme] [focus|zen|gate] > frame.json`, then `node tools/tui-shot.mjs frame.json out.png`.

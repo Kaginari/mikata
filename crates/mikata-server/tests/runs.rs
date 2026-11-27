@@ -323,3 +323,15 @@ fn a_world_without_journals_lists_none() {
     assert_eq!(runs::list(w).runs, vec![]);
     assert_eq!(runs::transcript(w, "r1-2").unwrap_err().0, 404);
 }
+
+#[tokio::test]
+async fn a_run_is_named_by_the_humans_words_not_the_memory_before_them() {
+    let f = Fixture::new("named");
+    let asked = format!(
+        "Recalled from memory (a proposed note is unproven):\n@M n1 personal proposed: x\n\n---\n\n{}\n\nmake total skip blanks",
+        mikata_loop::run::THE_ASK
+    );
+    f.journal("r1000-1", &[ask(&asked)], 0);
+    let list = runs::list(&f.world);
+    assert_eq!(list.runs[0].ask, "make total skip blanks");
+}
