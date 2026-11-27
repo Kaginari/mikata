@@ -1177,11 +1177,11 @@ body:has(.approval-backdrop) .pf :not(.approval-backdrop, .approval-backdrop *):
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ss-model span {
+.ss-model > span {
   margin-left: auto;
   white-space: nowrap;
 }
-.ss-model[data-busy="true"] span::before {
+.ss-model[data-busy="true"] > span::before {
   content: "";
   display: inline-block;
   width: 7px;
@@ -2076,7 +2076,7 @@ a.pf-mini {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ss-model[data-busy="true"] span::before {
+  .ss-model[data-busy="true"] > span::before {
     animation: none;
   }
   .ss-card h3 .ss-chevron {
