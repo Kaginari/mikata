@@ -380,9 +380,9 @@ pub struct Run {
     /// When the clock of the ask now running started: the deadline counts from here, so a
     /// session left open between asks spends none of it.
     clock: Instant,
-    /// Whether a dispatcher cut this run's time from its own ([`Run::within`]): its clock then
-    /// never starts again, whatever it is asked.
-    bounded: bool,
+    /// The time a dispatcher left this run out of its own ([`Run::within`]): its clock then never
+    /// starts again, whatever it is asked.
+    bounded: Option<Duration>,
     gate: Option<EndGate>,
     before: Option<Tree>,
     /// The tree as this ask found it, kept in the attic: what its checks are run on again.
@@ -595,7 +595,7 @@ impl Run {
             last_occupancy: 0,
             started: Instant::now(),
             clock: Instant::now(),
-            bounded: false,
+            bounded: None,
             gate: None,
             before: None,
             start: None,
@@ -729,6 +729,15 @@ impl Run {
         Some((!gate.verify.is_empty(), failures))
     }
 
+    /// A new ask: no step taken yet, and the clock started again — unless a dispatcher gave this
+    /// run its time ([`Run::within`]), which it keeps.
+    fn ask_starts(&mut self) {
+        self.ask_steps = 0;
+        if self.bounded.is_none() {
+            self.clock = Instant::now();
+        }
+    }
+
     /// The run's clock, ending no later than `left` from now: a commissioned body never outlives
     /// the time its dispatcher has left.
     #[must_use]
@@ -737,7 +746,7 @@ impl Run {
             .limits
             .deadline
             .min(self.clock.elapsed().saturating_add(left));
-        self.bounded = true;
+        self.bounded = Some(left);
         self
     }
 
@@ -1846,10 +1855,7 @@ impl Run {
         // The step budget, the clock and the stress instruments are each commission's: a human
         // ask is one. The time a session sat waiting for its next ask is no ask's; a run whose
         // dispatcher gave it its time keeps that time.
-        self.ask_steps = 0;
-        if !self.bounded {
-            self.clock = Instant::now();
-        }
+        self.ask_starts();
         self.stress = Stress::for_steps(self.limits.steps);
         self.ask_begins(text);
         self.noticed = false;
