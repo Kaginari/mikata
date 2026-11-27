@@ -69,6 +69,19 @@ fn a_read_runs_without_asking() {
     assert_eq!(gate.asked(), [] as [mikata_tools::Ask; 0]);
 }
 
+/// A commit run by a body leaves no upkeep behind: git would detach it with setsid, which the
+/// sandbox refuses, and print `fatal: setsid failed` after a commit that landed.
+#[test]
+fn git_upkeep_is_off_in_a_bodys_commands() {
+    let w = World::new("upkeep");
+    let gate = Arc::new(Scripted::new([]));
+    let o = bash(
+        &mut w.cx(Race::Slime, gate),
+        r#"echo "$GIT_CONFIG_COUNT $GIT_CONFIG_KEY_0=$GIT_CONFIG_VALUE_0 $GIT_CONFIG_KEY_1=$GIT_CONFIG_VALUE_1""#,
+    );
+    assert_eq!(o.content, "2 maintenance.auto=false gc.auto=0\n");
+}
+
 #[test]
 fn a_refused_command_never_runs() {
     let w = World::new("refuse");
