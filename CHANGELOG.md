@@ -66,13 +66,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
-- Board: a metrics bar's hover card no longer vanishes for the keyboard. The pointer and the focus each
-  hold their own card, so the pointer leaving a bar keeps the focused bar's card shown.
+- **A metrics bar's hover card no longer vanishes for the keyboard.** The pointer and the focus
+  each hold their own card, so the pointer leaving a bar keeps the focused bar's card shown.
 
 - **A card in the terminal app no longer has a square on its first line.** The lip above each
   card drew its first cell in the bar's colour, a whole cell wide over a half-cell bar.
 
 - **The header moves less**: its gradient drifts slowly (one pass in 48 seconds, its shine every 16), and stands still in Studio.
+
 - **Leaving a session's page no longer stops its work.** The board ended a chat 60 seconds after
   its last tab left, so a task stopped while you read another page (the metrics, a past run).
   Now a turn that runs always finishes; waiting approvals are still denied after 60 seconds with
