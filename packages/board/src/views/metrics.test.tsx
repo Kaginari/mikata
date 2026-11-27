@@ -80,7 +80,10 @@ test('the metrics page: totals, charts with a legend, meters silent or with thei
   await mount(<MetricsView load={{ state: 'loading' }} />);
   const text = host.textContent ?? '';
   expect(asked).toContain('/api/metrics?world=all&window=7d');
-  expect(text).toContain('$3.12 (2 unpriced) · 1.9M wt');
+  // The totals as tiles: the amount, what was not priced under it, the weighted total.
+  const tiles = host.querySelector('.mx-kpis')?.textContent ?? '';
+  expect(tiles).toContain('$3.12');
+  expect(tiles).toContain('2 calls unpriced · 1.9M wt weighted');
   expect(text).not.toMatch(/\$0\.00/);
   expect(text).toContain('unpriced (2)');
   // The wide range of days is drawn on a log axis that says so.
@@ -108,8 +111,11 @@ test('the metrics page: totals, charts with a legend, meters silent or with thei
 test('the metrics page: the runs’ health, verdicts and endings, and spend per model and body', async () => {
   await mount(<MetricsView load={{ state: 'loading' }} />);
   const text = host.textContent ?? '';
-  // The totals line splits the tokens.
-  expect(text).toMatch(/in [\d.]+[kM]? · out [\d.]+[kM]? · cache read [\d.]+[kM]? · write/);
+  // The tiles split the tokens: in and out, read from the cache, written to it.
+  const tiles = host.querySelector('.mx-kpis')?.textContent ?? '';
+  expect(tiles).toMatch(/in [\d.]+[kM]? · out [\d.]+[kM]?/);
+  expect(tiles).toMatch(/read [\d.]+[kM]? from the cache/);
+  expect(tiles).toMatch(/cache write [\d.]+[kM]?/);
   // The window's runs: how many tested after writing, the verdicts and endings counted.
   expect(text).toContain('a test ran after the last code write in 1 of 2');
   const tallies = [...host.querySelectorAll('.tally-row')].map((r) => r.textContent);
