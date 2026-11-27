@@ -314,7 +314,14 @@ test('the metrics page reads every ask: its numbers, its charts with legends, ho
   // A bar says what it is, to the pointer and to the keyboard.
   await page.locator('.mx-hit').nth(4).hover();
   await expect(page.getByRole('tooltip')).toContainText('Blocked by the end gate');
+  await page.mouse.move(0, 0);
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
   await page.locator('.mx-hit').first().focus();
+  await expect(page.getByRole('tooltip')).toContainText('Landed');
+  // The pointer passing over and away does not take the focused bar's card with it.
+  await page.locator('.mx-hit').nth(4).hover();
+  await expect(page.getByRole('tooltip')).toContainText('Blocked by the end gate');
+  await page.mouse.move(0, 0);
   await expect(page.getByRole('tooltip')).toContainText('Landed');
   await expect(page.getByRole('region', { name: 'Harnesses compared' })).toContainText('-reader');
   expect(await page.locator('main').textContent()).not.toContain('$0.00');

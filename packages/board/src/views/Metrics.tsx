@@ -55,16 +55,25 @@ interface Tip {
 }
 
 function useTip() {
-  const [tip, setTip] = useState<Tip | undefined>();
+  // The pointer and the focus each hold their own card: leaving one does not take the other's away
+  // (a focus that scrolls the page moves the chart from under a resting pointer). The newer shows.
+  const [hover, setHover] = useState<Tip | undefined>();
+  const [focus, setFocus] = useState<Tip | undefined>();
+  const [last, setLast] = useState<'hover' | 'focus'>('hover');
   const on = (body: ReactNode) => ({
-    onMouseMove: (e: React.MouseEvent) => setTip({ x: e.clientX, y: e.clientY, body }),
-    onMouseLeave: () => setTip(undefined),
+    onMouseMove: (e: React.MouseEvent) => {
+      setHover({ x: e.clientX, y: e.clientY, body });
+      setLast('hover');
+    },
+    onMouseLeave: () => setHover(undefined),
     onFocus: (e: React.FocusEvent) => {
       const r = (e.currentTarget as Element).getBoundingClientRect();
-      setTip({ x: r.left + r.width / 2, y: r.top, body });
+      setFocus({ x: r.left + r.width / 2, y: r.top, body });
+      setLast('focus');
     },
-    onBlur: () => setTip(undefined),
+    onBlur: () => setFocus(undefined),
   });
+  const tip = last === 'focus' ? (focus ?? hover) : (hover ?? focus);
   const card = tip ? (
     <div
       className="mx-tip"
