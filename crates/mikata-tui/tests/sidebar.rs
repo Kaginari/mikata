@@ -881,3 +881,31 @@ fn ctrl_l_shows_the_chat_alone_and_back() {
         "back to the view it left"
     );
 }
+
+/// /context says where the line stands, or asks for a new one; a word that is no number says how
+/// it is written.
+#[test]
+fn context_is_said_or_moved_from_the_input() {
+    let mut m = model();
+    let typed = |m: &mut Model, line: &str| {
+        for c in line.chars() {
+            update(
+                m,
+                Msg::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE)),
+            );
+        }
+        update(
+            m,
+            Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+        )
+    };
+    assert!(matches!(
+        typed(&mut m, "/context").as_slice(),
+        [Cmd::Context(None)]
+    ));
+    assert!(matches!(
+        typed(&mut m, "/context 120k").as_slice(),
+        [Cmd::Context(Some(120_000))]
+    ));
+    assert!(typed(&mut m, "/context lots").is_empty());
+}

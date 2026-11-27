@@ -299,6 +299,38 @@ impl Host {
         let _ = self.tx.send(Msg::Said(said));
     }
 
+    /// `/context`: the line as the run last listed it, with the last refusal of one; or a new
+    /// one asked for its next safe point.
+    fn context(&self, tokens: Option<u64>) {
+        let mut desk = self.units.lock().unwrap_or_else(PoisonError::into_inner);
+        let said = if let Some(n) = tokens {
+            desk.context = Some(n);
+            format!(
+                "asked: the context line at {n} tokens, from the next safe point, for this session"
+            )
+        } else {
+            {
+                let refused = desk
+                    .refused
+                    .iter()
+                    .rev()
+                    .find(|r| r.starts_with("context: "))
+                    .map(|r| format!(" · last refused: {}", &r["context: ".len()..]))
+                    .unwrap_or_default();
+                match desk.line {
+                    Some((line, window)) => format!(
+                        "context line: {line} tokens, of a {window} token window · /context <tokens> moves it{refused}"
+                    ),
+                    None => format!(
+                        "the context line is listed once the session has asked · /context <tokens> moves it{refused}"
+                    ),
+                }
+            }
+        };
+        drop(desk);
+        let _ = self.tx.send(Msg::Said(said));
+    }
+
     /// Run a command; `false` when it is the one to leave.
     pub fn run(&self, cmd: Cmd) -> bool {
         match cmd {
@@ -314,6 +346,7 @@ impl Host {
                 .push_back(line),
             Cmd::Interrupt => self.interrupt.fire(),
             Cmd::Units(change) => self.units(change),
+            Cmd::Context(tokens) => self.context(tokens),
             Cmd::Answer(pending, answer) => {
                 let _ = pending.answer(answer);
             }

@@ -89,6 +89,7 @@ cd ~/code/my-project
 mikata                       # the terminal app
 mikata --web                 # the web board, opened in your browser
 mikata run "<ask>"           # one ask, no app: the answer on stdout
+mikata --context 200k        # the context line (and --steps, --minutes); /context moves it live
 mikata status                # the model, the key, the sandbox, what is switched on
 mikata resume last           # pick up the last run that stopped
 ```

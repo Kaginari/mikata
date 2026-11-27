@@ -163,6 +163,9 @@ pub enum Cmd {
     Withdraw(String),
     /// The session's units: listed (`None`), or one switched on or off at its next safe point.
     Units(Option<(String, bool)>),
+    /// The context line: said as it stands (`None`), or moved to so many tokens at the next safe
+    /// point, for this session.
+    Context(Option<u64>),
     /// Put text on the clipboard: the terminal's (OSC 52) and the desktop's, where a tool is.
     Copy(String),
     /// Leave.
@@ -352,7 +355,7 @@ pub(crate) struct Hits {
 }
 
 /// The commands typed with a slash.
-pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /theme <name> [dark|light|studio] · /view light|advanced|focus · /clear · /quit · F2 next view · ctrl+l chat only · ctrl+o every thought · ctrl+b sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
+pub const COMMANDS: &str = "/send <text> steer the running turn · /wrong <what is wrong> say the last answer was wrong · /withdraw [note] take it back · /units list the units · /unit on|off <id> · /plugin load|unload <id> · /plugin swap <old> <new> · /waive <landing> <reason> waive a Dark Elf challenge · /context [tokens] the context line · /theme <name> [dark|light|studio] · /view light|advanced|focus · /clear · /quit · F2 next view · ctrl+l chat only · ctrl+o every thought · ctrl+b sidebar · alt+↑↓ pick a card · ctrl+t expand it · a click on a sidebar title folds it";
 
 impl Model {
     /// A model for a session of `header`, in `variant`, at `size`.
@@ -1218,6 +1221,16 @@ fn submit(m: &mut Model, line: String) -> Vec<Cmd> {
                 }
             },
             "units" => return vec![Cmd::Units(None)],
+            // The context line: said as it stands, or moved for this session.
+            "context" => match arg.trim() {
+                "" => return vec![Cmd::Context(None)],
+                word => match crate::cli::count(word) {
+                    Some(tokens) => return vec![Cmd::Context(Some(tokens))],
+                    None => m.info(
+                        "/context [tokens]: the context line, 200k say; alone, where it stands",
+                    ),
+                },
+            },
             "unit" | "plugin" => match unit_change(name, arg) {
                 Ok(changes) => return changes.into_iter().map(|c| Cmd::Units(Some(c))).collect(),
                 Err(usage) => m.info(usage),

@@ -21,6 +21,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   side, the tool mix and the work signals. Filter by workspace, window and model; hover or focus
   any bar for its numbers. It moves live while a session works. The server reads it from the
   runs' journals and the usage ledger (`GET /api/insights`).
+- **The context line, steps and clock from the terminal too.** `mikata --context 200k`,
+  `--steps 600` and `--minutes 120` (and the same on `mikata run`) hold the session to them, as the
+  board's Harness Builder does; `/context` says where the line stands in the app, and
+  `/context 120k` moves it from the next safe point, for that session, within 8000 tokens and 90%
+  of the model's window (one out of bounds is refused, and said).
 - **The terminal app has Studio too**, beside dark and light: `--theme studio`,
   `MIKATA_THEME=studio` or `/theme studio` live. On Mikata's own scheme it is the board's Studio
   colour for colour; every scheme's Studio is softer than its dark look, its panel frames one
