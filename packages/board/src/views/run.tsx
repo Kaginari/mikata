@@ -41,22 +41,26 @@ export function stages(view: ChatView | undefined, planOn: boolean): [Stage, Sta
   const busy = view?.busy ?? false;
   // The model ended its turn with an answer, not a call: the end gate runs then.
   const answered = verdict !== undefined || (view?.answered ?? false);
+  // Refused while the turn goes on: the body is back at work, repairing what the gate named.
+  const repairing = busy && verdict !== undefined && verdict.verdict !== 'PASS';
   const now: Stage | undefined = !busy
     ? undefined
-    : verdict !== undefined
-      ? undefined
-      : answered
-        ? 'Verify'
-        : planOn && !worked
-          ? 'Plan'
-          : 'Work';
+    : repairing
+      ? 'Work'
+      : verdict !== undefined
+        ? undefined
+        : answered
+          ? 'Verify'
+          : planOn && !worked
+            ? 'Plan'
+            : 'Work';
   const order: Stage[] = ['Plan', 'Work', 'Verify', 'Land'];
   const at = now ? order.indexOf(now) : -1;
   return order.map((s, i): [Stage, StageState] => {
     if (s === 'Plan' && !planOn) return [s, 'skipped'];
-    if (s === 'Land' && verdict !== undefined)
+    if (s === 'Land' && verdict !== undefined && !repairing)
       return [s, verdict.verdict === 'PASS' ? 'done' : 'failed'];
-    if (s === 'Verify' && verdict !== undefined) return [s, 'done'];
+    if (s === 'Verify' && verdict !== undefined && !repairing) return [s, 'done'];
     if (at >= 0) return [s, i < at ? 'done' : i === at ? 'now' : 'next'];
     // Not running: as far as the turn came.
     const reached =

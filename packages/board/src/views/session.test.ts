@@ -8,6 +8,7 @@ import {
   currentList,
   kept,
   latestTurn,
+  phaseOf,
   spoken,
   type Turn,
   turns,
@@ -252,7 +253,63 @@ test('the stepper says what the body does now: writing a file is Work until it a
     unverified: [],
   };
   expect(states(view([ask, edit('1', 'd.py', true), passed]))).toBe('skipped done done done');
+  // Refused, and the body goes on: back at work, Land not failed yet.
+  const refused = { ...passed, verdict: 'FAIL' } as Entry;
+  expect(states(running([ask, edit('1', 'd.py', true), refused]))).toBe('skipped now next next');
   expect(
     states(view([ask, edit('1', 'd.py', true), { ...passed, verdict: 'FAIL' } as Entry])),
   ).toBe('skipped done done failed');
+});
+
+test('the phase says what the running ask does: a failed call it can repair is recovering, a refusal is blocked', () => {
+  const ask: Entry = { kind: 'user', key: 'u', text: 'fix it', list: [] };
+  const call = (id: string, name: string, out?: boolean): Entry => ({
+    kind: 'tool',
+    key: id,
+    call: {
+      id,
+      name,
+      input: {},
+      stopped: false,
+      ...(out === undefined ? {} : { outcome: { content: 'x', isError: !out, cut: 0 } }),
+    },
+  });
+  const verdict = (word: string): Entry => ({
+    kind: 'verdict',
+    key: `v${word}`,
+    verdict: word,
+    changed: ['a.py'],
+    failures: word === 'PASS' ? [] : ['pytest -q'],
+    unverified: [],
+  });
+  const busy = (entries: Entry[], extra: Partial<ChatView> = {}) => ({
+    ...view(entries),
+    busy: true,
+    ...extra,
+  });
+  expect(phaseOf(busy([ask])).phase).toBe('thinking');
+  expect(phaseOf(busy([ask, call('1', 'bash')]))).toEqual({
+    phase: 'running',
+    word: 'running bash',
+  });
+  expect(phaseOf(busy([ask, call('1', 'bash', false)]))).toEqual({
+    phase: 'recovering',
+    word: 'repairing a failed bash',
+  });
+  // A later call that worked: back to work, the failure stays a mark on its own line.
+  expect(phaseOf(busy([ask, call('1', 'bash', false), call('2', 'edit', true)])).phase).toBe(
+    'thinking',
+  );
+  expect(phaseOf(busy([ask], { streaming: 'Now I' })).word).toBe('writing');
+  expect(phaseOf(busy([ask], { answered: true })).phase).toBe('checking');
+  expect(phaseOf(busy([ask]), 1).phase).toBe('waiting');
+  // The gate refused and the body goes on: it repairs.
+  expect(phaseOf(busy([ask, verdict('FAIL')])).phase).toBe('recovering');
+  // Done: the gate's word.
+  expect(phaseOf(view([ask, verdict('PASS')])).phase).toBe('verified');
+  expect(phaseOf(view([ask, verdict('FAIL')])).phase).toBe('blocked');
+  expect(phaseOf(view([ask, { kind: 'ending', key: 'e', ending: 'interrupted' }])).phase).toBe(
+    'paused',
+  );
+  expect(phaseOf(view([ask])).phase).toBe('idle');
 });

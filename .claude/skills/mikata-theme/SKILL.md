@@ -52,6 +52,8 @@ Semantic roles, derived for every scheme in `:root` and set exactly for Bio Digi
 | brand as words | `--mn-brand-ink` | a title clipped to the brand, AA on the page |
 | **bio** | `--mn-success-fill`, `--mn-success-text`, `--mn-success-bg`, `--mn-success-border`, `--mn-success-on`, `--mn-gradient-bio` | alive, connected, verified |
 | semantic | `--mn-warning(-bg)`, `--mn-error(-bg)`, `--mn-info(-bg)`, `--mn-alarm` | attention, failure, information |
+| failure | `--mn-error-text`, `-border`, `-hover`, `-critical`, `--mn-glow-error`, `--mn-gradient-error` | a vermilion measured apart from the brand pink; the full red (panel, edge, glow) only where the end gate refused an answer — a failed call is a mark on its own line |
+| run state | `--mn-state-running`, `-thinking`, `-verified`, `-waiting`, `-failed`, `-blocked`, `-recovering`, `-paused`, `-disabled` | what a run is doing; always with an icon and a word, never colour alone: running and verified are one family, failed and blocked one red |
 | graph | `--mn-edge-native`, `--mn-edge-plugin`, `--mn-edge-active`, `--mn-edge-disabled`, `--mn-canvas-grid` | the Builder's wires and canvas |
 | effects | `--mn-glow`, `--mn-glow-soft`, `--mn-glow-success`, `--mn-shadow` | glow and depth |
 | race colour | `--mn-race-<race>` / `races.<race>` | anything that belongs to one race: its lane, prefix, card |

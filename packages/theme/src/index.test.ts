@@ -5,6 +5,7 @@ import {
   contrast,
   DEFAULT_SCHEME,
   dark,
+  failure,
   light,
   PALETTES,
   type Palette,
@@ -13,6 +14,7 @@ import {
   SCHEMES,
   type SchemePalette,
   schemes,
+  states,
 } from './index.js';
 
 const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8');
@@ -127,4 +129,37 @@ describe('the board palettes: the css and the ts agree, and every text role read
       }
     }
   }
+});
+
+describe("a run's states and failure, in Bio Digital and Bio Pearl", () => {
+  const sides = [
+    ['dark', ':root[data-scheme="neon"]:not([data-theme="light"])', schemes.neon.dark],
+    ['light', ':root[data-scheme="neon"][data-theme="light"]', schemes.neon.light],
+  ] as const;
+
+  it.each(sides)('%s: the css and the ts agree', (side, selector) => {
+    const decl = block(selector);
+    for (const [k, v] of Object.entries(states[side])) expect(decl[`state-${k}`], k).toBe(v);
+    for (const [k, v] of Object.entries(failure[side])) expect(decl[`error-${k}`], k).toBe(v);
+  });
+
+  it.each(sides)(
+    '%s: every state reads as a mark on its panels (3:1), but disabled',
+    (side, _s, p) => {
+      for (const [k, v] of Object.entries(states[side])) {
+        if (k === 'disabled') continue;
+        for (const bg of [p.bg, p.panel, p.panelRaised])
+          expect(contrast(v, bg), `${k} on ${bg}`).toBeGreaterThanOrEqual(3);
+      }
+    },
+  );
+
+  it.each(sides)(
+    '%s: failure text reads on its own tint and on the panel (AA, 4.5:1)',
+    (side, _s, p) => {
+      const f = failure[side];
+      for (const bg of [f.bg, p.panel])
+        expect(contrast(f.text, bg), bg).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });

@@ -24,6 +24,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   reads too). A context line past 90% of the model's window is refused, as in the configuration.
 - **The Live run shows the model at work**: its name, and what it does now — thinking, writing,
   running a tool, waiting on the end gate.
+- **Every state of a run has its colour, its icon and its word** (`--mn-state-*` in the theme):
+  thinking in violet, running in lime, needs you in amber, recovering in blue, verified in lime,
+  blocked and failed in red, paused in grey. The Live run's model line and the session's badge
+  say which. A failed call the body can repair shows as *recovering* and stays a mark on its own
+  line; only the end gate's refusal wears the full red: a *Verification failed* panel with what
+  failed and **Retry & repair**.
+- **Failure has its own red**, a vermilion measured apart from the brand's hot pink, with its
+  text, tint, border, glow and gradient (`--mn-error-*`) in Bio Digital and Bio Pearl, each text
+  at WCAG AA.
 - **Done when and Guardrails fold** on the board's Live run, by their title; the browser keeps
   which are folded.
 

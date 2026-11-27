@@ -79,6 +79,42 @@ export interface SchemePalette extends Palette {
   player: string;
 }
 
+/**
+ * What a run is doing, in Bio Digital (dark) and Bio Pearl (light): `--mn-state-*`. Each is shown
+ * with an icon and a word as well: running and verified are one family, failed and blocked one
+ * red, told apart by their marks, never by colour alone.
+ */
+export const states = {
+  dark: {
+    running: '#b6f542',
+    thinking: '#b18cff',
+    verified: '#c8fa73',
+    waiting: '#ffc857',
+    failed: '#ff5a3c',
+    blocked: '#ff3b1f',
+    recovering: '#82b1ff',
+    paused: '#b7a9bc',
+    disabled: '#514655',
+  },
+  light: {
+    running: '#5c960b',
+    thinking: '#7c3aed',
+    verified: '#426a12',
+    waiting: '#a16207',
+    failed: '#b82e15',
+    blocked: '#a82a12',
+    recovering: '#285fcc',
+    paused: '#796780',
+    disabled: '#c5b6c9',
+  },
+} as const;
+
+/** Failure's own surface in Bio Digital and Bio Pearl: `--mn-error-*`. */
+export const failure = {
+  dark: { text: '#ff9a85', bg: '#32160f', border: '#74301f' },
+  light: { text: '#a82a12', bg: '#fff1ed', border: '#f6b9aa' },
+} as const;
+
 export const SCHEMES = ['neon', 'ember', 'lagoon', 'harbor', 'dune', 'spice', 'hud'] as const;
 export type SchemeName = (typeof SCHEMES)[number];
 /** The scheme worn unless another is asked for. */
@@ -92,7 +128,7 @@ export const neonDark: SchemePalette = {
   text: '#f5eff7',
   textMuted: '#b7a9bc',
   holo: '#ff168a',
-  alarm: '#ff5575',
+  alarm: '#ff5a3c',
   gold: '#ffb020',
   player: '#ffb020',
 };
@@ -105,7 +141,7 @@ export const neonLight: SchemePalette = {
   text: '#211626',
   textMuted: '#65546b',
   holo: '#c0125c',
-  alarm: '#b01c42',
+  alarm: '#b82e15',
   gold: '#8f5506',
   player: '#8f5506',
 };

@@ -25,8 +25,10 @@ import {
   Layers,
   LoaderCircle,
   type LucideIcon,
+  OctagonX,
   Pencil,
   Power,
+  RotateCcw,
   Send,
   Shield,
   ShieldAlert,
@@ -34,6 +36,7 @@ import {
   Square,
   SquareCheck,
   User,
+  X,
   Zap,
 } from 'lucide-react';
 import {
@@ -66,7 +69,7 @@ import { Safe } from '../safe/Safe.tsx';
 import { Approval } from '../ui/Approval.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { useAnnouncements } from './Chat.tsx';
-import { logLines, Steps, stages, stamp, verdictOf } from './run.tsx';
+import { logLines, Steps, stages, stamp } from './run.tsx';
 import { SessionUnits } from './SessionUnits.tsx';
 import './session.css';
 
@@ -91,6 +94,8 @@ export type Step =
       word: string;
       changed: number;
       why: string;
+      /** What the end gate held against the answer: its failures, then what it could not verify. */
+      failures: readonly string[];
     }
   | { kind: 'ending'; key: string; text: string };
 
@@ -276,6 +281,7 @@ export function turns(view: ChatView | undefined, verify: readonly string[]): Tu
           word: e.verdict,
           changed: e.changed.length,
           why: e.failures[0] ?? e.unverified[0] ?? '',
+          failures: [...e.failures, ...e.unverified],
         });
         break;
       case 'ending':
@@ -361,7 +367,18 @@ function Output({ text }: { text: string }) {
   );
 }
 
-function StepBody({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean }) {
+function StepBody({
+  s,
+  desk,
+  landed,
+  onRepair,
+}: {
+  s: Step;
+  desk: Desk;
+  landed: boolean;
+  /** On the refusal the human can answer now: asks the body to repair what it names. */
+  onRepair?: ((failures: readonly string[]) => void) | undefined;
+}) {
   switch (s.kind) {
     case 'plan':
       return (
@@ -494,21 +511,52 @@ function StepBody({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
     case 'note':
       return (
         <li className="mapp-note" data-status={s.alarm ? 'gold' : undefined}>
-          <Safe text={s.text} />
+          <Safe text={s.text} lines />
         </li>
       );
     case 'verdict':
+      if (!s.ok) {
+        // The end gate refused the answer: the one place a failure wears the full red.
+        const n = s.failures.length;
+        return (
+          <li className="mapp-blocked">
+            <div className="mapp-blocked-head">
+              <Icon icon={OctagonX} className="mapp-blocked-icon" />
+              <p className="mapp-blocked-text">
+                <b>{s.word === 'NOT_VERIFIED' ? 'Not verified' : 'Verification failed'}</b>
+                <span>
+                  {n > 0 ? `${n} ${n === 1 ? 'check' : 'checks'} failed · ` : ''}the end gate
+                  blocked the answer.
+                </span>
+              </p>
+            </div>
+            {n > 0 && (
+              <ul className="mapp-blocked-list">
+                {s.failures.slice(0, 6).map((f) => (
+                  <li key={f}>
+                    <Icon icon={X} /> <Safe text={f} />
+                  </li>
+                ))}
+                {n > 6 && <li className="mapp-more">and {n - 6} more</li>}
+              </ul>
+            )}
+            {onRepair && (
+              <div className="mapp-blocked-actions">
+                <button type="button" className="mapp-repair" onClick={() => onRepair(s.failures)}>
+                  <Icon icon={RotateCcw} /> Retry &amp; repair
+                </button>
+              </div>
+            )}
+          </li>
+        );
+      }
       return (
         <li className="mapp-landed" data-ok={s.ok}>
-          <Icon icon={s.ok ? Check : CircleX} className="mapp-landed-icon" />
+          <Icon icon={Check} className="mapp-landed-icon" />
           <p>
-            <b>{s.ok ? 'Landed:' : s.word === 'NOT_VERIFIED' ? 'Not verified:' : 'Not landed:'}</b>{' '}
+            <b>Landed:</b>{' '}
             <Safe
-              text={
-                s.ok
-                  ? `the end gate passed — your verify line ran green and no test was deleted or skipped${s.changed > 0 ? ` · ${s.changed} changed` : ''}.`
-                  : s.why || 'the end gate refused it.'
-              }
+              text={`the end gate passed — your verify line ran green and no test was deleted or skipped${s.changed > 0 ? ` · ${s.changed} changed` : ''}.`}
             />
           </p>
         </li>
@@ -527,7 +575,8 @@ function StepBody({ s, desk, landed }: { s: Step; desk: Desk; landed: boolean })
 /** A step, drawn again only when it changed: an event redraws the step it touched, not all. */
 const StepView = memo(
   StepBody,
-  (a, b) => a.desk === b.desk && a.landed === b.landed && sameStep(a.s, b.s),
+  (a, b) =>
+    a.desk === b.desk && a.landed === b.landed && a.onRepair === b.onRepair && sameStep(a.s, b.s),
 );
 
 // ── the screen ──────────────────────────────────────────────────────────────────────────────────
@@ -535,7 +584,35 @@ const StepView = memo(
 /** No ask: one array, so the announcements' effect does not rerun for a new empty one. */
 const NO_ASKS: Live['asks'] = [];
 
-type State = 'Ready' | 'Starting' | 'Running' | 'Verified' | 'Not landed' | 'Waiting' | 'Ended';
+/** What the header and the Live run's badge say. */
+type State =
+  | 'Ready'
+  | 'Starting'
+  | 'Running'
+  | 'Thinking'
+  | 'Checking'
+  | 'Recovering'
+  | 'Needs you'
+  | 'Verified'
+  | 'Blocked'
+  | 'Failed'
+  | 'Paused'
+  | 'Answered'
+  | 'Ended';
+
+/** The badge's word for a phase of the running ask. */
+const STATE_OF: Record<Phase, State> = {
+  thinking: 'Thinking',
+  running: 'Running',
+  checking: 'Checking',
+  waiting: 'Needs you',
+  recovering: 'Recovering',
+  verified: 'Verified',
+  blocked: 'Blocked',
+  failed: 'Failed',
+  paused: 'Paused',
+  idle: 'Answered',
+};
 
 /** The Live run: Plan · Work · Verify · Land, the log, Done when, the guardrails, the numbers. */
 function LiveRun({
@@ -551,6 +628,7 @@ function LiveRun({
   landed,
   doneList,
   guardsOff,
+  phase,
   onStop,
 }: {
   v: ChatView | undefined;
@@ -567,6 +645,8 @@ function LiveRun({
   doneList: readonly string[];
   /** The guards the session runs without, as it says them. */
   guardsOff: readonly string[];
+  /** Where the ask now running stands ([`phaseOf`]). */
+  phase: { phase: Phase; word: string };
   onStop: (() => void) | undefined;
 }) {
   // The Live run follows the ask now running: what an earlier ask did is in the timeline.
@@ -603,12 +683,17 @@ function LiveRun({
       </div>
       <Steps st={st} label="Stages" />
       {hello && (
-        <p className="ss-model" data-busy={v?.busy ? 'true' : 'false'} aria-live="polite">
+        <p
+          className="ss-model"
+          data-busy={v?.busy ? 'true' : 'false'}
+          data-phase={phase.phase}
+          aria-live="polite"
+        >
           <Icon icon={Cpu} />
           <b className="ss-modelname">
             <Safe text={hello.model} />
           </b>
-          <span>{doing(now)}</span>
+          <span>{phase.word}</span>
         </p>
       )}
       <div className="ss-log" role="log" aria-label="Run log" ref={log}>
@@ -797,22 +882,37 @@ function Screen({
   const guardsOff = Array.isArray(said)
     ? said.filter((g): g is string => typeof g === 'string')
     : (opened?.guardsOff ?? []);
+  const ph = useMemo(() => phaseOf(v, live?.asks.length ?? 0), [v, live?.asks.length]);
   const state: State = starting
     ? 'Starting'
-    : verdict?.kind === 'verdict'
-      ? verdict.ok
-        ? 'Verified'
-        : 'Not landed'
-      : busy
-        ? 'Running'
-        : live?.closed
-          ? 'Ended'
-          : live && all.length > 0
-            ? 'Waiting'
-            : 'Ready';
+    : !busy && (ph.phase === 'idle' || all.length === 0)
+      ? live?.closed
+        ? 'Ended'
+        : all.length > 0
+          ? 'Answered'
+          : 'Ready'
+      : STATE_OF[ph.phase];
   const heading = all.find((t) => t.ask)?.ask.split('\n')[0] ?? 'Untitled session';
   const observer = live?.role === 'observer';
   const ready = !live || (live.role === 'controller' && live.link !== 'closed');
+  // The refusal the human can answer now: the last ask's, the session idle, this tab in control.
+  const repairAt =
+    !busy &&
+    live?.role === 'controller' &&
+    live.link !== 'closed' &&
+    verdict?.kind === 'verdict' &&
+    !verdict.ok
+      ? verdict.key
+      : undefined;
+  const repair = (failures: readonly string[]) =>
+    onAsk(
+      [
+        'The end gate refused the last answer:',
+        ...failures.slice(0, 12).map((f) => `- ${f}`),
+        '',
+        'Repair what it names, run the checks again, then answer.',
+      ].join('\n'),
+    );
   // As the terminal app does: a line sent while a turn runs waits behind it; steering — Steer, or
   // `/send <text>` — is the explicit act that folds words into the running turn.
   const send = (steer = false) => {
@@ -958,6 +1058,7 @@ function Screen({
                         s={s}
                         desk={desk}
                         landed={t.key === last?.key && landed}
+                        onRepair={t.key === last?.key && s.key === repairAt ? repair : undefined}
                       />
                     ))}
                   </ol>
@@ -1088,6 +1189,7 @@ function Screen({
         landed={landed}
         doneList={doneNow}
         guardsOff={guardsOff}
+        phase={ph}
         onStop={busy && live ? () => void live.interrupt() : undefined}
       />
       {live && configuring && (
@@ -1183,17 +1285,56 @@ function NoSession({ w }: { w: BoardWorld }) {
   );
 }
 
-/** What the model does now, in a few words: what the Live run says beside its name. */
-export function doing(v: ChatView | undefined): string {
-  if (!v?.busy) return 'idle';
-  if (verdictOf(v) === undefined && v.answered) return 'answered · the end gate checks';
-  const calls = v.entries.flatMap((e) =>
+/**
+ * Where the ask now running stands, as one of the states the theme colours (`--mn-state-*`), with
+ * the words the Live run says for it. A failed call the body can repair is *recovering*, not a
+ * failure of the run; the end gate refusing the answer is *blocked*.
+ */
+export type Phase =
+  | 'thinking'
+  | 'running'
+  | 'checking'
+  | 'waiting'
+  | 'recovering'
+  | 'verified'
+  | 'blocked'
+  | 'failed'
+  | 'paused'
+  | 'idle';
+
+export function phaseOf(v: ChatView | undefined, asks = 0): { phase: Phase; word: string } {
+  const turn = latestTurn(v);
+  const entries = turn?.entries ?? [];
+  const verdict = [...entries].reverse().find((e) => e.kind === 'verdict');
+  const refused = verdict?.kind === 'verdict' && verdict.verdict !== 'PASS';
+  if (!v?.busy) {
+    if (verdict?.kind === 'verdict') {
+      return refused
+        ? { phase: 'blocked', word: 'the end gate blocked the answer' }
+        : { phase: 'verified', word: 'verified' };
+    }
+    const ending = [...entries].reverse().find((e) => e.kind === 'ending');
+    if (ending?.kind === 'ending') {
+      return /error|crash|fail/i.test(ending.ending)
+        ? { phase: 'failed', word: ending.ending }
+        : { phase: 'paused', word: `stopped: ${ending.ending}` };
+    }
+    return { phase: 'idle', word: 'idle' };
+  }
+  if (asks > 0) return { phase: 'waiting', word: 'waiting for you' };
+  if (refused) return { phase: 'recovering', word: 'repairing what the end gate refused' };
+  if (v.answered && verdict === undefined)
+    return { phase: 'checking', word: 'the end gate checks' };
+  const calls = entries.flatMap((e) =>
     e.kind === 'tool' ? [e.call] : e.kind === 'group' ? e.calls : [],
   );
   const live = calls.findLast(running);
-  if (live) return `running ${live.name}`;
-  if (v.streaming !== '') return 'writing';
-  return 'thinking';
+  if (live) return { phase: 'running', word: `running ${live.name}` };
+  const done = calls.findLast((c) => c.outcome !== undefined);
+  if (done?.outcome?.isError)
+    return { phase: 'recovering', word: `repairing a failed ${done.name}` };
+  if (v.streaming !== '') return { phase: 'running', word: 'writing' };
+  return { phase: 'thinking', word: 'thinking' };
 }
 
 /** A session's view from its latest ask on: the whole view when it holds no ask yet. */

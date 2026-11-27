@@ -234,14 +234,84 @@
 .mapp-landed b {
   color: var(--mn-success-text);
 }
-.mapp-landed[data-ok="false"] {
-  border-color: var(--mn-error);
+/* the end gate's refusal: the one failure that wears the full red, its edge the failure gradient
+ * and its glow; a failed call stays a mark on its own line */
+.mapp-blocked {
+  position: relative;
+  margin: 18px 0 8px -48px;
+  padding: 14px 20px 14px 24px;
+  overflow: hidden;
+  border: 1px solid var(--mn-error-border);
+  border-radius: 12px;
   background: var(--mn-error-bg);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mn-error) 30%, transparent);
+  box-shadow: var(--mn-glow-error);
+  color: var(--mn-error-text);
+  list-style: none;
 }
-.mapp-landed[data-ok="false"] b,
-.mapp-landed[data-ok="false"] .mapp-landed-icon {
+.mapp-blocked::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--mn-gradient-error);
+}
+.mapp-blocked-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.mapp .mapp-blocked-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  color: var(--mn-error-critical);
+}
+.mapp-blocked-text {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+.mapp-blocked-text b {
+  color: var(--mn-text);
+  font-size: 15px;
+}
+.mapp-blocked-list {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 0 44px;
+  padding: 0;
+  list-style: none;
+  font: 13px var(--mn-font-mono);
+}
+.mapp-blocked-list .mn-icon {
+  width: 13px;
+  height: 13px;
   color: var(--mn-error);
+  vertical-align: -2px;
+}
+.mapp-blocked-actions {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 0 44px;
+}
+.mapp-repair {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--mn-state-recovering);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mn-state-recovering) 12%, var(--mn-panel));
+  color: var(--mn-text);
+  font: 600 13px var(--mn-font-ui);
+  cursor: pointer;
+}
+.mapp-repair:hover {
+  background: color-mix(in srgb, var(--mn-state-recovering) 22%, var(--mn-panel));
+}
+.mapp-repair:focus-visible {
+  outline: 2px solid var(--mn-state-recovering);
+  outline-offset: 2px;
 }
 .mapp-empty {
   display: grid;
