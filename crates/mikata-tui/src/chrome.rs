@@ -665,15 +665,19 @@ pub fn guardrails(m: &Model, w: usize) -> Lines {
             out.push(row(Some(true), "a /tmp of their own"));
         }
     }
-    // The gate's unit, where the run lists its units: off, the end gate holds nothing.
-    let gate_on = m.units.as_ref().is_none_or(|d| {
-        let desk = d.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        desk.listed.is_empty()
-            || desk
-                .listed
-                .iter()
-                .any(|(id, _, state)| id == "gate" && state == "active")
-    });
+    // A unit's state where the run lists its units; before it does, the default: on.
+    let on = |unit: &str| {
+        m.units.as_ref().is_none_or(|d| {
+            let desk = d.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            desk.listed.is_empty()
+                || desk
+                    .listed
+                    .iter()
+                    .any(|(id, _, state)| id == unit && state == "active")
+        })
+    };
+    // The gate's unit: off, the end gate holds nothing.
+    let gate_on = on("gate");
     if gate_on {
         let pinned = m
             .sidebar
@@ -692,7 +696,18 @@ pub fn guardrails(m: &Model, w: usize) -> Lines {
     } else {
         out.push(row(Some(false), "end gate off"));
     }
-    out.push(row(Some(true), "push and outward acts ask you"));
+    // The approval unit: off, outward and destructive acts run without asking.
+    if on("approval") {
+        out.push(row(Some(true), "push and outward acts ask you"));
+    } else {
+        out.push(row(Some(false), "outward acts run without asking"));
+    }
+    // The secrets unit: on, the model sees a secret file's keys, never its values.
+    if on("secrets") {
+        out.push(row(Some(true), "secret files held from the model"));
+    } else {
+        out.push(row(Some(false), "secret files readable by the model"));
+    }
     out
 }
 

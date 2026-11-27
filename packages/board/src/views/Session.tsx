@@ -546,6 +546,7 @@ function LiveRun({
   cost,
   ctx,
   landed,
+  guardsOff,
   onStop,
 }: {
   v: ChatView | undefined;
@@ -558,9 +559,14 @@ function LiveRun({
   cost: string;
   ctx: number | undefined;
   landed: boolean;
+  /** The guards the session runs without, as it says them. */
+  guardsOff: readonly string[];
   onStop: (() => void) | undefined;
 }) {
   const st = stages(v, planOn);
+  const gateOn = !guardsOff.includes('gate');
+  const askOn = !guardsOff.includes('approval');
+  const secretsOn = !guardsOff.includes('secrets');
   const lines = logLines(v);
   const from = lines.find((l) => l[3] !== undefined)?.[3];
   const sandboxOn = hello ? !hello.sandbox.startsWith('none') : undefined;
@@ -632,20 +638,25 @@ function LiveRun({
           <span>Sandbox</span>
           <b>{sandboxOn === undefined ? 'at start' : sandboxOn ? 'on' : 'off'}</b>
         </p>
-        <p className="ss-check" data-ok={desk.verify.length > 0}>
-          <Tick ok={desk.verify.length > 0} />
+        <p className="ss-check" data-ok={gateOn && desk.verify.length > 0}>
+          <Tick ok={gateOn && desk.verify.length > 0} />
           <span>Verify must pass</span>
-          <b>{desk.verify.length > 0 ? 'pinned' : 'none'}</b>
+          <b>{!gateOn ? 'gate off' : desk.verify.length > 0 ? 'pinned' : 'none'}</b>
         </p>
-        <p className="ss-check" data-ok="true">
-          <Tick ok />
+        <p className="ss-check" data-ok={gateOn}>
+          <Tick ok={gateOn} />
           <span>Test preservation</span>
-          <b>on</b>
+          <b>{gateOn ? 'on' : 'off'}</b>
         </p>
-        <p className="ss-check" data-ok="true">
-          <Tick ok />
+        <p className="ss-check" data-ok={askOn}>
+          <Tick ok={askOn} />
           <span>External actions</span>
-          <b>ask first</b>
+          <b>{askOn ? 'ask first' : 'run unasked'}</b>
+        </p>
+        <p className="ss-check" data-ok={secretsOn}>
+          <Tick ok={secretsOn} />
+          <span>Secret files</span>
+          <b>{secretsOn ? 'held' : 'readable'}</b>
         </p>
       </section>
 
@@ -866,8 +877,10 @@ function Screen({
                 Ready in <Safe text={w.name} />
               </h2>
               <p>
-                Say what to change and how you will know it is done. Every act outside the workspace
-                asks you first.
+                Say what to change and how you will know it is done.{' '}
+                {guardsOff.includes('approval')
+                  ? 'Approval is off for this session: acts outside the workspace run without asking.'
+                  : 'Every act outside the workspace asks you first.'}
               </p>
             </div>
           )}
@@ -1036,6 +1049,7 @@ function Screen({
         cost={cost}
         ctx={ctx}
         landed={landed}
+        guardsOff={guardsOff}
         onStop={busy && live ? () => void live.interrupt() : undefined}
       />
       {live && configuring && (
@@ -1122,8 +1136,8 @@ function NoSession({ w }: { w: BoardWorld }) {
             No session runs in <Safe text={w.name} />
           </h2>
           <p>
-            A session starts from the Harness Builder, where its profile and units are chosen. Every
-            act outside the workspace asks you first.
+            A session starts from the Harness Builder, where its profile and units are chosen; with
+            the approval unit on, every act outside the workspace asks you first.
           </p>
         </div>
       </section>

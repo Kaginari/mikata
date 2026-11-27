@@ -53,7 +53,17 @@ pub fn render(entry: &Entry, prev: Option<&Entry>, joins: bool, ctx: &Ctx<'_>) -
     let continues = matches!(entry, Entry::Assistant { head: false, .. })
         && matches!(prev, Some(Entry::Assistant { .. }));
     let mut out: Lines = Vec::new();
-    if prev.is_some() && !continues {
+    // Cards stack butted together, parted by their lips; a line of plain text keeps a blank row
+    // above it.
+    let solid = matches!(
+        entry,
+        Entry::User(_)
+            | Entry::Assistant { .. }
+            | Entry::Tool(_)
+            | Entry::Group(_)
+            | Entry::Verdict { .. }
+    );
+    if prev.is_some() && !continues && !solid {
         out.push(Line::from(""));
     }
     match entry {

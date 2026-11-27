@@ -497,9 +497,9 @@ fn a_key_expands_the_focused_card_and_the_focus_moves_between_cards() {
     ctrl(&mut m, 't');
     let buf = draw(&mut m, 120, 40);
     assert!(screen(&buf).contains("line 7"));
-    // The focused card wears the accent on its border.
+    // The focused card wears the accent on its bar.
     let (x, y) = find(&buf, "bash  pytest").unwrap();
-    assert_eq!(buf[(x - 4, y)].symbol(), "│", "the card's border");
+    assert_eq!(buf[(x - 4, y)].symbol(), "▌", "the card's bar");
     assert_eq!(buf[(x - 4, y)].fg, m.theme.p.holo.color());
     ctrl(&mut m, 't');
     assert!(!screen(&draw(&mut m, 120, 40)).contains("line 7"));

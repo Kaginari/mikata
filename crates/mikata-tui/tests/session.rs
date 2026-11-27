@@ -94,7 +94,7 @@ fn a_scripted_turn_reaches_the_screen() {
                 + "\n"
         })
         .collect();
-    assert!(screen.contains("│ fix the collate bug"), "{screen}");
+    assert!(screen.contains("▌ fix the collate bug"), "{screen}");
     assert!(screen.contains("● edit  parser.py  write"), "{screen}");
     // Folded, the edit's card is its two rows: what changed, counted.
     assert!(screen.contains("⎿ ok · 0ms · +1 −1"), "{screen}");

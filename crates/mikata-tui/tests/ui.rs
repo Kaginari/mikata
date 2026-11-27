@@ -401,7 +401,7 @@ fn the_light_theme_paints_a_light_page() {
     let buf = draw(&mut m, 80, 24);
     // The page under the header bar, and the Agent loop panel's face.
     assert_eq!(buf[(1, 0)].bg, rgb(LIGHT.bg));
-    assert_eq!(buf[(2, 2)].bg, rgb(LIGHT.panel));
+    assert_eq!(buf[(78, 2)].bg, rgb(LIGHT.panel));
     let (x, y) = find(&buf, "hello").unwrap_or_else(|| panic!("{}", screen(&buf)));
     assert_eq!(buf[(x, y)].fg, rgb(LIGHT.text));
     let (x, y) = find(&buf, "def").unwrap();
@@ -1038,9 +1038,28 @@ fn the_guardrails_say_what_holds_and_what_does_not() {
         "✔ a /tmp of their own",
         "no verify line: a pass checks nothing",
         "✔ push and outward acts ask you",
+        "✔ secret files held from the model",
     ] {
         assert!(held.contains(want), "{want} missing:\n{held}");
     }
+    // The human switched approval and secrets off: the panel says so, never a tick.
+    let desk = mikata_loop::units::Desk {
+        listed: vec![
+            ("approval".into(), "1.2.0".into(), "off".into()),
+            ("secrets".into(), "1.2.0".into(), "off".into()),
+            ("gate".into(), "1.2.0".into(), "active".into()),
+        ],
+        ..Default::default()
+    };
+    m.units = Some(std::sync::Arc::new(std::sync::Mutex::new(desk)));
+    let off = plain(&mikata_tui::chrome::guardrails(&m, 60));
+    assert!(off.contains("✘ outward acts run without asking"), "{off}");
+    assert!(
+        off.contains("✘ secret files readable by the model"),
+        "{off}"
+    );
+    assert!(!off.contains("✔ push and outward acts ask you"), "{off}");
+    m.units = None;
     m.sandbox = "none — no sandbox for windows".into();
     let open = plain(&mikata_tui::chrome::guardrails(&m, 60));
     assert!(open.contains("✘ no sandbox"), "{open}");
