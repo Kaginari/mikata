@@ -1122,7 +1122,9 @@ one-row bars. The older words `center` and `zen` still name Advanced and Focus.
 | Ctrl+C | stop the turn, or leave when none runs |
 | 1 or y, 2 or n, 3, then Enter | answer an approval — yes, no, or no with a reason typed for the model; ↑ ↓ move the pick while the whole act shows — from no pick to No, stopping at the ends, never onto Yes unasked — and read a long act otherwise; Esc denies it |
 
-Slash commands: `/send <text>` steers the running turn at its next tool step, `/theme <scheme> [dark|light]`,
+Slash commands: `/send <text>` steers the running turn at its next tool step, `/context [tokens]` says
+the context line or moves it from the next safe point for this session (8000 tokens up to 90% of the
+model's window; out of bounds is refused and said), `/theme <scheme> [dark|light]`,
 `/view light|advanced|focus`, `/clear`, `/help`, `/quit`.
 
 **It shows its work as it happens.** The status appears in the frame after Enter, before any

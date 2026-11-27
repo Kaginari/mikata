@@ -30,6 +30,11 @@ fn main() -> ExitCode {
         Ok(c) => c,
         Err(e) => return fail(&e, 2),
     };
+    // What each ask may take (--steps, --minutes, --context), as the variables the session reads.
+    let limits = match mikata_tui::cli::limits(&args) {
+        Ok(l) => l,
+        Err(e) => return fail(&e, 2),
+    };
     match command {
         Command::Help => {
             print!("{HELP}");
@@ -56,6 +61,7 @@ fn main() -> ExitCode {
             mode,
             web,
             hardened.err(),
+            &limits,
         ),
         Command::Run {
             ask,
@@ -84,10 +90,21 @@ fn main() -> ExitCode {
                     units,
                     profile,
                 ),
+                &limits,
             )
         }
         Command::Status { world, mode } => status(world, mode),
     }
+}
+
+/// A variable the command line asked for (`--context` gives `MIKATA_CONTEXT`), else the
+/// environment's.
+fn asked_or_env(limits: &[(&'static str, String)], var: &str) -> Option<String> {
+    limits
+        .iter()
+        .find(|(v, _)| *v == var)
+        .map(|(_, value)| value.clone())
+        .or_else(|| std::env::var(var).ok())
 }
 
 /// The world: the directory given, or the current one, canonical.
@@ -118,6 +135,7 @@ fn ask_once(
     json: bool,
     gate_tty: bool,
     (law, mode, units, profile): (Law, Option<Mode>, mikata_loop::config::Composition, String),
+    limits: &[(&'static str, String)],
 ) -> ExitCode {
     let ask = match ask {
         Some(a) => a,
@@ -155,7 +173,7 @@ fn ask_once(
         |v| match v {
             "MIKATA_UNITS" if !asked.is_empty() => Some(asked.clone()),
             "MIKATA_PROFILE" if !profile.is_empty() => Some(profile.clone()),
-            _ => std::env::var(v).ok(),
+            _ => asked_or_env(limits, v),
         },
     );
     let opened = match opened {
@@ -275,6 +293,7 @@ fn chat(
     mode: Option<Mode>,
     web: bool,
     unhardened: Option<String>,
+    limits: &[(&'static str, String)],
 ) -> ExitCode {
     let world = match world_of(world) {
         Ok(w) => w,
@@ -304,7 +323,7 @@ fn chat(
     highlight::warm();
     let (tx, rx) = channel();
     // The session opens before the terminal is taken, so a missing key reads as plain text.
-    let env = |v: &str| std::env::var(v).ok();
+    let env = |v: &str| asked_or_env(limits, v);
     let opened = match resume {
         Some(run) => mikata_loop::resume_mode(
             &world,

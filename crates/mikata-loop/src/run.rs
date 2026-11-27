@@ -2097,20 +2097,38 @@ impl Run {
 
     /// The changes a client asked at the desk, asked of the units.
     fn take_desk(&mut self) {
-        let (asked, unkept): (Vec<(String, bool)>, std::collections::BTreeSet<String>) = {
+        let (asked, unkept, context): (
+            Vec<(String, bool)>,
+            std::collections::BTreeSet<String>,
+            Option<u64>,
+        ) = {
             let mut desk = self
                 .units
                 .desk
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let context = desk.context.take();
             let asked: Vec<_> = desk.asked.drain(..).collect();
             let unkept = asked
                 .iter()
                 .filter(|(id, _)| desk.unkept.remove(id))
                 .map(|(id, _)| id.clone())
                 .collect();
-            (asked, unkept)
+            (asked, unkept, context)
         };
+        // A context line asked: this session's alone, never kept.
+        if let Some(tokens) = context {
+            match self.set_context_line(tokens) {
+                Ok(note) => self.record(&Beat::Note { text: note }),
+                Err(why) => self
+                    .units
+                    .desk
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .refused
+                    .push(format!("context: {why}")),
+            }
+        }
         for (id, on) in asked {
             if let Err(why) = self.switch_unit(&id, on) {
                 self.units
@@ -2170,6 +2188,25 @@ impl Run {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         desk.listed = listed;
         desk.digest = self.units.registry.digest();
+        desk.line = Some((self.stress_line(), self.limits.window));
+    }
+
+    /// The context stress line moved to `tokens` for this session: from 8,000 tokens up to the
+    /// share of the model's window a line may reach, as one asked at the session's start
+    /// ([`crate::open::asked_limits`]). Said back in words, or why not.
+    fn set_context_line(&mut self, tokens: u64) -> Result<String, String> {
+        let most = self.limits.window * CONTEXT_STRESS_PCT / 100;
+        if tokens < 8_000 || tokens > most {
+            return Err(format!(
+                "{tokens} tokens is outside 8000 to {most} ({CONTEXT_STRESS_PCT}% of the model's {} token window)",
+                self.limits.window
+            ));
+        }
+        let was = self.stress_line();
+        self.limits.stress_tokens = tokens;
+        Ok(format!(
+            "the context line is {tokens} tokens for this session (it was {was})"
+        ))
     }
 
     /// The units' pending changes applied at `at`, journaled and said to the body.

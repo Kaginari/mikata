@@ -482,3 +482,34 @@ async fn a_plugin_memory_stands_in_for_the_native_one() {
     let native = read(&w.world(), &Tier::Personal("summoner".into())).map(|r| fold(&r.rows).len());
     assert_eq!(native.unwrap_or(0), 0, "the native memory kept nothing");
 }
+
+/// A context line asked at the desk is taken at the next safe point, for this session alone, and
+/// listed back; one past the share of the window a line may reach is refused, and the line stays.
+#[tokio::test]
+async fn a_context_line_asked_mid_session_is_taken_and_listed() {
+    let w = World::new("context-line");
+    let model = Arc::new(ScriptedModel::new([
+        ScriptedModel::text("done"),
+        ScriptedModel::text("again"),
+    ]));
+    let mut run = w.run(model);
+    run.unit_desk().lock().unwrap().context = Some(100_000);
+    run.ask("go", &mut |_| {}).await;
+    let (line, window) = run.unit_desk().lock().unwrap().line.expect("listed");
+    assert_eq!(line, 100_000);
+    let said = w.beats().iter().any(|b| {
+        matches!(b, Beat::Note { text } if text.starts_with("the context line is 100000 tokens"))
+    });
+    assert!(said, "journaled");
+    // Past the share of the window a line may reach: refused, the line kept.
+    run.unit_desk().lock().unwrap().context = Some(window);
+    run.ask("again", &mut |_| {}).await;
+    let desk = run.unit_desk();
+    let desk = desk.lock().unwrap();
+    assert_eq!(desk.line.map(|l| l.0), Some(100_000));
+    assert!(
+        desk.refused.iter().any(|r| r.starts_with("context: ")),
+        "{:?}",
+        desk.refused
+    );
+}
