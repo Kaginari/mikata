@@ -10,6 +10,7 @@ import {
   ChartColumnIncreasing,
   Cpu,
   Database,
+  Feather,
   History,
   Layers,
   type LucideIcon,
@@ -123,8 +124,18 @@ function usePhone(): boolean {
 
 const tilde = (path: string) => path.replace(/^\/(?:home|Users)\/[^/]+/, '~');
 
-const NEXT: Record<Choice, Choice> = { auto: 'light', light: 'dark', dark: 'auto' };
-const THEME_ICON: Record<Choice, LucideIcon> = { auto: SunMoon, light: Sun, dark: Moon };
+const NEXT: Record<Choice, Choice> = {
+  auto: 'light',
+  light: 'dark',
+  dark: 'studio',
+  studio: 'auto',
+};
+const THEME_ICON: Record<Choice, LucideIcon> = {
+  auto: SunMoon,
+  light: Sun,
+  dark: Moon,
+  studio: Feather,
+};
 
 /** The runtime's state for the workspace: the harness, and what a new session opens with — the
  * Builder's composition (its profile, the units it leaves on) — and how many sessions run. */

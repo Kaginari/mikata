@@ -496,6 +496,37 @@ fn reasoning_that_never_streamed_is_placed_where_its_step_began() {
         json!({"type": "opaque", "value": {"type": "openai.reasoning_content", "text": "hm"}}),
     ];
     assert_eq!(mikata_tui::run::reasoning(&openai).as_deref(), Some("hm"));
+    // One reasoning sent twice, streamed and as details: it is read once, from the details.
+    let both = vec![
+        json!({"type": "opaque", "value": {"type": "openai.reasoning_content", "text": "All\n tests\n pass\n."}}),
+        json!({"type": "opaque", "value": {"type": "openai.reasoning_details", "items": [{"type": "reasoning.text", "text": "All tests pass."}]}}),
+    ];
+    assert_eq!(
+        mikata_tui::run::reasoning(&both).as_deref(),
+        Some("All tests pass.")
+    );
+    // Details stream a token an item under one index: put back together as they came.
+    let fragments = vec![
+        json!({"type": "opaque", "value": {"type": "openai.reasoning_details", "items": [
+            {"type": "reasoning.text", "index": 0, "text": "I"},
+            {"type": "reasoning.text", "index": 0, "text": " need"},
+            {"type": "reasoning.text", "index": 0, "text": " to read it."},
+            {"type": "reasoning.text", "index": 1, "text": "Then test."}
+        ]}}),
+    ];
+    assert_eq!(
+        mikata_tui::run::reasoning(&fragments).as_deref(),
+        Some("I need to read it.\nThen test.")
+    );
+    // Details with no text leave the streamed reasoning to stand.
+    let empty_details = vec![
+        json!({"type": "opaque", "value": {"type": "openai.reasoning_content", "text": "hm"}}),
+        json!({"type": "opaque", "value": {"type": "openai.reasoning_details", "items": [{"type": "reasoning.encrypted", "data": "x"}]}}),
+    ];
+    assert_eq!(
+        mikata_tui::run::reasoning(&empty_details).as_deref(),
+        Some("hm")
+    );
 }
 
 #[test]
@@ -1261,4 +1292,40 @@ fn the_stepper_and_the_files_follow_the_turn() {
         "{scr}"
     );
     assert!(scr.contains("✓ end gate · pass"), "the banner:\n{scr}");
+}
+
+/// ctrl+o shows every thought whole, in the page's own ink; again, folds them.
+#[test]
+fn ctrl_o_shows_every_thought_and_folds_them_again() {
+    let mut m = model();
+    send(&mut m, "why is it slow");
+    ev(
+        &mut m,
+        Event::TurnStarted {
+            text: "why is it slow".into(),
+        },
+    );
+    update(
+        &mut m,
+        Msg::Thinking("first I read the parser, then the tests".into()),
+    );
+    tick(&mut m, 3.0);
+    ev(
+        &mut m,
+        Event::TextDelta {
+            text: "Twice.".into(),
+        },
+    );
+    // Done, it folds away whole, as it always has.
+    let folded = screen(&mut m, 100, 40);
+    assert!(!folded.contains("thought for"), "{folded}");
+    assert!(!folded.contains("first I read the parser"), "{folded}");
+    ctrl(&mut m, 'o');
+    assert!(m.thinking, "ctrl+o holds the thoughts open");
+    let open = screen(&mut m, 100, 40);
+    assert!(open.contains("thought for 3s"), "{open}");
+    assert!(open.contains("first I read the parser"), "{open}");
+    assert!(open.contains("ctrl+o folds every thought"), "{open}");
+    ctrl(&mut m, 'o');
+    assert!(!screen(&mut m, 100, 40).contains("first I read the parser"));
 }

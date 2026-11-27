@@ -103,14 +103,18 @@ async function openPast(page: Page, b: Bridge) {
   });
 }
 
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark', 'light', 'studio'] as const) {
   test.describe(`${theme} theme`, () => {
-    test.use({ colorScheme: theme });
+    test.use({ colorScheme: theme === 'light' ? 'light' : 'dark' });
 
     test('a session reads as a timeline of steps beside its Live run: screenshot, contrast, labels', async ({
       page,
     }, info) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
+      // Studio is chosen, not followed from the system: the browser keeps the choice.
+      if (theme === 'studio') {
+        await page.addInitScript(() => window.localStorage.setItem('mikata.theme', 'studio'));
+      }
       const b = new Bridge();
       richTurn(b);
       b.emit('turnStarted', { text: 'and the docs?' });

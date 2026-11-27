@@ -1,28 +1,29 @@
 /**
- * Light, dark or auto. `@mikata/theme`'s tokens.css is dark by default and light under
- * `data-theme="light"`; auto follows the system and moves when it does. The choice is kept per
- * browser.
+ * Light, dark, studio or auto. `@mikata/theme`'s tokens.css is dark by default and light under
+ * `data-theme="light"`; auto follows the system and moves when it does. Studio is the dark page
+ * made softer for long hours (`data-look="studio"`): every colour gentler, the session calm, the
+ * Builder still in its colours. The choice is kept per browser.
  */
 import { DEFAULT_SCHEME, nativeLook, PALETTES, type PaletteName, palettes } from '@mikata/theme';
 import { useCallback, useEffect, useState } from 'react';
 
-export type Choice = 'auto' | 'light' | 'dark';
+export type Choice = 'auto' | 'light' | 'dark' | 'studio';
 export type Theme = 'light' | 'dark';
-export const CHOICES: readonly Choice[] = ['auto', 'light', 'dark'];
+export const CHOICES: readonly Choice[] = ['auto', 'light', 'dark', 'studio'];
 
 const KEY = 'mikata.theme';
 
 /** The theme a choice gives, the system preferring light or not. */
 export function resolve(choice: Choice, systemLight: boolean): Theme {
   if (choice === 'auto') return systemLight ? 'light' : 'dark';
-  return choice;
+  return choice === 'studio' ? 'dark' : choice;
 }
 
 /** The stored choice; auto when none, or when storage cannot be read. */
 export function stored(): Choice {
   try {
     const v = window.localStorage.getItem(KEY);
-    return v === 'light' || v === 'dark' ? v : 'auto';
+    return v === 'light' || v === 'dark' || v === 'studio' ? v : 'auto';
   } catch {
     return 'auto';
   }
@@ -44,6 +45,8 @@ export function apply(choice: Choice) {
   const root = document.documentElement;
   root.dataset.theme = resolve(choice, query().matches);
   root.dataset.themeChoice = choice;
+  if (choice === 'studio') root.dataset.look = 'studio';
+  else delete root.dataset.look;
 }
 
 /**

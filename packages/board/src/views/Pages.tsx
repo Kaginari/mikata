@@ -45,7 +45,10 @@ export function SettingsView({
         <h2 className="setting-title" id="setting-theme">
           Theme
         </h2>
-        <p className="setting-sub">Auto follows the system's light or dark preference.</p>
+        <p className="setting-sub">
+          Auto follows the system's light or dark preference. Studio is dark and softer, for long
+          sessions.
+        </p>
         <div className="radio-row" role="radiogroup" aria-labelledby="setting-theme">
           {CHOICES.map((c) => (
             <label key={c} className="radio">

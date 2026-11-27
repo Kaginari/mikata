@@ -224,7 +224,7 @@ impl Variant {
     #[must_use]
     pub fn choose(flag: Option<&str>, env: impl Fn(&str) -> Option<String>) -> Self {
         let one = |w: &str| match w.to_ascii_lowercase().as_str() {
-            "dark" => Some(Self::Dark),
+            "dark" | "studio" => Some(Self::Dark),
             "light" => Some(Self::Light),
             _ => None,
         };
@@ -470,6 +470,53 @@ pub fn names_a_theme(v: &str) -> bool {
     any
 }
 
+/// Whether the human asked for Studio, the dark look made softer for long hours: the flag's
+/// words, else `MIKATA_THEME`'s.
+#[must_use]
+pub fn studio_chosen(flag: Option<&str>, env: impl Fn(&str) -> Option<String>) -> bool {
+    let said = |v: &str| words(v).any(|w| w.eq_ignore_ascii_case("studio"));
+    match flag {
+        Some(f) if words(f).next().is_some() => said(f),
+        _ => env("MIKATA_THEME").as_deref().is_some_and(said),
+    }
+}
+
+/// Studio's page on Mikata's own scheme (Bio Digital softened): the board's `studio.page`
+/// (`@mikata/theme`), colour for colour.
+pub const STUDIO: Palette = Palette {
+    bg: Rgb::hex(0x0e_0e12),
+    panel: Rgb::hex(0x15_151a),
+    panel_raised: Rgb::hex(0x1c_1c22),
+    line: Rgb::hex(0x2b_2b34),
+    text: Rgb::hex(0xe8_e8ee),
+    text_muted: Rgb::hex(0xa5_a5b3),
+    holo: Rgb::hex(0xe8_579a),
+    alarm: Rgb::hex(0xf0_705a),
+    gold: Rgb::hex(0xe9_b44c),
+};
+
+/// A dark palette made softer: its surfaces a step toward graphite, its colours a step toward
+/// its muted text — what Studio does to a scheme that has no Studio of its own.
+fn softened(p: Palette) -> Palette {
+    let gray = |c: Rgb| {
+        let Rgb(red, green, blue) = c;
+        let mean =
+            u8::try_from((u16::from(red) + u16::from(green) + u16::from(blue)) / 3).unwrap_or(0);
+        c.mix(Rgb(mean, mean, mean), 0.5)
+    };
+    Palette {
+        bg: gray(p.bg),
+        panel: gray(p.panel),
+        panel_raised: gray(p.panel_raised),
+        line: gray(p.line),
+        text: p.text,
+        text_muted: p.text_muted,
+        holo: p.holo.mix(p.text_muted, 0.25),
+        alarm: p.alarm.mix(p.text_muted, 0.2),
+        gold: p.gold.mix(p.text_muted, 0.25),
+    }
+}
+
 /// The words of a theme's name: `lagoon-light`, `neon dark`, `spice:light`.
 fn words(v: &str) -> impl Iterator<Item = &str> {
     v.split(|c: char| c == '-' || c == ':' || c == ',' || c.is_whitespace())
@@ -483,6 +530,8 @@ pub struct Theme {
     pub scheme: Scheme,
     /// Which variant.
     pub variant: Variant,
+    /// Studio: the dark look softer for long hours — gentler colours, calm frames, faint tints.
+    pub studio: bool,
     /// Its palette.
     pub p: Palette,
     /// The races' colours.
@@ -501,7 +550,19 @@ impl Theme {
     /// The theme of `scheme` in `variant`: its palette, and the human's colour from it.
     #[must_use]
     pub fn of(scheme: Scheme, variant: Variant) -> Self {
-        let p = scheme.palette(variant);
+        Self::look(scheme, variant, false)
+    }
+
+    /// The theme of `scheme` in `variant`, softened when `studio` (a dark look: a light variant
+    /// asked for Studio is the dark one).
+    #[must_use]
+    pub fn look(scheme: Scheme, variant: Variant, studio: bool) -> Self {
+        let variant = if studio { Variant::Dark } else { variant };
+        let p = match (studio, scheme) {
+            (false, _) => scheme.palette(variant),
+            (true, Scheme::Neon) => STUDIO,
+            (true, _) => softened(scheme.palette(variant)),
+        };
         let mut races = RACES;
         if let Some(r) = scheme.roles() {
             // On a light page the human's colour is the palette's, already darkened to read.
@@ -511,6 +572,8 @@ impl Theme {
             };
         }
         let success = match (scheme, variant) {
+            (Scheme::Neon, Variant::Dark) if studio => Rgb::hex(0xa6_d955),
+            (_, Variant::Dark) if studio => races.elf.mix(p.text_muted, 0.2),
             (Scheme::Neon, Variant::Dark) => Rgb::hex(0xb6_f542),
             (Scheme::Neon, Variant::Light) => Rgb::hex(0x42_6a12),
             _ => races.elf,
@@ -518,6 +581,7 @@ impl Theme {
         Self {
             scheme,
             variant,
+            studio,
             p,
             races,
             success: legible(success, p.text, &[p.bg, p.panel, p.panel_raised]),

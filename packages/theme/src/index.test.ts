@@ -15,6 +15,7 @@ import {
   type SchemePalette,
   schemes,
   states,
+  studio,
 } from './index.js';
 
 const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8');
@@ -162,4 +163,53 @@ describe("a run's states and failure, in Bio Digital and Bio Pearl", () => {
         expect(contrast(f.text, bg), bg).toBeGreaterThanOrEqual(4.5);
     },
   );
+});
+
+describe('Studio: Bio Digital, softer', () => {
+  const selector = ':root[data-scheme="neon"][data-look="studio"]:not([data-theme="light"])';
+  const p = studio.page;
+
+  it('the css and the ts agree', () => {
+    const decl = block(selector);
+    for (const [k, v] of Object.entries(p)) expect(decl[kebab(k)], k).toBe(v);
+    for (const [k, v] of Object.entries(studio.states)) expect(decl[`state-${k}`], k).toBe(v);
+    for (const [k, v] of Object.entries(studio.failure)) expect(decl[`error-${k}`], k).toBe(v);
+  });
+
+  it('every text colour reads on every surface (AA, 4.5:1)', () => {
+    for (const ink of [p.text, p.textMuted, p.holo, p.alarm, p.gold])
+      for (const bg of [p.bg, p.panel, p.panelRaised])
+        expect(contrast(ink, bg), `${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    for (const bg of [studio.failure.bg, p.panel])
+      expect(contrast(studio.failure.text, bg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('every state reads as a mark (3:1), but disabled', () => {
+    for (const [k, v] of Object.entries(studio.states)) {
+      if (k === 'disabled') continue;
+      for (const bg of [p.bg, p.panel, p.panelRaised])
+        expect(contrast(v, bg), `${k} on ${bg}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('is softer than Bio Digital: no accent brighter or more saturated', () => {
+    const sat = (hex: string) => {
+      const [r = 0, g = 0, b = 0] = [1, 3, 5].map(
+        (i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255,
+      );
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      return max === 0 ? 0 : (max - min) / max;
+    };
+    const bio = schemes.neon.dark;
+    for (const [mine, theirs] of [
+      [p.holo, bio.holo],
+      [p.alarm, bio.alarm],
+      [p.gold, bio.gold],
+      [studio.states.running, states.dark.running],
+      [studio.states.thinking, states.dark.thinking],
+      [studio.states.recovering, states.dark.recovering],
+    ] as const)
+      expect(sat(mine), `${mine} against ${theirs}`).toBeLessThan(sat(theirs));
+  });
 });
