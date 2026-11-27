@@ -8,7 +8,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -17,14 +17,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -41,15 +41,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -115,15 +115,17 @@ flowchart TB
     end
     classDef ts fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class BOARD,SDK,PROTO ts
-    classDef rs fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
-    class TUI,D,SERVER,LOOP,WORLD,WIRE,KERNEL,TOOLS,PROV,LEDGER,MEM,CONFIG rs
+    classDef entry fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
+    class TUI,D entry
+    classDef rs fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
+    class SERVER,LOOP,WORLD,WIRE,KERNEL,TOOLS,PROV,LEDGER,MEM,CONFIG rs
     classDef lab fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7,stroke-dasharray:5
     class RACES,PROVING lab
     classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class SANDBOX gate
-    style ts fill:#16111b,stroke:#59405d,color:#f5eff7
-    style rs fill:#16111b,stroke:#59405d,color:#f5eff7
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style ts fill:#110c14,stroke:#59405d,color:#f5eff7
+    style rs fill:#110c14,stroke:#59405d,color:#f5eff7
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 ## In plain words
@@ -153,7 +155,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -162,39 +164,39 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#332711"
     noteTextColor: "#ffe1a8"
     noteBorderColor: "#ffb020"
-    actorBkg: "#211824"
+    actorBkg: "#1b1420"
     actorBorder: "#ff168a"
     actorTextColor: "#f5eff7"
     actorLineColor: "#59405d"
     signalColor: "#ff655c"
     signalTextColor: "#f5eff7"
-    labelBoxBkgColor: "#211824"
+    labelBoxBkgColor: "#1b1420"
     labelBoxBorderColor: "#ff168a"
     labelTextColor: "#f5eff7"
     loopTextColor: "#f5eff7"
     activationBkgColor: "#3a0f26"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
-    stateBkg: "#211824"
-    labelBackgroundColor: "#16111b"
-    compositeBackground: "#16111b"
-    compositeTitleBackground: "#211824"
-    altBackground: "#16111b"
+    stateBkg: "#1b1420"
+    labelBackgroundColor: "#110c14"
+    compositeBackground: "#110c14"
+    compositeTitleBackground: "#1b1420"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -225,15 +227,15 @@ flowchart TB
     end
     classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
     class YOU,PROG,WEB you
-    classDef person fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#0d0b10
+    classDef person fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
     class M person
-    classDef server fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
+    classDef server fill:#ff168a,stroke:#ff168a,stroke-width:1.5px,color:#07050a
     class D,B,U server
     classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class CORE step
     classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
     class G gate
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 | | `mikata` | `mikatad` |
@@ -1546,7 +1548,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -1555,14 +1557,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -1579,15 +1581,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
   flowchart:
@@ -1602,7 +1604,7 @@ flowchart LR
       NET -- "approved outward act" --> ALLOW("sockets open")
       NET -- "anything else" --> DENY("seccomp: no socket()")
       P --> SC("seccomp: no ptrace, mount,<br/>unshare, bpf, io_uring, setsid")
-      P --> ENV("env: secrets by name,<br/>outputs redacted")
+      P --> ENV("secret files: empty to commands,<br/>their values struck from output")
     end
     classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
     class T,P,NET step
@@ -1612,7 +1614,7 @@ flowchart LR
     class ALLOW outward
     classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
     class DENY bad
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 - **A kernel guard, not a jail.** A jail gives a command another world — its own filesystem
@@ -2310,7 +2312,7 @@ config:
   theme: base
   themeVariables:
     darkMode: true
-    background: "#0d0b10"
+    background: "#07050a"
     fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
     fontSize: "15px"
     primaryColor: "#3d2b40"
@@ -2319,14 +2321,14 @@ config:
     secondaryColor: "#59405d"
     secondaryTextColor: "#f5eff7"
     secondaryBorderColor: "#59405d"
-    tertiaryColor: "#16111b"
+    tertiaryColor: "#110c14"
     tertiaryTextColor: "#f5eff7"
     tertiaryBorderColor: "#3d2b40"
     lineColor: "#ff168a"
     textColor: "#f5eff7"
     titleColor: "#f5eff7"
-    edgeLabelBackground: "#0d0b10"
-    clusterBkg: "#16111b"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
     clusterBorder: "#3d2b40"
     noteBkgColor: "#ffb020"
     noteTextColor: "#1a1205"
@@ -2343,15 +2345,15 @@ config:
     loopTextColor: "#f5eff7"
     activationBkgColor: "#ff168a"
     activationBorderColor: "#ff168a"
-    sequenceNumberColor: "#0d0b10"
+    sequenceNumberColor: "#07050a"
     transitionColor: "#ff168a"
     transitionLabelColor: "#f5eff7"
     stateLabelColor: "#f5eff7"
     stateBkg: "#3d2b40"
-    labelBackgroundColor: "#0d0b10"
-    compositeBackground: "#16111b"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
     compositeTitleBackground: "#3d2b40"
-    altBackground: "#16111b"
+    altBackground: "#110c14"
     specialStateColor: "#b6f542"
     innerEndBackground: "#b6f542"
 ---
@@ -2372,7 +2374,7 @@ flowchart TD
       C -- no --> K("the caller keeps its default")
       D --> R("decision row<br/>journaled")
     end
-    style MIKATA_BG fill:#0d0b10,stroke:#3d2b40,color:#0d0b10
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
 - **One wire for every System One provider.** TypeSafe's Jev and the open jeff share it:
