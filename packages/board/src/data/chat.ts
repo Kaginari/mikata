@@ -392,8 +392,8 @@ export class Chat {
     this.self = body;
   }
 
-  /** Fold `event` in; `now` is when it arrived, or `undefined` for one replayed — a replayed
-   * event says nothing of how long anything took. */
+  /** Fold `event` in; `now` is when it arrived (a replayed one: when it reached the wire, its
+   * `at`), or `undefined` when that is not known, as for an event read back from a journal. */
   fold(event: Arrived, now?: number): void {
     this.snapshot = undefined;
     if (event.body !== this.self && event.body !== '') {

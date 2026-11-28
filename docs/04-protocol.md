@@ -184,12 +184,15 @@ characters, an emoji as one.
 
 Rules:
 
-- Every event carries `{session, run, body, seq}`; `seq` rises by one, in the order events reach
+- Every event carries `{session, run, body, seq, at}`; `seq` rises by one, in the order events reach
   the wire, so a client that reconnects asks `session/events {since: seq}` and loses nothing. The
   core keeps the last 10 000: the answer says the oldest it kept (`oldest`), and `complete: false`
   when the client asked from further back, so a gap is never silent. The board's bridge answers the same
   request in pages, `more: true` while another follows; the core answers all it keeps
   (`more: false`).
+- `at` is when the event reached the wire, in milliseconds since 1970 (UTC). A replay keeps it, so
+  a client that reconnects still knows how long a step or a turn took; an event read back from a
+  run's journal has none.
 - In the lab, an event from a body the session hands work to carries that body and its run, at
   any depth; the hello names the session's own body, so a client tells them apart.
 - Leaving ends everything at once: on `shutdown`, or when the client's end closes, every act

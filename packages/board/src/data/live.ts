@@ -101,7 +101,7 @@ export function useLive(id: string): Live {
     let gone = false;
     let chat: Chat | undefined;
     const early: Arrived[] = [];
-    // What the opening replay brings says nothing of how long anything took.
+    // What the opening replay brings is timed by when it reached the wire (`at`), not now.
     let replaying = true;
     let frame: number | undefined;
     const set = (f: (s: LiveState) => LiveState) => {
@@ -122,7 +122,7 @@ export function useLive(id: string): Live {
     c.onGate(() => new Promise(() => {}));
     c.on((e) => {
       if (!chat) early.push(e);
-      else chat.fold(e, replaying ? undefined : Date.now());
+      else chat.fold(e, replaying ? e.at : Date.now());
       draw();
     });
     c.onRole((role) => set((s) => ({ ...s, role })));
@@ -164,7 +164,7 @@ export function useLive(id: string): Live {
     hello
       .then((h) => {
         chat = new Chat(h.body);
-        for (const e of early.splice(0)) chat.fold(e);
+        for (const e of early.splice(0)) chat.fold(e, e.at);
         set((s) => ({ ...s, hello: h, link: 'open' }));
         draw();
       })

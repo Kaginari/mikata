@@ -218,6 +218,27 @@ test('a dropped socket reconnects and replays, and nothing shows twice', async (
   await expect(page.locator('.mapp-answer', { hasText: 'two' })).toHaveCount(1);
 });
 
+test('a replayed run keeps its times: the log reads as it did live, after a reload too', async ({
+  page,
+}) => {
+  const b = new Bridge();
+  // A turn that ran before the tab opened: every event comes in the opening replay.
+  const t = Date.now() - 120_000;
+  b.emit('turnStarted', { text: 'time it', at: t });
+  b.emit('toolCall', { id: 't1', name: 'grep', input: { pattern: 'x' }, at: t + 10_000 });
+  b.emit('toolResult', { id: 't1', content: 'a.py:1', isError: false, cut: 0, at: t + 12_000 });
+  b.emit('toolCall', { id: 't2', name: 'bash', input: { command: 'pytest -q' }, at: t + 75_000 });
+  b.emit('toolResult', { id: 't2', content: 'ok', isError: false, cut: 0, at: t + 80_000 });
+  b.emit('assistant', { text: 'done', stop: 'EndTurn', at: t + 90_000 });
+  b.emit('turnEnded', { ending: 'answered', at: t + 95_000 });
+  await openChat(page, b);
+  // The log counts from its first line: the second call came 65 seconds after it.
+  const log = page.getByRole('log', { name: 'Run log' });
+  await expect(log).toContainText('[01:05] ✔ bash: pytest -q');
+  await page.reload();
+  await expect(log).toContainText('[01:05] ✔ bash: pytest -q');
+});
+
 test('an observer cannot send; taking over lets it', async ({ page }) => {
   const b = new Bridge();
   b.role = 'observer';
