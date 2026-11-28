@@ -23,6 +23,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **The metrics page fits its window.** A table wider than its card pushed past it, cut off on a
+  phone, and could widen the whole page. Each table now scrolls inside its card, and a card may
+  be narrower than its widest line.
+
 - **A metrics chart's hover card no longer sticks** after the pointer leaves the chart. It went
   only when the bar under the pointer said the pointer had left, which the browser does not
   always say; now it also goes once the pointer is over anything that holds no card.

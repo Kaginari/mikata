@@ -308,20 +308,36 @@ test('the metrics page reads every ask: its numbers, its charts with legends, ho
   await open(page, '#/metrics');
   const kpis = page.getByRole('region', { name: 'Headline numbers' });
   await expect(kpis).toContainText('Asks');
+  // Nothing on it is wider than its card, at either width: a wide table scrolls in its card.
+  const sticksOut = await page.evaluate(
+    () =>
+      [...document.querySelectorAll('main .mx-card > *')].filter((e) => {
+        const card = (e.parentElement as Element).getBoundingClientRect();
+        return e.getBoundingClientRect().right > card.right + 1;
+      }).length,
+  );
+  expect(sticksOut).toBe(0);
+  expect(
+    await page.evaluate(() => {
+      const d = document.scrollingElement as Element;
+      return d.scrollWidth - d.clientWidth;
+    }),
+  ).toBeLessThanOrEqual(0);
   await expect(kpis).toContainText('6 calls unpriced');
   await expect(page.locator('.mx-hit')).toHaveCount(13);
   await expect(page.locator('.mx-legend').first()).toContainText('Tools');
   // A bar says what it is, to the pointer and to the keyboard.
   await page.locator('.mx-hit').nth(4).hover();
   await expect(page.getByRole('tooltip')).toContainText('Blocked by the end gate');
-  await page.mouse.move(0, 0);
+  // Away from the charts: onto the page's heading, wherever the page has scrolled to.
+  await page.getByRole('heading', { name: 'Metrics', level: 1 }).hover();
   await expect(page.getByRole('tooltip')).toHaveCount(0);
   await page.locator('.mx-hit').first().focus();
   await expect(page.getByRole('tooltip')).toContainText('Landed');
   // The pointer passing over and away does not take the focused bar's card with it.
   await page.locator('.mx-hit').nth(4).hover();
   await expect(page.getByRole('tooltip')).toContainText('Blocked by the end gate');
-  await page.mouse.move(0, 0);
+  await page.getByRole('heading', { name: 'Metrics', level: 1 }).hover();
   await expect(page.getByRole('tooltip')).toContainText('Landed');
   await expect(page.getByRole('region', { name: 'Harnesses compared' })).toContainText('-reader');
   expect(await page.locator('main').textContent()).not.toContain('$0.00');
