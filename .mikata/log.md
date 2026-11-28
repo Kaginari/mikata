@@ -7917,3 +7917,13 @@ Append-only. One entry per landed change: task, files, gate, result, learned.
 - **Checked from the outside before publishing:** the four archives against `SHA256SUMS`, each archive's members, the Linux x86_64 archive through `tools/rc-smoke.sh` and `tools/test-install.sh` from the tag's own tools (both PASS), the macOS and ARM binaries by `file` only.
 - **Published** on the owner's approval of #485, whose body said I would publish. Then `install.sh` from the tag, pinned and latest, under a throwaway HOME: `mikata 1.3.0`, `mikatad 1.3.0 (850d12034c)` both ways.
 - **Not done by me:** a macOS archive run on a Mac; this host is Linux.
+
+### [2026-11-28T10:52:00+00:00] aibo Summoner — Mikata 1.4.0 is published
+- **Asked by** the owner: "check last update tell me what is todo", then "go": the release, and the board's times after a reload. #498 (the fix and the prep) approved and merged; main `67be2f9`, its CI green with macOS.
+- **What it holds:** a task that outlives its page and a clock of each ask's own (#487); the model, steps, clock and context chosen at session start, on the board and in the terminal app (#487, #493); the Live run following the ask now running, its states in colour, icon and word, failure its own red (#488, #490); Studio, a third look, on the board and in the terminal app (#489, #492); the new Metrics page (#491, #494); a `Done when` check that has to run its line's case (#495); an evolution's controls on its runs' model (#496); a run's times kept across a reload (#498).
+- **Tested through OpenRouter before the approval:** the board built from #498, a session on `deepseek/deepseek-v4-flash`, reloaded mid-session: the log read `[00:00] [00:00] [00:01] [00:01] [00:04]` before the reload and after it (without the fix, every line `[00:00]`).
+- **Released:** tag `v1.4.0` at `67be2f9`; the workflow built the four archives, smoke-tested the Linux ones and drafted the release, first time.
+- **Checked from the outside before publishing:** the four archives against `SHA256SUMS`, each archive's members, the Linux x86_64 archive through `tools/rc-smoke.sh` and `tools/test-install.sh` from the tag's own tools (both PASS), the macOS and ARM binaries by `file` only.
+- **Published** on the owner's word ("publish"). Then `install.sh` from the tag, pinned and latest, under a throwaway HOME: `mikata 1.4.0`, `mikatad 1.4.0 (67be2f9887)` both ways.
+- **Not done by me:** a macOS archive run on a Mac; this host is Linux.
+- **Dropped from the to-do, with its reason:** closing the two plan screens left `open` in `bench/screens.jsonl`. The record never rewrites a verdict; the decision is a later screen of its own (`plan-as-the-default`), already there.
