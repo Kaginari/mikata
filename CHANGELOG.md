@@ -21,6 +21,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   later check (`held` in the session's memory line), and the next session whose gate passes with
   that file unchanged grounds it (`grounded later`).
 
+### Fixed
+
+- **A metrics chart's hover card no longer sticks** after the pointer leaves the chart. It went
+  only when the bar under the pointer said the pointer had left, which the browser does not
+  always say; now it also goes once the pointer is over anything that holds no card.
+
 ## [1.4.0] - 2026-11-28
 
 ### Added
