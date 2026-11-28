@@ -6,6 +6,7 @@ it was for.
     python3 bench/screens.py check [--quotes] [--since REV]
     python3 bench/screens.py problem ID "what goes wrong, said as a cause"
     python3 bench/screens.py bar ID --problem ID --what … --why … --bar … --model … --suite … --build …
+                             --predicted TASK,TASK | --unpredicted WHY
     python3 bench/screens.py verdict ID --observed … --met yes|no|partly --decision …
     python3 bench/screens.py merge FROM INTO "why they are one problem"
     python3 bench/screens.py withdraw ID "why the row is wrong"
@@ -20,8 +21,9 @@ The record is `bench/screens.jsonl`, one event a line, appended and never rewrit
 
 - `problem`: a recurring fault of the harness or of a body in it, named as a cause, with an id.
 - `screen`: a change tried for a problem — what, why, the setting it ran in (model, suite, build,
-  runs) and **the bar**, written before any paid run. A screen may name the tasks it expects to
-  fix (`predicted`).
+  runs), **the bar** and **the prediction**, both written before any paid run: the tasks it is
+  expected to fix (`predicted`), or why it can name none (`unpredicted`: a change for cost alone,
+  say). Its verdict then says what came of each predicted task (`fixed` or `missed`).
 - `verdict`: what a screen came to — what was observed, whether the bar was met, and what became
   of the change (`shipped`, `switch`: in the product and off by default, `not-shipped`, `removed`,
   `kept`: nothing changed, `open`). It is a line of its own, after its screen: a bar is never
@@ -35,8 +37,9 @@ any later screen, with either body, on either codebase. So `show` prints every s
 model, suite and build, and a change is screened again before it is leaned on elsewhere.
 
 `check` holds the record well-formed: every line an event, every reference resolved by an earlier
-line, a bar on every screen that was not read back from the book (`backfilled`), one verdict a
-screen, dated no earlier than it. `--since REV` also holds it append-only: the file at `REV` is the
+line, a bar and a prediction on every screen that was not read back from the book (`backfilled`),
+one verdict a screen, dated no earlier than it, and every predicted task in its `fixed` or its
+`missed`. `--since REV` also holds it append-only: the file at `REV` is the
 beginning of the file now. `--quotes` holds a backfilled row to the book: each of its `quotes` is
 found, word for word, in the file its `source` names.
 
@@ -45,7 +48,9 @@ for whoever improves a harness, grouped by problem, each attempt with its ration
 prediction made before the evaluation, its outcome and where it was run. That work found a
 harness carried to another model or benchmark continues better with this history than with the
 harness alone, or with the problems' names alone. The rules are ported; no code is, and nothing
-here runs a model.
+here runs a model. A prediction checked after the runs is that work's own rule: a screen that
+names the tasks it should fix, and is then told which it fixed, says whether the change worked for
+the reason given, and not only whether the count moved.
 """
 
 import argparse
@@ -71,7 +76,7 @@ FIELDS = {
     "problem": (("id", "date", "name"), ("backfilled", "source", "quotes")),
     "screen": (
         ("id", "problem", "date", "what", "why", "bar", "setting"),
-        ("predicted", "backfilled", "source", "quotes"),
+        ("predicted", "unpredicted", "backfilled", "source", "quotes"),
     ),
     "verdict": (
         ("screen", "date", "observed", "met", "decision"),
@@ -128,7 +133,7 @@ def shape(row):
     if not (isinstance(row["date"], str) and DATE.match(row["date"]) and valid(row["date"])):
         out.append(f"{event}: `date` is {row['date']!r}: YYYY-MM-DD, or YYYY-MM when the book "
                    "gives no day")
-    for k in ("name", "what", "why", "observed"):
+    for k in ("name", "what", "why", "observed", "unpredicted"):
         if k in row and not text(row[k]):
             out.append(f"{event}: `{k}` is empty")
     for k in ("passed", "control"):
@@ -176,6 +181,16 @@ def screen_shape(row):
                        "read back from the book (`backfilled`) may have none")
     elif not text(bar):
         out.append("screen: `bar` is empty")
+    if "predicted" in row and "unpredicted" in row:
+        out.append("screen: `predicted` and `unpredicted` both: name the tasks, or say why none")
+    elif "predicted" in row and not row["predicted"]:
+        out.append("screen: `predicted` names no task: name them, or say why none "
+                   "(`unpredicted`)")
+    elif not row.get("backfilled") and "predicted" not in row and "unpredicted" not in row:
+        out.append("screen: no prediction: the tasks it is expected to fix (`predicted`) are "
+                   "named with the bar, before the runs, or why it can name none "
+                   "(`unpredicted`) — only a screen read back from the book (`backfilled`) may "
+                   "have neither")
     s = row["setting"]
     if not isinstance(s, dict):
         return out + ["screen: `setting` is an object: model, suite, build"]
@@ -243,6 +258,18 @@ def fold(lines):
             if full(s["date"]) and full(row["date"]) and row["date"] < s["date"]:
                 errors.append((n, f"screen `{row['screen']}`: its verdict is dated "
                                f"{row['date']}, before its bar ({s['date']})"))
+                continue
+            fixed, missed = set(row.get("fixed", [])), set(row.get("missed", []))
+            both = sorted(fixed & missed)
+            if both:
+                errors.append((n, f"screen `{row['screen']}`: {', '.join(both)} both fixed and "
+                               "missed"))
+                continue
+            unsaid = [t for t in s.get("predicted", []) if t not in fixed | missed]
+            if unsaid:
+                errors.append((n, f"screen `{row['screen']}` predicted {', '.join(unsaid)}, and "
+                               "its verdict does not say what came of it: each predicted task "
+                               "is in `fixed` or in `missed`"))
                 continue
             s["verdict"] = dict(row, line=n)
         elif event == "merge":
@@ -365,7 +392,15 @@ def render(folded, problem=None, model=None):
     out = [f"The record of screens: {len(shown)} problem(s), {n} screen(s)"
            + (f", {back} read back from the book" if back else "") + ".",
            "A verdict holds for its setting (model · suite · build): screen a change again "
-           "before leaning on it elsewhere.", ""]
+           "before leaning on it elsewhere."]
+    judged = [(s, s["verdict"]) for _, ss in shown for s in ss
+              if s.get("predicted") and s["verdict"]]
+    if judged:
+        named = sum(len(s["predicted"]) for s, _ in judged)
+        right = sum(len(set(s["predicted"]) & set(v.get("fixed", []))) for s, v in judged)
+        out.append(f"Predictions checked: {right} of {named} named task(s) fixed, over "
+                   f"{len(judged)} screen(s).")
+    out.append("")
     for p, screens in shown:
         also = f" (also: {', '.join(p['also'])})" if p["also"] else ""
         out.append(f"== {p['id']}{also} — {p['name']}")
@@ -385,6 +420,8 @@ def render(folded, problem=None, model=None):
             out.append(f"     bar: {bar}")
             if s.get("predicted"):
                 out.append(f"     predicted to fix: {', '.join(s['predicted'])}")
+            if s.get("unpredicted"):
+                out.append(f"     no task named: {s['unpredicted']}")
             if v:
                 met = {"yes": "met", "no": "missed", "partly": "met in part", None: ""}[v["met"]]
                 head = "; ".join(x for x in (met, tallied(v)) if x)
@@ -392,6 +429,12 @@ def render(folded, problem=None, model=None):
                 for k in ("fixed", "missed"):
                     if v.get(k):
                         out.append(f"     {k}: {', '.join(v[k])}")
+                if s.get("predicted"):
+                    hit = [t for t in s["predicted"] if t in v.get("fixed", [])]
+                    out.append(f"     prediction: {len(hit)} of {len(s['predicted'])} right")
+                    surprise = [t for t in v.get("fixed", []) if t not in s["predicted"]]
+                    if surprise:
+                        out.append(f"     fixed, not predicted: {', '.join(surprise)}")
                 if v.get("source") or s.get("source"):
                     out.append(f"     told in: {v.get('source') or s.get('source')}")
         out.append("")
@@ -454,6 +497,8 @@ def parser():
         b.add_argument(f"--{k}", required=True)
     b.add_argument("--runs", type=int)
     b.add_argument("--predicted", type=split, help="the tasks it is expected to fix, a,b,c")
+    b.add_argument("--unpredicted", metavar="WHY",
+                   help="why it can name no task to fix (a change for cost alone, say)")
     b.add_argument("--date", default=today())
     v = sub.add_parser("verdict", help="what a screen came to, after its runs")
     v.add_argument("screen")
@@ -484,8 +529,10 @@ def row_of(a):
             st["runs"] = a.runs
         row = {"event": "screen", "id": a.id, "problem": a.problem, "date": a.date,
                "what": a.what, "why": a.why, "bar": a.bar, "setting": st}
-        if a.predicted:
+        if a.predicted is not None:
             row["predicted"] = a.predicted
+        if a.unpredicted is not None:
+            row["unpredicted"] = a.unpredicted
         return row
     row = {"event": "verdict", "screen": a.screen, "date": a.date, "observed": a.observed,
            "met": a.met, "decision": a.decision}

@@ -16,14 +16,15 @@ def problem(id="p", **more):
 
 def screen(id="s", problem="p", bar="4 of 6.", **more):
     row = dict(event="screen", id=id, problem=problem, date="2026-11-21", what="A change.",
-               why="A reason.", bar=bar, setting=dict(model="qwen", suite="sqlglot", build="1.3.0"))
+               why="A reason.", bar=bar, setting=dict(model="qwen", suite="sqlglot", build="1.3.0"),
+               predicted=["t1"])
     row.update(more)
     return row
 
 
 def verdict(screen="s", met="yes", **more):
     row = dict(event="verdict", screen=screen, date="2026-11-22", observed="6 of 6.", met=met,
-               decision="shipped")
+               decision="shipped", fixed=["t1"])
     row.update(more)
     return row
 
@@ -74,6 +75,36 @@ class Fold(unittest.TestCase):
         for s, v in ((read_back, verdict(met="yes")), (screen(), verdict(met=None))):
             (f,) = faults(problem(), s, v)
             self.assertIn("`met` is null exactly when the screen had no bar", f)
+
+    def test_a_screen_names_what_it_should_fix_before_its_runs(self):
+        (f,) = faults(problem(), screen(predicted=[]))
+        self.assertIn("`predicted` names no task", f)
+        bare = screen()
+        del bare["predicted"]
+        (f,) = faults(problem(), bare)
+        self.assertIn("screen: no prediction", f)
+        # Why none can be named stands in its place; both at once say nothing.
+        cost = dict(bare, unpredicted="A change for cost alone: no task should pass or fail.")
+        self.assertEqual(faults(problem(), cost, verdict(fixed=[])), [])
+        (f,) = faults(problem(), dict(cost, predicted=["t1"]))
+        self.assertIn("`predicted` and `unpredicted` both", f)
+        self.assertIn("`unpredicted` is empty", faults(problem(), dict(bare, unpredicted=" "))[0])
+        # A screen read back from the book had none to give.
+        read_back = dict(bare, bar=None, backfilled=True, source="docs/bench.md")
+        self.assertEqual(faults(problem(), read_back, verdict(met=None, fixed=[])), [])
+
+    def test_a_verdict_says_what_came_of_each_predicted_task(self):
+        two = screen(predicted=["01-interval", "04-slice"])
+        self.assertEqual(faults(problem(), two, verdict(fixed=["01-interval"],
+                                                        missed=["04-slice"])), [])
+        (f,) = faults(problem(), two, verdict(fixed=["01-interval"]))
+        self.assertIn("predicted 04-slice, and its verdict does not say what came of it", f)
+        (f,) = faults(problem(), two, verdict(fixed=["01-interval", "04-slice"],
+                                              missed=["04-slice"]))
+        self.assertIn("04-slice both fixed and missed", f)
+        # A task fixed that nobody named is said, not refused.
+        self.assertEqual(faults(problem(), two, verdict(
+            fixed=["01-interval", "04-slice", "09-cast"])), [])
 
     def test_a_screen_has_one_verdict(self):
         (f,) = faults(problem(), screen(), verdict(), verdict(met="no"))
@@ -159,10 +190,12 @@ class Show(unittest.TestCase):
         folded, _ = screens.fold(lines(
             problem(), screen(predicted=["03-alter", "04-slice"]),
             verdict(met="no", decision="not-shipped", passed=[2, 6], control=[4, 6],
-                    missed=["04-slice"], source="docs/bench.md#what-did-not-help")))
+                    fixed=["03-alter", "07-flatten"], missed=["04-slice"],
+                    source="docs/bench.md#what-did-not-help")))
         shown = screens.render(folded)
         for said in (
             "The record of screens: 1 problem(s), 1 screen(s).",
+            "Predictions checked: 1 of 2 named task(s) fixed, over 1 screen(s).",
             "== p — It goes wrong.",
             "opened 2026-11-20 · 1 screen(s): 1 not-shipped",
             " - s [not-shipped] 2026-11-21 · qwen · sqlglot · 1.3.0",
@@ -170,6 +203,8 @@ class Show(unittest.TestCase):
             "     predicted to fix: 03-alter, 04-slice",
             "     observed: missed; 2 of 6 (without: 4 of 6) — 6 of 6.",
             "     missed: 04-slice",
+            "     prediction: 1 of 2 right",
+            "     fixed, not predicted: 07-flatten",
             "     told in: docs/bench.md#what-did-not-help",
         ):
             self.assertIn(said, shown)
@@ -257,6 +292,14 @@ class Verbs(unittest.TestCase):
                            " ", "--model", "m", "--suite", "s", "--build", "b")
         self.assertEqual((code, Path(self.file).read_text()), (1, before))
         self.assertIn("not written: screen: `bar` is empty", err)
+        bar = ("bar", "s", "--problem", "p", "--what", "w", "--why", "y", "--bar", "4 of 6.",
+               "--model", "m", "--suite", "s", "--build", "b")
+        code, _, err = run(*f, *bar)
+        self.assertEqual((code, Path(self.file).read_text()), (1, before))
+        self.assertIn("not written: screen: no prediction", err)
+        self.assertEqual(run(*f, *bar, "--unpredicted", "For cost alone.")[0], 0)
+        self.assertEqual(json.loads(Path(self.file).read_text().splitlines()[-1])["unpredicted"],
+                         "For cost alone.")
 
     def test_check_names_each_fault_by_its_line(self):
         Path(self.file).write_text("\n".join(json.dumps(r) for r in (

@@ -270,6 +270,11 @@ xychart-beta
 - **The bar comes first.** Before a paid run, a note says what result would count as "the change
   pays", what would not, and when the run stops. The verdict is read against it, never adjusted
   after.
+- **So does the prediction.** With the bar, the screen names the tasks the change should fix,
+  read from the failures it is for; the verdict says of each whether it was fixed. A count that
+  moves while the predicted tasks stay failed is a change that worked for another reason than the
+  one given, and a change that fixes them only by luck is not leaned on. A change that should move
+  no task, one for cost alone, says why instead.
 - **The bar and its verdict are kept in one record.** `bench/screens.jsonl` holds every screen
   under the problem it was for: the change, why, the model, suite and build it ran with, the bar
   as a line of its own before the runs, the verdict as a line after
@@ -485,6 +490,13 @@ further with that history than with the harness alone (2.36 points of 100 on a c
 over ten paired runs), and the problems' names without their attempts helped in some settings and
 hurt in others. None of that is measured here: the record is kept because this book's own
 history asks for it, not because a screen showed it pays.
+
+Its prediction is kept too. In that work, each attempt names the tasks it should fix before the
+evaluation, and the outcome is checked against the names. The 39 rows read back from this book
+carry none, because no screen here wrote one; from 28 November `check` refuses a new screen with
+neither its predicted tasks nor why it can name none, and a verdict that does not say what came
+of each. `show` gives each screen its count of predictions right and the tasks it fixed that
+nobody named.
 
 ### Light-coding, screen by screen
 
