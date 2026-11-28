@@ -50,6 +50,8 @@ fn run(s: &Swap, task: &str, control: bool, pass: bool) -> EvolutionRow {
     EvolutionRow::Run(Run {
         swap: Some(s.id.clone()),
         build: s.build.clone(),
+        model: "claude-sonnet-5-5".into(),
+        provider: "anthropic".into(),
         body: "slime-wire".into(),
         task: task.into(),
         control,
@@ -470,6 +472,104 @@ fn a_control_counts_only_after_the_swap_and_by_the_same_body() {
     let mut rows = vec![EvolutionRow::Swap(s.clone())];
     rows.extend(evolved);
     rows.extend(controls);
+    assert!(matches!(judged(&rows, "e1"), Judgement::Keep(_)));
+}
+
+/// The rows, each run riding `model` through `provider`.
+fn riding(rows: &[EvolutionRow], model: &str, provider: &str) -> Vec<EvolutionRow> {
+    rows.iter()
+        .cloned()
+        .map(|r| match r {
+            EvolutionRow::Run(r) => EvolutionRow::Run(Run {
+                model: model.into(),
+                provider: provider.into(),
+                ..r
+            }),
+            other => other,
+        })
+        .collect()
+}
+
+/// A control counts only under the model its window run rode, reached through the same provider:
+/// a pair on two models would measure the model, not the change. Each pair is its own, so a
+/// window may hold runs of two models, each beside a control of the same one.
+#[test]
+fn a_control_counts_only_under_its_runs_model() {
+    let s = swap("e1");
+    let evolved: Vec<EvolutionRow> = (0..EVOLUTION_WINDOW)
+        .map(|i| run(&s, &format!("held-{i}"), false, true))
+        .collect();
+    let controls: Vec<EvolutionRow> = (0..EVOLUTION_WINDOW)
+        .map(|i| run(&s, &format!("held-{i}"), true, false))
+        .collect();
+    let pending = |controls: usize| Judgement::Pending {
+        runs: EVOLUTION_WINDOW,
+        controls,
+    };
+    // The controls rode another model, or the same one through another provider: none counts,
+    // and every run still waits on a control of its own.
+    for (model, provider) in [
+        ("claude-haiku-5-5", "anthropic"),
+        ("claude-sonnet-5-5", "openrouter"),
+    ] {
+        let mut rows = vec![EvolutionRow::Swap(s.clone())];
+        rows.extend(evolved.clone());
+        rows.extend(riding(&controls, model, provider));
+        assert_eq!(
+            judged(&rows, "e1"),
+            pending(0),
+            "{model} through {provider}"
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("evolution.jsonl");
+        ledger(&path, &rows);
+        let read = evolution::read(&path, None).unwrap();
+        let (_, waiting) = evolution::awaiting(&read, "e1").unwrap();
+        assert_eq!(waiting.len(), EVOLUTION_WINDOW);
+        assert!(waiting.iter().all(|r| !r.control));
+    }
+    // A window of two models, each run beside a control of the same one: judged.
+    let half = EVOLUTION_WINDOW / 2;
+    let mut rows = vec![EvolutionRow::Swap(s.clone())];
+    rows.extend(riding(&evolved[..half], "claude-haiku-5-5", "anthropic"));
+    rows.extend(evolved[half..].iter().cloned());
+    rows.extend(riding(&controls[..half], "claude-haiku-5-5", "anthropic"));
+    rows.extend(controls[half..].iter().cloned());
+    let Judgement::Keep(lines) = judged(&rows, "e1") else {
+        panic!("{}", judged(&rows, "e1"));
+    };
+    assert!((lines[0].reading - 10.0).abs() < 1e-9, "{}", lines[0]);
+    // The same window with its controls' models crossed: no run has its control.
+    let mut rows = vec![EvolutionRow::Swap(s.clone())];
+    rows.extend(riding(&evolved[..half], "claude-haiku-5-5", "anthropic"));
+    rows.extend(evolved[half..].iter().cloned());
+    rows.extend(controls[..half].iter().cloned());
+    rows.extend(riding(&controls[half..], "claude-haiku-5-5", "anthropic"));
+    assert_eq!(judged(&rows, "e1"), pending(0));
+}
+
+/// A run row written before runs were stamped with their model reads `unknown`, model and
+/// provider alike, and a window of such rows is paired and judged as it was.
+#[test]
+fn a_run_from_before_model_stamps_reads_unknown_and_pairs_as_it_did() {
+    let s = swap("e1");
+    let mut old = serde_json::to_value(run(&s, "held-0", false, true)).unwrap();
+    let fields = old.as_object_mut().unwrap();
+    fields.remove("model").unwrap();
+    fields.remove("provider").unwrap();
+    let EvolutionRow::Run(read) = serde_json::from_value::<EvolutionRow>(old).unwrap() else {
+        panic!("a run row");
+    };
+    assert_eq!(
+        (read.model.as_str(), read.provider.as_str()),
+        (mikata_ledger::UNKNOWN, mikata_ledger::UNKNOWN)
+    );
+    let mut rows = vec![EvolutionRow::Swap(s.clone())];
+    rows.extend(riding(
+        &window(&s, &[true; EVOLUTION_WINDOW], &[false; EVOLUTION_WINDOW]),
+        mikata_ledger::UNKNOWN,
+        mikata_ledger::UNKNOWN,
+    ));
     assert!(matches!(judged(&rows, "e1"), Judgement::Keep(_)));
 }
 

@@ -17,7 +17,9 @@
 //!   splits, proving one plan and holding out another, is refused. Tasks are told apart by
 //!   fingerprint.
 //! - **The control.** Every window task is also run without the change, after the swap, by the
-//!   same body — a do-nothing fixture, stamped as the control. Paired by task, the evolution is
+//!   same body under the same model — a do-nothing fixture, stamped as the control; one that rode
+//!   another model, or reached it through another provider, is no control of that run: the pair
+//!   would measure the model, not the change. Paired by task, the evolution is
 //!   kept only on at least `min_net_wins` net wins (tasks it landed and the control did not, less
 //!   the reverse; `evolution.min_net_wins`, 2 unless the human sets it) and a `holeRate` no higher.
 //!   Else it rolls back.
@@ -107,6 +109,11 @@ pub enum Gate {
     NotVerified,
 }
 
+/// What a run row written before runs were stamped with their model reads as.
+fn unknown() -> String {
+    crate::UNKNOWN.to_owned()
+}
+
 /// One run of a task: an evolved body's, or the do-nothing control's.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -117,6 +124,14 @@ pub struct Run {
     /// The build that ran it.
     #[serde(default)]
     pub build: Build,
+    /// The model that ran it, by its id at the provider: a control counts only under its window
+    /// run's. A row from before runs were stamped with their model reads as `unknown`.
+    #[serde(default = "unknown")]
+    pub model: String,
+    /// The provider that model was reached through, by the name the usage ledger writes;
+    /// `unknown` as the model is.
+    #[serde(default = "unknown")]
+    pub provider: String,
     /// The body that ran it.
     pub body: String,
     /// The task's fingerprint.
@@ -696,7 +711,8 @@ fn window_of<'a>(ledger: &'a Ledger, id: &str) -> Result<Window<'a>, Refusal> {
     })
 }
 
-/// The control of window run `w`, when the ledger holds one.
+/// The control of window run `run`, when the ledger holds one: the same task, by the same body,
+/// under the same build and the same model through the same provider.
 fn control_of<'a>(ledger: &'a Ledger, w: &Window<'_>, run: &Run) -> Option<(&'a Entry, &'a Run)> {
     runs_of(ledger).find(|(e, c)| {
         c.control
@@ -705,6 +721,8 @@ fn control_of<'a>(ledger: &'a Ledger, w: &Window<'_>, run: &Run) -> Option<(&'a 
             && c.build == w.swap.build
             && c.body == run.body
             && c.task == run.task
+            && c.model == run.model
+            && c.provider == run.provider
     })
 }
 

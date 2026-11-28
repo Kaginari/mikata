@@ -16,12 +16,12 @@ use std::sync::Arc;
 use mikata_config::{Config, Paths};
 use mikata_ledger::Journal;
 use mikata_ledger::evolution::{self, EVOLUTION_WINDOW, EvolutionRow, Gate, Judgement};
-use mikata_loop::evolution::{Controller, run_controls};
-use mikata_loop::{Beat, EndGate, Limits, Run, ScriptedModel, Setup, solo};
+use mikata_loop::evolution::{Controller, Reach, reach, run_controls};
+use mikata_loop::{Beat, EndGate, Limits, Model, Run, ScriptedModel, Setup, solo};
 use mikata_provider::{Caller, Error, Response, anthropic_prices};
 use mikata_races::Race;
 use mikata_tools::{Context, Sandbox, registry};
-use mikata_world::evolution::{Arm, Plan, Staged, swap_at};
+use mikata_world::evolution::{Arm, Facts, Plan, Staged, stamp_for, swap_at};
 use serde_json::json;
 
 const MIND: &str = ".mikata/minds/careful/README.md";
@@ -169,9 +169,19 @@ fn ready(cx: Context, root: &Path) -> Context {
 /// One ask of the throne in `w`, as a session runs it: its gate the doc's verify lines, its asks
 /// stamped on the world's ledger. Returns its journal.
 async fn ask_once(w: &World, i: usize, replies: Vec<Result<Response, Error>>) -> Journal<Beat> {
+    ask_as(w, i, replies, "claude-sonnet-5-5").await
+}
+
+/// [`ask_once`], the session riding `model`: the one the human chose as it opened.
+async fn ask_as(
+    w: &World,
+    i: usize,
+    replies: Vec<Result<Response, Error>>,
+    model: &str,
+) -> Journal<Beat> {
     let world = w.world();
     let journal: Journal<Beat> = Journal::new(w.root.join(format!("run-{i}.jsonl")));
-    let (body, cx) = solo(&world, "claude-sonnet-5-5");
+    let (body, cx) = solo(&world, model);
     let roster = mikata_world::Roster::load(&world);
     let setup = Setup {
         model: Arc::new(ScriptedModel::new(replies)),
@@ -270,9 +280,10 @@ async fn a_swapped_mind_is_stamped_controlled_and_judged() {
     let said = std::cell::RefCell::new(Vec::<String>::new());
     let say = |l: &str| said.borrow_mut().push(l.to_owned());
     let attic = w.root.join("attic");
+    let scripted: Arc<dyn Model> = Arc::new(ScriptedModel::new(replies));
+    let model = |_: &str, _: &str| -> Result<Arc<dyn Model>, String> { Ok(Arc::clone(&scripted)) };
     let c = Controller {
-        model: Arc::new(ScriptedModel::new(replies)),
-        model_id: "claude-sonnet-5-5".into(),
+        model: &model,
         config: &config,
         ready,
         attic: Some(&attic),
@@ -363,9 +374,10 @@ async fn a_do_nothing_control_starts_where_the_run_started() {
     let config = w.config();
     let say = |_: &str| {};
     let attic = w.root.join("attic");
+    let scripted: Arc<dyn Model> = Arc::new(ScriptedModel::new(replies));
+    let model = |_: &str, _: &str| -> Result<Arc<dyn Model>, String> { Ok(Arc::clone(&scripted)) };
     let c = Controller {
-        model: Arc::new(ScriptedModel::new(replies)),
-        model_id: "claude-sonnet-5-5".into(),
+        model: &model,
         config: &config,
         ready,
         attic: Some(&attic),
@@ -489,9 +501,10 @@ async fn a_spent_cap_runs_no_control() {
         .unwrap();
     let config = w.config();
     let attic = w.root.join("attic");
+    let scripted: Arc<dyn Model> = Arc::new(ScriptedModel::new([]));
+    let model = |_: &str, _: &str| -> Result<Arc<dyn Model>, String> { Ok(Arc::clone(&scripted)) };
     let c = Controller {
-        model: Arc::new(ScriptedModel::new([])),
-        model_id: "claude-sonnet-5-5".into(),
+        model: &model,
         config: &config,
         ready,
         attic: Some(&attic),
@@ -504,6 +517,245 @@ async fn a_spent_cap_runs_no_control() {
         .unwrap_err();
     assert!(e.contains("cap is spent"), "{e}");
     assert!(runs(&w).iter().all(|r| !r.control), "no control written");
+}
+
+/// A window of two models, as when the human chooses another for a session: each control rides
+/// the model its own run rode, reached once, whatever the configuration names by then. Every pair
+/// shares its model, so the swap is judged on the change alone.
+#[tokio::test]
+async fn each_control_rides_the_model_its_run_rode() {
+    let w = World::new("two-models");
+    swap(&w);
+    let rode = |i: usize| {
+        if i.is_multiple_of(2) {
+            "claude-sonnet-5-5"
+        } else {
+            "claude-haiku-5-5"
+        }
+    };
+    for i in 0..EVOLUTION_WINDOW {
+        ask_as(&w, i, script(i, false), rode(i)).await;
+    }
+    let replies: Vec<_> = (0..EVOLUTION_WINDOW)
+        .flat_map(|i| script(i, true))
+        .collect();
+    let config = w.config();
+    let said = std::cell::RefCell::new(Vec::<String>::new());
+    let say = |l: &str| said.borrow_mut().push(l.to_owned());
+    let attic = w.root.join("attic");
+    let scripted = Arc::new(ScriptedModel::new(replies));
+    let asked = std::cell::RefCell::new(Vec::<(String, String)>::new());
+    let model = |provider: &str, id: &str| -> Result<Arc<dyn Model>, String> {
+        asked
+            .borrow_mut()
+            .push((provider.to_owned(), id.to_owned()));
+        let reached: Arc<dyn Model> = scripted.clone();
+        Ok(reached)
+    };
+    let c = Controller {
+        model: &model,
+        config: &config,
+        ready,
+        attic: Some(&attic),
+        usage: w.usage(),
+        session: "judge-two-models".into(),
+        say: &say,
+    };
+    let lines = run_controls(&w.world(), w.ledger().path(), "careful-1", &c)
+        .await
+        .unwrap();
+    assert_eq!(lines.len(), EVOLUTION_WINDOW, "{lines:?}");
+    assert_eq!(
+        *asked.borrow(),
+        [
+            ("scripted".to_owned(), "claude-sonnet-5-5".to_owned()),
+            ("scripted".to_owned(), "claude-haiku-5-5".to_owned()),
+        ],
+        "each model the window rode is reached once, by the names its rows carry"
+    );
+    assert!(
+        said.borrow()[0]
+            .starts_with("10 control(s) to run through claude-sonnet-5-5, claude-haiku-5-5"),
+        "{:?}",
+        said.borrow()
+    );
+    // Every call of a control named the model its own run rode.
+    let named: Vec<String> = scripted.requests().into_iter().map(|r| r.model).collect();
+    let expected: Vec<&str> = (0..EVOLUTION_WINDOW)
+        .flat_map(|i| std::iter::repeat_n(rode(i), script(i, true).len()))
+        .collect();
+    assert_eq!(named, expected);
+    // And every row says what it rode: a run and its control alike.
+    let (window, controls): (Vec<_>, Vec<_>) = runs(&w).into_iter().partition(|r| !r.control);
+    assert_eq!(
+        (window.len(), controls.len()),
+        (EVOLUTION_WINDOW, EVOLUTION_WINDOW)
+    );
+    for (i, (run, control)) in window.iter().zip(&controls).enumerate() {
+        assert_eq!(run.task, control.task, "pair {i}");
+        for row in [run, control] {
+            assert_eq!(
+                (row.model.as_str(), row.provider.as_str()),
+                (rode(i), "scripted"),
+                "pair {i}, control {}",
+                row.control
+            );
+        }
+    }
+    let head = w.ledger().head().unwrap();
+    let read = evolution::read(w.ledger().path(), head.as_ref()).unwrap();
+    let judged = evolution::judge(&read, "careful-1", mikata_config::MIN_NET_WINS);
+    let Judgement::Keep(lines) = &judged else {
+        panic!("{judged}");
+    };
+    assert!((lines[0].reading - 5.0).abs() < 1e-9, "{judged}");
+}
+
+/// A model that answers to another provider's name, and is never called.
+struct Elsewhere;
+
+impl Model for Elsewhere {
+    fn provider(&self) -> &'static str {
+        "elsewhere"
+    }
+
+    fn complete<'a>(
+        &'a self,
+        _: &'a mikata_provider::Request,
+        _: &'a mut (dyn FnMut(mikata_provider::Event) + Send),
+    ) -> mikata_loop::model::Completion<'a> {
+        Box::pin(async { Err(Error::Invalid("a control never rides it".into())) })
+    }
+}
+
+/// A window run whose model cannot be reached again — its key not set, or the same id through
+/// another provider — gets no control, and neither does a run that kept no model: nothing is
+/// said, spent or written, the judgement waits, and the human is told to judge the window.
+#[tokio::test]
+async fn a_run_whose_model_is_out_of_reach_gets_no_control() {
+    let w = World::new("out-of-reach");
+    swap(&w);
+    for i in 0..EVOLUTION_WINDOW {
+        ask_once(&w, i, script(i, false)).await;
+    }
+    let config = w.config();
+    let said = std::cell::RefCell::new(Vec::<String>::new());
+    let say = |l: &str| said.borrow_mut().push(l.to_owned());
+    let attic = w.root.join("attic");
+    let unkeyed = |_: &str, _: &str| -> Result<Arc<dyn Model>, String> {
+        Err("ANTHROPIC_API_KEY is not set".into())
+    };
+    let moved = |_: &str, _: &str| -> Result<Arc<dyn Model>, String> { Ok(Arc::new(Elsewhere)) };
+    let cases: [(Reach<'_>, &str); 2] = [
+        (&unkeyed, "ANTHROPIC_API_KEY is not set"),
+        (&moved, "it is reached through elsewhere now"),
+    ];
+    for (model, why) in cases {
+        let c = Controller {
+            model,
+            config: &config,
+            ready,
+            attic: Some(&attic),
+            usage: w.usage(),
+            session: "judge-out-of-reach".into(),
+            say: &say,
+        };
+        let e = run_controls(&w.world(), w.ledger().path(), "careful-1", &c)
+            .await
+            .unwrap_err();
+        assert!(
+            e.contains("its window run rode claude-sonnet-5-5 through scripted")
+                && e.contains(why)
+                && e.contains("judge this window by hand"),
+            "{e}"
+        );
+    }
+    assert!(
+        said.borrow().is_empty(),
+        "no spend is announced: {:?}",
+        said.borrow()
+    );
+    assert!(runs(&w).iter().all(|r| !r.control), "no control written");
+    assert!(
+        w.usage().read().map_or(true, |r| r.rows.is_empty()),
+        "nothing spent"
+    );
+    let head = w.ledger().head().unwrap();
+    let read = evolution::read(w.ledger().path(), head.as_ref()).unwrap();
+    assert_eq!(
+        evolution::judge(&read, "careful-1", mikata_config::MIN_NET_WINS),
+        Judgement::Pending {
+            runs: EVOLUTION_WINDOW,
+            controls: 0
+        }
+    );
+    // A run whose runner said no model: no model is even asked for.
+    let old = World::new("no-model");
+    swap(&old);
+    stamp_for(&old.world(), old.ledger().path(), "summoner", &ask(0))
+        .unwrap()
+        .record(&old.world(), Facts::default())
+        .unwrap();
+    let never = |_: &str, _: &str| -> Result<Arc<dyn Model>, String> {
+        panic!("a run that named no model asks for none")
+    };
+    let c = Controller {
+        model: &never,
+        config: &config,
+        ready,
+        attic: Some(&attic),
+        usage: old.usage(),
+        session: "judge-no-model".into(),
+        say: &say,
+    };
+    let e = run_controls(&old.world(), old.ledger().path(), "careful-1", &c)
+        .await
+        .unwrap_err();
+    assert!(
+        e.contains("its window run kept no model") && e.contains("judge this window by hand"),
+        "{e}"
+    );
+}
+
+/// The model a window run rode is reached again by the names its row carries: the
+/// configuration's own while it is still that one, another provider's when the run rode that, an
+/// id that holds a colon whole. One the configuration no longer reaches is refused, and so is one
+/// whose key is not set.
+#[test]
+fn a_runs_model_is_reached_by_the_names_its_row_carries() {
+    let w = World::new("reach");
+    fs::write(
+        w.root.join("global.toml"),
+        "[providers.openrouter]\nkind = \"openai\"\nbase_url = \"https://openrouter.invalid/api\"\n\
+         key_env = \"OPENROUTER_API_KEY\"\n\n\
+         [providers.vllm]\nkind = \"openai\"\nbase_url = \"http://127.0.0.1:9/v1\"\n\
+         key_env = \"VLLM_API_KEY\"\n\n\
+         [models]\nprovider = \"openrouter\"\ndefault = \"qwen/qwen3.5-35b\"\n",
+    )
+    .unwrap();
+    let config = w.config();
+    let keys = |k: &str| matches!(k, "OPENROUTER_API_KEY" | "VLLM_API_KEY").then(|| "k".to_owned());
+    for (provider, id) in [
+        ("openrouter", "qwen/qwen3.5-35b"),
+        ("vllm", "qwen3-coder"),
+        ("openrouter", "qwen/qwen3.5-35b:free"),
+    ] {
+        let model = reach(&config, &w.world(), &keys, provider, id)
+            .unwrap_or_else(|e| panic!("{id} through {provider}: {e}"));
+        assert_eq!(model.provider(), provider, "{id}");
+    }
+    let gone = reach(&config, &w.world(), &keys, "gone", "some-model")
+        .err()
+        .expect("no provider of that name");
+    assert!(
+        gone.contains("reaches no model `some-model` through `gone`"),
+        "{gone}"
+    );
+    let only = |k: &str| (k == "OPENROUTER_API_KEY").then(|| "k".to_owned());
+    let unkeyed = reach(&config, &w.world(), &only, "vllm", "qwen3-coder")
+        .err()
+        .expect("its key is not set");
+    assert!(unkeyed.contains("VLLM_API_KEY"), "{unkeyed}");
 }
 
 /// `creature`'s verify lines pinned in `world`, as the human's `mikatad verify pin` would pin
