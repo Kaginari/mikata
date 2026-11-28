@@ -183,8 +183,9 @@ change, and write the bar in it before a paid run:
 
 ```sh
 python3 bench/screens.py show                 # what was tried, by problem
-python3 bench/screens.py bar <id> --problem <id> --what … --why … --bar … --model … --suite … --build …
-python3 bench/screens.py verdict <id> --observed … --met yes|no|partly --decision …
+python3 bench/screens.py bar <id> --problem <id> --what … --why … --bar … --model … --suite … --build … \
+  --predicted <task>,<task>                    # or --unpredicted "<why none>"
+python3 bench/screens.py verdict <id> --observed … --met yes|no|partly --decision … --fixed … --missed …
 python3 bench/screens.py check                # well-formed; `--since <commit>`: only grown
 ```
 

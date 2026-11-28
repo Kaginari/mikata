@@ -27,21 +27,27 @@ say why a unit is there, what it was meant to fix, or whether it did.
 
 ## When you measure it
 
-6. **Write the bar before any paid run, and commit it before the runs:**
+6. **Write the bar and the prediction before any paid run, and commit them before the runs:**
 
        python3 bench/screens.py bar <id> --problem <id> --what "<the change>" \
          --why "<why it should help>" --bar "<what result counts, and what does not>" \
          --model "<body, and reader if any>" --suite "<codebase and asks>" \
          --build "<version (commit), as `mikata status` prints it>" [--runs N] \
-         [--predicted <task>,<task>]
+         --predicted <task>,<task> | --unpredicted "<why no task can be named>"
 
-   `--predicted` names the tasks you expect it to fix; the verdict says which it did.
+   `--predicted` names the tasks you expect the change to fix, from the failures you read, not
+   from a guess at the count. Only a change that should move no task (one for cost alone, say)
+   gives `--unpredicted` and why. `check` refuses a new screen with neither.
 7. **Write the verdict after, whatever it says:**
 
        python3 bench/screens.py verdict <id> --observed "<what was seen>" \
          --met yes|no|partly --decision shipped|switch|not-shipped|removed|kept|open \
          [--passed 10/12] [--control 6/12] [--fixed …] [--missed …] [--source docs/bench.md#…]
 
+   Every predicted task goes in `--fixed` or `--missed`: `check` refuses a verdict that leaves
+   one out. A task fixed that nobody predicted goes in `--fixed` too, and `show` names it as a
+   surprise. A count that moved with the predicted tasks missed is a change that worked for
+   another reason than the one given: say so in `--observed`.
    A miss is recorded as a pass is. `switch` is in the product and off by default.
 8. **Never edit a line.** A row found wrong is withdrawn
    (`python3 bench/screens.py withdraw <id> "<why>"`) and written again; two problems found to be
