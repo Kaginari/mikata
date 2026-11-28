@@ -17,16 +17,17 @@ pub use audit::{Unproven, findings, status, unfrozen};
 pub use consolidate::{Forget, distill, forget};
 pub use graph::{Class, Moved, Strength, invalidate, landed, strengths, under_review};
 pub use note::{
-    By, Change, Dependency, Event, Link, Note, Polarity, Status, UnitStamp, Version, fold,
+    By, Change, Dependency, Event, Held, Link, Note, Polarity, Status, UnitStamp, Version, fold,
 };
 pub use recall::{Hit, Memory, Recalled, Relation, Weights, gather, lines, recall};
 pub use standing::{Standing, standing};
 pub use store::{Tier, as_unit, inherit, read, union_merge};
 pub use write::{
-    Anchor, CHECK_TAG, Claim, Evidence, Grounded, Proof, Proposed, Retired, Route, Seconded,
-    Written, amend, answered, attributable, cache, changed, confirm, corrected, corrected_checked,
-    correction, corrections_checked_under, corrections_under, corroborate, distilled, ground,
-    learned_under, named_check, pending, proposals, propose, propose_on, propose_resting,
-    propose_under, proposed, retire, retired, retired_in, retired_note, revise, revise_under, seen,
-    stopped, vouch, wake, wake_by, withdraw, withdraw_by, written_by,
+    Anchor, Bears, CHECK_TAG, Claim, Evidence, Grounded, Proof, Proposed, Retired, Route, Seconded,
+    Settled, Written, amend, answered, attributable, cache, changed, confirm, corrected,
+    corrected_checked, correction, corrections_checked_under, corrections_under, corroborate,
+    distilled, ground, hold, learned_under, named_check, pending, proposals, propose, propose_on,
+    propose_resting, propose_under, proposed, retire, retired, retired_in, retired_note, revise,
+    revise_under, seen, settle, stopped, test_named, vouch, wake, wake_by, withdraw, withdraw_by,
+    written_by,
 };

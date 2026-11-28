@@ -96,6 +96,22 @@ struct Scope {
     terms: std::collections::BTreeSet<String>,
     /// The verify lines that ran and passed over it: a claim is proven only by the one it names.
     lines: Vec<String>,
+    /// The paths its diff changed, as the gate named them: a test among them was written in this
+    /// session.
+    changed: Vec<String>,
+}
+
+/// How a **checked** proof bears on one claim ([`Proof::bears`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Bears {
+    /// It grounds the claim now: the proof, bound to it.
+    Now(Proof),
+    /// It will, once a later gate passes with the test the claim cites standing as it does now:
+    /// the claim cites a test this session wrote ([`hold`]).
+    Later {
+        /// The test file, relative to the world.
+        test: String,
+    },
 }
 
 /// A claim's text and the check it names: everything after its last ` check=`, a verify line or
@@ -113,6 +129,145 @@ pub fn named_check(text: &str) -> (&str, Option<&str>) {
         }
         None => (text, None),
     }
+}
+
+/// The test file a check names, relative to the world: a path among its words (`tests/a.py`,
+/// `tests/a.py::T::test_x`, `src/lib.rs:12`), or a dotted module run by name
+/// (`tests.dialects.test_spark.TestSpark.test_x`, read as `tests/dialects/test_spark.py`). `None`
+/// when no word of it is a file of the world.
+#[must_use]
+pub fn test_named(world: &Path, check: &str) -> Option<String> {
+    let is_file = |rel: &str| {
+        let rel = rel.trim_start_matches("./");
+        let p = Path::new(rel);
+        (!rel.is_empty()
+            && !p.is_absolute()
+            && p.components()
+                .all(|c| matches!(c, std::path::Component::Normal(_)))
+            && world.join(p).is_file())
+        .then(|| rel.to_owned())
+    };
+    for word in check.split(|c: char| c.is_whitespace() || "`'\"(),;".contains(c)) {
+        if word.is_empty() || word.starts_with('-') {
+            continue;
+        }
+        // A test inside a file: `a.py::T::t`, `a.rs:12`.
+        let path = word.split("::").next().unwrap_or(word);
+        let path = path.split(':').next().unwrap_or(path);
+        if (path.contains('/') || path.contains('.'))
+            && let Some(found) = is_file(path)
+        {
+            return Some(found);
+        }
+        // A module run by its dotted name, longest first: `pkg.mod.Class.test` is `pkg/mod.py`.
+        if !path.contains('/') && path.contains('.') {
+            let parts: Vec<&str> = path.split('.').collect();
+            for k in (1..=parts.len()).rev() {
+                if let Some(found) = is_file(&format!("{}.py", parts[..k].join("/"))) {
+                    return Some(found);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Whether two of the world's paths are one: `./` and a trailing `/` set aside.
+fn same_path(a: &str, b: &str) -> bool {
+    let clean = |p: &str| p.trim_start_matches("./").trim_end_matches('/').to_owned();
+    clean(a) == clean(b)
+}
+
+/// Hold `claim` for a later check ([`Bears::Later`]): the test file it cites and that file's hash
+/// now. It stays proposed; [`settle`] grounds it.
+///
+/// # Errors
+///
+/// The creature's memory is frozen, the test file cannot be read, or the note file cannot be
+/// written.
+pub fn hold(world: &Path, claim: &Claim<Proposed>, test: &str, check: &str) -> std::io::Result<()> {
+    crate::audit::unfrozen(world, &claim.owner)?;
+    let hash = crate::graph::file_hash(world, test)
+        .ok_or_else(|| std::io::Error::other(format!("`{test}` cannot be read")))?;
+    append(
+        world,
+        &Tier::Personal(claim.owner.clone()),
+        &claim.note,
+        By::Record,
+        None,
+        Change::Pending {
+            test: test.to_owned(),
+            hash,
+            check: check.to_owned(),
+        },
+    )?;
+    Ok(())
+}
+
+/// What [`settle`] did with the claims an owner held for a later check.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Settled {
+    /// The claims grounded: their tests stood unchanged through this gate.
+    pub grounded: Vec<String>,
+    /// The claims still held: this session changed their tests again.
+    pub waiting: usize,
+    /// The claims whose tests moved, or went, since they were held: they stay proposed, and no
+    /// later gate grounds them.
+    pub moved: usize,
+}
+
+/// The **checked** route, later: each claim `owner` holds for a later check ([`hold`]) is grounded
+/// by `proof` — a gate that passed its verify lines over a diff of this session — when its test
+/// file stands with the bytes it had when the claim was held, and this session's diff did not
+/// touch it. By then the test stood before the work it judged. A claim whose test changed since
+/// stays proposed.
+///
+/// # Errors
+///
+/// The creature's memory cannot be read, or a note file cannot be written.
+pub fn settle(world: &Path, owner: &str, proof: &Proof) -> std::io::Result<Settled> {
+    let mut out = Settled::default();
+    let Some(scope) = &proof.scope else {
+        return Ok(out);
+    };
+    if proof.route != Route::Checked {
+        return Ok(out);
+    }
+    let rows = crate::store::read(world, &Tier::Personal(owner.to_owned()))?.rows;
+    let notes = crate::note::fold(&rows);
+    let mut held: Vec<(&crate::note::Note, &crate::note::Held)> = notes
+        .values()
+        .filter(|n| n.status == Status::Proposed)
+        .filter_map(|n| n.pending.as_ref().map(|h| (n, h)))
+        .collect();
+    held.sort_by(|a, b| a.0.id.cmp(&b.0.id));
+    for (note, h) in held {
+        if scope.changed.iter().any(|c| same_path(c, &h.test)) {
+            out.waiting += 1;
+            continue;
+        }
+        if crate::graph::file_hash(world, &h.test).as_deref() != Some(h.hash.as_str()) {
+            out.moved += 1;
+            continue;
+        }
+        let Some(claim) = proposed(world, owner, &note.id)? else {
+            continue;
+        };
+        let later = Proof {
+            route: Route::Checked,
+            cites: format!(
+                "{} — check: `{}`, with its test `{}` unchanged since the claim was held",
+                proof.cites,
+                scope.lines.join("`, `"),
+                h.test
+            ),
+            scope: None,
+            bound: None,
+        };
+        ground(world, claim, &later)?;
+        out.grounded.push(note.id.clone());
+    }
+    Ok(out)
 }
 
 impl Proof {
@@ -153,9 +308,61 @@ impl Proof {
                     })
                     .collect(),
                 lines: lines.to_vec(),
+                changed: changed.to_vec(),
             }),
             bound: None,
         })
+    }
+
+    /// This proof as it bears on one claim, as [`Proof::observes`] reads it, and one step further:
+    /// a check that names a test file of the world, not a verify line. A test that stood before
+    /// this session and that its diff left as it was ran under the verify line the gate passed,
+    /// so it grounds the claim now. A test this session wrote or changed proves little of its own
+    /// author's claim: the claim is held for a later gate ([`Bears::Later`], [`hold`]), which
+    /// grounds it once the test has stood unchanged through another session's work.
+    ///
+    /// The harness takes the verify line to run the project's tests, as the README asks of it; a
+    /// line that runs no test proves nothing of a test file, here as with a check that names the
+    /// line itself.
+    ///
+    /// # Errors
+    ///
+    /// Why it does not bear on the claim, said for the report.
+    pub fn bears(
+        &self,
+        world: &Path,
+        text: &str,
+        source: Option<&str>,
+        check: Option<&str>,
+    ) -> Result<Bears, String> {
+        let why = match self.observes(text, source, check) {
+            Ok(p) => return Ok(Bears::Now(p)),
+            Err(why) => why,
+        };
+        let (Some(scope), Some(check)) = (&self.scope, check) else {
+            return Err(why);
+        };
+        if !why.ends_with("is no verify line that ran") {
+            return Err(why);
+        }
+        let Some(file) = test_named(world, check) else {
+            return Err(format!(
+                "its check `{check}` is no verify line that ran, nor a test file of the world"
+            ));
+        };
+        if scope.changed.iter().any(|c| same_path(c, &file)) {
+            return Ok(Bears::Later { test: file });
+        }
+        let line = scope.lines.join("`, `");
+        Ok(Bears::Now(Self {
+            route: self.route,
+            cites: format!(
+                "{} — check: `{line}`, with its test `{file}` standing before the session",
+                self.cites
+            ),
+            scope: self.scope.clone(),
+            bound: Some(text.to_owned()),
+        }))
     }
 
     /// This proof as it bears on one claim saying `text`, pointing at `source`, naming the

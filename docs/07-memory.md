@@ -298,7 +298,7 @@ by exactly one of:
 
 | Route | Proof | For |
 |---|---|---|
-| **checked** | the end gate passed, ran at least one verify line over a non-empty diff, *and* the claim names a path that diff changed and the check that tests it (`check=<verify line or test>`), which ran in that gate | work that wrote files |
+| **checked** | the end gate passed, ran at least one verify line over a non-empty diff, *and* the claim names a path that diff changed and the check that tests it (`check=<verify line or test>`): a verify line that ran in that gate, or a test file that stood before the session; a test the session wrote itself grounds it at a later session's passing gate, unchanged | work that wrote files |
 | **accepted** | in the lab: the commissioner's verdict names the claim and accepts it (the verdict-current) | research, reads, reviews — work with nothing to test |
 | **corroborated** | a second body lands a matching claim from different evidence anchors | anything, including failed runs |
 | **confirmed** | the human says so: `mikatad memory confirm <claim>` | anything |
@@ -441,7 +441,26 @@ and the grounded note cites it: its proof ends `` — check: `python3 -m pytest
 tests/test_stack.py::test_pop_empty` ``. A claim that names
 no check, or one that did not run, stays proposed, and the report says why
 (`[memory: … ; 1 not checked: it names no check (…)]`); **accepted**, **corroborated** and
-**confirmed** still promote it. What **checked** proves is therefore narrow: the body bound the claim
+**confirmed** still promote it.
+
+**A test file is a check too, once it stood before the work.** A verify line that runs a whole
+suite (`pytest`, `npm test`, `cargo test`) names no test, so a claim citing
+`tests/test_stack.py::test_pop_empty` named nothing that line runs, and stayed proposed. So a check
+may also name a test file of the world, by path or as a module run by name
+(`tests.test_stack.TestStack.test_pop_empty`):
+
+- A test that stood before the session, and that its diff left as it was, ran under the verify
+  line the gate passed: the claim is grounded now, its proof naming the line and the test.
+- A test the session wrote or changed proves little of its own author's claim: the claim is
+  **held for a later check**, with the file's hash (`[memory: … ; 1 held for a later check]`). A
+  later session whose gate passes its verify line, its diff leaving that file with the same bytes,
+  grounds it (`; 1 earlier grounded`): by then the test stood before the work it judged. A session
+  that changes the test again keeps it waiting; one whose bytes moved since stays proposed.
+
+The harness takes the verify line to run the project's tests, as the README asks; a line that runs
+no test proves nothing of a test file, as with a claim that names the line itself. On our bench,
+every claim Claude Haiku 5.5 wrote over ten sqlglot fixes cited a test it had just written, under a
+verify line that runs the whole suite: before this, none of the 22 could ever be grounded. What **checked** proves is therefore narrow: the body bound the claim
 to a check, and that check, written before the turn, passed over the claim's own diff — not that
 the check exercises every word of the claim. Mikata is asked to name the file a claim is about and
 its check

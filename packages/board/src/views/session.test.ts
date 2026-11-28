@@ -124,6 +124,11 @@ test("the harness's own lines are said plainly", () => {
       "[memory: 2 claim(s) of summoner's kept, 1 grounded by checked, 0 by corroborated; 1 not checked: it names no check]",
     ),
   ).toBe('memory kept 2 notes · 1 checked · 1 not checked');
+  expect(
+    kept(
+      "[memory: 1 claim(s) of summoner's kept, 0 grounded by checked, 0 by corroborated; 1 held for a later check: each cites a test this session wrote; 2 earlier grounded: their tests stood unchanged through this gate]",
+    ),
+  ).toBe('memory kept 1 note · 1 held · 2 grounded later');
   expect(kept('[something else]')).toBeUndefined();
   expect(spoken('Fine.\n@U colony x\n')).toBe('Fine.');
   expect(spoken('a line with @U inside')).toBe('a line with @U inside');

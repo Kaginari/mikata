@@ -149,6 +149,12 @@ export function kept(text: string): string | undefined {
   if (seconded !== '0') parts.push(`${seconded} seconded`);
   const unchecked = [...why.matchAll(/; (\d+) not checked/g)].reduce((s, x) => s + Number(x[1]), 0);
   if (unchecked > 0) parts.push(`${unchecked} not checked`);
+  const count = (re: RegExp) => [...why.matchAll(re)].reduce((s, x) => s + Number(x[1]), 0);
+  // Held for a later check, and grounded later: a claim on a test its own session wrote.
+  const held = count(/; (\d+) held for a later check/g);
+  if (held > 0) parts.push(`${held} held`);
+  const later = count(/; (\d+) earlier grounded/g);
+  if (later > 0) parts.push(`${later} grounded later`);
   return parts.join(' · ');
 }
 

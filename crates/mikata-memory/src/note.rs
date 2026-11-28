@@ -183,6 +183,17 @@ pub enum Change {
         /// The new confidence, in `[0, 1]`.
         confidence: f64,
     },
+    /// Held for a later check: the claim cites a test written in the session that made it, and a
+    /// test its author just wrote proves little. A later gate that passes its verify line while
+    /// that file stands as it was here grounds it: by then the test stood before the work.
+    Pending {
+        /// The test file it cites, relative to the world.
+        test: String,
+        /// The SHA-256 of that file's bytes when the claim was held.
+        hash: String,
+        /// The check the claim named, as it named it.
+        check: String,
+    },
 }
 
 /// One event: one full line of a note file.
@@ -317,6 +328,22 @@ pub struct Note {
     pub grounded_at: Option<u64>,
     /// The unit that wrote its creation, as `unit@version`, when one did.
     pub unit: Option<String>,
+    /// The later check it waits on, while it does ([`Change::Pending`]): a proposed claim whose
+    /// test was written in its own session.
+    pub pending: Option<Held>,
+}
+
+/// A claim's later check: the test file it cites and that file's hash when it was held.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Held {
+    /// The test file, relative to the world.
+    pub test: String,
+    /// Its SHA-256 when the claim was held.
+    pub hash: String,
+    /// The check the claim named.
+    pub check: String,
+    /// When it was held, in milliseconds since the epoch.
+    pub since: u64,
 }
 
 impl Note {
@@ -391,6 +418,7 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
                     groundings: Vec::new(),
                     grounded_at: None,
                     unit: e.unit.clone(),
+                    pending: None,
                 });
             }
             Change::Version { text, depends_on } => {
@@ -415,6 +443,8 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
                 n.groundings.clear();
                 n.grounded_at = None;
                 n.review = None;
+                // A held check was for other words.
+                n.pending = None;
             }
             Change::Depends { on } => {
                 if let Some(n) = notes.get_mut(&e.note) {
@@ -438,6 +468,10 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
                 if !tie || *status > n.status {
                     n.status = *status;
                     n.proof.clone_from(&e.proof);
+                    // Any standing but proposed ends a wait on a later check.
+                    if *status != Status::Proposed {
+                        n.pending = None;
+                    }
                     // A route that grounds it again answers the review: the claim stands anew.
                     if *status == Status::Grounded {
                         n.review = None;
@@ -454,6 +488,18 @@ pub fn fold(events: &[Event]) -> BTreeMap<String, Note> {
             Change::Confidence { confidence } => {
                 if let Some(n) = notes.get_mut(&e.note) {
                     n.confidence = confidence.clamp(0.0, 1.0);
+                }
+            }
+            Change::Pending { test, hash, check } => {
+                if let Some(n) = notes.get_mut(&e.note)
+                    && n.status == Status::Proposed
+                {
+                    n.pending = Some(Held {
+                        test: test.clone(),
+                        hash: hash.clone(),
+                        check: check.clone(),
+                        since: e.time,
+                    });
                 }
             }
         }
