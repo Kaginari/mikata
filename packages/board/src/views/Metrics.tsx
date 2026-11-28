@@ -301,50 +301,58 @@ function OverTime({
 }
 
 function Compared({ rows, label }: { rows: Group[]; label: string }) {
+  // A table wider than its card scrolls in the card: never the page.
   return (
-    <table className="mx-table">
-      <thead>
-        <tr>
-          <th scope="col">{label}</th>
-          <th scope="col">Asks</th>
-          <th scope="col">Landed</th>
-          <th scope="col">Steps</th>
-          <th scope="col">Median</th>
-          <th scope="col">Cache</th>
-          <th scope="col">$ / landed</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((g) => (
-          <tr key={g.key}>
-            <td className="mx-mono">
-              {/* a provider's model names break after their `/`, never inside a word */}
-              {g.key.split('/').map((part, i, all) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: the parts of one name, in order
-                <span key={i}>
-                  <Safe text={i < all.length - 1 ? `${part}/` : part} />
-                  {i < all.length - 1 && <wbr />}
-                </span>
-              ))}
-            </td>
-            <td>{g.asks}</td>
-            <td>
-              <span className="mx-pct">
-                <i
-                  className="mx-pctbar"
-                  style={{ width: `${Math.round((g.s.landedShare ?? 0) * 100)}%` }}
-                />
-              </span>{' '}
-              {pct(g.s.landedShare)}
-            </td>
-            <td>{Math.round(g.s.medianTurns)}</td>
-            <td>{duration(g.s.medianSecs)}</td>
-            <td>{pct(g.s.cacheHit)}</td>
-            <td>{money(g.s.perLanded)}</td>
+    <section
+      className="mx-tablewrap"
+      aria-label={`${label}, side by side`}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a wide table scrolls with the keys
+      tabIndex={0}
+    >
+      <table className="mx-table">
+        <thead>
+          <tr>
+            <th scope="col">{label}</th>
+            <th scope="col">Asks</th>
+            <th scope="col">Landed</th>
+            <th scope="col">Steps</th>
+            <th scope="col">Median</th>
+            <th scope="col">Cache</th>
+            <th scope="col">$ / landed</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((g) => (
+            <tr key={g.key}>
+              <td className="mx-mono">
+                {/* a provider's model names break after their `/`, never inside a word */}
+                {g.key.split('/').map((part, i, all) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: the parts of one name, in order
+                  <span key={i}>
+                    <Safe text={i < all.length - 1 ? `${part}/` : part} />
+                    {i < all.length - 1 && <wbr />}
+                  </span>
+                ))}
+              </td>
+              <td>{g.asks}</td>
+              <td>
+                <span className="mx-pct">
+                  <i
+                    className="mx-pctbar"
+                    style={{ width: `${Math.round((g.s.landedShare ?? 0) * 100)}%` }}
+                  />
+                </span>{' '}
+                {pct(g.s.landedShare)}
+              </td>
+              <td>{Math.round(g.s.medianTurns)}</td>
+              <td>{duration(g.s.medianSecs)}</td>
+              <td>{pct(g.s.cacheHit)}</td>
+              <td>{money(g.s.perLanded)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 
