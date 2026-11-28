@@ -94,6 +94,11 @@
 }
 .mx-tablewrap {
   overflow-x: auto;
+  border-radius: 8px;
+}
+.mx-tablewrap:focus-visible {
+  outline: 2px solid var(--mn-holo);
+  outline-offset: 2px;
 }
 .mx-card h2 {
   margin: 0;

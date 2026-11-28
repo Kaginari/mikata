@@ -303,7 +303,12 @@ function OverTime({
 function Compared({ rows, label }: { rows: Group[]; label: string }) {
   // A table wider than its card scrolls in the card: never the page.
   return (
-    <div className="mx-tablewrap">
+    <section
+      className="mx-tablewrap"
+      aria-label={`${label}, side by side`}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a wide table scrolls with the keys
+      tabIndex={0}
+    >
       <table className="mx-table">
         <thead>
           <tr>
@@ -347,7 +352,7 @@ function Compared({ rows, label }: { rows: Group[]; label: string }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </section>
   );
 }
 
