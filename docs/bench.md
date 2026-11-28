@@ -270,6 +270,10 @@ xychart-beta
 - **The bar comes first.** Before a paid run, a note says what result would count as "the change
   pays", what would not, and when the run stops. The verdict is read against it, never adjusted
   after.
+- **The bar and its verdict are kept in one record.** `bench/screens.jsonl` holds every screen
+  under the problem it was for: the change, why, the model, suite and build it ran with, the bar
+  as a line of its own before the runs, the verdict as a line after
+  ([the record of screens](#the-record-of-screens)).
 - **One host.** Every call goes to the same provider host, so a slower or different deployment
   never passes for a harness difference.
 - **Every row is kept:** the tree it left, its journal, its calls, and dollars as the provider
@@ -278,6 +282,209 @@ xychart-beta
   nothing that passed before fails. The harness never sees them.
 - **Pre-flight.** Each arm's world opens a session with its config before any model call, so no
   run dies at its first call to a setting we got wrong.
+
+### The record of screens
+
+This page tells each screen where it was run, so a change's history is spread over it. Whoever
+proposes the next change needs it by problem: what was already tried for this fault, with which
+model, on which codebase, and what came of it. So every screen is also a row of
+`bench/screens.jsonl`, under the problem it was for. A change's way through the record:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#07050a"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#3d2b40"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#59405d"
+    tertiaryColor: "#110c14"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#3d2b40"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#ff168a"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#07050a"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
+    compositeTitleBackground: "#3d2b40"
+    altBackground: "#110c14"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 240
+---
+flowchart TD
+    subgraph MIKATA_BG[" "]
+      direction TB
+      REC[("the record<br/>bench/screens.jsonl")] -->|"show: what was tried,<br/>with which model,<br/>and what came of it"| P("whoever proposes<br/>the next change")
+      P -->|"cites its problem,<br/>or names a new one"| BAR("the bar<br/>a line of its own")
+      BAR -->|"committed before<br/>any paid run"| RUN("the runs<br/>model · suite · build")
+      RUN --> V(["the verdict<br/>met, missed or in part"])
+      V -->|"a line after the bar,<br/>a miss recorded<br/>as a pass is"| REC
+    end
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
+    class REC store
+    classDef you fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
+    class P you
+    classDef core fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
+    class BAR core
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
+    class RUN step
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
+    class V gate
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
+```
+
+```sh
+python3 bench/screens.py show                             # the whole record, as text
+python3 bench/screens.py show --problem prose-misreading  # one problem
+python3 bench/screens.py show --model haiku               # what was measured with one body
+python3 bench/screens.py problem <id> "<what goes wrong, said as a cause>"
+python3 bench/screens.py bar <id> --problem <id> --what … --why … --bar … --model … --suite … --build …
+python3 bench/screens.py verdict <id> --observed … --met yes|no|partly --decision …
+python3 bench/screens.py check                            # part of `just bench`
+```
+
+- **A problem is a cause, not a remedy:** "an ask without examples is misread", never "add a
+  reader". A change is filed under the problem it is for, or under a new one when none explains
+  the failure.
+- **The bar is a line of its own, written and committed before a paid run;** the verdict is
+  another line, after it. Neither is edited: a row found wrong is withdrawn by a new line, two
+  problems found to be one are merged by one, and `check --since <commit>` holds the file to
+  having only grown. Two branches that both add rows keep both when they meet (`merge=union`,
+  in `.gitattributes`).
+- **A miss is recorded as a pass is,** with what became of the change: shipped, a switch away,
+  not shipped, removed, kept as it was, or still open.
+- **A verdict holds for its setting.** The plan passed 8 of 10 against 5 on the build of 13
+  November and earned no pass on any later screen, with either body, on either codebase; a reader
+  took the small model from 6 of 12 to 10 and had nothing to add to a stronger body. Each row
+  says its model, suite and build, and a change is screened again before it is leaned on with
+  another.
+- **Before proposing a change, read the problem it is for.** Start from what was tried, and try
+  again what missed only when something new says why it would work now.
+
+One problem as the record tells it, each screen with its setting
+(`python3 bench/screens.py show --problem done-one-check-short`): the plan was earned with one
+model on one codebase, and screened again with another body and on a second codebase before it
+was leaned on there.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#07050a"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#3d2b40"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#59405d"
+    tertiaryColor: "#110c14"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#3d2b40"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#ff168a"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#07050a"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
+    compositeTitleBackground: "#3d2b40"
+    altBackground: "#110c14"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 420
+---
+flowchart TD
+    subgraph MIKATA_BG[" "]
+      direction TB
+      PR(["done-one-check-short<br/>a body answers done one check short"]) --> S1("the plan: a Done when list, run before answering<br/>the small model · sqlglot · 13 November")
+      S1 -->|"8 of 10, against 5 without"| D1("shipped, on by default")
+      D1 --> S2("the plan switched off<br/>Claude Haiku 5.5 · sqlglot · 24 November")
+      S2 -->|"10 of 10 each,<br/>208 calls against 370"| S3("the plan as the default<br/>both bodies · sqlglot · 25 November")
+      S3 -->|"qwen 3 of 12, 5 with none;<br/>Haiku 18 of 18 each"| S4("the plan on a second codebase<br/>qwen · mathjs · 845e493")
+      S4 -->|"17 of 20 each,<br/>22% more dollars a pass"| D2("off by default,<br/>a profile away")
+    end
+    classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
+    class PR bad
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
+    class S1,S2,S3,S4 step
+    classDef good fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
+    class D1 good
+    classDef outside fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
+    class D2 outside
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
+```
+
+The first rows were read back from this book (`backfilled`): 39 screens under six problems, the
+light-coding screens of November, each with the page it was read from and the words it rests on
+(`check --quotes` finds every one in its page). The lab's screens and the comparisons between
+harnesses are not in it.
+
+The shape is that of Self-Improvement Memory (Yu et al., 2026,
+[arXiv 2611.18856](https://arxiv.org/abs/2611.18856)): a memory for whoever improves a harness,
+grouped by problem, each attempt with its reason, its prediction made before the evaluation, its
+outcome and its setting. There, a harness carried to another model or benchmark was improved
+further with that history than with the harness alone (2.36 points of 100 on a coding benchmark,
+over ten paired runs), and the problems' names without their attempts helped in some settings and
+hurt in others. None of that is measured here: the record is kept because this book's own
+history asks for it, not because a screen showed it pays.
 
 ### Light-coding, screen by screen
 

@@ -173,3 +173,19 @@ hidden tests, at 12.6× the weighted tokens (median 6.1×). One hierarchy run co
 because the guard refused an act; the guard held. Rows: `results/deepseek_deepseek-v4.1-flash.jsonl`.
 
 One run per task on one cheap model is a signal, not a proof.
+
+## The record of screens
+
+`screens.jsonl` keeps every measured change to the harness under the problem it was for: what was
+tried, why, with which model on which suite and build, the bar written before the runs and the
+verdict after ([the bench](../docs/bench.md#the-record-of-screens)). Read it before proposing a
+change, and write the bar in it before a paid run:
+
+```sh
+python3 bench/screens.py show                 # what was tried, by problem
+python3 bench/screens.py bar <id> --problem <id> --what … --why … --bar … --model … --suite … --build …
+python3 bench/screens.py verdict <id> --observed … --met yes|no|partly --decision …
+python3 bench/screens.py check                # well-formed; `--since <commit>`: only grown
+```
+
+It runs no model and needs no key. `just bench` holds it well-formed.

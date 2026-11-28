@@ -1,0 +1,2 @@
+# The record of screens is appended to, one event a line: two branches that both add rows keep both.
+bench/screens.jsonl merge=union
