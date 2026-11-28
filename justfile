@@ -68,10 +68,12 @@ layers:
     if cargo tree -p mikatad -p mikata-tui -e normal,build -f '{p} {f}' | grep -q 'test-support'; then \
         echo "a shipped binary is built with the test-support feature"; exit 1; fi
 
-# The bench, with no model: its report's rules, and every task real and answer-free.
+# The bench, with no model: its report's rules, every task real and answer-free, and the record
+# of screens well-formed (a bar on every screen, its verdict a line after it).
 bench:
     PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s bench -p 'test_*.py' -q
     PYTHONDONTWRITEBYTECODE=1 python3 bench/run.py --check
+    PYTHONDONTWRITEBYTECODE=1 python3 bench/screens.py check
 
 # The installer, offline: a fake release served on loopback, each supported machine, the timed
 # fresh install, and a tampered, missing or incomplete checksum refused.
