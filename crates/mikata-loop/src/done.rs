@@ -14,6 +14,12 @@
 //! the harness runs its command on the code as the ask found it, tells the body what it prints
 //! today, and holds the work to that. The body never says what "today" is.
 //!
+//! **A check runs its line's case.** Held to what it prints alone, a check may print its answer
+//! (`echo -5`) or run another case: on our bench 169 of 3,483 did, and a line that must stay,
+//! held to a command that prints the same whatever the code does, can never fail. So before a
+//! check runs, a command that only prints words is refused, and so is one that never names the
+//! values of its line's case ([`runs_its_case`]).
+//!
 //! When an answer lands, every check is run on the work as it stands. A line with no check, or a
 //! check that prints something else, fails the landing, and the body is told which line and what
 //! it printed. Nothing here reads prose: the list's two phrases decide a line's kind, and equal
@@ -120,7 +126,7 @@ impl Tool for CheckTool {
     }
 
     fn description(&self) -> &'static str {
-        "Hand the harness a check for one line of the `Done when` list: a command that prints what the line is about, and nothing else. With `gives`, the harness holds your work to that output, letter case and blanks set aside: keep the code's own spelling of what it prints. Without it the line is one that must stay as it is: the harness runs the command on the code as you found it, tells you what it does today, and holds your work to that, so hand such a line in before you change a file. When you answer, the harness runs every check on your work, and one that prints something else fails your landing. One check a line: handing a line in again with another command replaces its check, and with the same command says how the line stands now."
+        "Hand the harness a check for one line of the `Done when` list: a command that runs the line's own case, its values as the line writes them, and prints what comes out, and nothing else. A command that only prints words is refused. With `gives`, the harness holds your work to that output, letter case and blanks set aside: keep the code's own spelling of what it prints. Without it the line is one that must stay as it is: the harness runs the command on the code as you found it, tells you what it does today, and holds your work to that, so hand such a line in before you change a file. When you answer, the harness runs every check on your work, and one that prints something else fails your landing. One check a line: handing a line in again with another command replaces its check, and with the same command says how the line stands now."
     }
 
     fn schema(&self) -> Value {
@@ -520,6 +526,9 @@ checks of your own for the other lines.",
             Ok(text) => text,
             Err(refusal) => return corrected(refusal),
         };
+        if let Err(refusal) = runs_its_case(&line, text.as_deref(), &command, cx.world()) {
+            return corrected(refusal);
+        }
         // The same line and command again asks how the line stands now: the check is kept as it
         // is, with what it was held to when it came in.
         if let Some(held) = self.checks.iter().find(|c| {
@@ -874,6 +883,288 @@ and {why}. Hand in a command that does the same thing each time it runs."
     }
 }
 
+/// The verbs that end a line's case when the line has no backticks: what it gives comes after.
+const SAYS: [&str; 7] = [
+    " gives ",
+    " returns ",
+    " prints ",
+    " outputs ",
+    " stays ",
+    " should ",
+    " still ",
+];
+/// The most files a check's command names that are read for its case, and the most of each.
+const NAMED_FILES: usize = 8;
+const NAMED_BYTES: u64 = 256 * 1024;
+
+/// Why `command` cannot be `line`'s check, when it cannot (`text` is the line, when the list
+/// carries it). Two kinds of command are refused, both read off the command alone:
+///
+/// - One that only prints words it holds (`echo -5`, `print('SLICE(x, 4, 1)')`): it runs nothing
+///   of the code, so it holds whatever the work does. Never a check of anything.
+/// - One that names none of the line's case as written. A line's case is its backticked input,
+///   the part before `must give` or `must stay` (in a line with no backticks, what comes before
+///   its verb: [`SAYS`]), and of it what no spelling of a call can change:
+///   its numbers and its quoted words. Each of them must stand in the command, or in a file the
+///   command names, blanks and letter case set aside. Names are not asked for: a command-line
+///   check (`cargo run -- 90` for `format(90)`) calls the code by another name. A line whose
+///   case has no such values is held to nothing here.
+///
+/// On our bench, over 3,483 checks handed in for a list's line, the second refused 74: commands
+/// that print the answer, checks of another input than the line's (`ARRAY_SLICE(x, 1, 10)` for
+/// `ARRAY_SLICE(x, 2, 4)`), a library other than the project's, and checks of half a line (the
+/// derivative, but never its value at `x = 2`). None was a whole and honest check. The first
+/// kind took 83 more that print a label holding the case (`echo "D1: ARRAY_SLICE(x,2,4) ->
+/// SLICE(x,2,3)"`). A line that must stay held to such a command can never fail.
+fn runs_its_case(
+    line: &str,
+    text: Option<&str>,
+    command: &str,
+    world: &std::path::Path,
+) -> Result<(), String> {
+    if prints_only_words(command) {
+        return Err(format!(
+            "refused: {line}'s command only prints words it already holds: it runs nothing of the \
+code, so it would hold whatever the work does. Hand in a command that runs {line}'s case on the code \
+and prints what comes out."
+        ));
+    }
+    let Some(text) = text else { return Ok(()) };
+    let small = text.to_lowercase();
+    let before = [GIVES, STAYS]
+        .iter()
+        .filter_map(|phrase| small.find(phrase))
+        .min()
+        .and_then(|at| text.get(..at))
+        .unwrap_or(text);
+    let cases: Vec<Vec<String>> = if before.contains('`') {
+        before
+            .split('`')
+            .skip(1)
+            .step_by(2)
+            .map(values)
+            .filter(|v| !v.is_empty())
+            .collect()
+    } else {
+        // A line written with no backticks (`format(90) gives '90m'`, as people write them): its
+        // case is what comes before its first verb.
+        let small = before.to_lowercase();
+        let at = SAYS
+            .iter()
+            .filter_map(|verb| small.find(verb))
+            .min()
+            .unwrap_or(before.len());
+        let case = values(before.get(..at).unwrap_or(before));
+        if case.is_empty() { vec![] } else { vec![case] }
+    };
+    if cases.is_empty() {
+        return Ok(());
+    }
+    let mut hay = flat(command);
+    for body in named_files(command, world) {
+        hay.push('\n');
+        hay.push_str(&flat(&body));
+    }
+    if cases
+        .iter()
+        .any(|case| case.iter().all(|v| hay.contains(&flat(v))))
+    {
+        return Ok(());
+    }
+    let unnamed: Vec<String> = cases[0]
+        .iter()
+        .filter(|v| !hay.contains(&flat(v)))
+        .map(|v| format!("`{v}`"))
+        .collect();
+    let unnamed: Vec<&str> = unnamed.iter().map(String::as_str).collect();
+    Err(format!(
+        "refused: {line} reads `{}`, and your command never names {} of its case. A check runs \
+the line's own case: hand in a command that runs exactly that input, its values as the line writes \
+them, in the command or in a file the command runs.",
+        clipped(text),
+        and(&unnamed)
+    ))
+}
+
+/// The values of a case no spelling of a call changes: each number (with its sign) and each
+/// quoted word, made small, in order. A quote left open is no word.
+fn values(case: &str) -> Vec<String> {
+    let chars: Vec<char> = case.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c == '\'' || c == '"' {
+            if let Some(end) = chars[i + 1..].iter().position(|&d| d == c) {
+                let word: String = chars[i + 1..i + 1 + end].iter().collect();
+                let word = word.trim().to_lowercase();
+                if !word.is_empty() {
+                    out.push(word);
+                }
+                i += end + 2;
+                continue;
+            }
+        } else if c.is_ascii_digit()
+            || (c == '-' && chars.get(i + 1).is_some_and(char::is_ascii_digit))
+        {
+            let start = i;
+            i += 1;
+            while i < chars.len()
+                && (chars[i].is_ascii_digit()
+                    || (chars[i] == '.' && chars.get(i + 1).is_some_and(char::is_ascii_digit)))
+            {
+                i += 1;
+            }
+            out.push(chars[start..i].iter().collect());
+            continue;
+        }
+        i += 1;
+    }
+    out
+}
+
+/// A text made small with its blanks gone: how a case is looked for in a command.
+fn flat(text: &str) -> String {
+    text.chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// What the files `command` names hold, for those that are files of the world: a check may run
+/// its case from a script of its own.
+fn named_files(command: &str, world: &std::path::Path) -> Vec<String> {
+    command
+        .split(|c: char| c.is_whitespace() || "'\"`;|&()<>=".contains(c))
+        .filter(|word| word.contains('.') && !word.starts_with('-'))
+        .filter_map(|word| {
+            let path = world.join(word);
+            let meta = std::fs::metadata(&path).ok()?;
+            (meta.is_file() && meta.len() <= NAMED_BYTES)
+                .then(|| std::fs::read_to_string(&path).ok())
+                .flatten()
+        })
+        .take(NAMED_FILES)
+        .collect()
+}
+
+/// Whether `command` only prints words it holds: a lone `echo` or `printf` with nothing worked
+/// out in it, or a one-line program (`python3 -c`, `node -e`, …) of imports and prints of
+/// quoted words or numbers alone. Read narrowly: what it cannot read as such is a command that
+/// may run code, and is not refused.
+fn prints_only_words(command: &str) -> bool {
+    let command = command.trim();
+    let (first, rest) = command
+        .split_once(char::is_whitespace)
+        .map_or((command, ""), |(a, b)| (a, b.trim()));
+    let first = first.rsplit('/').next().unwrap_or(first);
+    match first {
+        "echo" | "printf" => shell_words_only(rest),
+        "python" | "python3" | "node" | "ruby" | "perl" | "php" => {
+            let Some((flag, program)) = rest.split_once(char::is_whitespace) else {
+                return false;
+            };
+            if !matches!(flag, "-c" | "-e" | "--eval" | "-r") {
+                return false;
+            }
+            let program = program.trim();
+            let Some(quote) = program.chars().next().filter(|q| *q == '"' || *q == '\'') else {
+                return false;
+            };
+            let Some(body) = program
+                .strip_prefix(quote)
+                .and_then(|p| p.strip_suffix(quote))
+            else {
+                return false;
+            };
+            let body = body.replace(&format!("\\{quote}"), &quote.to_string());
+            let statements: Vec<&str> = body
+                .split([';', '\n'])
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .collect();
+            statements.iter().any(|s| prints_a_literal(s))
+                && statements.iter().all(|s| prints_a_literal(s) || imports(s))
+        }
+        _ => false,
+    }
+}
+
+/// An `echo`'s words with nothing worked out: no substitution, pipe, list or redirection
+/// outside single quotes, and no `$` or backquote inside double ones.
+fn shell_words_only(words: &str) -> bool {
+    let mut quote = None;
+    for c in words.chars() {
+        match (quote, c) {
+            (None, '\'' | '"') => quote = Some(c),
+            (Some(q), _) if c == q => quote = None,
+            (None | Some('"'), '$' | '`' | '\\')
+            | (None, '|' | ';' | '&' | '<' | '>' | '(' | ')') => return false,
+            _ => {}
+        }
+    }
+    quote.is_none()
+}
+
+/// A statement that prints quoted words or numbers alone: `print('x')`, `console.log("x", 3)`,
+/// `puts 'x'`.
+fn prints_a_literal(statement: &str) -> bool {
+    let args = ["console.log", "print", "puts", "say", "echo", "printf"]
+        .iter()
+        .find_map(|name| statement.strip_prefix(name))
+        .map(str::trim);
+    let Some(args) = args else { return false };
+    let args = args
+        .strip_prefix('(')
+        .and_then(|a| a.strip_suffix(')'))
+        .unwrap_or(args)
+        .trim();
+    !args.is_empty() && split_args(args).iter().all(|a| literal(a))
+}
+
+/// Arguments split at their commas, a comma inside quotes kept: `'[4, 16]', 3` is two.
+fn split_args(args: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let (mut quote, mut start) = (None, 0);
+    for (i, c) in args.char_indices() {
+        match (quote, c) {
+            (None, '\'' | '"') => quote = Some(c),
+            (Some(q), _) if c == q => quote = None,
+            (None, ',') => {
+                out.push(args[start..i].trim());
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    out.push(args[start..].trim());
+    out
+}
+
+/// A quoted word with nothing worked out in it, or a number.
+fn literal(text: &str) -> bool {
+    let quoted = ['\'', '"'].iter().any(|q| {
+        text.len() >= 2
+            && text.starts_with(*q)
+            && text.ends_with(*q)
+            && !text[1..text.len() - 1].contains(*q)
+    });
+    (quoted && !text.contains("${") && !text.contains('%'))
+        || (!text.is_empty() && text.parse::<f64>().is_ok())
+}
+
+/// A statement that only brings code in: `import x`, `from x import y`, `const x = require('x')`.
+fn imports(statement: &str) -> bool {
+    statement.starts_with("import ")
+        || (statement.starts_with("from ") && statement.contains(" import "))
+        || (["const ", "let ", "var "]
+            .iter()
+            .any(|k| statement.starts_with(k))
+            && statement.contains("require("))
+        || statement.starts_with("require ")
+        || statement.starts_with("use ")
+}
+
 /// Whether the line `text` states the output `gives`, letter case and blanks set aside: the line
 /// holds it, or it holds the output the line names in backticks after `must give`. Held word by
 /// word ([`words`]), so `ARRAY_SLICE(x, 1, 1)` never passes for `SLICE(x, 1, 1)`, nor `30` for
@@ -1171,8 +1462,8 @@ fn run(command: &str, tools: &[Box<dyn Tool>], cx: &mut Context) -> Said {
 mod tests {
     use super::{
         CANNOT_RUN, CHECK, CORRECTED_LINES, CheckTool, Judged, Kind, List, Must, READER, SAID, and,
-        clipped, held_line, kind, loose, moved_note, read_lines, runs, stated, states, unloaded,
-        words,
+        clipped, held_line, kind, loose, moved_note, prints_only_words, read_lines, runs,
+        runs_its_case, stated, states, unloaded, values, words,
     };
     use mikata_races::Race;
     use mikata_tools::{Context, Sandbox, Tool, registry};
@@ -1738,12 +2029,15 @@ its output on the code you gave it)"
                 o.content
             );
         }
-        // Two that only print the words, and take the same answer as a right check would.
-        for (line, gives) in [("D3", "1"), ("D4", "1")] {
+        // Two that run the code and then print the words, and take the same answer as a right
+        // check would. (One that only prints the words is refused: it runs nothing.)
+        for (line, args, gives) in [("D3", "0", "1"), ("D4", "", "1")] {
             let o = call_in(
                 &mut list,
                 &mut cx,
-                &format!(r#"{{"line": "{line}", "command": "echo {gives}", "gives": "{gives}"}}"#),
+                &format!(
+                    r#"{{"line": "{line}", "command": "sh calc.sh {args} >/dev/null && echo {gives}", "gives": "{gives}"}}"#
+                ),
                 true,
             );
             assert!(
@@ -1761,7 +2055,7 @@ its output on the code you gave it)"
         let o = call_in(
             &mut list,
             &mut cx,
-            r#"{"line": "D5", "command": "echo 6", "gives": "6"}"#,
+            r#"{"line": "D5", "command": "sh calc.sh 5", "gives": "6"}"#,
             false,
         );
         assert!(!o.is_error, "{}", o.content);
@@ -1791,7 +2085,7 @@ you gave it; 1 check handed in after the code had changed)"
         let o = call_in(
             &mut list,
             &mut cx,
-            r#"{"line": "D3", "command": "echo 1", "gives": "1"}"#,
+            r#"{"line": "D3", "command": "sh calc.sh 0 >/dev/null && echo 1", "gives": "1"}"#,
             false,
         );
         assert!(!o.is_error, "{}", o.content);
@@ -1857,7 +2151,7 @@ you gave it; 1 check handed in after the code had changed)"
         let o = call_in(
             &mut list,
             &mut cx,
-            r#"{"line": "D2", "command": "true"}"#,
+            r#"{"line": "D2", "command": "true 4"}"#,
             true,
         );
         assert!(
@@ -1869,7 +2163,7 @@ you gave it; 1 check handed in after the code had changed)"
         let o = call_in(
             &mut list,
             &mut cx,
-            r#"{"line": "D2", "command": "date +%s%N"}"#,
+            r#"{"line": "D2", "command": "echo 4 $(date +%s%N)"}"#,
             true,
         );
         assert!(
@@ -2092,7 +2386,7 @@ you gave it; 1 check handed in after the code had changed)"
         let ask =
             "Shift right.\n\n## Done when\nD1: `rightLogShift(-1, 0)` must give `4294967295`\n";
         let mut list = List::of(ask);
-        let hand = r#"{"line": "D1", "command": "sh strict.sh 2>&1", "gives": "4294967295"}"#;
+        let hand = r#"{"line": "D1", "command": "sh strict.sh -1 0 2>&1", "gives": "4294967295"}"#;
         let o = call_in(&mut list, &mut cx, hand, true);
         assert!(
             o.content
@@ -2114,7 +2408,7 @@ you gave it; 1 check handed in after the code had changed)"
         let said = &judged.failures[0];
         assert!(
             said.contains(&format!(
-                "D1 must give `4294967295`: `sh strict.sh 2>&1` {CANNOT_RUN}: it fails as it \
+                "D1 must give `4294967295`: `sh strict.sh -1 0 2>&1` {CANNOT_RUN}: it fails as it \
 did when you handed it in ({missing}), before it reaches your work."
             )) && said.contains("hand D1 in again with a command that runs")
                 && !said.contains("on your work"),
@@ -2205,7 +2499,7 @@ in: your work has not changed what this command does"
         let o = call_in(
             &mut list,
             &mut cx,
-            r#"{"line": "D1", "command": "sh strict.sh", "gives": "6"}"#,
+            r#"{"line": "D1", "command": "sh strict.sh 1 2", "gives": "6"}"#,
             true,
         );
         assert!(
@@ -2218,7 +2512,7 @@ in: your work has not changed what this command does"
         let o = call_in(
             &mut own,
             &mut cx,
-            r#"{"line": "D1", "command": "sh strict.sh", "gives": "6"}"#,
+            r#"{"line": "D1", "command": "sh strict.sh 1 2", "gives": "6"}"#,
             true,
         );
         assert!(!o.content.contains("The human said"), "{}", o.content);
@@ -2326,5 +2620,143 @@ in: your work has not changed what this command does"
         let judged = list.judge(&registry(), &mut cx);
         assert_eq!((judged.failures.len(), judged.hold), (0, 1));
         assert_eq!(list.by(&judged), "Mikata's own Done when list (1 line)");
+    }
+
+    /// A check runs its line's case. One that only prints words it holds, or that never names
+    /// the case's values, is refused before anything runs; one that runs the case, in the
+    /// command or from a file it names, is taken. The first is what a body handed in on the
+    /// board when two lines of its list could not both be true: `format.__doc__` for a line
+    /// about `format(90)`, and the gate landed it.
+    #[test]
+    fn a_check_runs_its_lines_case() {
+        let (dir, mut cx) = world();
+        let mut list = List::of(ASK);
+        let hand =
+            |list: &mut List, cx: &mut Context, line: &str, command: &str, gives: Option<&str>| {
+                let mut input = serde_json::json!({"line": line, "command": command});
+                if let Some(g) = gives {
+                    input["gives"] = g.into();
+                }
+                call_in(list, cx, &input.to_string(), true)
+            };
+        for words in [
+            "echo 3",
+            r#"node -e "console.log('3')""#,
+            r#"python3 -c "import calc; print('3')""#,
+        ] {
+            let o = hand(&mut list, &mut cx, "D1", words, Some("3"));
+            assert!(
+                o.is_error && o.content.contains("only prints words"),
+                "{words}: {}",
+                o.content
+            );
+        }
+        let o = hand(&mut list, &mut cx, "D1", "sh calc.sh 4 -1", Some("3"));
+        assert!(
+            o.is_error && o.content.contains("never names `2` of its case"),
+            "{}",
+            o.content
+        );
+        let o = hand(&mut list, &mut cx, "D2", "grep -c total calc.sh", None);
+        assert!(
+            o.is_error && o.content.contains("never names `4`"),
+            "{}",
+            o.content
+        );
+        assert!(
+            list.checks().is_empty(),
+            "a refused check is held for nothing"
+        );
+        // The case in the command, or in a script the command runs.
+        let o = hand(&mut list, &mut cx, "D1", "sh calc.sh 1 '' 2", Some("3"));
+        assert!(!o.is_error, "{}", o.content);
+        std::fs::write(dir.path().join("four.sh"), "sh calc.sh 4\n").unwrap();
+        let o = hand(&mut list, &mut cx, "D2", "sh four.sh", None);
+        assert!(!o.is_error, "{}", o.content);
+        // A line with no case is held to nothing but a command that runs something.
+        let o = hand(&mut list, &mut cx, "D3", "echo clear", None);
+        assert!(
+            o.is_error && o.content.contains("only prints words"),
+            "{}",
+            o.content
+        );
+        let o = hand(&mut list, &mut cx, "D3", "grep -c total calc.sh", None);
+        assert!(!o.is_error, "{}", o.content);
+
+        let found = dir.path();
+        // The board's own two lines, as the human wrote them: no backticks, no `must`.
+        let docstring = r#"python3 -c "import durations; print(durations.format.__doc__)""#;
+        for line in ["format(90) gives '90m'", "format(90) still gives '1h30m'"] {
+            assert!(
+                runs_its_case("D2", Some(line), docstring, found).is_err(),
+                "{line}"
+            );
+            let runs_it = r#"python3 -c "from durations import format; print(format(90))""#;
+            assert!(
+                runs_its_case("D2", Some(line), runs_it, found).is_ok(),
+                "{line}"
+            );
+        }
+        let line = "`format(90)` must stay as it is today";
+        assert!(
+            runs_its_case(
+                "D2",
+                Some(line),
+                r#"python3 -c "import d; print(d.format.__doc__)""#,
+                found
+            )
+            .is_err()
+        );
+        for runs_it in [
+            r#"python3 -c "import d; print(d.format(90))""#,
+            "cargo run -q -- 90",
+        ] {
+            assert!(
+                runs_its_case("D2", Some(line), runs_it, found).is_ok(),
+                "{runs_it}"
+            );
+        }
+        // Another input than the line's is not its case; a call spelt otherwise is.
+        let slice = "`ARRAY_SLICE(x, 2, 4)` read as duckdb must stay as it is today";
+        let other =
+            r#"python3 -c "import sqlglot; print(sqlglot.transpile('ARRAY_SLICE(x, 1, 10)')[0])""#;
+        assert!(runs_its_case("D1", Some(slice), other, found).is_err());
+        let shift = "`rightLogShift(matrix([[-1, 2]]), 0)` must give `[[4294967295, 2]]`";
+        let aliased =
+            r#"node -e "const m = math.matrix; console.log(math.rightLogShift(m([[-1,2]]),0))""#;
+        assert!(runs_its_case("D1", Some(shift), aliased, found).is_ok());
+    }
+
+    /// What only prints words is read narrowly: anything that may work something out runs.
+    #[test]
+    fn a_command_that_only_prints_words_is_read_narrowly() {
+        for words in [
+            "echo -5",
+            r#"echo "D9: mod(-7, 3) plain numbers""#,
+            r"printf 'x\n'",
+            r#"node -e "console.log('[4, 16]')""#,
+            r#"python3 -c "import sqlglot; print('SLICE(x, 4, 1)')""#,
+            r#"/usr/bin/python3 -c 'print("a", 3)'"#,
+        ] {
+            assert!(prints_only_words(words), "{words}");
+        }
+        for runs in [
+            "echo $((1 + 2))",
+            "echo 3 | sh calc.sh",
+            "echo `date`",
+            r#"python3 -c "print(total([1, 2]))""#,
+            r#"python3 -c "import d; print(d.format.__doc__)""#,
+            r#"python3 -c "print(f'{1 + 2}')""#,
+            r#"node -e "console.log(JSON.stringify([1]))""#,
+            "sh calc.sh 1 2",
+            "python3 check.py",
+        ] {
+            assert!(!prints_only_words(runs), "{runs}");
+        }
+        assert_eq!(values("format(90)"), ["90"]);
+        assert_eq!(values("mod(-7, -3.5)"), ["-7", "-3.5"]);
+        assert_eq!(values("SELECT INTERVAL '1.5 Day'"), ["1.5 day"]);
+        assert_eq!(values("total(['1', '', '2'])"), ["1", "2"]);
+        assert_eq!(values("it's x - 1"), ["1"]);
     }
 }

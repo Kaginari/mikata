@@ -296,7 +296,7 @@
     {
       "cache": true,
       "defer": false,
-      "description": "Hand the harness a check for one line of the `Done when` list: a command that prints what the line is about, and nothing else. With `gives`, the harness holds your work to that output, letter case and blanks set aside: keep the code's own spelling of what it prints. Without it the line is one that must stay as it is: the harness runs the command on the code as you found it, tells you what it does today, and holds your work to that, so hand such a line in before you change a file. When you answer, the harness runs every check on your work, and one that prints something else fails your landing. One check a line: handing a line in again with another command replaces its check, and with the same command says how the line stands now.",
+      "description": "Hand the harness a check for one line of the `Done when` list: a command that runs the line's own case, its values as the line writes them, and prints what comes out, and nothing else. A command that only prints words is refused. With `gives`, the harness holds your work to that output, letter case and blanks set aside: keep the code's own spelling of what it prints. Without it the line is one that must stay as it is: the harness runs the command on the code as you found it, tells you what it does today, and holds your work to that, so hand such a line in before you change a file. When you answer, the harness runs every check on your work, and one that prints something else fails your landing. One check a line: handing a line in again with another command replaces its check, and with the same command says how the line stands now.",
       "fill": true,
       "input_schema": {
         "additionalProperties": false,

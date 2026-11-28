@@ -66,8 +66,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **A `Done when` check has to run its line's case.** A check was held to what it printed, and
+  nothing asked what it ran. On our bench 140 checks of 3,483 only printed their answer
+  (`echo -5`), and 29 ran another input, another library or half the line. A line that must stay,
+  held to such a check, can never fail. Now the `check` tool refuses a command that only prints
+  words, and one that names none of its line's values (numbers and quoted words) in the command or
+  in a file it runs. Replayed on those 3,483 checks it refuses those 169, and read one by one none
+  is a whole, honest check (one ran a script since deleted, so it cannot be read).
+
 - **A metrics bar's hover card no longer vanishes for the keyboard.** The pointer and the focus
   each hold their own card, so the pointer leaving a bar keeps the focused bar's card shown.
+
 - **The Live run says when the end gate checks.** The board looked for the model's stop reason
   as `end_turn`, but the core sends it by name (`EndTurn`): *Checking* never showed, and Verify
   lit only once the verdict came. It now reads the core's word, and a provider's own.
