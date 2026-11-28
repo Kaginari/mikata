@@ -11,6 +11,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+### Changed
+
+- **A memory note can be proven by a test, even one its own session wrote.** A claim was grounded
+  only when its check was a verify line, word for word. A verify line that runs a whole suite
+  names no test, and a model proves its claim with a test it just wrote: on our bench, 22 notes of
+  Claude Haiku 5.5 over ten sqlglot fixes, none could ever be grounded. Now a claim may cite a test
+  file. One that stood before the session grounds it at once. One the session wrote holds it for a
+  later check (`held` in the session's memory line), and the next session whose gate passes with
+  that file unchanged grounds it (`grounded later`).
+
 ### Fixed
 
 - **A metrics chart's hover card no longer sticks** after the pointer leaves the chart. It went

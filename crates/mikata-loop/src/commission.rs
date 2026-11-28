@@ -1360,10 +1360,27 @@ pub(crate) fn remember(
         .iter()
         .filter(|u| u.kind != Some(mikata_wire::UnsaidKind::Territory))
         .collect();
+    // What earlier sessions held for a later check, settled by this gate first: their tests stood
+    // through this session's work, or were changed by it.
+    let settled = proof.map(|p| {
+        mikata_memory::settle(world, to, p).unwrap_or_else(|e| {
+            eprintln!("mikata: {to}'s held claims could not be settled: {e}");
+            mikata_memory::Settled::default()
+        })
+    });
+    let earlier = settled.as_ref().map_or(0, |s| s.grounded.len());
     if said.is_empty() {
-        return (None, Vec::new());
+        return (
+            (earlier > 0).then(|| {
+                format!(
+                    "[memory: 0 claim(s) of {to}'s kept, 0 grounded by checked, 0 by corroborated; \
+                     {earlier} earlier grounded: their tests stood unchanged through this gate]"
+                )
+            }),
+            Vec::new(),
+        );
     }
-    let (mut proposed, mut grounded, mut seconded) = (0, 0, 0);
+    let (mut proposed, mut grounded, mut seconded, mut held) = (0, 0, 0, 0);
     // Why each claim a **checked** proof did not bear on stays proposed, counted.
     let mut unchecked: std::collections::BTreeMap<String, usize> =
         std::collections::BTreeMap::new();
@@ -1385,12 +1402,10 @@ pub(crate) fn remember(
         let id = claim.note.clone();
         let short: String = text.chars().take(80).collect();
         // A check observes only its diff, and proves only the claims that name it: any other
-        // stays proposed, offered for the commissioner to accept.
-        let bears = proof.and_then(|p| {
-            p.observes(text, claim.source.as_deref(), check)
-                .map_err(|why| *unchecked.entry(why).or_default() += 1)
-                .ok()
-        });
+        // stays proposed, offered for the commissioner to accept. One whose test this session
+        // wrote is held for a later gate.
+        let bears =
+            proof.and_then(|p| judged(world, to, p, &claim, check, &mut held, &mut unchecked));
         let claim = match bears {
             Some(p) => match mikata_memory::ground(world, claim, &p) {
                 Ok(_) => {
@@ -1415,10 +1430,22 @@ pub(crate) fn remember(
         }
         open.push((id, short));
     }
-    let why = unchecked.iter().fold(String::new(), |mut out, (why, n)| {
+    let mut why = unchecked.iter().fold(String::new(), |mut out, (why, n)| {
         let _ = write!(out, "; {n} not checked: {why}");
         out
     });
+    if held > 0 {
+        let _ = write!(
+            why,
+            "; {held} held for a later check: each cites a test this session wrote"
+        );
+    }
+    if earlier > 0 {
+        let _ = write!(
+            why,
+            "; {earlier} earlier grounded: their tests stood unchanged through this gate"
+        );
+    }
     (
         Some(format!(
             "[memory: {proposed} claim(s) of {to}'s kept, {grounded} grounded by checked, \
@@ -1426,6 +1453,34 @@ pub(crate) fn remember(
         )),
         open,
     )
+}
+
+/// How `proof` bears on `claim`, naming `check`: the proof that grounds it now; or `None`, with
+/// the claim held for a later gate when it cites a test this session wrote (counted in `held`), or
+/// the reason it does not bear counted in `unchecked`.
+fn judged(
+    world: &Path,
+    to: &str,
+    proof: &mikata_memory::Proof,
+    claim: &mikata_memory::Claim<mikata_memory::Proposed>,
+    check: Option<&str>,
+    held: &mut usize,
+    unchecked: &mut std::collections::BTreeMap<String, usize>,
+) -> Option<mikata_memory::Proof> {
+    match proof.bears(world, &claim.text, claim.source.as_deref(), check) {
+        Ok(mikata_memory::Bears::Now(p)) => Some(p),
+        Ok(mikata_memory::Bears::Later { test }) => {
+            match mikata_memory::hold(world, claim, &test, check.unwrap_or_default()) {
+                Ok(()) => *held += 1,
+                Err(e) => eprintln!("mikata: {to}'s claim could not be held: {e}"),
+            }
+            None
+        }
+        Err(why) => {
+            *unchecked.entry(why).or_default() += 1;
+            None
+        }
+    }
 }
 
 /// The creatures in `name`'s line: those it reports to, up the chain, and those that report to it,
@@ -2588,6 +2643,69 @@ mod write_rule_tests {
             shared.into_values().collect(),
             personal.into_values().collect(),
         )
+    }
+
+    /// A claim citing a test its own session wrote is held, said in the report; the next
+    /// session's passing gate grounds it once that test stood unchanged through its work, and its
+    /// report says so even when it had nothing of its own to say.
+    #[test]
+    fn a_claim_on_its_own_new_test_is_held_and_grounded_by_the_next_gate() {
+        use mikata_memory::{Status, Tier, fold, read};
+        let w = std::env::temp_dir().join(format!("mikata-held-loop-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&w);
+        std::fs::create_dir_all(w.join("tests")).unwrap();
+        std::fs::write(
+            w.join("tests/test_stack.py"),
+            "def test_pop_empty(): pass\n",
+        )
+        .unwrap();
+        let line = "python3 .mikata/bench/no_regressions.py";
+        let mut first = passed("src/stack.py", &[line]);
+        first.changed.push(PathBuf::from("tests/test_stack.py"));
+        let heading = "[2026-11-28T12:00:00+01:00] slime-s — gate: PASS";
+        let proof = checked_proof("slime-s", Some((&first, Some(heading))));
+        let report = "@S DONE\n@U law src/stack.py pop on an empty stack raises IndexError \
+                      check=tests/test_stack.py::test_pop_empty\n@E";
+        let (said, _) = remember(
+            &w,
+            "slime-s",
+            &Ending::Answered(report.to_owned()),
+            proof.as_ref(),
+            &[],
+            None,
+        );
+        let said = said.unwrap();
+        assert!(
+            said.contains("0 grounded by checked")
+                && said
+                    .contains("; 1 held for a later check: each cites a test this session wrote"),
+            "{said}"
+        );
+        let held = || {
+            fold(&read(&w, &Tier::Personal("slime-s".into())).unwrap().rows)
+                .into_values()
+                .next()
+                .unwrap()
+        };
+        assert_eq!(held().status, Status::Proposed);
+        assert!(held().pending.is_some());
+        // The next session changes other code, says nothing, and passes: the claim is grounded.
+        let next = passed("src/queue.py", &[line]);
+        let heading = "[2026-11-28T13:00:00+01:00] slime-s — gate: PASS";
+        let proof = checked_proof("slime-s", Some((&next, Some(heading))));
+        let (said, _) = remember(
+            &w,
+            "slime-s",
+            &Ending::Answered("@S DONE\nDone.\n@E".to_owned()),
+            proof.as_ref(),
+            &[],
+            None,
+        );
+        let said = said.unwrap();
+        assert!(said.contains("; 1 earlier grounded"), "{said}");
+        assert_eq!(held().status, Status::Grounded);
+        assert!(held().pending.is_none());
+        let _ = std::fs::remove_dir_all(&w);
     }
 
     /// #317: a verify line that passed but does not exercise a claim never grounds it. The bench's

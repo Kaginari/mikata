@@ -300,6 +300,19 @@ fn kept(text: &str) -> Option<String> {
     if unchecked > 0 {
         let _ = write!(said, " · {unchecked} not checked");
     }
+    // Held for a later check, and grounded later: a claim on a test its own session wrote.
+    for (part, word) in [
+        (" held for a later check", "held"),
+        (" earlier grounded", "grounded later"),
+    ] {
+        let n: usize = why
+            .split("; ")
+            .filter_map(|p| p.split_once(part)?.0.trim().parse::<usize>().ok())
+            .sum();
+        if n > 0 {
+            let _ = write!(said, " · {n} {word}");
+        }
+    }
     Some(said)
 }
 
@@ -1191,6 +1204,15 @@ mod tests {
             )
             .as_deref(),
             Some("memory kept 2 notes · 2 not checked")
+        );
+        assert_eq!(
+            kept(
+                "[memory: 1 claim(s) of summoner's kept, 0 grounded by checked, 0 by corroborated; \
+                 1 held for a later check: each cites a test this session wrote; 2 earlier \
+                 grounded: their tests stood unchanged through this gate]"
+            )
+            .as_deref(),
+            Some("memory kept 1 note · 1 held · 2 grounded later")
         );
         assert_eq!(kept("[other]"), None);
         assert_eq!(

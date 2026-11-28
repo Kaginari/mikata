@@ -791,3 +791,172 @@ fn distilled_notes_go_to_sleep_once() {
         "asleep already: moved once"
     );
 }
+
+/// A claim whose check names a test file, not a verify line. A test that stood before the session,
+/// its diff leaving it as it was, ran under the verify line the gate passed: the claim is grounded
+/// now. A test the session itself wrote proves little of its author's claim: the claim is held,
+/// and a later gate grounds it once that test has stood unchanged through another session's work.
+/// A later session that changes the test again keeps it waiting; one whose test moved since stays
+/// proposed for good. On the bench, every claim Claude Haiku 5.5 wrote over ten sqlglot fixes
+/// cited a test it had just written, and none could be grounded.
+#[test]
+fn a_claim_on_a_test_its_session_wrote_is_grounded_by_a_later_gate() {
+    use mikata_memory::{Bears, test_named};
+    let w = world_of("held");
+    fs::create_dir_all(w.join("tests")).unwrap();
+    fs::create_dir_all(w.join("sqlglot")).unwrap();
+    fs::write(w.join("sqlglot/a.py"), "x = 1\n").unwrap();
+    fs::write(w.join("tests/test_a.py"), "def test_keep(): pass\n").unwrap();
+    fs::write(w.join("tests/test_old.py"), "def test_x(): pass\n").unwrap();
+    let line = "python3 .mikata/bench/no_regressions.py".to_owned();
+    let first = Proof::checked(
+        "log.md first",
+        std::slice::from_ref(&line),
+        &["sqlglot/a.py".into(), "tests/test_a.py".into()],
+    )
+    .unwrap();
+    let claim = "sqlglot/a.py keeps the collation";
+    // Written this session: held. Stood before: grounded now, by path or by dotted module.
+    assert_eq!(
+        first.bears(&w, claim, None, Some("tests/test_a.py::TestA::test_keep")),
+        Ok(Bears::Later {
+            test: "tests/test_a.py".into()
+        })
+    );
+    for stood in [
+        "tests/test_old.py",
+        "python3 -m unittest tests.test_old.TestOld.test_x",
+    ] {
+        let Ok(Bears::Now(p)) = first.bears(&w, claim, None, Some(stood)) else {
+            panic!("{stood}: a test that stood before the session grounds now");
+        };
+        let g = ground(
+            &w,
+            propose(&w, "summoner", claim, vec![], None).unwrap(),
+            &p,
+        )
+        .unwrap();
+        let notes = fold(&read(&w, &Tier::Personal("summoner".into())).unwrap().rows);
+        assert!(
+            notes[&g.note]
+                .proof
+                .as_deref()
+                .unwrap()
+                .contains("standing before the session")
+        );
+    }
+    // The verify line itself still grounds now, and a claim about no changed path never does.
+    assert!(matches!(
+        first.bears(&w, claim, None, Some(line.as_str())),
+        Ok(Bears::Now(_))
+    ));
+    assert!(
+        first
+            .bears(&w, "the API caps at 100", None, Some("tests/test_a.py"))
+            .unwrap_err()
+            .contains("names no path")
+    );
+    assert!(
+        first
+            .bears(&w, claim, None, Some("tests/test_gone.py::t"))
+            .unwrap_err()
+            .contains("nor a test file of the world")
+    );
+    assert_eq!(
+        test_named(&w, "pytest tests/test_a.py::T::t -q"),
+        Some("tests/test_a.py".into())
+    );
+    assert_eq!(
+        test_named(&w, "tests.test_old"),
+        Some("tests/test_old.py".into())
+    );
+    assert_eq!(test_named(&w, "../etc/passwd"), None);
+    assert_eq!(test_named(&w, "-x"), None);
+    let _ = fs::remove_dir_all(&w);
+}
+
+/// A held claim waits on its test: a later session that changes the test again keeps it waiting,
+/// one that leaves it as it was grounds it, citing both gates' line and the test, and one whose
+/// test moved since leaves it proposed for good. Only the checked route settles anything.
+#[test]
+fn a_held_claim_is_grounded_once_its_test_stood_through_a_later_gate() {
+    use mikata_memory::{hold, settle};
+    let w = world_of("settle");
+    fs::create_dir_all(w.join("tests")).unwrap();
+    fs::write(w.join("tests/test_a.py"), "def test_keep(): pass\n").unwrap();
+    let line = "python3 .mikata/bench/no_regressions.py".to_owned();
+    let claim = "sqlglot/a.py keeps the collation";
+
+    // Held: proposed, waiting on its test with the hash it has now.
+    let held = propose(&w, "summoner", claim, vec![], None).unwrap();
+    let id = held.note.clone();
+    hold(
+        &w,
+        &held,
+        "tests/test_a.py",
+        "tests/test_a.py::TestA::test_keep",
+    )
+    .unwrap();
+    let standing = |id: &str| {
+        let notes = fold(&read(&w, &Tier::Personal("summoner".into())).unwrap().rows);
+        let n = &notes[id];
+        (n.status, n.pending.as_ref().map(|h| h.test.clone()))
+    };
+    assert_eq!(
+        standing(&id),
+        (Status::Proposed, Some("tests/test_a.py".into()))
+    );
+    // A route other than checked settles nothing.
+    assert_eq!(
+        settle(&w, "summoner", &Proof::confirmed("the human"))
+            .unwrap()
+            .grounded
+            .len(),
+        0
+    );
+    // A later session that changes the test again: still waiting.
+    let again = Proof::checked(
+        "log.md second",
+        std::slice::from_ref(&line),
+        &["tests/test_a.py".into()],
+    )
+    .unwrap();
+    let s = settle(&w, "summoner", &again).unwrap();
+    assert_eq!((s.grounded.len(), s.waiting, s.moved), (0, 1, 0));
+    // A later session that leaves it alone: grounded, citing both.
+    let later = Proof::checked(
+        "log.md third",
+        std::slice::from_ref(&line),
+        &["sqlglot/b.py".into()],
+    )
+    .unwrap();
+    let s = settle(&w, "summoner", &later).unwrap();
+    assert_eq!(s.grounded, vec![id.clone()]);
+    assert_eq!(standing(&id), (Status::Grounded, None));
+    let notes = fold(&read(&w, &Tier::Personal("summoner".into())).unwrap().rows);
+    let cites = notes[&id].proof.clone().unwrap();
+    assert!(
+        cites.contains("log.md third") && cites.contains("unchanged since the claim was held"),
+        "{cites}"
+    );
+    assert!(
+        fold(&read(&w, &Tier::Shared).unwrap().rows).contains_key(&id),
+        "grounded is shared"
+    );
+    // Its test moved before any later gate: it stays proposed, and is counted as moved.
+    let moved = propose(
+        &w,
+        "summoner",
+        "sqlglot/a.py reads COLLATE once",
+        vec![],
+        None,
+    )
+    .unwrap();
+    let moved_id = moved.note.clone();
+    hold(&w, &moved, "tests/test_a.py", "tests/test_a.py").unwrap();
+    fs::write(w.join("tests/test_a.py"), "def test_keep(): assert True\n").unwrap();
+    let s = settle(&w, "summoner", &later).unwrap();
+    assert_eq!((s.grounded.len(), s.waiting, s.moved), (0, 0, 1));
+    assert_eq!(standing(&moved_id).0, Status::Proposed);
+    let _ = fs::remove_dir_all(&w);
+}
