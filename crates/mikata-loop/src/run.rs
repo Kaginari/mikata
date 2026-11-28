@@ -1067,6 +1067,10 @@ impl Run {
                 .attic()
                 .and_then(|a| a.snapshot("an evolution window run starts").ok())
                 .map(|s| s.tree);
+            // What rides this ask: its control rides the same model through the same provider,
+            // whatever the configuration names by then.
+            stamp.model.clone_from(&self.body.model);
+            self.model.provider().clone_into(&mut stamp.provider);
             Evolving {
                 stamp,
                 verdicts: Vec::new(),

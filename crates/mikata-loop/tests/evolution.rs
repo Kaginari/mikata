@@ -192,6 +192,8 @@ async fn a_change_that_changes_nothing_rolls_back() {
                 .append(&EvolutionRow::Run(Ran {
                     swap: Some(s.id.clone()),
                     build: s.build.clone(),
+                    model: "claude-sonnet-5-5".into(),
+                    provider: "scripted".into(),
                     body: "summoner".into(),
                     task: id.clone(),
                     control,

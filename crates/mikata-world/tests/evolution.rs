@@ -215,6 +215,43 @@ fn run(w: &World, ask: &str, gate: Gate) {
     }
 }
 
+/// A stamp names no model until its runner says which one rides the ask, and through which
+/// provider; the run row carries what the runner said.
+#[test]
+fn a_run_row_names_the_model_its_runner_said() {
+    let w = World::new("model");
+    swap_at(
+        &w.world(),
+        &w.ledger(),
+        &plan("m", vec![staged(MIND, Some("new\n"))]),
+    )
+    .unwrap();
+    let mut stamp = stamp_for(&w.world(), w.ledger().path(), "summoner", "a task").unwrap();
+    assert_eq!(
+        (stamp.model.as_str(), stamp.provider.as_str()),
+        (mikata_ledger::UNKNOWN, mikata_ledger::UNKNOWN),
+        "the stamp is its runner's to fill"
+    );
+    stamp.model = "qwen/qwen3.5-35b:free".into();
+    stamp.provider = "openrouter".into();
+    stamp.record(&w.world(), Facts::default()).unwrap();
+    let rode: Vec<(String, String)> = w
+        .ledger()
+        .read()
+        .unwrap()
+        .rows
+        .into_iter()
+        .filter_map(|r| match r {
+            EvolutionRow::Run(r) => Some((r.model, r.provider)),
+            EvolutionRow::Swap(_) | EvolutionRow::Settle(_) => None,
+        })
+        .collect();
+    assert_eq!(
+        rode,
+        [("qwen/qwen3.5-35b:free".to_owned(), "openrouter".to_owned())]
+    );
+}
+
 #[test]
 fn runs_after_the_swap_write_stamped_run_rows_until_the_window_is_full() {
     let w = World::new("runs");

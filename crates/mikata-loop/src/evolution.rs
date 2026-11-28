@@ -2,7 +2,8 @@
 //!
 //! No scheduler runs the controls beside the window: the human asks for them with
 //! `mikatad evolution judge <swap>`. Each window run still waiting on its control is run again —
-//! the same ask, by the same body, under the same build — in a scratch copy of the world whose
+//! the same ask, by the same body, under the same build, through the model its window run rode
+//! and not whichever the configuration names by then — in a scratch copy of the world whose
 //! named files are put back as they were before the swap (the bytes kept beside the ledger), and
 //! appended as a control row stamped with the before state it found and left. Then the swap is
 //! judged ([`mikata_ledger::evolution`]). Keep or rollback is only proposed.
@@ -28,9 +29,15 @@ use crate::model::Model;
 use crate::run::{Ending, Limits, Run, Setup};
 use crate::solo::{configure, solo};
 
-/// What runs the controls: the model, its id, the configuration, the live world's usage ledger
-/// and the session the controls' spend is counted under, how a control's tools' context is made
-/// ready over its scratch world (the sandbox), and where a line is said before anything is spent.
+/// How the model a window run rode is reached again for its control: given the provider's name
+/// and the model's id that run was stamped with, the model — or why the configuration no longer
+/// reaches it.
+pub type Reach<'a> = &'a dyn Fn(&str, &str) -> Result<Arc<dyn Model>, String>;
+
+/// What runs the controls: how the model a window run rode is reached, the configuration, the
+/// live world's usage ledger and the session the controls' spend is counted under, how a
+/// control's tools' context is made ready over its scratch world (the sandbox), and where a line
+/// is said before anything is spent.
 pub struct Controller<'a> {
     /// The live world's usage ledger: every control's call is written there and counted against
     /// the human's caps.
@@ -39,16 +46,90 @@ pub struct Controller<'a> {
     pub session: String,
     /// Says a line to the human as soon as it is known.
     pub say: &'a dyn Fn(&str),
-    /// The model.
-    pub model: Arc<dyn Model>,
-    /// The id it answers to.
-    pub model_id: String,
+    /// Reaches the model a control rides: the one its window run rode.
+    pub model: Reach<'a>,
     /// The world's configuration.
     pub config: &'a Config,
     /// The context made ready over the scratch world, given its root.
     pub ready: fn(Context, &Path) -> Context,
     /// The attic the window's runs kept their starts in: the world's own when `None`.
     pub attic: Option<&'a Path>,
+}
+
+/// What a control rides: the model its window run rode, with the names that run's row carries.
+struct Riding<'a> {
+    /// The provider it is reached through, by the name the usage ledger writes.
+    provider: &'a str,
+    /// The id it answers to.
+    id: &'a str,
+    /// The model.
+    model: Arc<dyn Model>,
+}
+
+/// Every model the runs in `waiting` rode, each reached once, before anything is said or spent.
+///
+/// # Errors
+///
+/// A run kept no model, its model cannot be reached again, or it is reached through another
+/// provider than the run's.
+fn reach_all<'r>(
+    waiting: &[&'r ledger::Run],
+    c: &Controller<'_>,
+) -> Result<Vec<Riding<'r>>, String> {
+    let mut reached: Vec<Riding<'r>> = Vec::new();
+    for w in waiting {
+        if reached
+            .iter()
+            .any(|r| r.provider == w.provider && r.id == w.model)
+        {
+            continue;
+        }
+        if w.model == mikata_ledger::UNKNOWN || w.provider == mikata_ledger::UNKNOWN {
+            return Err(format!(
+                "task {}: its window run kept no model, so its control cannot ride the same one; \
+                 judge this window by hand",
+                w.task
+            ));
+        }
+        let model = (c.model)(&w.provider, &w.model).map_err(|e| {
+            format!(
+                "task {}: its window run rode {} through {}, and no control can ride the same \
+                 ({e}); judge this window by hand",
+                w.task, w.model, w.provider
+            )
+        })?;
+        // A control's row names what it rode. Reached through another provider it would be no
+        // control of its run, and the run would wait, and spend, at every judging.
+        if model.provider() != w.provider {
+            return Err(format!(
+                "task {}: its window run rode {} through {}, and it is reached through {} now; \
+                 judge this window by hand",
+                w.task,
+                w.model,
+                w.provider,
+                model.provider()
+            ));
+        }
+        reached.push(Riding {
+            provider: &w.provider,
+            id: &w.model,
+            model,
+        });
+    }
+    Ok(reached)
+}
+
+/// One control's task: the ask its window run was given, by which body, from which tree, and
+/// what it rides.
+struct Task<'a> {
+    /// The body that ran the window run, and runs its control.
+    body: &'a str,
+    /// The ask, as the window run was given it.
+    ask: &'a str,
+    /// The attic's tree the window run started from.
+    start: &'a str,
+    /// What the control rides.
+    riding: &'a Riding<'a>,
 }
 
 /// The directories a scratch copy of the world leaves out: build output and the instruments.
@@ -139,12 +220,13 @@ fn body_run(
     trust: &Path,
     root: &Path,
     name: &str,
+    riding: &Riding<'_>,
     c: &Controller<'_>,
     journal: Journal<Beat>,
 ) -> Result<Run, String> {
     let roster = Roster::load(world);
     let (body, cx, gate) = if name == "summoner" {
-        let (body, cx) = solo(world, &c.model_id);
+        let (body, cx) = solo(world, riding.id);
         let card = roster.creatures.get(name);
         let doc = card.map_or_else(
             || ".mikata/summoner/summoner/README.md".to_owned(),
@@ -164,7 +246,7 @@ fn body_run(
         let body = crate::run::Body {
             name: name.to_owned(),
             race: creature.race,
-            model: c.model_id.clone(),
+            model: riding.id.to_owned(),
             system: crate::commission::prompt(
                 world,
                 &roster,
@@ -206,7 +288,7 @@ fn body_run(
     let mut tools = registry();
     tools.push(Box::new(crate::wear_tool::WearTool));
     let setup = Setup {
-        model: Arc::clone(&c.model),
+        model: Arc::clone(&riding.model),
         tools,
         cx,
         journal,
@@ -235,10 +317,14 @@ fn body_run(
 /// Runs, for swap `id` on the ledger at `at`, every control its window still waits on, and
 /// appends each as a control row. Returns one line per control run.
 ///
+/// Each control rides the model its window run rode, reached before a line is said or a call is
+/// spent: a window may hold runs of several models, and each is paired with a control of its own.
+///
 /// # Errors
 ///
-/// The swap cannot be judged, it was swapped in under another build, a window run kept no ask, a
-/// scratch world cannot be made or put back to the before state, or a row cannot be written.
+/// The swap cannot be judged, it was swapped in under another build, a window run kept no model
+/// or rode one the configuration no longer reaches, a window run kept no ask, a scratch world
+/// cannot be made or put back to the before state, or a row cannot be written.
 pub async fn run_controls(
     world: &Path,
     at: &Path,
@@ -253,6 +339,8 @@ pub async fn run_controls(
     if swap.build != Build::this() {
         return Err(rebuilt(swap));
     }
+    let reached = reach_all(&waiting, c)?;
+    let through = reached.iter().map(|r| r.id).collect::<Vec<_>>().join(", ");
     // What the controls may spend, said before any is spent; a spent cap runs none.
     let (_, _, _, left) = crate::open::read_caps(c.config, &c.usage, &c.session)?;
     match left {
@@ -266,7 +354,7 @@ pub async fn run_controls(
             "{} control(s) to run through {}: at most {} wt, what the {} cap leaves; each call is \
              written to the usage ledger, and a control the cap stops is not recorded",
             waiting.len(),
-            c.model_id,
+            through,
             l.wt,
             l.cap
         )),
@@ -275,7 +363,7 @@ pub async fn run_controls(
              set, so the spend is bounded only by each body's steps — set budget.session to bound \
              it; each call is written to the usage ledger",
             waiting.len(),
-            c.model_id
+            through
         )),
     }
     let mut lines = Vec::new();
@@ -300,22 +388,21 @@ pub async fn run_controls(
                 w.task
             )
         })?;
+        let riding = reached
+            .iter()
+            .find(|r| r.provider == w.provider && r.id == w.model)
+            .ok_or_else(|| format!("task {}: its model was not reached", w.task))?;
+        let task = Task {
+            body: w.body.as_str(),
+            ask,
+            start,
+            riding,
+        };
         let root =
             std::env::temp_dir().join(format!("mikata-control-{id}-{}-{n}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
         let scratch = root.join(world.file_name().unwrap_or_else(|| "world".as_ref()));
-        let ran = control(
-            world,
-            at,
-            swap,
-            w.body.as_str(),
-            ask,
-            start,
-            &root,
-            &scratch,
-            c,
-        )
-        .await;
+        let ran = control(world, at, swap, &task, &root, &scratch, c).await;
         let _ = fs::remove_dir_all(&root);
         // The attic `solo` would have kept for the scratch world, should one have been made.
         if let Some(a) = mikata_tools::Attic::for_world(&scratch) {
@@ -344,18 +431,21 @@ pub async fn run_controls(
 
 /// One control: the scratch world made and put back to the before state, the ask run, the row
 /// written. `None` when the run was interrupted.
-#[allow(clippy::too_many_arguments, reason = "one control's whole setting")]
 async fn control(
     world: &Path,
     at: &Path,
     swap: &ledger::Swap,
-    body: &str,
-    ask: &str,
-    start: &str,
+    task: &Task<'_>,
     root: &Path,
     scratch: &Path,
     c: &Controller<'_>,
 ) -> Result<Option<Facts>, String> {
+    let Task {
+        body,
+        ask,
+        start,
+        riding,
+    } = task;
     copy_world(world, scratch, true).map_err(|e| format!("the scratch world: {e}"))?;
     let attic = match c.attic {
         Some(dir) => mikata_tools::Attic::at(dir, world),
@@ -372,12 +462,14 @@ async fn control(
     }
     let journal: Journal<Beat> = Journal::new(root.join("control.jsonl"));
     // The scratch copy's cards are judged against the live world's pins: a copy has none.
-    let mut run = body_run(scratch, world, root, body, c, journal.clone())?;
+    let mut run = body_run(scratch, world, root, body, riding, c, journal.clone())?;
     let stamp = Stamp {
         ledger: at.to_path_buf(),
         swap: swap.clone(),
-        body: body.to_owned(),
-        ask: ask.to_owned(),
+        body: (*body).to_owned(),
+        model: riding.id.to_owned(),
+        provider: riding.model.provider().to_owned(),
+        ask: (*ask).to_owned(),
         state,
         control: true,
         start: None,
@@ -422,6 +514,48 @@ fn rebuilt(swap: &ledger::Swap) -> String {
     )
 }
 
+/// The model a window run rode, reached again for its control: the configuration's own when it
+/// is still that one, else the one the run names, asked for as a session asks for a model when it
+/// opens (`<provider>:<id>` over the configuration's own), through the same backends and keys.
+///
+/// # Errors
+///
+/// The model's backend is unknown, its key is not set, or the configuration reaches no model
+/// `id` through `provider`.
+pub fn reach(
+    config: &Config,
+    world: &Path,
+    env: &dyn Fn(&str) -> Option<String>,
+    provider: &str,
+    id: &str,
+) -> Result<Arc<dyn Model>, String> {
+    let same = |model: &Arc<dyn Model>, backend: &mikata_config::Backend| {
+        backend.model == id && model.provider() == provider
+    };
+    // The configuration's own first: most windows ride it, and it may be named another way.
+    if let Ok((model, backend, ..)) = crate::open::model_of(config, world, env)
+        && same(&model, &backend)
+    {
+        return Ok(model);
+    }
+    let named = format!("{provider}:{id}");
+    let asked = |key: &str| {
+        if key == "MIKATA_MODEL" {
+            Some(named.clone())
+        } else {
+            env(key)
+        }
+    };
+    let (model, backend, ..) = crate::open::model_of(config, world, &asked)?;
+    if same(&model, &backend) {
+        Ok(model)
+    } else {
+        Err(format!(
+            "the configuration reaches no model `{id}` through `{provider}`"
+        ))
+    }
+}
+
 /// What judging on demand came to: the controls run, then the judgement.
 pub struct Judged {
     /// One line per control run.
@@ -430,14 +564,15 @@ pub struct Judged {
     pub judgement: Judgement,
 }
 
-/// `mikatad evolution judge <id>`: runs the controls swap `id` waits on in `world` — through the
-/// configured model, its key read from `env` — then judges it from the world's ledger, held to its
-/// anchored head, on `evolution.min_net_wins`. No model is reached when no control waits.
+/// `mikatad evolution judge <id>`: runs the controls swap `id` waits on in `world` — each through
+/// the model its window run rode ([`reach`]), its key read from `env` — then judges it from the
+/// world's ledger, held to its anchored head, on `evolution.min_net_wins`. No model is reached
+/// when no control waits.
 ///
 /// # Errors
 ///
-/// The configuration does not load, there is no home for the ledger, the model cannot be reached,
-/// or a control cannot run.
+/// The configuration does not load, there is no home for the ledger, a window run's model cannot
+/// be reached, or a control cannot run.
 pub fn judge(
     world: &Path,
     id: &str,
@@ -454,10 +589,9 @@ pub fn judge(
     }
     let waits = awaiting.is_some_and(|(_, w)| !w.is_empty());
     let controls = if waits {
-        let (model, backend, ..) = crate::open::model_of(&config, world, env)?;
+        let model = |provider: &str, id: &str| reach(&config, world, env, provider, id);
         let c = Controller {
-            model,
-            model_id: backend.model,
+            model: &model,
             config: &config,
             ready: |cx, _| cx,
             attic: None,
