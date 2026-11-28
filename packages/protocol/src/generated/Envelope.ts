@@ -19,4 +19,9 @@ body: string,
 /**
  * The event's number: it rises by one, in the order events reach the wire.
  */
-seq: number, };
+seq: number, 
+/**
+ * When it reached the wire, in milliseconds since 1970 (UTC): what a replay keeps of how
+ * long anything took. None for an event read back from a run's journal.
+ */
+at?: number, };

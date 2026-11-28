@@ -181,6 +181,7 @@ impl Core {
         replay.0 += 1;
         if let Some(o) = params.as_object_mut() {
             o.insert("seq".into(), json!(replay.0));
+            o.insert("at".into(), json!(now_ms()));
         }
         let line = json!({"jsonrpc": "2.0", "method": format!("event/{}", event.kind()), "params": params});
         if replay.1.len() == REPLAY {
@@ -747,4 +748,11 @@ pub fn resumer(
             _ => std::env::var(var).ok(),
         })
     })
+}
+
+/// Now, in milliseconds since 1970 (UTC): an event's `at`.
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 }

@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-28
+
 ### Added
 
 - **A new Metrics page, read from what every ask did.** It replaces the old structured-coding
@@ -65,6 +67,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   which are folded.
 
 ### Fixed
+
+- **A run's times survive a reload.** After the board reconnected, or a tab opened on a session
+  already running, every line of the Live run's log read `[00:00]` and the clock lost what it had
+  counted: replayed events carried no time. Each event now carries when it reached the wire
+  (`at`, in the protocol's envelope), and a replayed one is timed by it.
 
 - **An evolution's controls ride the model its runs rode.** A swap on trial is judged by running
   each of its ten asks again without the change. Those controls rode whichever model was
@@ -1190,7 +1197,8 @@ collective-coding are kept as the lab, usable and frozen.
 - The canvases: each page's sketches drawn by tldraw's Mermaid converter as `.tldr` documents and
   light and dark SVGs in the pages, every canvas checked for script and outside links [#311].
 
-[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.3.0...main
+[Unreleased]: https://github.com/Kaginari/mikata/compare/v1.4.0...main
+[1.4.0]: https://github.com/Kaginari/mikata/releases/tag/v1.4.0
 [1.3.0]: https://github.com/Kaginari/mikata/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Kaginari/mikata/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Kaginari/mikata/releases/tag/v1.1.0

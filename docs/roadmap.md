@@ -63,7 +63,8 @@ flowchart TD
     subgraph MIKATA_BG[" "]
       direction TB
       R("1.1.0<br/>what done means, held") --> R2("1.2.0<br/>a harness you compose")
-      R2 --> N(["Now · 1.3.0<br/>secret files · the platform"])
+      R2 --> R3("1.3.0<br/>secret files · the platform")
+      R3 --> N(["Now · 1.4.0<br/>long sessions · checks that run"])
       N --> M("Next<br/>a memory that pays")
       M --> F("Then<br/>a fold for long runs")
       F --> S("Later<br/>the split, wider")
@@ -83,7 +84,24 @@ flowchart TD
     style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
 ```
 
-## Now: 1.3.0, your secrets kept and the board as a platform
+## Now: 1.4.0, the board for long sessions
+
+1.4.0 (28 November) holds:
+
+- **A task runs to its end when you leave its page.** Reading the metrics or a past run no longer
+  stops it; each ask has its own clock, and a run's times survive a reload.
+- **You choose the model and the limits** when you start a session: the model, and each ask's
+  steps, clock and context line, on the board and in the terminal app (`--context 200k`).
+- **The Live run follows the ask now running** and shows the model at work. Every state has its
+  colour, its icon and its word, failure has its own red, and Done when and Guardrails fold.
+- **Studio, a third look** beside Light and Dark, calmer for long hours, on the board and in the
+  terminal app.
+- **A new Metrics page**, read from what every ask did: how asks end and why they stop, dollars a
+  landing, and the models and harnesses side by side.
+- **A `Done when` check has to run its line's case**: one that only prints its answer, or runs
+  another input, is refused.
+
+## Before: 1.3.0, your secrets kept and the board as a platform
 
 1.3.0 (27 November) holds:
 
