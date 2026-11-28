@@ -7,7 +7,7 @@
  */
 import './metrics.css';
 import { ChartColumnIncreasing } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   byDay,
   byList,
@@ -60,7 +60,23 @@ function useTip() {
   const [hover, setHover] = useState<Tip | undefined>();
   const [focus, setFocus] = useState<Tip | undefined>();
   const [last, setLast] = useState<'hover' | 'focus'>('hover');
+  // A pointer card goes once the pointer is over anything that holds no card. A bar's own
+  // `mouseleave` alone is not enough: the browser does not always send it (seen in CI, a card
+  // left standing after the pointer moved to the page's corner).
+  useEffect(() => {
+    if (!hover) return;
+    const away = (e: MouseEvent) => {
+      if (!(e.target instanceof Element && e.target.closest('[data-tip]'))) setHover(undefined);
+    };
+    document.addEventListener('mousemove', away);
+    document.addEventListener('mouseover', away);
+    return () => {
+      document.removeEventListener('mousemove', away);
+      document.removeEventListener('mouseover', away);
+    };
+  }, [hover]);
   const on = (body: ReactNode) => ({
+    'data-tip': '',
     onMouseMove: (e: React.MouseEvent) => {
       setHover({ x: e.clientX, y: e.clientY, body });
       setLast('hover');
