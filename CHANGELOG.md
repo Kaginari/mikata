@@ -66,6 +66,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- **An evolution's controls ride the model its runs rode.** A swap on trial is judged by running
+  each of its ten asks again without the change. Those controls rode whichever model was
+  configured when the judge ran, so a session started on another model (the board's *Model*
+  choice, `MIKATA_MODEL`) was judged against a different one, and a keep or a rollback could be
+  the model's doing, not the change's. Every run row of the evolution ledger now names its model
+  and the provider it was reached through; a control is run through its own run's model and
+  counts only under it, so a window of several models is judged pair by pair. A model that can no
+  longer be reached (its key not set, its provider gone) refuses the controls and says to judge
+  the window by hand. A row written before this reads its model as `unknown`
+  ([races](docs/experimental/races.md#evolution--the-other-way-to-change)).
 - **A `Done when` check has to run its line's case.** A check was held to what it printed, and
   nothing asked what it ran. On our bench 140 checks of 3,483 only printed their answer
   (`echo -5`), and 29 ran another input, another library or half the line. A line that must stay,

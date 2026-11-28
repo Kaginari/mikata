@@ -1993,7 +1993,9 @@ what comes after it, and only that:
   name (*contaminated*), lacks a file it named (*missing*), or moved a named file from or to
   another digest than the named one — a file the swap creates must not have existed. It refuses
   a swap that names no file, a file twice, or a file the same before and after.
-- **The post-swap window.** Every run is stamped with the swap's id, the build and the state of
+- **The post-swap window.** Every run is stamped with the swap's id, the build, the model that
+  rode it with the provider it was reached through (as the usage ledger names them; a row from
+  before reads `unknown`), and the state of
   the named files as the run found them and as it left them (`state`, one digest over each path
   and its digest), so a file edited mid-run shows. The
   window is the first 10 runs (`EVOLUTION_WINDOW`) after the swap's row, stamped with its id and
@@ -2010,9 +2012,13 @@ what comes after it, and only that:
   and never one any earlier run row carries — stamped or not, of this swap or another, twice in
   the window included — but this swap's own controls; any of these refuses the judgement.
 - **The do-nothing control.** Every window task is run again without the change, after the swap
-  and by the same body — a fixture that finds and leaves the named files in their before state,
-  stamped as the control — and the fixtures include tasks where no change is the right output. A
-  control run before the swap, or by another body, never counts. Paired by task, a **win** is a
+  and by the same body under the same model — a fixture that finds and leaves the named files in
+  their before state, stamped as the control — and the fixtures include tasks where no change is
+  the right output. A control run before the swap, by another body, or under another model than
+  its run's (or the same one through another provider) never counts: such a pair would measure
+  the model, not the change. A window may hold runs of several models, as when the human chooses
+  one for a session; each is paired with a control of its own, and the judgement then speaks for
+  the models the work rode, not for each alone. Paired by task, a **win** is a
   task the evolution landed and the control did not, a **loss** the reverse. The evolution is
   kept only on **net wins** (wins less losses) of at least `evolution.min_net_wins` — 2 unless the
   human's own file says, at least 1 — and a `holeRate` (the report fold's, the harness's facts
@@ -2034,6 +2040,98 @@ what comes after it, and only that:
 - **Settled.** In `auto` mode the harness settles a judged swap by the rule; in `propose` mode a
   keep or a rollback is proposed to the human like every other change to a race, and settling it
   is the human's (`evolution keep | rollback <id>`).
+
+**A pair, in one picture.** Every run of the window stands beside its control: the same ask, by
+the same body, under the same build and the same model, so the two differ by the change alone. A
+window may ride several models, as when you choose one for a session; each run is paired on its
+own, and a run whose model cannot be reached again gets no control.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    darkMode: true
+    background: "#07050a"
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    fontSize: "15px"
+    primaryColor: "#3d2b40"
+    primaryTextColor: "#f5eff7"
+    primaryBorderColor: "#3d2b40"
+    secondaryColor: "#59405d"
+    secondaryTextColor: "#f5eff7"
+    secondaryBorderColor: "#59405d"
+    tertiaryColor: "#110c14"
+    tertiaryTextColor: "#f5eff7"
+    tertiaryBorderColor: "#3d2b40"
+    lineColor: "#ff168a"
+    textColor: "#f5eff7"
+    titleColor: "#f5eff7"
+    edgeLabelBackground: "#07050a"
+    clusterBkg: "#110c14"
+    clusterBorder: "#3d2b40"
+    noteBkgColor: "#ffb020"
+    noteTextColor: "#1a1205"
+    noteBorderColor: "#ffb020"
+    actorBkg: "#3d2b40"
+    actorBorder: "#3d2b40"
+    actorTextColor: "#f5eff7"
+    actorLineColor: "#59405d"
+    signalColor: "#ff655c"
+    signalTextColor: "#f5eff7"
+    labelBoxBkgColor: "#3d2b40"
+    labelBoxBorderColor: "#3d2b40"
+    labelTextColor: "#f5eff7"
+    loopTextColor: "#f5eff7"
+    activationBkgColor: "#ff168a"
+    activationBorderColor: "#ff168a"
+    sequenceNumberColor: "#07050a"
+    transitionColor: "#ff168a"
+    transitionLabelColor: "#f5eff7"
+    stateLabelColor: "#f5eff7"
+    stateBkg: "#3d2b40"
+    labelBackgroundColor: "#07050a"
+    compositeBackground: "#110c14"
+    compositeTitleBackground: "#3d2b40"
+    altBackground: "#110c14"
+    specialStateColor: "#b6f542"
+    innerEndBackground: "#b6f542"
+  flowchart:
+    wrappingWidth: 260
+---
+flowchart TD
+    subgraph MIKATA_BG[" "]
+      direction TB
+      SW("a swap, on trial<br/>its files hashed before and after") --> RA("an ask of its window<br/>the session rode model A")
+      SW --> RB("another ask of its window<br/>that session rode model B")
+      RA -->|"run again without it:<br/>same ask, body, build,<br/>and model A"| CA("its control<br/>the files as they were")
+      RB -->|"same ask, body, build,<br/>and model B"| CB("its control<br/>the files as they were")
+      RA -. "each row names its<br/>model and provider" .-> L[("the evolution<br/>ledger")]
+      CA -.-> L
+      CA --> J{"paired<br/>by task"}
+      CB --> J
+      J -->|"2 net wins,<br/>no more holes"| KEEP("kept")
+      J -->|"less"| BACK("rolled back")
+      RB -. "model B cannot<br/>be reached again" .-> HAND("no control is run:<br/>you settle the swap")
+    end
+    classDef core fill:#ff168a,stroke:#ff168a,stroke-width:2px,color:#07050a
+    class SW core
+    classDef step fill:#3d2b40,stroke:#3d2b40,stroke-width:1.5px,color:#f5eff7
+    class RA,RB step
+    classDef outside fill:#59405d,stroke:#59405d,stroke-width:1.5px,color:#f5eff7
+    class CA,CB outside
+    classDef store fill:#ff655c,stroke:#ff655c,stroke-width:1.5px,color:#1a0a0a
+    class L store
+    classDef gate fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
+    class J gate
+    classDef good fill:#b6f542,stroke:#b6f542,stroke-width:2px,color:#203008
+    class KEEP good
+    classDef bad fill:#ff5575,stroke:#ff5575,stroke-width:1.5px,color:#1a0509
+    class BACK bad
+    classDef human fill:#ffb020,stroke:#ffb020,stroke-width:2px,color:#1a1205
+    class HAND human
+    style MIKATA_BG fill:#07050a,stroke:#3d2b40,color:#07050a
+```
 
 **The lifecycle, end to end** (`mikata_world::evolution`, `mikata_loop::evolution`). In `propose`
 mode nothing here runs on its own: the human swaps a plan in, asks for its judgement and settles
@@ -2086,7 +2184,8 @@ it. In `auto` mode the tick above does each step after a session.
    taken, a path outside the creature docs and Minds, or a body still in another swap's window
    is refused and the world put back: no row. One evolution at a time per body.
 3. **Run.** Every ask of a body the swap names — the session's own or a commissioned one — is
-   stamped when it opens, while the window is open: the swap's id, the build, the task's
+   stamped when it opens, while the window is open: the swap's id, the build, the model that
+   rides it and its provider, the task's
    fingerprint (the SHA-256 of the ask as sent, which is kept on the row for its control) and the
    named files' state as the run found them. When the ask ends, a `run` row adds the state the
    run left them in and the harness's facts: the gate's last word, a first-try pass, and the holes
@@ -2099,13 +2198,21 @@ it. In `auto` mode the tick above does each step after a session.
 4. **Controlled**, on demand: no scheduler runs the controls beside the window.
    `mikatad evolution judge <id>` runs the do-nothing control of every window run still without
    one — the same ask, by the same body (Summoner alone, or the creature with its own prompt, soil
-   and verify lines), through the configured model, under the swap's own build — in a scratch
+   and verify lines), through the model its window run rode, under the swap's own build — in a scratch
    copy of the world (build output, instruments and scratch left out), reset to the attic's tree
    of the world **as its window run started** (kept in the run's row when it was stamped), whose
    named files are then put back to the bytes kept before; the scratch's state must read the
    swap's before state, and its attic goes with it. A control therefore faces the task the
    evolved run faced, never the world the window's runs finished; a window run stamped before
-   starts were kept has no start, and its control is refused, not run on the finished world. A
+   starts were kept has no start, and its control is refused, not run on the finished world.
+   **A control rides its run's model, not the configuration's:** the one the row names, reached
+   as a session asks for a model when it opens (`<provider>:<id>` over the configuration's own),
+   through the same backends and keys. Until this was held, the controls rode whichever model was
+   configured when the judge ran, so a session started on another model was judged against it,
+   and a keep or a rollback could be the model's doing. Every model the waiting runs rode is
+   reached before a line is said or a call spent; one that cannot be — its key not set, its
+   provider gone, the same id reached through another provider, or a run that kept no model —
+   refuses the controls and says to judge the window by hand (`evolution keep | rollback <id>`). A
    run that **changed nothing**, window or control, is judged by whether the task is done: its
    verify lines run over the world as it stands, and only their pass is a landing (no line at all
    is not verified). The gate passes no change, and on that pass a control that did nothing

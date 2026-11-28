@@ -160,15 +160,18 @@ impl Fixture {
         restore_before(&path, &s, &copy).unwrap();
         for i in 0..10 {
             let ask = format!("task {i}");
-            stamp_for(&self.world, &path, "sly", &ask)
-                .unwrap()
-                .record(&self.world, pass)
-                .unwrap();
+            // What a session's runner says of the ask: the model that rides it, and its provider.
+            let mut run = stamp_for(&self.world, &path, "sly", &ask).unwrap();
+            run.model = "claude-sonnet-5-5".into();
+            run.provider = "anthropic".into();
+            run.record(&self.world, pass).unwrap();
             if controls {
                 Stamp {
                     ledger: path.clone(),
                     swap: s.clone(),
                     body: "sly".into(),
+                    model: "claude-sonnet-5-5".into(),
+                    provider: "anthropic".into(),
                     ask,
                     state: s.before_state(),
                     control: true,
@@ -441,6 +444,24 @@ fn judge_runs_what_waits_then_proposes_by_the_rule() {
     );
 }
 
+/// A run of `body` in `s`'s window, written as a session's runner writes it.
+#[cfg(target_os = "linux")]
+fn window_run(f: &Fixture, s: &mikata_server::world::evolution::Swap, body: &str, ask: &str) {
+    Stamp {
+        ledger: f.ledger(),
+        swap: s.clone(),
+        body: body.into(),
+        model: "claude-sonnet-5-5".into(),
+        provider: "anthropic".into(),
+        ask: ask.into(),
+        state: s.after_state(),
+        control: false,
+        start: None,
+    }
+    .record(&f.world, Facts::default())
+    .unwrap();
+}
+
 /// Through the binary end to end: `--proven-on` takes the task's text and fingerprints it as the
 /// runs are; a task the plan was proven on, a held-out task used before and a task in two splits
 /// are each refused by `judge`, and the proven task is never stamped.
@@ -466,19 +487,7 @@ fn the_cli_refuses_a_reused_held_out_task_and_a_task_in_two_splits() {
             })
             .unwrap()
     };
-    let record = |s: &Swap, body: &str, ask: &str| {
-        Stamp {
-            ledger: f.ledger(),
-            swap: s.clone(),
-            body: body.into(),
-            ask: ask.into(),
-            state: s.after_state(),
-            control: false,
-            start: None,
-        }
-        .record(&f.world, Facts::default())
-        .unwrap();
-    };
+    let record = |s: &Swap, body: &str, ask: &str| window_run(&f, s, body, ask);
     let judged = |id: &str| {
         let out = f.run(&["evolution", "judge", id]);
         assert_eq!(out.status.code(), Some(1), "{:?}", text(&out));

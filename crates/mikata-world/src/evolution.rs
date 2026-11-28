@@ -757,6 +757,12 @@ pub struct Stamp {
     pub swap: Swap,
     /// The body that runs it.
     pub body: String,
+    /// The model that runs it, by its id at the provider: its runner's to say, `unknown` until
+    /// it does. A window run's control rides the same one.
+    pub model: String,
+    /// The provider that model is reached through, by the name the usage ledger writes; its
+    /// runner's to say, as the model is.
+    pub provider: String,
     /// The ask.
     pub ask: String,
     /// The named files' state as the run found them.
@@ -782,6 +788,7 @@ pub struct Facts {
 /// window is open for the body, the swap was made by another build (its window could never fill
 /// under this one), the ask's task is already on the ledger or is one any swap's plan was proven
 /// on (it could not be held out), or the ledger cannot be read — then the run is no evolution's to judge.
+/// The stamp names no model: the runner says which one rides the ask, and through which provider.
 #[must_use]
 pub fn stamp_for(world: &Path, ledger: &Path, body: &str, ask: &str) -> Option<Stamp> {
     let read = read_ledger(ledger).ok()?;
@@ -798,6 +805,8 @@ pub fn stamp_for(world: &Path, ledger: &Path, body: &str, ask: &str) -> Option<S
         ledger: ledger.to_path_buf(),
         swap: swap.clone(),
         body: body.to_owned(),
+        model: mikata_ledger::UNKNOWN.to_owned(),
+        provider: mikata_ledger::UNKNOWN.to_owned(),
         ask: ask.to_owned(),
         state,
         control: false,
@@ -817,6 +826,8 @@ impl Stamp {
         Journal::<EvolutionRow>::chained(&self.ledger).append(&EvolutionRow::Run(Run {
             swap: Some(self.swap.id.clone()),
             build: Build::this(),
+            model: self.model.clone(),
+            provider: self.provider.clone(),
             body: self.body.clone(),
             task: fingerprint(&self.ask),
             control: self.control,
